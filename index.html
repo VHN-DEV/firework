@@ -54,9 +54,10 @@
     <div class="container">
         <div class="loading-init">
             <div class="loading-init__header">Đang tải</div>
-            <div class="loading-init__status">Đang lắp ráp pháo</div>
+            <div class="loading-init__status">Đang chuẩn bị màn trình diễn...</div>
         </div>
         <div class="stage-container remove">
+            <div class="background-image"></div>
             <div class="canvas-container">
                 <canvas id="trails-canvas"></canvas>
                 <canvas id="main-canvas"></canvas>
@@ -92,6 +93,11 @@
                             <label class="shell-type-label">Loại pháo</label>
                             <select class="shell-type"></select>
                         </div>
+                        <div class="form-option form-option--text">
+                            <label class="custom-text-label">Văn bản</label>
+                            <input class="custom-text" type="text" placeholder="Nhập chữ, dùng dấu phẩy (,) để ngăn cách"
+                                maxlength="50" />
+                        </div>
                         <div class="form-option form-option--select">
                             <label class="shell-size-label">Kích thước pháo</label>
                             <select class="shell-size"></select>
@@ -119,6 +125,10 @@
                         <div class="form-option form-option--checkbox">
                             <label class="hide-controls-label">Ẩn điều khiển</label>
                             <input class="hide-controls" type="checkbox" />
+                        </div>
+                        <div class="form-option form-option--checkbox">
+                            <label class="show-background-label">Hiển thị nền</label>
+                            <input class="show-background" type="checkbox" />
                         </div>
                         <div class="form-option form-option--checkbox form-option--fullscreen">
                             <label class="fullscreen-label">Toàn màn hình</label>

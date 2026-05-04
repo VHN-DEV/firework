@@ -29,11 +29,13 @@ Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và 
 
 - **Tự do tương tác**: Bạn có thể nhấp chuột hoặc chạm (trên màn hình cảm ứng) vào bất cứ đâu trên màn hình bầu trời đêm để tự bắn một quả pháo hoa.
 - **Menu Cài Đặt (Settings)**: Bấm vào nút hình bánh răng ⚙️ ở góc trên bên phải màn hình để tuỳ chỉnh các thông số:
-  - **Loại pháo**: Lựa chọn hình dạng nổ của pháo hoa (Ngẫu nhiên, Hoa cúc, Liễu, Vòng nhẫn, Đuôi ngựa, v.v.).
+  - **Loại pháo**: Lựa chọn hình dạng nổ của pháo hoa (Trái tim, Ngôi sao, Mặt mèo, Văn bản, v.v.).
+  - **Văn bản**: Nếu chọn loại pháo là "Văn bản", bạn có thể nhập tên hoặc lời chúc. Bạn có thể nhập nhiều văn bản ngăn cách bởi dấu phẩy (ví dụ: `Chúc mừng, Năm mới, Hạnh phúc`) để pháo hoa hiển thị ngẫu nhiên các từ này.
   - **Kích thước pháo**: Điều chỉnh độ lớn của pháo (nên hạ thấp kích thước trên thiết bị yếu nếu gặp giật lag).
   - **Chất lượng**: Độ phân giải số lượng tia lửa hiển thị.
   - **Âm lượng**: Bật/tắt âm thanh bằng biểu tượng loa 🔈 ở thanh điều khiển trên cùng.
   - **Tự động bắn**: Để máy tự động tạo ra một màn trình diễn pháo hoa liên tục (mặc định luôn bật).
+  - **Hiển thị nền**: Bật/tắt hình nền phong cảnh thành phố để màn trình diễn thêm lung linh.
   - **Chế độ kết thúc (Finale Mode)**: Bắn một loạt pháo hoa liên tiếp dữ dội để làm màn kết ấn tượng.
   - **Mở màn trập (Open Shutter)**: Mô phỏng hiệu ứng chụp ảnh phơi sáng với vệt sáng pháo hoa kéo dài.
   - **Toàn màn hình**: Tận hưởng pháo hoa ở chế độ màn hình rộng.

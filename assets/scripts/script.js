@@ -25,6 +25,8 @@ const MAX_WIDTH = 7680;
 const MAX_HEIGHT = 4320;
 const GRAVITY = 0.9; // Gia tốc tính bằng px/s
 let simSpeed = 1;
+let burstConfig = null;
+let burstCounter = 0;
 
 function getDefaultScaleFactor() {
     if (IS_MOBILE) return 0.9;
@@ -124,6 +126,7 @@ const store = {
         // tại thời điểm kết xuất và phân tích cú pháp khi thay đổi.
         config: {
             quality: String(IS_HIGH_END_DEVICE ? QUALITY_HIGH : QUALITY_NORMAL), // sẽ được phản ánh thành một biến toàn cục có tên `quality` trong `configDidUpdate`, để hoàn thiện.
+            customText: '',
             shell: 'Ngẫu nhiên',
             size: IS_DESKTOP
                 ? '3' // Mặc định trên màn hình
@@ -134,6 +137,7 @@ const store = {
             finale: false,
             skyLighting: SKY_LIGHT_NORMAL + '',
             hideControls: true,
+            showBackground: false,
             longExposure: false,
             scaleFactor: getDefaultScaleFactor()
         }
@@ -271,7 +275,7 @@ function configDidUpdate() {
     isHighQuality = quality === QUALITY_HIGH;
 
     if (skyLightingSelector() === SKY_LIGHT_NONE) {
-        appNodes.canvasContainer.style.backgroundColor = '#000';
+        appNodes.stageContainer.style.backgroundColor = '#000';
     }
 
     Spark.drawWidth = quality === QUALITY_HIGH ? 0.75 : 1;
@@ -357,6 +361,7 @@ const nodeKeyToHelpKey = {
 // Kết xuất giao diện người dùng ứng dụng/đồng bộ hóa với trạng thái
 const appNodes = {
     stageContainer: '.stage-container',
+    backgroundImage: '.background-image',
     canvasContainer: '.canvas-container',
     controls: '.controls',
     menu: '.menu',
@@ -365,8 +370,11 @@ const appNodes = {
     pauseBtnSVG: '.pause-btn use',
     soundBtn: '.sound-btn',
     soundBtnSVG: '.sound-btn use',
+    settingsBtn: '.settings-btn',
+    closeMenuBtn: '.close-menu-btn',
     shellType: '.shell-type',
     shellTypeLabel: '.shell-type-label',
+    customText: '.custom-text',
     shellSize: '.shell-size',
     shellSizeLabel: '.shell-size-label',
     quality: '.quality-ui',
@@ -385,6 +393,8 @@ const appNodes = {
     fullscreenFormOption: '.form-option--fullscreen',
     fullscreen: '.fullscreen',
     fullscreenLabel: '.fullscreen-label',
+    showBackground: '.show-background',
+    showBackgroundLabel: '.show-background-label',
     longExposure: '.long-exposure',
     longExposureLabel: '.long-exposure-label',
 
@@ -420,13 +430,18 @@ function renderApp(state) {
     appNodes.finaleModeFormOption.style.opacity = state.config.autoLaunch ? 1 : 0.32;
 
     appNodes.quality.value = state.config.quality;
+    appNodes.customText.value = state.config.customText;
     appNodes.shellType.value = state.config.shell;
     appNodes.shellSize.value = state.config.size;
     appNodes.autoLaunch.checked = state.config.autoLaunch;
     appNodes.finaleMode.checked = state.config.finale;
     appNodes.skyLighting.value = state.config.skyLighting;
     appNodes.hideControls.checked = state.config.hideControls;
+    appNodes.showBackground.checked = state.config.showBackground;
     appNodes.fullscreen.checked = state.fullscreen;
+
+    // Hiển thị/ẩn nền
+    appNodes.backgroundImage.classList.toggle('show', state.config.showBackground);
     appNodes.longExposure.checked = state.config.longExposure;
     appNodes.scaleFactor.value = state.config.scaleFactor.toFixed(2);
 
@@ -461,6 +476,7 @@ store.subscribe(handleStateChange);
 function getConfigFromDOM() {
     return {
         quality: appNodes.quality.value,
+        customText: appNodes.customText.value,
         shell: appNodes.shellType.value,
         size: appNodes.shellSize.value,
         autoLaunch: appNodes.autoLaunch.checked,
@@ -468,6 +484,7 @@ function getConfigFromDOM() {
         skyLighting: appNodes.skyLighting.value,
         longExposure: appNodes.longExposure.checked,
         hideControls: appNodes.hideControls.checked,
+        showBackground: appNodes.showBackground.checked,
         // Lưu trữ giá trị dưới dạng số.
         scaleFactor: parseFloat(appNodes.scaleFactor.value)
     };
@@ -475,6 +492,7 @@ function getConfigFromDOM() {
 
 const updateConfigNoEvent = () => updateConfig();
 appNodes.quality.addEventListener('input', updateConfigNoEvent);
+appNodes.customText.addEventListener('input', updateConfigNoEvent);
 appNodes.shellType.addEventListener('input', updateConfigNoEvent);
 appNodes.shellSize.addEventListener('input', updateConfigNoEvent);
 appNodes.autoLaunch.addEventListener('click', () => setTimeout(updateConfig, 0));
@@ -482,6 +500,11 @@ appNodes.finaleMode.addEventListener('click', () => setTimeout(updateConfig, 0))
 appNodes.skyLighting.addEventListener('input', updateConfigNoEvent);
 appNodes.longExposure.addEventListener('click', () => setTimeout(updateConfig, 0));
 appNodes.hideControls.addEventListener('click', () => setTimeout(updateConfig, 0));
+appNodes.showBackground.addEventListener('click', () => setTimeout(updateConfig, 0));
+appNodes.pauseBtn.addEventListener('click', () => togglePause());
+appNodes.soundBtn.addEventListener('click', () => toggleSound());
+appNodes.settingsBtn.addEventListener('click', () => toggleMenu());
+appNodes.closeMenuBtn.addEventListener('click', () => toggleMenu(false));
 appNodes.fullscreen.addEventListener('click', () => setTimeout(toggleFullscreen, 0));
 // Việc thay đổi thang đo cũng yêu cầu kích hoạt mã xử lý thay đổi kích thước.
 appNodes.scaleFactor.addEventListener('input', () => {
@@ -782,12 +805,234 @@ function randomFastShell() {
 }
 
 
+
+// ---- Tùy chỉnh Hình dạng ----
+const textCanvas = document.createElement('canvas');
+const textCtx = textCanvas.getContext('2d', { willReadFrequently: true });
+
+function getTextParticles(text, fontSize = 80) {
+    textCanvas.width = 1000; // Tăng chiều rộng để hỗ trợ văn bản dài hơn
+    textCanvas.height = 200; // Tăng chiều cao
+    textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+    textCtx.font = `bold ${fontSize}px Roboto, sans-serif`;
+    textCtx.fillStyle = 'white';
+    textCtx.textAlign = 'center';
+    textCtx.textBaseline = 'middle';
+    textCtx.fillText(text, textCanvas.width / 2, textCanvas.height / 2);
+
+    const imgData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height).data;
+    const points = [];
+    const step = 3; // Giảm bước nhảy xuống 3 để tăng độ chi tiết (Chi tiết gấp đôi so với 6)
+
+    let minX = textCanvas.width, maxX = 0, minY = textCanvas.height, maxY = 0;
+    for (let y = 0; y < textCanvas.height; y += step) {
+        for (let x = 0; x < textCanvas.width; x += step) {
+            const index = (y * textCanvas.width + x) * 4;
+            const alpha = imgData[index + 3];
+            if (alpha > 128) {
+                points.push({ x, y });
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+            }
+        }
+    }
+
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    const maxDist = Math.max(maxX - minX, maxY - minY) / 2 || 1;
+
+    const result = points.map(p => ({
+        x: (p.x - centerX) / maxDist,
+        y: (p.y - centerY) / maxDist
+    }));
+    
+    result.isText = true; // Đánh dấu đây là dữ liệu văn bản
+    return result;
+}
+
+function getHeartPoints() {
+    const points = [];
+    const count = 120;
+    for (let i = 0; i < count; i++) {
+        const t = (i / count) * Math.PI * 2;
+        const x = 16 * Math.pow(Math.sin(t), 3);
+        const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+        points.push({ x, y });
+    }
+    let maxDist = 0;
+    for (let p of points) maxDist = Math.max(maxDist, Math.abs(p.x), Math.abs(p.y));
+    return points.map(p => ({ x: p.x / maxDist, y: p.y / maxDist }));
+}
+
+function getStarPoints() {
+    const points = [];
+    const spikes = 5;
+    const outerRadius = 1;
+    const innerRadius = 0.4;
+    let rot = Math.PI / 2 * 3;
+    let x = 0, y = 0;
+    const step = Math.PI / spikes;
+    const vertexes = [];
+    for (let i = 0; i < spikes; i++) {
+        x = Math.cos(rot) * outerRadius;
+        y = Math.sin(rot) * outerRadius;
+        vertexes.push({ x, y });
+        rot += step;
+        x = Math.cos(rot) * innerRadius;
+        y = Math.sin(rot) * innerRadius;
+        vertexes.push({ x, y });
+        rot += step;
+    }
+    for (let i = 0; i < vertexes.length; i++) {
+        let p1 = vertexes[i];
+        let p2 = vertexes[(i + 1) % vertexes.length];
+        const segments = 15;
+        for (let j = 0; j < segments; j++) {
+            points.push({
+                x: p1.x + (p2.x - p1.x) * (j / segments),
+                y: p1.y + (p2.y - p1.y) * (j / segments)
+            });
+        }
+    }
+    return points;
+}
+
+function getSmileyPoints() {
+    const points = [];
+    const segments = 60;
+    for (let i = 0; i < segments; i++) {
+        const t = (i / segments) * Math.PI * 2;
+        points.push({ x: Math.cos(t) * 0.9, y: Math.sin(t) * 0.9 });
+    }
+    points.push({ x: -0.3, y: -0.3 });
+    points.push({ x: -0.3, y: -0.35 });
+    points.push({ x: 0.3, y: -0.3 });
+    points.push({ x: 0.3, y: -0.35 });
+    const smileSegments = 30;
+    for (let i = 0; i <= smileSegments; i++) {
+        const t = Math.PI * 0.2 + (i / smileSegments) * Math.PI * 0.6;
+        points.push({ x: Math.cos(t) * 0.6, y: Math.sin(t) * 0.6 });
+    }
+    return points;
+}
+
+function getCatPoints() {
+    const points = [];
+    const segments = 50;
+    for (let i = 0; i < segments; i++) {
+        const t = (i / segments) * Math.PI * 2;
+        points.push({ x: Math.cos(t) * 0.8, y: Math.sin(t) * 0.8 });
+    }
+    for (let i = 0; i <= 10; i++) {
+        points.push({ x: -0.8 + (0.2) * i / 10, y: -0.3 - 0.7 * i / 10 });
+        points.push({ x: -0.6 + (0.4) * i / 10, y: -1.0 + 0.5 * i / 10 });
+        points.push({ x: 0.8 - (0.2) * i / 10, y: -0.3 - 0.7 * i / 10 });
+        points.push({ x: 0.6 - (0.4) * i / 10, y: -1.0 + 0.5 * i / 10 });
+    }
+    points.push({ x: -0.3, y: -0.1 });
+    points.push({ x: 0.3, y: -0.1 });
+    for (let i = 0; i <= 5; i++) {
+        points.push({ x: -0.5 - 0.4 * i / 5, y: 0.1 + 0.1 * i / 5 });
+        points.push({ x: -0.5 - 0.4 * i / 5, y: 0.2 });
+        points.push({ x: -0.5 - 0.4 * i / 5, y: 0.3 - 0.1 * i / 5 });
+        points.push({ x: 0.5 + 0.4 * i / 5, y: 0.1 + 0.1 * i / 5 });
+        points.push({ x: 0.5 + 0.4 * i / 5, y: 0.2 });
+        points.push({ x: 0.5 + 0.4 * i / 5, y: 0.3 - 0.1 * i / 5 });
+    }
+    return points;
+}
+
+const heartShell = (size = 1) => {
+    const color = randomColor();
+    return {
+        shellSize: size,
+        color,
+        spreadSize: 300 + size * 100,
+        starLife: 1000 + size * 200,
+        starLifeVariation: 0.2,
+        shapePoints: getHeartPoints(),
+        glitter: 'light',
+        glitterColor: COLOR.White,
+    };
+};
+
+const starShapeShell = (size = 1) => {
+    const color = randomColor();
+    return {
+        shellSize: size,
+        color,
+        spreadSize: 350 + size * 100,
+        starLife: 1200 + size * 200,
+        shapePoints: getStarPoints(),
+        glitter: 'light',
+        glitterColor: COLOR.Gold,
+    };
+};
+
+const smileyShell = (size = 1) => {
+    const color = randomColor();
+    return {
+        shellSize: size,
+        color,
+        spreadSize: 300 + size * 100,
+        starLife: 1200 + size * 200,
+        shapePoints: getSmileyPoints(),
+        glitter: 'light',
+        glitterColor: color,
+    };
+};
+
+const catShell = (size = 1) => {
+    const color = randomColor();
+    return {
+        shellSize: size,
+        color,
+        spreadSize: 350 + size * 100,
+        starLife: 1200 + size * 200,
+        shapePoints: getCatPoints(),
+        glitter: 'light',
+        glitterColor: color,
+    };
+};
+
+const textShell = (size = 1) => {
+    const color = randomColor();
+    let textStr = store.state.config.customText || '';
+    let text = '';
+
+    if (!textStr.trim()) {
+        text = 'HAPPY';
+    } else {
+        // Tách chuỗi bằng dấu phẩy và chọn ngẫu nhiên một phần tử
+        const parts = textStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        text = parts[(Math.random() * parts.length) | 0];
+    }
+
+    return {
+        shellSize: size,
+        color,
+        spreadSize: 300 + size * 100, // Thêm spreadSize để tránh lỗi NaN
+        starLife: 1400 + size * 200,
+        shapePoints: getTextParticles(text, 50),
+        glitter: 'light',
+        glitterColor: COLOR.Gold,
+    };
+};
+
 const shellTypes = {
     'Ngẫu nhiên': randomShell,
+    'Trái tim': heartShell,
+    'Ngôi sao': starShapeShell,
+    'Mặt mèo': catShell,
+    'Mặt cười': smileyShell,
+    'Văn bản': textShell,
     'Nổ lách tách': crackleShell,
     'Crossette (Nổ chéo)': crossetteShell,
     'Hoa cúc': crysanthemumShell,
     'Lá rơi': fallingLeavesShell,
+    'Lá rụng': fallingLeavesShell,
     'Hoa': floralShell,
     'Ma': ghostShell,
     'Đuôi ngựa': horsetailShell,
@@ -799,7 +1044,36 @@ const shellTypes = {
 
 const shellNames = Object.keys(shellTypes);
 
-function init() {
+async function loadBurstConfig() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const configName = urlParams.get('config');
+    if (!configName) return;
+
+    try {
+        const response = await fetch(`./configs/${configName}.json`);
+        if (!response.ok) throw new Error('Config not found');
+        burstConfig = await response.json();
+        console.log('Loaded burst config:', burstConfig);
+
+        // Hiển thị overlay thông tin nếu có
+        if (burstConfig.title || burstConfig.author) {
+            const overlay = document.createElement('div');
+            overlay.className = 'config-overlay';
+            overlay.innerHTML = `
+                ${burstConfig.title ? `<h1>${burstConfig.title}</h1>` : ''}
+                ${burstConfig.subtitle ? `<h2>${burstConfig.subtitle}</h2>` : ''}
+                ${burstConfig.author ? `<p>${burstConfig.author}</p>` : ''}
+            `;
+            document.body.appendChild(overlay);
+            setTimeout(() => overlay.classList.add('fade-out'), 5000);
+            setTimeout(() => overlay.remove(), 7000);
+        }
+    } catch (e) {
+        console.error('Error loading burst config:', e);
+    }
+}
+
+async function init() {
     // Xóa trạng thái tải
     document.querySelector('.loading-init').remove();
     appNodes.stageContainer.classList.remove('remove');
@@ -845,6 +1119,9 @@ function init() {
 
     // Áp dụng cấu hình ban đầu
     configDidUpdate();
+
+    // Load burst config từ URL
+    await loadBurstConfig();
 }
 
 
@@ -1070,6 +1347,85 @@ let isFirstSeq = true;
 const finaleCount = 32;
 let currentFinaleCount = 0;
 function startSequence() {
+    // Kiểm tra burst config nếu có
+    if (burstConfig && burstConfig.events) {
+        burstCounter++;
+        
+        // Tìm burst lớn nhất để biết khi nào kết thúc/lặp lại
+        const maxBurst = Math.max(...burstConfig.events.map(e => e.burst));
+        
+        // Nếu vượt quá đợt cuối
+        if (burstCounter > maxBurst) {
+            if (burstConfig.loop) {
+                burstCounter = 1; // Reset về đợt 1
+                
+                // Kiểm tra cấu hình tạm dừng sau vòng lặp (mặc định là 0 nếu không có)
+                const pauseAfterLoop = (burstConfig.settings && burstConfig.settings.pauseAfterLoop) || 0;
+                return 2500 + pauseAfterLoop; 
+            } else {
+                // Nếu không lặp lại, giữ ở trạng thái "hết kịch bản" và không bắn gì nữa
+                return 5000; 
+            }
+        }
+
+        const events = burstConfig.events.filter(e => e.burst === burstCounter);
+        
+        if (events.length > 0) {
+            let extraDelay = 0;
+            events.forEach(event => {
+                if (event.shell === 'Tạm dừng') {
+                    extraDelay = Math.max(extraDelay, event.duration || 2000);
+                    return;
+                }
+                
+                const launch = () => {
+                    let shell;
+                    const size = shellSizeSelector();
+                    
+                    if (event.shell === 'Văn bản' && event.text) {
+                        const color = (event.color && COLOR[event.color]) || randomColor();
+                        shell = new Shell({
+                            shellSize: size,
+                            color: color,
+                            spreadSize: 300 + size * 100,
+                            starLife: 1400 + size * 200,
+                            shapePoints: getTextParticles(event.text, 50),
+                            glitter: 'light',
+                            glitterColor: COLOR.Gold
+                        });
+                    } else {
+                        const shellType = shellTypes[event.shell] || shellTypes['Văn bản'];
+                        shell = new Shell(shellType(size));
+                        
+                        if (event.text) {
+                            shell.shapePoints = getTextParticles(event.text, 50);
+                        }
+                        
+                        if (event.color && COLOR[event.color]) {
+                            shell.color = COLOR[event.color];
+                        }
+                    }
+
+                    const x = event.x !== undefined ? event.x : 0.5;
+                    const y = event.y !== undefined ? event.y : 0.5;
+                    
+                    shell.launch(x, y);
+                };
+
+                if (event.delay) {
+                    setTimeout(launch, event.delay);
+                } else {
+                    launch();
+                }
+            });
+            
+            return 2500 + extraDelay;
+        } else {
+            // Nếu đợt này trống, chờ 1 giây rồi sang đợt kế tiếp
+            return 1000;
+        }
+    }
+
     if (isFirstSeq) {
         isFirstSeq = false;
         if (IS_HEADER) {
@@ -1388,6 +1744,12 @@ function render(speed) {
     while (BurstFlash.active.length) {
         const bf = BurstFlash.active.pop();
 
+        // Kiểm tra an toàn để tránh lỗi non-finite
+        if (!Number.isFinite(bf.x) || !Number.isFinite(bf.y) || !Number.isFinite(bf.radius) || bf.radius <= 0) {
+            BurstFlash.returnInstance(bf);
+            continue;
+        }
+
         const burstGradient = trailsCtx.createRadialGradient(bf.x, bf.y, 0, bf.x, bf.y, bf.radius);
         burstGradient.addColorStop(0.024, 'rgba(255, 255, 255, 1)');
         burstGradient.addColorStop(0.125, 'rgba(255, 160, 20, 0.2)');
@@ -1495,7 +1857,7 @@ function colorSky(speed) {
     currentSkyColor.g += (targetSkyColor.g - currentSkyColor.g) / colorChange * speed;
     currentSkyColor.b += (targetSkyColor.b - currentSkyColor.b) / colorChange * speed;
 
-    appNodes.canvasContainer.style.backgroundColor = `rgb(${currentSkyColor.r | 0}, ${currentSkyColor.g | 0}, ${currentSkyColor.b | 0})`;
+    appNodes.stageContainer.style.backgroundColor = `rgb(${currentSkyColor.r | 0}, ${currentSkyColor.g | 0}, ${currentSkyColor.b | 0})`;
 }
 
 mainStage.addEventListener('ticker', update);
@@ -1865,7 +2227,44 @@ class Shell {
             }
 
             // Các vòng có tính ngẫu nhiên về vị trí nhưng được xoay ngẫu nhiên
-            if (this.ring) {
+            if (this.shapePoints) {
+                // Chỉ xoay ngẫu nhiên nếu KHÔNG phải là pháo văn bản để giữ chữ dễ đọc
+                const isText = this.shapePoints.isText;
+                const shapeStartAngle = isText ? 0 : (Math.random() - 0.5) * 0.4;
+                const cosA = Math.cos(shapeStartAngle);
+                const sinA = Math.sin(shapeStartAngle);
+
+                this.shapePoints.forEach(p => {
+                    // Xoay điểm p theo shapeStartAngle
+                    const rx = p.x * cosA - p.y * sinA;
+                    const ry = p.x * sinA + p.y * cosA;
+
+                    // Sử dụng trực tiếp rx, ry để gán tốc độ, đảm bảo đúng hướng tuyệt đối
+                    const finalX = rx;
+                    const finalY = ry;
+
+                    const star = Star.add(
+                        x,
+                        y,
+                        color,
+                        0, // Angle không quan trọng vì ta sẽ ghi đè speedX/Y
+                        0, // Speed không quan trọng vì ta sẽ ghi đè speedX/Y
+                        this.starLife + Math.random() * this.starLife * this.starLifeVariation
+                    );
+
+                    star.speedX = finalX * speed;
+                    star.speedY = finalY * speed;
+
+                    if (this.glitter) {
+                        star.sparkFreq = sparkFreq;
+                        star.sparkSpeed = sparkSpeed;
+                        star.sparkLife = sparkLife;
+                        star.sparkLifeVariation = sparkLifeVariation;
+                        star.sparkColor = this.glitterColor;
+                        star.sparkTimer = Math.random() * star.sparkFreq;
+                    }
+                });
+            } else if (this.ring) {
                 const ringStartAngle = Math.random() * Math.PI;
                 const ringSquash = Math.pow(Math.random(), 2) * 0.85 + 0.15;;
 

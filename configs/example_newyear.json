@@ -1,0 +1,44 @@
+{
+  "title": "Chúc Mừng Năm Mới",
+  "subtitle": "Happy New Year",
+  "author": "Từ: [Tên bạn]",
+  "loop": true,
+  "events": [
+    {
+      "burst": 1,
+      "text": "HAPPY NEW YEAR",
+      "shell": "Văn bản"
+    },
+    {
+      "burst": 2,
+      "shell": "Ngôi sao"
+    },
+    {
+      "burst": 3,
+      "text": "CHÚC MỪNG NĂM MỚI",
+      "shell": "Văn bản"
+    },
+    {
+      "burst": 4,
+      "shell": "Hoa cúc"
+    },
+    {
+      "burst": 5,
+      "text": "AN KHANG THỊNH VƯỢNG",
+      "shell": "Văn bản"
+    },
+    {
+      "burst": 6,
+      "shell": "Trái tim"
+    },
+    {
+      "burst": 7,
+      "text": "VẠN SỰ NHƯ Ý",
+      "shell": "Văn bản"
+    },
+    {
+      "burst": 8,
+      "shell": "Vòng nhẫn"
+    }
+  ]
+}
