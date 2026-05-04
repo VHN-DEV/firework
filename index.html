@@ -3,28 +3,26 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Firework Simulator</title>
+    <title>Trình mô phỏng Pháo hoa</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#000000">
-    <link rel="shortcut icon" type="image/png"
-        href="./assets/images/firework-burst-icon-v2.png">
-    <link rel="icon" type="image/png"
-        href="./assets/images/firework-burst-icon-v2.png">
-    <link rel="apple-touch-icon-precomposed"
-        href="./assets/images/firework-burst-icon-v2.png">
+    <link rel="shortcut icon" type="image/png" href="./assets/images/firework-burst-icon-v2.png">
+    <link rel="icon" type="image/png" href="./assets/images/firework-burst-icon-v2.png">
+    <link rel="apple-touch-icon-precomposed" href="./assets/images/firework-burst-icon-v2.png">
     <meta name="msapplication-TileColor" content="#000000">
-    <meta name="msapplication-TileImage"
-        content="./assets/images/firework-burst-icon-v2.png">
-    <link href="./assets/images/style.css" rel="stylesheet">
+    <meta name="msapplication-TileImage" content="./assets/images/firework-burst-icon-v2.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./assets/styles/reset-2.0.min.css">
     <link rel="stylesheet" href="./assets/styles/style.css">
 
 </head>
 
 <body>
-    <!-- SVG Spritesheet -->
+    <!-- Bộ biểu tượng SVG -->
     <div style="height: 0; width: 0; position: absolute; visibility: hidden;">
         <svg xmlns="http://www.w3.org/2000/svg">
             <symbol id="icon-play" viewBox="0 0 24 24">
@@ -52,11 +50,11 @@
         </svg>
     </div>
 
-    <!-- App -->
+    <!-- Ứng dụng chính -->
     <div class="container">
         <div class="loading-init">
-            <div class="loading-init__header">Loading</div>
-            <div class="loading-init__status">Assembling Shells</div>
+            <div class="loading-init__header">Đang tải</div>
+            <div class="loading-init__status">Đang lắp ráp pháo</div>
         </div>
         <div class="stage-container remove">
             <div class="canvas-container">
@@ -87,52 +85,52 @@
                             <use href="#icon-close" xlink:href="#icon-close"></use>
                         </svg>
                     </div>
-                    <div class="menu__header">Settings</div>
-                    <div class="menu__subheader">For more info, click any label.</div>
+                    <div class="menu__header">Cài đặt</div>
+                    <div class="menu__subheader">Nhấp vào nhãn bất kỳ để xem thêm thông tin.</div>
                     <form>
                         <div class="form-option form-option--select">
-                            <label class="shell-type-label">Shell Type</label>
+                            <label class="shell-type-label">Loại pháo</label>
                             <select class="shell-type"></select>
                         </div>
                         <div class="form-option form-option--select">
-                            <label class="shell-size-label">Shell Size</label>
+                            <label class="shell-size-label">Kích thước pháo</label>
                             <select class="shell-size"></select>
                         </div>
                         <div class="form-option form-option--select">
-                            <label class="quality-ui-label">Quality</label>
+                            <label class="quality-ui-label">Chất lượng</label>
                             <select class="quality-ui"></select>
                         </div>
                         <div class="form-option form-option--select">
-                            <label class="sky-lighting-label">Sky Lighting</label>
+                            <label class="sky-lighting-label">Ánh sáng bầu trời</label>
                             <select class="sky-lighting"></select>
                         </div>
                         <div class="form-option form-option--select">
-                            <label class="scaleFactor-label">Scale</label>
+                            <label class="scaleFactor-label">Tỉ lệ</label>
                             <select class="scaleFactor"></select>
                         </div>
                         <div class="form-option form-option--checkbox">
-                            <label class="auto-launch-label">Auto Fire</label>
+                            <label class="auto-launch-label">Tự động bắn</label>
                             <input class="auto-launch" type="checkbox" />
                         </div>
                         <div class="form-option form-option--checkbox form-option--finale-mode">
-                            <label class="finale-mode-label">Finale Mode</label>
+                            <label class="finale-mode-label">Chế độ kết thúc</label>
                             <input class="finale-mode" type="checkbox" />
                         </div>
                         <div class="form-option form-option--checkbox">
-                            <label class="hide-controls-label">Hide Controls</label>
+                            <label class="hide-controls-label">Ẩn điều khiển</label>
                             <input class="hide-controls" type="checkbox" />
                         </div>
                         <div class="form-option form-option--checkbox form-option--fullscreen">
-                            <label class="fullscreen-label">Fullscreen</label>
+                            <label class="fullscreen-label">Toàn màn hình</label>
                             <input class="fullscreen" type="checkbox" />
                         </div>
                         <div class="form-option form-option--checkbox">
-                            <label class="long-exposure-label">Open Shutter</label>
+                            <label class="long-exposure-label">Mở màn trập</label>
                             <input class="long-exposure" type="checkbox" />
                         </div>
                     </form>
                     <div class="credits">
-                        Passionately built by Jay Ramoliya.
+                        Được xây dựng đầy tâm huyết bởi V H Nam.
                     </div>
                 </div>
             </div>
@@ -142,7 +140,7 @@
             <div class="help-modal__dialog">
                 <div class="help-modal__header"></div>
                 <div class="help-modal__body"></div>
-                <button type="button" class="help-modal__close-btn">Close</button>
+                <button type="button" class="help-modal__close-btn">Đóng</button>
             </div>
         </div>
     </div>
