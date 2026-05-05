@@ -2542,7 +2542,7 @@ class Shell {
             const star = Star.add(
                 x,
                 y,
-                color || randomColor(),
+                color,
                 angle,
                 speedMult * speed,
                 // thêm biến thể nhỏ vào cuộc sống của ngôi sao
@@ -2621,7 +2621,7 @@ class Shell {
                         star.sparkSpeed = sparkSpeed;
                         star.sparkLife = sparkLife;
                         star.sparkLifeVariation = sparkLifeVariation;
-                        star.sparkColor = this.glitterColor;
+                        star.sparkColor = this.glitterColor === 'random' ? star.color : this.glitterColor;
                         star.sparkTimer = Math.random() * star.sparkFreq;
                     }
                 });
@@ -2652,7 +2652,7 @@ class Shell {
                         star.sparkSpeed = sparkSpeed;
                         star.sparkLife = sparkLife;
                         star.sparkLifeVariation = sparkLifeVariation;
-                        star.sparkColor = this.glitterColor;
+                        star.sparkColor = this.glitterColor === 'random' ? star.color : this.glitterColor;
                         star.sparkTimer = Math.random() * star.sparkFreq;
                     }
                 });
@@ -2788,13 +2788,15 @@ const Star = {
     add(x, y, color, angle, speed, life, speedOffX, speedOffY) {
         const instance = this._pool.pop() || this._new();
 
+        const finalColor = (color && color !== 'random') ? color : randomColor();
+
         instance.visible = true;
         instance.heavy = false;
         instance.x = x;
         instance.y = y;
         instance.prevX = x;
         instance.prevY = y;
-        instance.color = color;
+        instance.color = finalColor;
         instance.speedX = Math.sin(angle) * speed + (speedOffX || 0);
         instance.speedY = Math.cos(angle) * speed + (speedOffY || 0);
         instance.life = life;
@@ -2805,7 +2807,7 @@ const Star = {
         instance.sparkFreq = 0; // ms giữa lượng phát ra tia lửa
         instance.sparkSpeed = 1;
         instance.sparkTimer = 0;
-        instance.sparkColor = color;
+        instance.sparkColor = finalColor;
         instance.sparkLife = 750;
         instance.sparkLifeVariation = 0.25;
         instance.strobe = false;
