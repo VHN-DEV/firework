@@ -425,64 +425,136 @@
     },
     {
       "burst": 17,
-      "shell": "Hoa cúc",
-      "color": "White",
+      "text": "MÃI HẠNH PHÚC NHÉ",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.4
+    },
+    {
+      "burst": 17,
+      "shell": "Liễu",
+      "color": "Gold",
       "x": 0.1,
       "y": 0.7,
-      "delay": 0
+      "delay": 400
     },
     {
       "burst": 17,
-      "shell": "Hoa cúc",
-      "color": "White",
-      "x": 0.9,
-      "y": 0.7,
-      "delay": 300
-    },
-    {
-      "burst": 17,
-      "shell": "Hoa cúc",
+      "shell": "Liễu",
       "color": "Gold",
-      "x": 0.2,
-      "y": 0.5,
-      "delay": 600
-    },
-    {
-      "burst": 17,
-      "shell": "Hoa cúc",
-      "color": "Gold",
-      "x": 0.8,
-      "y": 0.5,
-      "delay": 900
-    },
-    {
-      "burst": 17,
-      "shell": "Hoa cúc",
-      "color": "White",
       "x": 0.3,
-      "y": 0.3,
-      "delay": 1200
-    },
-    {
-      "burst": 17,
-      "shell": "Hoa cúc",
-      "color": "White",
-      "x": 0.7,
-      "y": 0.3,
-      "delay": 1500
+      "y": 0.8,
+      "delay": 600
     },
     {
       "burst": 17,
       "shell": "Liễu",
       "color": "Gold",
       "x": 0.5,
-      "y": 0.8,
-      "delay": 2000
+      "y": 0.9,
+      "delay": 800
     },
     {
-      "burst": 18,
+      "burst": 17,
+      "shell": "Liễu",
+      "color": "Gold",
+      "x": 0.7,
+      "y": 0.8,
+      "delay": 1000
+    },
+    {
+      "burst": 17,
+      "shell": "Liễu",
+      "color": "Gold",
+      "x": 0.9,
+      "y": 0.7,
+      "delay": 1200
+    },
+    {
+      "burst": 17,
+      "shell": "Hoa cúc",
+      "color": "White",
+      "x": 0.2,
+      "y": 0.2,
+      "delay": 1500
+    },
+    {
+      "burst": 17,
+      "shell": "Hoa cúc",
+      "color": "Gold",
+      "x": 0.4,
+      "y": 0.3,
+      "delay": 1700
+    },
+    {
+      "burst": 17,
+      "shell": "Hoa cúc",
+      "color": "White",
+      "x": 0.6,
+      "y": 0.3,
+      "delay": 1700
+    },
+    {
+      "burst": 17,
+      "shell": "Hoa cúc",
+      "color": "Gold",
+      "x": 0.8,
+      "y": 0.2,
+      "delay": 2100
+    },
+    {
+      "burst": 17,
+      "shell": "Nổ lách tách",
+      "color": "White",
+      "x": 0.1,
+      "y": 0.1,
+      "delay": 2500
+    },
+    {
+      "burst": 17,
+      "shell": "Nổ lách tách",
+      "color": "White",
+      "x": 0.3,
+      "y": 0.2,
+      "delay": 2600
+    },
+    {
+      "burst": 17,
+      "shell": "Nổ lách tách",
+      "color": "White",
+      "x": 0.5,
+      "y": 0.1,
+      "delay": 2700
+    },
+    {
+      "burst": 17,
+      "shell": "Nổ lách tách",
+      "color": "White",
+      "x": 0.7,
+      "y": 0.2,
+      "delay": 2800
+    },
+    {
+      "burst": 17,
+      "shell": "Nổ lách tách",
+      "color": "White",
+      "x": 0.9,
+      "y": 0.1,
+      "delay": 2900
+    },
+    {
+      "burst": 17,
+      "shell": "Nhấp nháy",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.5,
+      "delay": 3500
+    },
+    {
+      "burst": 20,
       "shell": "Tạm dừng",
-      "duration": 5000
+      "duration": 3000
     }
   ]
 }
