@@ -1777,6 +1777,23 @@ function startSequence() {
                     const x = event.x !== undefined ? event.x : 0.5;
                     const y = event.y !== undefined ? event.y : 0.5;
 
+                    // Ghi đè các thuộc tính nâng cao từ event nếu có
+                    const overrides = [
+                        'strobe', 'strobeColor', 'pistil', 'pistilColor',
+                        'streamers', 'crossette', 'crackle', 'horsetail',
+                        'comet', 'starLife', 'starDensity', 'spreadSize'
+                    ];
+
+                    overrides.forEach(prop => {
+                        if (event[prop] !== undefined) {
+                            if (prop === 'strobeColor' || prop === 'pistilColor') {
+                                shell[prop] = COLOR[event[prop]] || event[prop];
+                            } else {
+                                shell[prop] = event[prop];
+                            }
+                        }
+                    });
+
                     shell.launch(x, y);
                 };
 
