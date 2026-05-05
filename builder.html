@@ -24,24 +24,29 @@
                 <i class="fas fa-fireworks"></i>
                 <h1>Firework Builder</h1>
             </div>
+            <div class="header-actions-mobile show-mobile">
+                 <button id="btn-toggle-settings-header" class="btn text">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
             <div class="actions">
                 <button id="btn-import" class="btn secondary">
-                    <i class="fas fa-file-import"></i> Nhập (Import)
+                    <i class="fas fa-file-import"></i> <span>Nhập</span>
                 </button>
                 <input type="file" id="import-file" class="hide" accept=".json">
                 <button id="btn-export" class="btn secondary">
-                    <i class="fas fa-file-export"></i> Xuất (Export)
+                    <i class="fas fa-file-export"></i> <span>Xuất</span>
                 </button>
                 <button id="btn-my-scripts" class="btn secondary">
-                    <i class="fas fa-folder-open"></i> Kịch bản của tôi
+                    <i class="fas fa-folder-open"></i> <span>Kịch bản</span>
                 </button>
                 <button id="btn-preview" class="btn secondary">
-                    <i class="fas fa-play"></i> Xem thử
+                    <i class="fas fa-play"></i> <span>Xem thử</span>
                 </button>
                 <button id="btn-save" class="btn primary">
-                    <i class="fas fa-save"></i> Lưu kịch bản
+                    <i class="fas fa-save"></i> <span>Lưu</span>
                 </button>
-                <a href="index.html" class="btn text"> Quay lại</a>
+                <a href="index.html" class="btn text"><span>Quay lại</span></a>
             </div>
         </header>
 
@@ -58,8 +63,36 @@
         <main>
             <!-- Sidebar: Global Settings -->
             <aside class="sidebar">
-                <section class="card">
-                    <h3><i class="fas fa-cog"></i> Cấu hình chung</h3>
+                <div class="sidebar-header-mobile show-mobile">
+                    <h3>Cấu hình chung</h3>
+                    <button class="btn text close-sidebar-btn" onclick="toggleSidebar()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="sidebar-content-mobile">
+                    <section class="card">
+                        <h3 class="hide-mobile"><i class="fas fa-cog"></i> Cấu hình chung</h3>
+                        
+                        <!-- Mobile Actions -->
+                        <div class="actions-mobile show-mobile">
+                            <button class="btn secondary small" onclick="document.getElementById('import-file').click()">
+                                <i class="fas fa-file-import"></i> Nhập
+                            </button>
+                            <button class="btn secondary small" onclick="exportConfig()">
+                                <i class="fas fa-file-export"></i> Xuất
+                            </button>
+                            <button class="btn secondary small" onclick="openScriptsModal()">
+                                <i class="fas fa-folder-open"></i> Kịch bản
+                            </button>
+                            <button class="btn secondary small" onclick="previewConfig()">
+                                <i class="fas fa-play"></i> Xem thử
+                            </button>
+                            <button class="btn primary small btn-save-mobile" onclick="saveConfig()">
+                                <i class="fas fa-save"></i> Lưu kịch bản
+                            </button>
+                        </div>
+
                     <div class="form-group">
                         <label for="title">Tiêu đề (Title)</label>
                         <input type="text" id="title" placeholder="Ví dụ: CHÚC MỪNG SINH NHẬT">
@@ -94,13 +127,14 @@
                         <li>Dùng <strong>delay</strong> để tạo chuỗi hiệu ứng liên hoàn.</li>
                     </ul>
                 </section>
+                </div> <!-- End sidebar-content-mobile -->
             </aside>
 
             <!-- Main Content: Event List -->
             <section class="event-list-container">
                 <div class="section-header">
                     <h2><i class="fas fa-list-ul"></i> Danh sách các đợt bắn</h2>
-                    <button id="btn-add-event" class="btn primary small">
+                    <button id="btn-add-event" class="btn primary small hide-mobile">
                         <i class="fas fa-plus"></i> Thêm phát bắn
                     </button>
                 </div>
@@ -109,12 +143,17 @@
                     <!-- Events will be added here dynamically -->
                     <div class="empty-state">
                         <i class="fas fa-sparkles"></i>
-                        <p>Chưa có phát bắn nào. Hãy nhấn "Thêm phát bắn" để bắt đầu.</p>
+                        <p>Chưa có phát bắn nào. Hãy nhấn "+" để bắt đầu.</p>
                     </div>
                 </div>
             </section>
         </main>
     </div>
+
+    <!-- Floating Action Button for Mobile -->
+    <button id="btn-fab-add" class="fab show-mobile" title="Thêm phát bắn">
+        <i class="fas fa-plus"></i>
+    </button>
 
     <!-- Modals or overlays could go here -->
     <div id="save-modal" class="modal hide">
@@ -158,6 +197,9 @@
 
     <!-- Notification Toast -->
     <div id="notification-container" class="notification-container"></div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
     <script src="assets/js/builder.js?v=1.1"></script>
 </body>
