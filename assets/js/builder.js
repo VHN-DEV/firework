@@ -39,6 +39,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // File Import
     document.getElementById('import-file').addEventListener('change', importConfig);
 
+    // Mobile specific
+    const btnToggleSettings = document.getElementById('btn-toggle-settings');
+    const btnToggleSettingsHeader = document.getElementById('btn-toggle-settings-header');
+    const btnFabAdd = document.getElementById('btn-fab-add');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    if (btnToggleSettings) btnToggleSettings.addEventListener('click', toggleSidebar);
+    if (btnToggleSettingsHeader) btnToggleSettingsHeader.addEventListener('click', toggleSidebar);
+    if (btnFabAdd) btnFabAdd.addEventListener('click', () => addEvent());
+    if (overlay) overlay.addEventListener('click', toggleSidebar);
+
     // Initial event if empty
     if (state.events.length === 0) {
         addEvent();
@@ -612,6 +623,19 @@ function showModal(id) {
 
 function hideModal(id) {
     document.getElementById(id).classList.add('hide');
+}
+
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    if (sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('show');
+    } else {
+        sidebar.classList.add('open');
+        overlay.classList.add('show');
+    }
 }
 
 // Global exposure for onclick handlers
