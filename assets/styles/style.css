@@ -1,4 +1,3 @@
-
 * {
     position: relative;
     box-sizing: border-box;
@@ -135,9 +134,11 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    background-color: rgba(0, 0, 0, 0.85); /* Tăng độ mờ nền lên 0.85 */
+    background-color: rgba(0, 0, 0, 0.85);
+    /* Tăng độ mờ nền lên 0.85 */
     transition: opacity 0.3s, visibility 0.3s;
-    z-index: 500; /* Tăng z-index cao hơn background-image (100) */
+    z-index: 500;
+    /* Tăng z-index cao hơn background-image (100) */
 }
 
 .menu__inner-wrap {
@@ -209,6 +210,118 @@ body {
 
 .menu .form-option--select select option {
     background-color: black;
+}
+
+.menu .form-option--checkbox-list {
+    display: flex;
+    align-items: center;
+    margin: 16px 0;
+}
+
+.menu .form-option--checkbox-list>label {
+    width: 50%;
+    padding-right: 12px;
+    text-align: right;
+    text-transform: uppercase;
+    user-select: none;
+}
+
+.shell-type-list {
+    width: 50%;
+    max-height: 180px;
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* Custom Scrollbar for the list */
+.shell-type-list::-webkit-scrollbar {
+    width: 5px;
+}
+
+.shell-type-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.shell-type-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+}
+
+.shell-type-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.shell-type-list label {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center;
+    padding: 7px 10px;
+    margin: 2px 0;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    text-transform: none !important;
+    color: rgba(255, 255, 255, 0.7);
+    user-select: none !important;
+}
+
+.shell-type-list label:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+/* Custom Checkbox Design (Bootstrap-like) */
+.shell-type-list input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    background: transparent;
+    margin: 0 12px 0 0;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+}
+
+.shell-type-list input[type="checkbox"]:checked {
+    background-color: #0d6efd;
+    /* Bootstrap Primary Blue */
+    border-color: #0d6efd;
+}
+
+.shell-type-list input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    animation: checkbox-check 0.2s ease-out;
+}
+
+@keyframes checkbox-check {
+    from {
+        transform: rotate(45deg) scale(0);
+    }
+
+    to {
+        transform: rotate(45deg) scale(1);
+    }
+}
+
+.shell-type-list input[type="checkbox"]:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
 }
 
 .menu .form-option--checkbox input {
@@ -296,7 +409,8 @@ body {
     visibility: hidden;
     transition-property: visibility;
     transition-duration: 0.25s;
-    z-index: 1000; /* Đảm bảo modal luôn ở trên cùng */
+    z-index: 1000;
+    /* Đảm bảo modal luôn ở trên cùng */
 }
 
 .help-modal__overlay {
@@ -411,7 +525,8 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    z-index: 1500; /* Đặt cao hơn cả menu và modal */
+    z-index: 1500;
+    /* Đặt cao hơn cả menu và modal */
     text-align: center;
     pointer-events: none;
     display: flex;
@@ -455,6 +570,7 @@ body {
         font-size: clamp(1.5rem, 7vw, 2.5rem);
         white-space: nowrap;
     }
+
     .config-overlay h2 {
         font-size: clamp(1rem, 4.5vw, 1.2rem);
     }
@@ -499,6 +615,7 @@ body {
         opacity: 0;
         transform: scale(0.9);
     }
+
     to {
         opacity: 1;
         transform: scale(1);
@@ -543,4 +660,4 @@ body {
 
 .btn-start:active {
     transform: scale(0.98);
-}
+}

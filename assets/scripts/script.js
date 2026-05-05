@@ -127,7 +127,20 @@ const store = {
         config: {
             quality: String(IS_HIGH_END_DEVICE ? QUALITY_HIGH : QUALITY_NORMAL), // sẽ được phản ánh thành một biến toàn cục có tên `quality` trong `configDidUpdate`, để hoàn thiện.
             customText: '',
-            shell: 'Ngẫu nhiên',
+            shell: [
+                'Nổ lách tách',
+                'Nổ chéo',
+                'Hoa cúc',
+                'Lá rơi',
+                'Lá rụng',
+                'Hoa',
+                'Ma',
+                'Đuôi ngựa',
+                'Cây cọ',
+                'Vòng nhẫn',
+                'Nhấp nháy',
+                'Liễu'
+            ],
             size: IS_DESKTOP
                 ? '3' // Mặc định trên màn hình
                 : IS_HEADER
@@ -176,7 +189,7 @@ const store = {
                     config.quality = data.quality;
                     config.size = data.size;
                     config.skyLighting = data.skyLighting;
-                    config.scaleFactor = data.scaleFactor;
+                    config.scaleFactor = data.scaleFactor || getDefaultScaleFactor();
                     break;
                 default:
                     throw new Error('version switch should be exhaustive');
@@ -291,7 +304,13 @@ const soundEnabledSelector = (state = store.state) => state.soundEnabled;
 const canPlaySoundSelector = (state = store.state) => isRunning(state) && soundEnabledSelector(state);
 // Chuyển đổi chất lượng thành số.
 const qualitySelector = () => +store.state.config.quality;
-const shellNameSelector = () => store.state.config.shell;
+const shellNameSelector = () => {
+    const shells = store.state.config.shell;
+    if (Array.isArray(shells) && shells.length > 0) {
+        return shells[Math.floor(Math.random() * shells.length)];
+    }
+    return typeof shells === 'string' ? shells : 'Ngẫu nhiên';
+};
 // Chuyển đổi kích thước vỏ thành số.
 const shellSizeSelector = () => +store.state.config.size;
 const finaleSelector = () => store.state.config.finale;
@@ -372,7 +391,7 @@ const appNodes = {
     soundBtnSVG: '.sound-btn use',
     settingsBtn: '.settings-btn',
     closeMenuBtn: '.close-menu-btn',
-    shellType: '.shell-type',
+    shellType: '.shell-type-list',
     shellTypeLabel: '.shell-type-label',
     customText: '.custom-text',
     shellSize: '.shell-size',
@@ -437,7 +456,10 @@ function renderApp(state) {
 
     appNodes.quality.value = state.config.quality;
     appNodes.customText.value = state.config.customText;
-    appNodes.shellType.value = state.config.shell;
+    const selectedShells = Array.isArray(state.config.shell) ? state.config.shell : [state.config.shell];
+    appNodes.shellType.querySelectorAll('input').forEach(cb => {
+        cb.checked = selectedShells.includes(cb.value);
+    });
     appNodes.shellSize.value = state.config.size;
     appNodes.autoLaunch.checked = state.config.autoLaunch;
     appNodes.finaleMode.checked = state.config.finale;
@@ -449,7 +471,7 @@ function renderApp(state) {
     // Hiển thị/ẩn nền
     appNodes.backgroundImage.classList.toggle('show', state.config.showBackground);
     appNodes.longExposure.checked = state.config.longExposure;
-    appNodes.scaleFactor.value = state.config.scaleFactor.toFixed(2);
+    appNodes.scaleFactor.value = (state.config.scaleFactor || 1).toFixed(2);
 
     appNodes.menuInnerWrap.style.opacity = state.openHelpTopic ? 0.12 : 1;
     appNodes.helpModal.classList.toggle('active', !!state.openHelpTopic);
@@ -483,7 +505,7 @@ function getConfigFromDOM() {
     return {
         quality: appNodes.quality.value,
         customText: appNodes.customText.value,
-        shell: appNodes.shellType.value,
+        shell: Array.from(appNodes.shellType.querySelectorAll('input:checked')).map(cb => cb.value),
         size: appNodes.shellSize.value,
         autoLaunch: appNodes.autoLaunch.checked,
         finale: appNodes.finaleMode.checked,
@@ -499,7 +521,34 @@ function getConfigFromDOM() {
 const updateConfigNoEvent = () => updateConfig();
 appNodes.quality.addEventListener('input', updateConfigNoEvent);
 appNodes.customText.addEventListener('input', updateConfigNoEvent);
-appNodes.shellType.addEventListener('input', updateConfigNoEvent);
+appNodes.shellType.addEventListener('change', (e) => {
+    const target = e.target;
+    if (target.tagName !== 'INPUT') return;
+
+    const allCheckboxes = Array.from(appNodes.shellType.querySelectorAll('input'));
+    const randomCheckbox = allCheckboxes.find(cb => cb.value === 'Ngẫu nhiên');
+
+    if (target.value === 'Ngẫu nhiên') {
+        if (target.checked) {
+            // Nếu chọn "Ngẫu nhiên", bỏ chọn tất cả các loại khác
+            allCheckboxes.forEach(cb => {
+                if (cb !== target) cb.checked = false;
+            });
+        }
+    } else {
+        if (target.checked) {
+            // Nếu chọn bất kỳ loại nào khác, bỏ chọn "Ngẫu nhiên"
+            if (randomCheckbox) randomCheckbox.checked = false;
+        }
+    }
+
+    // Luôn đảm bảo có ít nhất một loại được chọn. Nếu không có gì được chọn, tự động chọn lại "Ngẫu nhiên".
+    if (!allCheckboxes.some(cb => cb.checked)) {
+        if (randomCheckbox) randomCheckbox.checked = true;
+    }
+
+    updateConfig();
+});
 appNodes.shellSize.addEventListener('input', updateConfigNoEvent);
 appNodes.autoLaunch.addEventListener('click', () => setTimeout(updateConfig, 0));
 appNodes.finaleMode.addEventListener('click', () => setTimeout(updateConfig, 0));
@@ -853,7 +902,7 @@ function getTextParticles(text, fontSize = 80) {
         x: (p.x - centerX) / maxDist,
         y: (p.y - centerY) / maxDist
     }));
-    
+
     result.isText = true; // Đánh dấu đây là dữ liệu văn bản
     return result;
 }
@@ -955,24 +1004,24 @@ function getLeafPoints(petals = 4) {
     for (let p = 0; p < petals; p++) {
         // Xoay để có một cánh ở trên cùng cho cỏ 3 lá, hoặc căn giữa cho cỏ 4 lá
         const angleOffset = (p / petals) * Math.PI * 2 - (petals === 3 ? Math.PI / 2 : 0);
-        
+
         for (let i = 0; i < 40; i++) {
             const t = (i / 40) * Math.PI * 2;
             // Công thức hình trái tim
             let x = 16 * Math.pow(Math.sin(t), 3);
             let y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
-            
+
             // Chuẩn hóa và tỷ lệ lá
             x /= 18;
             y /= 18;
-            
+
             // Di chuyển để cuống lá ở gần tâm
             y -= 0.8;
-            
+
             // Tỷ lệ từng lá riêng lẻ
             x *= 0.45;
             y *= 0.45;
-            
+
             // Xoay lá
             const cosA = Math.cos(angleOffset);
             const sinA = Math.sin(angleOffset);
@@ -1010,7 +1059,7 @@ function getSaturnPoints() {
 function getSnowflakePoints() {
     const points = [];
     const arms = 6;
-    
+
     // Lõi trung tâm
     for (let i = 0; i < 30; i++) {
         const t = (i / 30) * Math.PI * 2;
@@ -1286,7 +1335,7 @@ const shellTypes = {
     'Con bướm': butterflyShell,
     'Kim cương': diamondShell,
     'Nổ lách tách': crackleShell,
-    'Crossette (Nổ chéo)': crossetteShell,
+    'Nổ chéo': crossetteShell,
     'Hoa cúc': crysanthemumShell,
     'Lá rơi': fallingLeavesShell,
     'Lá rụng': fallingLeavesShell,
@@ -1376,11 +1425,15 @@ async function init() {
     }
 
     // loại vỏ
-    let options = '';
-    shellNames.forEach(opt => options += `<option value="${opt}">${opt}</option>`);
-    appNodes.shellType.innerHTML = options;
+    let checkboxes = '';
+    shellNames.forEach(opt => checkboxes += `
+        <label>
+            <input type="checkbox" name="shellType" value="${opt}">
+            ${opt}
+        </label>`);
+    appNodes.shellType.innerHTML = checkboxes;
     // kích thước vỏ
-    options = '';
+    let options = '';
     ['3"', '4"', '6"', '8"', '12"', '16"'].forEach((opt, i) => options += `<option value="${i}">${opt}</option>`);
     appNodes.shellSize.innerHTML = options;
 
@@ -1545,10 +1598,11 @@ function seqPyramid() {
     const randomSpecialShell = randomShell;
 
     function launchShell(x, useSpecial) {
-        const isRandom = shellNameSelector() === 'Ngẫu nhiên';
+        const chosenShell = shellNameSelector();
+        const isRandom = chosenShell === 'Ngẫu nhiên';
         let shellType = isRandom
             ? useSpecial ? randomSpecialShell : randomMainShell
-            : shellTypes[shellNameSelector()];
+            : shellTypes[chosenShell];
         const shell = new Shell(shellType(useSpecial ? largeSize : smallSize));
         const height = x <= 0.5 ? x / 0.5 : (1 - x) / 0.5;
         shell.launch(x, useSpecial ? 0.75 : height * 0.42);
@@ -1589,10 +1643,11 @@ function seqSmallBarrage() {
 
     // (cos(x*5π+0.5π)+1)/2 là sóng tùy chỉnh được giới hạn bởi 0 và 1 được sử dụng để đặt các độ cao phóng khác nhau
     function launchShell(x, useSpecial) {
-        const isRandom = shellNameSelector() === 'Ngẫu nhiên';
+        const chosenShell = shellNameSelector();
+        const isRandom = chosenShell === 'Ngẫu nhiên';
         let shellType = isRandom
             ? useSpecial ? randomSpecialShell : randomMainShell
-            : shellTypes[shellNameSelector()];
+            : shellTypes[chosenShell];
         const shell = new Shell(shellType(shellSize));
         const height = (Math.cos(x * 5 * Math.PI + PI_HALF) + 1) / 2;
         shell.launch(x, height * 0.75);
@@ -1642,26 +1697,26 @@ function startSequence() {
     // Kiểm tra burst config nếu có
     if (burstConfig && burstConfig.events) {
         burstCounter++;
-        
+
         // Tìm burst lớn nhất để biết khi nào kết thúc/lặp lại
         const maxBurst = Math.max(...burstConfig.events.map(e => e.burst));
-        
+
         // Nếu vượt quá đợt cuối
         if (burstCounter > maxBurst) {
             if (burstConfig.loop) {
                 burstCounter = 1; // Reset về đợt 1
-                
+
                 // Kiểm tra cấu hình tạm dừng sau vòng lặp (mặc định là 0 nếu không có)
                 const pauseAfterLoop = (burstConfig.settings && burstConfig.settings.pauseAfterLoop) || 0;
-                return 2500 + pauseAfterLoop; 
+                return 2500 + pauseAfterLoop;
             } else {
                 // Nếu không lặp lại, giữ ở trạng thái "hết kịch bản" và không bắn gì nữa
-                return 5000; 
+                return 5000;
             }
         }
 
         const events = burstConfig.events.filter(e => e.burst === burstCounter);
-        
+
         if (events.length > 0) {
             let extraDelay = 0;
             events.forEach(event => {
@@ -1669,11 +1724,11 @@ function startSequence() {
                     extraDelay = Math.max(extraDelay, event.duration || 2000);
                     return;
                 }
-                
+
                 const launch = () => {
                     let shell;
                     const size = shellSizeSelector();
-                    
+
                     if (event.shell === 'Văn bản' && event.text) {
                         const color = (event.color && COLOR[event.color]) || randomColor();
                         shell = new Shell({
@@ -1688,11 +1743,11 @@ function startSequence() {
                     } else {
                         const shellType = shellTypes[event.shell] || shellTypes['Văn bản'];
                         shell = new Shell(shellType(size));
-                        
+
                         if (event.text) {
                             shell.shapePoints = getTextParticles(event.text, 50);
                         }
-                        
+
                         if (event.color && COLOR[event.color]) {
                             shell.color = COLOR[event.color];
                         }
@@ -1700,7 +1755,7 @@ function startSequence() {
 
                     const x = event.x !== undefined ? event.x : 0.5;
                     const y = event.y !== undefined ? event.y : 0.5;
-                    
+
                     shell.launch(x, y);
                 };
 
@@ -1710,7 +1765,7 @@ function startSequence() {
                     launch();
                 }
             });
-            
+
             return 2500 + extraDelay;
         } else {
             // Nếu đợt này trống, chờ 1 giây rồi sang đợt kế tiếp
