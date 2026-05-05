@@ -1,120 +1,114 @@
 # 📁 Thư mục `configs/` — Lời Chúc Pháo Hoa
 
-Thư mục này chứa các file JSON để **custom lời chúc theo từng đợt bắn pháo hoa**.
+Thư mục này chứa các file JSON để **tùy biến lời chúc và hiệu ứng pháo hoa** theo từng kịch bản riêng.
 
 ---
 
-## 🚀 Cách sử dụng
+## 🚀 Cách sử dụng nhanh
 
-1. **Copy một file mẫu** trong thư mục này (ví dụ `birthday_nguyen_van.json`)
-2. **Đổi tên** thành tên người được chúc (ví dụ `birthday_lan.json`)
-3. **Sửa nội dung** JSON theo ý muốn
-4. **Gửi link** cho người được chúc:
-   ```
-   http://localhost/firework/?config=birthday_lan
-   ```
-   Hoặc nếu deploy lên web:
-   ```
-   https://yourdomain.com/firework/?config=birthday_lan
-   ```
+1. **Copy một file mẫu** trong thư mục này (ví dụ `birthday_nguyen_van.json`).
+2. **Đổi tên** (ví dụ `my_show.json`).
+3. **Sửa nội dung** JSON và lưu lại.
+4. **Xem kết quả** bằng cách thêm tham số `?config=tên_file` vào URL:
+   `http://localhost/firework/?config=my_show`
 
 ---
 
 ## 📋 Cấu trúc file JSON
 
+### 1. Thông tin chung
+| Trường | Mô tả |
+|--------|-------|
+| `title` | Tiêu đề lớn hiển thị lúc mở màn. |
+| `subtitle`| Dòng phụ bên dưới tiêu đề. |
+| `author` | Tên người đạo diễn/người gửi. |
+| `loop` | `true`: Tự động lặp lại show; `false`: Chạy xong sẽ chuyển sang chế độ pháo ngẫu nhiên. |
+
+### 2. Cấu trúc Event (Mỗi phát bắn)
+Mỗi phần tử trong mảng `events` đại diện cho một phát bắn hoặc một dòng chữ.
+
+| Thuộc tính | Kiểu dữ liệu | Mô tả |
+|------------|--------------|-------|
+| **`burst`** | Số | Số thứ tự đợt bắn (bắt đầu từ 1). |
+| **`shell`** | Chuỗi | Loại pháo: `"Hoa cúc"`, `"Trái tim"`, `"Ngôi sao"`, `"Liễu"`, `"Văn bản"`, `"Tạm dừng"`... |
+| **`text`** | Chuỗi | Nội dung chữ (chỉ dùng khi `shell`: `"Văn bản"`). |
+| **`color`** | Chuỗi/Mảng | Màu pháo. Có thể dùng tên (`Red`, `Gold`), mã Hex (`#FF5733`), hoặc mảng màu `["Red", "Blue"]`. Dùng `"Ngẫu nhiên"` để đa sắc. |
+| **`glitterColor`**| Chuỗi/Mảng | Màu của vệt sáng rủ xuống. Thường đặt `"Ngẫu nhiên"` để khớp với màu nhánh pháo. |
+| **`x`**, **`y`** | Số | Vị trí (0.1 đến 0.9). `x: 0.5, y: 0.5` là ở chính giữa màn hình. |
+| **`delay`** | Số | Độ trễ (ms) tính từ lúc bắt đầu đợt bắn. |
+| **`size`** | Số | Kích thước (0: 3" đến 5: 16"). |
+
+---
+
+## 🛠️ Tùy biến Hiệu ứng Nâng cao (Siêu cấp)
+Bạn có thể thêm các thuộc tính này vào bất kỳ loại pháo nào để tạo ra hiệu ứng độc lạ:
+
+| Thuộc tính | Kiểu | Hiệu ứng |
+|------------|------|----------|
+| **`strobe`** | bool | `true`: Làm hạt pháo nhấp nháy, lấp lánh như kim cương. |
+| **`crackle`** | bool | `true`: Thêm tiếng nổ và hiệu ứng lách tách li ti khi pháo tan. |
+| **`crossette`**| bool | `true`: Các hạt pháo tự tách làm 4 nhánh nhỏ khi nổ. |
+| **`pistil`** | bool | `true`: Thêm một tâm pháo (nhụy) ở giữa vụ nổ. |
+| **`pistilColor`**| chuỗi | Màu của tâm pháo (ví dụ: `"White"`). |
+| **`streamers`**| bool | `true`: Tạo các dải sáng dài vút ra ngoài. |
+| **`horsetail`**| bool | `true`: Hiệu ứng đuôi ngựa rủ xuống từ từ. |
+| **`starLife`** | số | Thời gian tồn tại của hạt pháo (ms). Mặc định khoảng 2500-3000. |
+| **`starDensity`**| số | Mật độ hạt pháo. Tăng lên (ví dụ `2`) để pháo dày hơn. |
+| **`spreadSize`**| số | Độ rộng của vòng nổ. |
+
+---
+
+## 💡 Ví dụ thực tế
+
+### 1. Pháo Liễu Đa Sắc (Cực đẹp)
+Mỗi nhánh một màu khác nhau, rủ xuống lấp lánh:
 ```json
 {
-  "title": "Tiêu đề hiển thị trên màn hình",
-  "subtitle": "Dòng phụ (tùy chọn)",
-  "author": "Từ: Tên người gửi",
-  "loop": true,
-  "events": [
-    {
-      "burst": 1,
-      "text": "CHÚC MỪNG",
-      "shell": "Văn bản",
-      "color": "Gold",
-      "x": 0.5,
-      "y": 0.5
-    },
-    {
-      "burst": 2,
-      "shell": "Trái tim",
-      "color": "Ngẫu nhiên",
-      "glitterColor": "Ngẫu nhiên"
-    }
-  ]
+  "burst": 1,
+  "shell": "Liễu",
+  "color": "Ngẫu nhiên",
+  "glitterColor": "Ngẫu nhiên",
+  "strobe": true,
+  "size": 4
 }
 ```
 
-### Giải thích các trường chính:
+### 2. Trái Tim Lách Tách (Có nhụy trắng)
+Trái tim màu đỏ, có tâm màu trắng và nổ lách tách:
+```json
+{
+  "burst": 2,
+  "shell": "Trái tim",
+  "color": "Red",
+  "pistil": true,
+  "pistilColor": "White",
+  "crackle": true,
+  "x": 0.3,
+  "y": 0.4
+}
+```
 
-| Trường | Bắt buộc | Mô tả |
-|--------|----------|-------|
-| `title` | Không | Tiêu đề hiển thị lúc đầu |
-| `subtitle` | Không | Dòng phụ bên dưới title |
-| `author` | Không | Tên người gửi lời chúc |
-| `loop` | Không | `true` = lặp lại sau khi hết events, `false` = chạy 1 lần rồi random |
-| `events` | **Có** | Danh sách các đợt bắn đặc biệt |
-
-### Cấu trúc nâng cao cho mỗi event:
-
-| Trường | Kiểu | Mô tả |
-|--------|------|-------|
-| `burst` | Số | Đợt bắn (bắt đầu từ 1) |
-| `shell` | Chuỗi | Loại pháo hoa (xem danh sách bên dưới) |
-| `text` | Chuỗi | Nội dung chữ (khi shell = "Văn bản") |
-| `color` | Chuỗi/Mảng | Màu chính: Tên màu (`Red`, `Gold`...), mã Hex (`#FF5733`) hoặc mảng `["Red", "#00FF00"]` |
-| `glitterColor`| Chuỗi/Mảng | Màu của vệt sáng rủ xuống: (Giống `color`) |
-| `x` | Số | Vị trí ngang (0.1 - 0.9). 0.5 là chính giữa. |
-| `y` | Số | Vị trí cao (0.1 - 0.9). 0.2 là rất cao, 0.8 là thấp. |
-| `delay` | Số | Thời gian trễ (ms) so với bắt đầu đợt bắn. |
-| `size` | Số | Kích thước pháo (0: 3", 1: 4", 2: 6", 3: 8", 4: 12", 5: 16") |
-| `duration` | Số | Thời gian nghỉ (ms) khi dùng shell = "Tạm dừng" |
-
----
-
-## 🎆 Các loại `shell` (Loại pháo)
-
-| Giá trị | Mô tả |
-|---------|-------|
-| `"Văn bản"` | Hiển thị chữ (cần có `text`) |
-| `"Trái tim"` | Pháo hình trái tim ❤️ |
-| `"Ngôi sao"` | Pháo hình ngôi sao ⭐ |
-| `"Mặt cười"` | Pháo mặt cười 😊 |
-| `"Mặt mèo"` | Pháo mặt mèo 🐱 |
-| `"Hoa cúc"` | Pháo hoa cúc truyền thống |
-| `"Vòng nhẫn"` | Pháo hình vòng tròn |
-| `"Liễu"` | Pháo liễu rủ (đẹp nhất khi kèm màu Ngẫu nhiên) |
-| `"Kim cương"` | Pháo hình kim cương 💎 |
-| `"Bông tuyết"`| Pháo hình bông tuyết ❄️ |
-| `"Bông sen"` | Pháo hình hoa sen 🪷 |
-| `"Hành tinh"` | Pháo hình hành tinh (Thổ tinh) 🪐 |
-| `"Tạm dừng"` | Nghỉ một khoảng thời gian (dùng `duration`) |
+### 3. Cơn Mưa Ngôi Sao (Dày đặc)
+Dùng `starDensity` để tạo cơn mưa sao:
+```json
+{
+  "burst": 3,
+  "shell": "Ngôi sao",
+  "color": "Gold",
+  "starDensity": 3,
+  "starLife": 5000,
+  "x": 0.5,
+  "y": 0.2
+}
+```
 
 ---
 
-## 💡 Mẹo và Kỹ thuật nâng cao
-
-1. **Hiệu ứng Đa sắc (Rainbow):**
-   - Dùng `"color": "Ngẫu nhiên"` để lấy toàn bộ màu có sẵn.
-   - Dùng mảng màu để giới hạn danh sách màu bạn muốn: `"color": ["Red", "Gold", "#00FF00"]`.
-   - Kết hợp với `"glitterColor": "Ngẫu nhiên"` để đuôi pháo tự động khớp màu với từng nhánh.
-   - Cách này hoạt động cực đẹp với pháo loại `"Liễu"`, `"Trái tim"`, `"Ngôi sao"`.
-
-2. **Xếp chữ nhiều dòng:**
-   Bạn có thể tạo nhiều event trong cùng 1 `burst` với các tọa độ `y` khác nhau và `delay` khác nhau.
-
-3. **Pháo nổ đồng thời:**
-   Đặt nhiều event có cùng số `burst` và cùng `delay` nhưng khác vị trí `x`.
-
-4. **Tự động cập nhật năm:**
-   Dùng `[YEAR]` trong chuỗi `text` để tự động hiển thị năm hiện tại.
-   Ví dụ: `"text": "CHÚC MỪNG NĂM [YEAR]"`
-
----
-
-## 📁 Các file mẫu
-- `birthday_nguyen_van.json`: Mẫu sinh nhật chuyên sâu với finale.
-- `national_day_vn.json`: Mẫu ngày Quốc khánh với cờ đỏ sao vàng.
-- `tet_holiday.json`: Mẫu Tết Nguyên Đán.
+## 🎇 Danh sách các loại `shell` có sẵn
+- `"Văn bản"` (Cần có `text`)
+- `"Hoa cúc"` (Cơ bản)
+- `"Liễu"` (Rủ xuống)
+- `"Trái tim"`, `"Ngôi sao"`, `"Kim cương"`, `"Bông tuyết"`
+- `"Mặt cười"`, `"Mặt mèo"`, `"Bông sen"`, `"Hành tinh"`
+- `"Vòng nhẫn"`, `"Nổ chéo"`, `"Cây cọ"`, `"Ma"`, `"Đuôi ngựa"`
+- `"Tạm dừng"` (Dùng kèm `duration`)
