@@ -1,0 +1,133 @@
+{
+  "title": "GIÁNG SINH AN LÀNH",
+  "subtitle": "Merry Christmas & Happy New Year",
+  "author": "Đạo diễn: Mr. Nam",
+  "loop": true,
+  "events": [
+    {
+      "burst": 1,
+      "text": "MERRY",
+      "shell": "Văn bản",
+      "color": "Red",
+      "x": 0.5,
+      "y": 0.3
+    },
+    {
+      "burst": 1,
+      "text": "CHRISTMAS",
+      "shell": "Văn bản",
+      "color": "Green",
+      "x": 0.5,
+      "y": 0.7,
+      "delay": 400
+    },
+    {
+      "burst": 2,
+      "shell": "Nhấp nháy",
+      "color": "White",
+      "x": 0.2,
+      "y": 0.2
+    },
+    {
+      "burst": 2,
+      "shell": "Nhấp nháy",
+      "color": "White",
+      "x": 0.8,
+      "y": 0.2,
+      "delay": 200
+    },
+    {
+      "burst": 2,
+      "shell": "Nhấp nháy",
+      "color": "White",
+      "x": 0.5,
+      "y": 0.5,
+      "delay": 400
+    },
+    {
+      "burst": 3,
+      "text": "GIÁNG SINH",
+      "shell": "Văn bản",
+      "color": "White",
+      "x": 0.3,
+      "y": 0.5
+    },
+    {
+      "burst": 3,
+      "text": "AN LÀNH",
+      "shell": "Văn bản",
+      "color": "White",
+      "x": 0.7,
+      "y": 0.5,
+      "delay": 400
+    },
+    {
+      "burst": 4,
+      "shell": "Ngôi sao",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.2
+    },
+    {
+      "burst": 4,
+      "shell": "Trái tim",
+      "color": "Red",
+      "x": 0.2,
+      "y": 0.4,
+      "delay": 300
+    },
+    {
+      "burst": 4,
+      "shell": "Trái tim",
+      "color": "Red",
+      "x": 0.8,
+      "y": 0.4,
+      "delay": 300
+    },
+    {
+      "burst": 5,
+      "text": "HẠNH PHÚC",
+      "shell": "Văn bản",
+      "color": "Green",
+      "x": 0.5,
+      "y": 0.4
+    },
+    {
+      "burst": 5,
+      "text": "ẤM ÁP",
+      "shell": "Văn bản",
+      "color": "Green",
+      "x": 0.5,
+      "y": 0.7,
+      "delay": 400
+    },
+    {
+      "burst": 6,
+      "shell": "Liễu",
+      "color": "White",
+      "x": 0.5,
+      "y": 0.8
+    },
+    {
+      "burst": 6,
+      "shell": "Nổ lách tách",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.1,
+      "delay": 800
+    },
+    {
+      "burst": 7,
+      "text": "❄️🎄🎁",
+      "shell": "Văn bản",
+      "color": "White",
+      "x": 0.5,
+      "y": 0.5
+    },
+    {
+      "burst": 8,
+      "shell": "Tạm dừng",
+      "duration": 5000
+    }
+  ]
+}

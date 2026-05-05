@@ -1,0 +1,160 @@
+{
+  "title": "CHÚC MỪNG NĂM MỚI",
+  "subtitle": "An Khang Thịnh Vượng - Vạn Sự Như Ý",
+  "author": "Đạo diễn: Mr. Nam",
+  "loop": true,
+  "events": [
+    {
+      "burst": 1,
+      "text": "XUÂN [LUNAR_YEAR]",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.4
+    },
+    {
+      "burst": 1,
+      "shell": "Nhấp nháy",
+      "color": "Red",
+      "x": 0.2,
+      "y": 0.3,
+      "delay": 400
+    },
+    {
+      "burst": 1,
+      "shell": "Nhấp nháy",
+      "color": "Red",
+      "x": 0.8,
+      "y": 0.3,
+      "delay": 400
+    },
+    {
+      "burst": 2,
+      "text": "CHÚC MỪNG",
+      "shell": "Văn bản",
+      "color": "Red",
+      "x": 0.5,
+      "y": 0.3
+    },
+    {
+      "burst": 2,
+      "text": "NĂM MỚI",
+      "shell": "Văn bản",
+      "color": "Red",
+      "x": 0.5,
+      "y": 0.7,
+      "delay": 400
+    },
+    {
+      "burst": 3,
+      "text": "AN KHANG",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.3,
+      "y": 0.5
+    },
+    {
+      "burst": 3,
+      "text": "THỊNH VƯỢNG",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.7,
+      "y": 0.5,
+      "delay": 300
+    },
+    {
+      "burst": 4,
+      "text": "VẠN SỰ",
+      "shell": "Văn bản",
+      "color": "White",
+      "x": 0.3,
+      "y": 0.4
+    },
+    {
+      "burst": 4,
+      "text": "NHƯ Ý",
+      "shell": "Văn bản",
+      "color": "White",
+      "x": 0.7,
+      "y": 0.4,
+      "delay": 300
+    },
+    {
+      "burst": 4,
+      "shell": "Hoa cúc",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.8,
+      "delay": 600
+    },
+    {
+      "burst": 5,
+      "text": "PHÁT TÀI",
+      "shell": "Văn bản",
+      "color": "Red",
+      "x": 0.3,
+      "y": 0.5
+    },
+    {
+      "burst": 5,
+      "text": "PHÁT LỘC",
+      "shell": "Văn bản",
+      "color": "Red",
+      "x": 0.7,
+      "y": 0.5,
+      "delay": 400
+    },
+    {
+      "burst": 5,
+      "shell": "Nổ lách tách",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.2,
+      "delay": 800
+    },
+    {
+      "burst": 6,
+      "shell": "Liễu",
+      "color": "Gold",
+      "x": 0.2,
+      "y": 0.7
+    },
+    {
+      "burst": 6,
+      "shell": "Liễu",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.7,
+      "delay": 200
+    },
+    {
+      "burst": 6,
+      "shell": "Liễu",
+      "color": "Gold",
+      "x": 0.8,
+      "y": 0.7,
+      "delay": 400
+    },
+    {
+      "burst": 7,
+      "text": "🧧🧧🧧",
+      "shell": "Văn bản",
+      "color": "Red",
+      "x": 0.5,
+      "y": 0.5
+    },
+    {
+      "burst": 7,
+      "shell": "Cây cọ",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.1,
+      "delay": 500
+    },
+    {
+      "burst": 8,
+      "shell": "Tạm dừng",
+      "duration": 5000
+    }
+  ]
+}

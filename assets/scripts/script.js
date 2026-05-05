@@ -1044,6 +1044,24 @@ const shellTypes = {
 
 const shellNames = Object.keys(shellTypes);
 
+function getLunarYearName(year) {
+    const cans = ["Canh", "Tân", "Nhâm", "Quý", "Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ"];
+    const chis = ["Thân", "Dậu", "Tuất", "Hợi", "Tí", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi"];
+    return `${cans[year % 10]} ${chis[year % 12]}`;
+}
+
+function replacePlaceholders(text) {
+    if (typeof text !== 'string') return text;
+    const now = new Date();
+    const year = now.getFullYear();
+    return text
+        .replace(/\[YEAR\]/g, year)
+        .replace(/\[LUNAR_YEAR\]/g, getLunarYearName(year).toUpperCase())
+        .replace(/\[SINCE:(\d+)\]/g, (match, p1) => {
+            return year - parseInt(p1);
+        });
+}
+
 async function loadBurstConfig() {
     const urlParams = new URLSearchParams(window.location.search);
     const configName = urlParams.get('config');
@@ -1053,6 +1071,16 @@ async function loadBurstConfig() {
         const response = await fetch(`./configs/${configName}.json`);
         if (!response.ok) throw new Error('Config not found');
         burstConfig = await response.json();
+
+        // Xử lý các placeholder trong text
+        if (burstConfig.title) burstConfig.title = replacePlaceholders(burstConfig.title);
+        if (burstConfig.subtitle) burstConfig.subtitle = replacePlaceholders(burstConfig.subtitle);
+        if (burstConfig.events) {
+            burstConfig.events.forEach(event => {
+                if (event.text) event.text = replacePlaceholders(event.text);
+            });
+        }
+
         console.log('Loaded burst config:', burstConfig);
 
         // Hiển thị overlay thông tin nếu có
