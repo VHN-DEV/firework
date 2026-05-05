@@ -505,6 +505,7 @@ function loadScriptsList() {
                 <div class="script-actions">
                     <button class="btn primary small" onclick="editScript('${script.id}')">Sửa</button>
                     <button class="btn secondary small" onclick="duplicateScript('${script.id}')" title="Nhân bản"><i class="fas fa-copy"></i></button>
+                    <button class="btn secondary small" onclick="copyScriptLink('${script.id}')" title="Sao chép link"><i class="fas fa-link"></i></button>
                     ${!isPrivate ? `<button class="btn danger small" onclick="deleteScript('${script.id}')"><i class="fas fa-trash"></i></button>` : ''}
                 </div>
             `;
@@ -638,6 +639,13 @@ function toggleSidebar() {
     }
 }
 
+function copyScriptLink(filename) {
+    const url = window.location.origin + window.location.pathname.replace('builder.html', 'index.html') + '?config=' + filename;
+    navigator.clipboard.writeText(url).then(() => {
+        notify('Đã sao chép link kịch bản!', 'success');
+    });
+}
+
 // Global exposure for onclick handlers
 window.removeEvent = removeEvent;
 window.updateEvent = updateEvent;
@@ -648,3 +656,4 @@ window.duplicateScript = duplicateScript;
 window.deleteScript = deleteScript;
 window.addColorToEvent = addColorToEvent;
 window.removeColorFromEvent = removeColorFromEvent;
+window.copyScriptLink = copyScriptLink;
