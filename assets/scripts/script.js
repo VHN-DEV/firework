@@ -788,11 +788,12 @@ const fallingLeavesShell = (size = 1) => ({
 const willowShell = (size = 1) => ({
     shellSize: size,
     spreadSize: 300 + size * 100,
-    starDensity: 0.6,
+    starDensity: 0.7,
     starLife: 3000 + size * 300,
     glitter: 'willow',
     glitterColor: COLOR.Gold,
-    color: INVISIBLE
+    color: COLOR.Gold,
+    comet: true
 });
 
 const crackleShell = (size = 1) => {
@@ -2441,7 +2442,8 @@ class Shell {
 
         // Ngẫu nhiên làm cho sao chổi “cháy” sớm một chút.
         // Tính năng này bị vô hiệu hóa đối với vỏ đuôi ngựa do thời gian phát sóng của chúng rất ngắn.
-        if (Math.random() > 0.4 && !this.horsetail) {
+        // Không áp dụng cho các loại vỏ tàng hình (như lá rơi) hoặc Liễu để tránh làm biến mất vệt sáng phóng lên.
+        if (Math.random() > 0.4 && !this.horsetail && this.color !== INVISIBLE && this.glitter !== 'willow') {
             comet.secondColor = INVISIBLE;
             comet.transitionTime = Math.pow(Math.random(), 1.5) * 700 + 500;
         }
@@ -2508,9 +2510,9 @@ class Shell {
             sparkLifeVariation = 2;
         }
         else if (this.glitter === 'willow') {
-            sparkFreq = 120;
-            sparkSpeed = 0.34;
-            sparkLife = 1400;
+            sparkFreq = 80;
+            sparkSpeed = 0.48;
+            sparkLife = 1500;
             sparkLifeVariation = 3.8;
         }
 
