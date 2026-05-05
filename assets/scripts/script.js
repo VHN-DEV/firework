@@ -950,6 +950,159 @@ function getCatPoints() {
     return points;
 }
 
+function getLeafPoints(petals = 4) {
+    const points = [];
+    for (let p = 0; p < petals; p++) {
+        // Xoay để có một cánh ở trên cùng cho cỏ 3 lá, hoặc căn giữa cho cỏ 4 lá
+        const angleOffset = (p / petals) * Math.PI * 2 - (petals === 3 ? Math.PI / 2 : 0);
+        
+        for (let i = 0; i < 40; i++) {
+            const t = (i / 40) * Math.PI * 2;
+            // Công thức hình trái tim
+            let x = 16 * Math.pow(Math.sin(t), 3);
+            let y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+            
+            // Chuẩn hóa và tỷ lệ lá
+            x /= 18;
+            y /= 18;
+            
+            // Di chuyển để cuống lá ở gần tâm
+            y -= 0.8;
+            
+            // Tỷ lệ từng lá riêng lẻ
+            x *= 0.45;
+            y *= 0.45;
+            
+            // Xoay lá
+            const cosA = Math.cos(angleOffset);
+            const sinA = Math.sin(angleOffset);
+            points.push({
+                x: x * cosA - y * sinA,
+                y: x * sinA + y * cosA
+            });
+        }
+    }
+    // Không cần thân cây theo yêu cầu người dùng
+    return points;
+}
+
+function getCloverPoints() {
+    return getLeafPoints(4);
+}
+
+function getClover3Points() {
+    return getLeafPoints(3);
+}
+
+function getSaturnPoints() {
+    const points = [];
+    for (let i = 0; i < 60; i++) {
+        const t = (i / 60) * Math.PI * 2;
+        points.push({ x: Math.cos(t) * 0.4, y: Math.sin(t) * 0.4 });
+    }
+    for (let i = 0; i < 90; i++) {
+        const t = (i / 90) * Math.PI * 2;
+        points.push({ x: Math.cos(t) * 1.0, y: Math.sin(t) * 0.25 });
+    }
+    return points;
+}
+
+function getSnowflakePoints() {
+    const points = [];
+    const arms = 6;
+    
+    // Lõi trung tâm
+    for (let i = 0; i < 30; i++) {
+        const t = (i / 30) * Math.PI * 2;
+        points.push({ x: Math.cos(t) * 0.1, y: Math.sin(t) * 0.1 });
+    }
+
+    for (let i = 0; i < arms; i++) {
+        const angle = (i / arms) * Math.PI * 2;
+        const cosA = Math.cos(angle);
+        const sinA = Math.sin(angle);
+
+        // Cánh chính
+        for (let j = 1; j <= 25; j++) {
+            const r = j / 25;
+            points.push({ x: cosA * r, y: sinA * r });
+
+            // Các nhánh phụ (V-shape)
+            if (j === 12 || j === 18 || j === 22) {
+                const branchLen = j === 12 ? 0.25 : (j === 18 ? 0.18 : 0.12);
+                const branchAngle = Math.PI / 3;
+                for (let k = 1; k <= 8; k++) {
+                    const brR = (k / 8) * branchLen;
+                    // Nhánh phải
+                    const rA = angle + branchAngle;
+                    points.push({ x: cosA * r + Math.cos(rA) * brR, y: sinA * r + Math.sin(rA) * brR });
+                    // Nhánh trái
+                    const lA = angle - branchAngle;
+                    points.push({ x: cosA * r + Math.cos(lA) * brR, y: sinA * r + Math.sin(lA) * brR });
+                }
+            }
+        }
+    }
+    return points;
+}
+
+function getLotusPoints() {
+    const points = [];
+    const petals = 12;
+    for (let p = 0; p < petals; p++) {
+        const angleOffset = (p / petals) * Math.PI * 2;
+        const layer = p % 2 === 0 ? 0.8 : 0.5;
+        for (let i = 0; i <= 20; i++) {
+            const t = (i / 20) * Math.PI;
+            const r = Math.sin(t) * layer;
+            const angle = angleOffset + (t - Math.PI / 2) * 0.5;
+            points.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
+        }
+    }
+    return points;
+}
+
+function getButterflyPoints() {
+    const points = [];
+    for (let i = 0; i <= 100; i++) {
+        const t = (i / 100) * Math.PI * 2;
+        const x = Math.sin(t) * (Math.exp(Math.cos(t)) - 2 * Math.cos(4 * t) - Math.pow(Math.sin(t / 12), 5));
+        const y = -Math.cos(t) * (Math.exp(Math.cos(t)) - 2 * Math.cos(4 * t) - Math.pow(Math.sin(t / 12), 5));
+        points.push({ x: x * 0.3, y: y * 0.3 });
+    }
+    return points;
+}
+
+function getDiamondPoints() {
+    const points = [];
+    const drawLine = (x1, y1, x2, y2, density = 15) => {
+        for (let i = 0; i <= density; i++) {
+            points.push({
+                x: x1 + (x2 - x1) * (i / density),
+                y: y1 + (y2 - y1) * (i / density)
+            });
+        }
+    };
+
+    // Đường viền và các mặt (Facets)
+    drawLine(-0.35, -0.6, 0.35, -0.6); // Mặt bàn (Top table)
+    drawLine(-0.35, -0.6, -0.7, -0.2); // Vương miện trái (Left crown)
+    drawLine(0.35, -0.6, 0.7, -0.2);  // Vương miện phải (Right crown)
+    drawLine(-0.7, -0.2, 0.7, -0.2);  // Thắt lưng (Girdle)
+    drawLine(-0.7, -0.2, 0, 0.8);     // Đáy trái (Left pavilion)
+    drawLine(0.7, -0.2, 0, 0.8);      // Đáy phải (Right pavilion)
+
+    // Các đường cắt giác bên trong
+    drawLine(-0.35, -0.6, 0, -0.2, 10);
+    drawLine(0.35, -0.6, 0, -0.2, 10);
+    drawLine(0, -0.6, 0, 0.8, 20);      // Trục giữa dọc
+    drawLine(-0.7, -0.2, 0, -0.2, 10);
+    drawLine(0.7, -0.2, 0, -0.2, 10);
+    drawLine(0, -0.2, 0, 0.8, 15);      // Đường đáy giữa
+
+    return points;
+}
+
 const heartShell = (size = 1) => {
     const color = randomColor();
     return {
@@ -1027,6 +1180,97 @@ const textShell = (size = 1) => {
     };
 };
 
+const clover3Shell = (size = 1) => {
+    const color = COLOR.Green;
+    return {
+        shellSize: size,
+        color,
+        spreadSize: 300 + size * 100,
+        starLife: 1200 + size * 200,
+        shapePoints: getClover3Points(),
+        glitter: 'light',
+        glitterColor: COLOR.White,
+    };
+};
+
+const cloverShell = (size = 1) => {
+    const color = COLOR.Green;
+    return {
+        shellSize: size,
+        color,
+        spreadSize: 300 + size * 100,
+        starLife: 1200 + size * 200,
+        shapePoints: getCloverPoints(),
+        glitter: 'light',
+        glitterColor: COLOR.White,
+    };
+};
+
+const saturnShell = (size = 1) => {
+    const color = COLOR.Gold;
+    return {
+        shellSize: size,
+        color,
+        spreadSize: 400 + size * 100,
+        starLife: 1500 + size * 200,
+        shapePoints: getSaturnPoints(),
+        glitter: 'light',
+        glitterColor: COLOR.White,
+    };
+};
+
+const snowflakeShell = (size = 1) => {
+    const color = COLOR.White;
+    return {
+        shellSize: size,
+        color,
+        spreadSize: 350 + size * 100,
+        starLife: 1500 + size * 200,
+        shapePoints: getSnowflakePoints(),
+        glitter: 'light',
+        glitterColor: COLOR.Blue,
+    };
+};
+
+const lotusShell = (size = 1) => {
+    const color = Math.random() < 0.5 ? COLOR.Purple : COLOR.Red;
+    return {
+        shellSize: size,
+        color,
+        spreadSize: 350 + size * 100,
+        starLife: 1500 + size * 200,
+        shapePoints: getLotusPoints(),
+        glitter: 'light',
+        glitterColor: COLOR.Gold,
+    };
+};
+
+const butterflyShell = (size = 1) => {
+    const color = randomColor();
+    return {
+        shellSize: size,
+        color,
+        spreadSize: 300 + size * 100,
+        starLife: 1500 + size * 200,
+        shapePoints: getButterflyPoints(),
+        glitter: 'light',
+        glitterColor: COLOR.White,
+    };
+};
+
+const diamondShell = (size = 1) => {
+    const color = randomColor();
+    return {
+        shellSize: size,
+        color,
+        spreadSize: 300 + size * 100,
+        starLife: 1200 + size * 200,
+        shapePoints: getDiamondPoints(),
+        glitter: 'heavy',
+        glitterColor: COLOR.White,
+    };
+};
+
 const shellTypes = {
     'Ngẫu nhiên': randomShell,
     'Trái tim': heartShell,
@@ -1034,6 +1278,13 @@ const shellTypes = {
     'Mặt mèo': catShell,
     'Mặt cười': smileyShell,
     'Văn bản': textShell,
+    'Cỏ 3 lá': clover3Shell,
+    'Cỏ 4 lá': cloverShell,
+    'Hành tinh': saturnShell,
+    'Bông tuyết': snowflakeShell,
+    'Bông sen': lotusShell,
+    'Con bướm': butterflyShell,
+    'Kim cương': diamondShell,
     'Nổ lách tách': crackleShell,
     'Crossette (Nổ chéo)': crossetteShell,
     'Hoa cúc': crysanthemumShell,
@@ -1088,6 +1339,13 @@ async function loadBurstConfig() {
         }
 
         console.log('Loaded burst config:', burstConfig);
+
+        // Cập nhật tiêu đề trang (SEO) nếu có
+        if (burstConfig.seoTitle) {
+            document.title = burstConfig.seoTitle;
+        } else if (burstConfig.title) {
+            document.title = `${burstConfig.title} | Trình mô phỏng Pháo hoa`;
+        }
 
         // Hiển thị overlay thông tin nếu có
         if (burstConfig.title || burstConfig.author) {
