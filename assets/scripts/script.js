@@ -400,10 +400,16 @@ const appNodes = {
 
     // Giao diện trợ giúp
     helpModal: '.help-modal',
+    loadingInit: '.loading-init',
+    loadingStatus: '.loading-init__status',
     helpModalOverlay: '.help-modal__overlay',
     helpModalHeader: '.help-modal__header',
     helpModalBody: '.help-modal__body',
-    helpModalCloseBtn: '.help-modal__close-btn'
+    helpModalCloseBtn: '.help-modal__close-btn',
+
+    // Màn hình bắt đầu
+    startScreen: '.start-screen',
+    btnStart: '.btn-start'
 };
 
 // Chuyển đổi bộ chọn appNodes thành nút dom
@@ -1103,7 +1109,7 @@ async function loadBurstConfig() {
 
 async function init() {
     // Xóa trạng thái tải
-    document.querySelector('.loading-init').remove();
+    appNodes.loadingInit.remove();
     appNodes.stageContainer.classList.remove('remove');
 
     // Điền vào danh sách thả xuống
@@ -2708,25 +2714,33 @@ const soundManager = {
 // Bắt đầu mọi thứ.
 
 function setLoadingStatus(status) {
-    document.querySelector('.loading-init__status').textContent = status;
+    appNodes.loadingStatus.textContent = status;
 }
 
 // Tiêu đề hồ sơ không cần âm thanh, chỉ cần khởi tạo.
 if (IS_HEADER) {
     init();
 } else {
-    // Cho phép trạng thái hiển thị, sau đó tải trước nội dung và khởi động ứng dụng.
-    setLoadingStatus('Đang châm ngòi');
-    setTimeout(() => {
-        soundManager.preload()
-            .then(
-                init,
-                reason => {
-                    // Bản xem trước không muốn tải âm thanh, vì vậy bây giờ chỉ cần khởi tạo để sửa bản xem trước.
-                    init();
-                    // setLoadingStatus('Lỗi tải âm thanh');
-                    return Promise.reject(reason);
-                }
-            );
-    }, 0);
+    // Đợi người dùng nhấn "Bắt đầu"
+    appNodes.btnStart.addEventListener('click', () => {
+        // Ẩn màn hình bắt đầu và hiện màn hình loading
+        appNodes.startScreen.classList.add('hide');
+        appNodes.loadingInit.classList.remove('remove');
+
+        // Kích hoạt âm thanh ngay lập tức (mở khóa AudioContext)
+        soundManager.resumeAll();
+
+        // Bắt đầu tải dữ liệu
+        setLoadingStatus('Đang châm ngòi');
+        setTimeout(() => {
+            soundManager.preload()
+                .then(
+                    init,
+                    reason => {
+                        init();
+                        return Promise.reject(reason);
+                    }
+                );
+        }, 500); // Đợi một chút cho hiệu ứng chuyển cảnh
+    }, { once: true });
 }
