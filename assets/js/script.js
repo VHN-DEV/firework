@@ -1731,10 +1731,16 @@ function startSequence() {
                     const size = event.size !== undefined ? event.size : shellSizeSelector();
 
                     if (event.shell === 'Văn bản' && event.text) {
-                        const color = (event.color && COLOR[event.color]) || randomColor();
+                        let finalColor;
+                        if (Array.isArray(event.color)) {
+                            finalColor = event.color.map(c => COLOR[c] || c);
+                        } else {
+                            finalColor = (event.color && COLOR[event.color]) || event.color || randomColor();
+                        }
+
                         shell = new Shell({
                             shellSize: size,
-                            color: color,
+                            color: finalColor,
                             spreadSize: 300 + size * 100,
                             starLife: 1400 + size * 200,
                             shapePoints: getTextParticles(event.text, 50),
@@ -2599,7 +2605,13 @@ class Shell {
                 star.sparkSpeed = sparkSpeed;
                 star.sparkLife = sparkLife;
                 star.sparkLifeVariation = sparkLifeVariation;
-                star.sparkColor = this.glitterColor === 'random' ? star.color : this.glitterColor;
+                if (this.glitterColor === 'random') {
+                    star.sparkColor = star.color;
+                } else if (Array.isArray(this.glitterColor)) {
+                    star.sparkColor = this.glitterColor[Math.floor(Math.random() * this.glitterColor.length)];
+                } else {
+                    star.sparkColor = this.glitterColor;
+                }
                 star.sparkTimer = Math.random() * star.sparkFreq;
             }
         };
@@ -2616,36 +2628,42 @@ class Shell {
                 const cosA = Math.cos(shapeStartAngle);
                 const sinA = Math.sin(shapeStartAngle);
 
-                this.shapePoints.forEach(p => {
-                    // Xoay điểm p theo shapeStartAngle
-                    const rx = p.x * cosA - p.y * sinA;
-                    const ry = p.x * sinA + p.y * cosA;
+            this.shapePoints.forEach(p => {
+                // Xoay điểm p theo shapeStartAngle
+                const rx = p.x * cosA - p.y * sinA;
+                const ry = p.x * sinA + p.y * cosA;
 
-                    // Sử dụng trực tiếp rx, ry để gán tốc độ, đảm bảo đúng hướng tuyệt đối
-                    const finalX = rx;
-                    const finalY = ry;
+                // Sử dụng trực tiếp rx, ry để gán tốc độ, đảm bảo đúng hướng tuyệt đối
+                const finalX = rx;
+                const finalY = ry;
 
-                    const star = Star.add(
-                        x,
-                        y,
-                        color,
-                        0, // Angle không quan trọng vì ta sẽ ghi đè speedX/Y
-                        0, // Speed không quan trọng vì ta sẽ ghi đè speedX/Y
-                        this.starLife + Math.random() * this.starLife * this.starLifeVariation
-                    );
+                const star = Star.add(
+                    x,
+                    y,
+                    color,
+                    0, // Angle không quan trọng vì ta sẽ ghi đè speedX/Y
+                    0, // Speed không quan trọng vì ta sẽ ghi đè speedX/Y
+                    this.starLife + Math.random() * this.starLife * this.starLifeVariation
+                );
 
-                    star.speedX = finalX * speed;
-                    star.speedY = finalY * speed;
+                star.speedX = finalX * speed;
+                star.speedY = finalY * speed;
 
-                    if (this.glitter) {
-                        star.sparkFreq = sparkFreq;
-                        star.sparkSpeed = sparkSpeed;
-                        star.sparkLife = sparkLife;
-                        star.sparkLifeVariation = sparkLifeVariation;
-                        star.sparkColor = this.glitterColor === 'random' ? star.color : this.glitterColor;
-                        star.sparkTimer = Math.random() * star.sparkFreq;
+                if (this.glitter) {
+                    star.sparkFreq = sparkFreq;
+                    star.sparkSpeed = sparkSpeed;
+                    star.sparkLife = sparkLife;
+                    star.sparkLifeVariation = sparkLifeVariation;
+                    if (this.glitterColor === 'random') {
+                        star.sparkColor = star.color;
+                    } else if (Array.isArray(this.glitterColor)) {
+                        star.sparkColor = this.glitterColor[Math.floor(Math.random() * this.glitterColor.length)];
+                    } else {
+                        star.sparkColor = this.glitterColor;
                     }
-                });
+                    star.sparkTimer = Math.random() * star.sparkFreq;
+                }
+            });
             } else if (this.ring) {
                 const ringStartAngle = Math.random() * Math.PI;
                 const ringSquash = Math.pow(Math.random(), 2) * 0.85 + 0.15;;
@@ -2673,7 +2691,13 @@ class Shell {
                         star.sparkSpeed = sparkSpeed;
                         star.sparkLife = sparkLife;
                         star.sparkLifeVariation = sparkLifeVariation;
-                        star.sparkColor = this.glitterColor === 'random' ? star.color : this.glitterColor;
+                        if (this.glitterColor === 'random') {
+                            star.sparkColor = star.color;
+                        } else if (Array.isArray(this.glitterColor)) {
+                            star.sparkColor = this.glitterColor[Math.floor(Math.random() * this.glitterColor.length)];
+                        } else {
+                            star.sparkColor = this.glitterColor;
+                        }
                         star.sparkTimer = Math.random() * star.sparkFreq;
                     }
                 });
@@ -2821,7 +2845,10 @@ const Star = {
         instance.sparkLifeVariation = 0.25;
         instance.strobe = false;
 
-        this.active[color].push(instance);
+        if (!this.active[finalColor]) {
+            this.active[finalColor] = [];
+        }
+        this.active[finalColor].push(instance);
         return instance;
     },
 
