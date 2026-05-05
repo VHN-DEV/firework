@@ -28,7 +28,10 @@ body {
     overflow-x: hidden;
 }
 
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
     font-family: 'Outfit', sans-serif;
 }
 
@@ -155,8 +158,8 @@ label {
     margin-bottom: 0.5rem;
 }
 
-input[type="text"], 
-input[type="number"], 
+input[type="text"],
+input[type="number"],
 select {
     width: 100%;
     padding: 0.5rem 0.6rem;
@@ -168,7 +171,8 @@ select {
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-input:focus, select:focus {
+input:focus,
+select:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
@@ -204,7 +208,7 @@ input:focus, select:focus {
 
 .input-with-ext span {
     background-color: var(--secondary);
-    padding: 0.75rem;
+    padding: 0.25rem;
     border: 1px solid var(--border-color);
     border-left: none;
     border-top-right-radius: 6px;
@@ -424,6 +428,7 @@ input:focus, select:focus {
     text-align: center;
     border: 1px solid var(--border-color);
 }
+
 /* Share Bar */
 .share-bar {
     background-color: var(--card-bg);
@@ -436,8 +441,13 @@ input:focus, select:focus {
 }
 
 @keyframes slideDown {
-    from { transform: translateY(-100%); }
-    to { transform: translateY(0); }
+    from {
+        transform: translateY(-100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
 }
 
 .share-info {
@@ -535,8 +545,13 @@ input:focus, select:focus {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 /* Responsive */
@@ -544,14 +559,17 @@ input:focus, select:focus {
     main {
         flex-direction: column;
     }
+
     .sidebar {
         width: 100%;
         height: auto;
         max-height: 40vh;
     }
+
     header .actions span {
         display: none;
     }
+
     .actions {
         flex-wrap: wrap;
         justify-content: center;
@@ -588,8 +606,15 @@ input:focus, select:focus {
 }
 
 @keyframes toastIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
 .toast.fade-out {
@@ -597,21 +622,44 @@ input:focus, select:focus {
 }
 
 @keyframes toastOut {
-    from { transform: translateX(0); opacity: 1; }
-    to { transform: translateX(100%); opacity: 0; }
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
 }
 
-.toast.success { border-left-color: var(--success); }
-.toast.error { border-left-color: var(--danger); }
-.toast.warning { border-left-color: var(--accent); }
+.toast.success {
+    border-left-color: var(--success);
+}
+
+.toast.error {
+    border-left-color: var(--danger);
+}
+
+.toast.warning {
+    border-left-color: var(--accent);
+}
 
 .toast i {
     font-size: 1.1rem;
 }
 
-.toast.success i { color: var(--success); }
-.toast.error i { color: var(--danger); }
-.toast.warning i { color: var(--accent); }
+.toast.success i {
+    color: var(--success);
+}
+
+.toast.error i {
+    color: var(--danger);
+}
+
+.toast.warning i {
+    color: var(--accent);
+}
 
 /* Color Tags & Inputs */
 .form-group.full-width {
