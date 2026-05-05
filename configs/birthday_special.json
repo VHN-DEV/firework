@@ -77,14 +77,39 @@
     },
     {
       "burst": 4,
-      "text": "CHÚC BẠN",
+      "text": "15 - 08",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.3,
+      "y": 0.5
+    },
+    {
+      "burst": 4,
+      "text": "♌︎🦁",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.7,
+      "y": 0.5,
+      "delay": 400
+    },
+    {
+      "burst": 4,
+      "shell": "Cây cọ",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.3,
+      "delay": 800
+    },
+    {
+      "burst": 5,
+      "text": "CHÚC MỪNG",
       "shell": "Văn bản",
       "color": "White",
       "x": 0.5,
       "y": 0.3
     },
     {
-      "burst": 4,
+      "burst": 5,
       "text": "TUỔI MỚI",
       "shell": "Văn bản",
       "color": "White",
@@ -93,16 +118,16 @@
       "delay": 400
     },
     {
-      "burst": 5,
-      "text": "MÃI XINH ĐẸP",
+      "burst": 6,
+      "text": "MÃI XINH TƯƠI",
       "shell": "Văn bản",
       "color": "Purple",
       "x": 0.3,
       "y": 0.5
     },
     {
-      "burst": 5,
-      "text": "LUÔN TƯƠI TRẺ",
+      "burst": 6,
+      "text": "LUÔN RẠNG RỠ",
       "shell": "Văn bản",
       "color": "Purple",
       "x": 0.7,
@@ -110,7 +135,7 @@
       "delay": 300
     },
     {
-      "burst": 5,
+      "burst": 6,
       "shell": "Hoa cúc",
       "color": "Gold",
       "x": 0.5,
@@ -118,15 +143,15 @@
       "delay": 600
     },
     {
-      "burst": 6,
-      "text": "LUÔN RẠNG RỠ",
+      "burst": 7,
+      "text": "TỎA SÁNG",
       "shell": "Văn bản",
       "color": "Gold",
       "x": 0.5,
       "y": 0.5
     },
     {
-      "burst": 6,
+      "burst": 7,
       "shell": "Cây cọ",
       "color": "Gold",
       "x": 0.2,
@@ -134,7 +159,7 @@
       "delay": 300
     },
     {
-      "burst": 6,
+      "burst": 7,
       "shell": "Cây cọ",
       "color": "Gold",
       "x": 0.8,
@@ -142,24 +167,24 @@
       "delay": 600
     },
     {
-      "burst": 7,
-      "text": "MÃI YÊU ĐỜI",
+      "burst": 8,
+      "text": "YÊU ĐỜI",
       "shell": "Văn bản",
       "color": "Green",
-      "x": 0.5,
-      "y": 0.4
-    },
-    {
-      "burst": 7,
-      "text": "NHIỀU NIỀM VUI",
-      "shell": "Văn bản",
-      "color": "Green",
-      "x": 0.5,
-      "y": 0.7,
-      "delay": 400
+      "x": 0.3,
+      "y": 0.5
     },
     {
       "burst": 8,
+      "text": "BÌNH AN",
+      "shell": "Văn bản",
+      "color": "Green",
+      "x": 0.7,
+      "y": 0.5,
+      "delay": 400
+    },
+    {
+      "burst": 9,
       "text": "SỨC KHỎE",
       "shell": "Văn bản",
       "color": "White",
@@ -167,7 +192,7 @@
       "y": 0.4
     },
     {
-      "burst": 8,
+      "burst": 9,
       "text": "DỒI DÀO",
       "shell": "Văn bản",
       "color": "White",
@@ -176,7 +201,7 @@
       "delay": 300
     },
     {
-      "burst": 8,
+      "burst": 9,
       "shell": "Liễu",
       "color": "Gold",
       "x": 0.5,
@@ -184,7 +209,7 @@
       "delay": 600
     },
     {
-      "burst": 9,
+      "burst": 10,
       "text": "VẠN SỰ",
       "shell": "Văn bản",
       "color": "Blue",
@@ -192,7 +217,7 @@
       "y": 0.5
     },
     {
-      "burst": 9,
+      "burst": 10,
       "text": "NHƯ Ý",
       "shell": "Văn bản",
       "color": "Blue",
@@ -201,15 +226,15 @@
       "delay": 400
     },
     {
-      "burst": 10,
-      "text": "NHIỀU HẠNH PHÚC",
+      "burst": 11,
+      "text": "MÃI HẠNH PHÚC",
       "shell": "Văn bản",
       "color": "Red",
       "x": 0.5,
       "y": 0.6
     },
     {
-      "burst": 10,
+      "burst": 11,
       "shell": "Trái tim",
       "color": "Red",
       "x": 0.2,
@@ -217,7 +242,7 @@
       "delay": 200
     },
     {
-      "burst": 10,
+      "burst": 11,
       "shell": "Trái tim",
       "color": "Red",
       "x": 0.8,
@@ -225,7 +250,7 @@
       "delay": 400
     },
     {
-      "burst": 11,
+      "burst": 12,
       "text": "❤️❤️❤️",
       "shell": "Văn bản",
       "color": "Red",
@@ -233,7 +258,7 @@
       "y": 0.5
     },
     {
-      "burst": 11,
+      "burst": 12,
       "shell": "Nhấp nháy",
       "color": "White",
       "x": 0.5,
@@ -241,16 +266,16 @@
       "delay": 500
     },
     {
-      "burst": 12,
-      "text": "HẾT RỒI",
+      "burst": 13,
+      "text": "MỘT NGÀY",
       "shell": "Văn bản",
       "color": "White",
       "x": 0.5,
       "y": 0.4
     },
     {
-      "burst": 12,
-      "text": "MÃI HẠNH PHÚC NHÉ",
+      "burst": 13,
+      "text": "THẬT TUYỆT VỜI NHA",
       "shell": "Văn bản",
       "color": "Gold",
       "x": 0.5,
@@ -258,7 +283,7 @@
       "delay": 400
     },
     {
-      "burst": 12,
+      "burst": 13,
       "shell": "Liễu",
       "color": "Gold",
       "x": 0.5,
@@ -266,7 +291,7 @@
       "delay": 1000
     },
     {
-      "burst": 12,
+      "burst": 13,
       "shell": "Nổ lách tách",
       "color": "White",
       "x": 0.5,
@@ -274,7 +299,7 @@
       "delay": 1200
     },
     {
-      "burst": 13,
+      "burst": 14,
       "shell": "Tạm dừng",
       "duration": 3000
     }
