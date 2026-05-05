@@ -1728,7 +1728,7 @@ function startSequence() {
 
                 const launch = () => {
                     let shell;
-                    const size = shellSizeSelector();
+                    const size = event.size !== undefined ? event.size : shellSizeSelector();
 
                     if (event.shell === 'Văn bản' && event.text) {
                         const color = (event.color && COLOR[event.color]) || randomColor();
@@ -1749,8 +1749,20 @@ function startSequence() {
                             shell.shapePoints = getTextParticles(event.text, 50);
                         }
 
-                        if (event.color && COLOR[event.color]) {
-                            shell.color = COLOR[event.color];
+                        if (event.color) {
+                            if (COLOR[event.color]) {
+                                shell.color = COLOR[event.color];
+                            } else if (event.color === 'Ngẫu nhiên' || event.color === 'random') {
+                                shell.color = 'random';
+                            }
+                        }
+
+                        if (event.glitterColor) {
+                            if (COLOR[event.glitterColor]) {
+                                shell.glitterColor = COLOR[event.glitterColor];
+                            } else if (event.glitterColor === 'Ngẫu nhiên' || event.glitterColor === 'random') {
+                                shell.glitterColor = 'random';
+                            }
                         }
                     }
 
@@ -2562,7 +2574,7 @@ class Shell {
                 star.sparkSpeed = sparkSpeed;
                 star.sparkLife = sparkLife;
                 star.sparkLifeVariation = sparkLifeVariation;
-                star.sparkColor = this.glitterColor;
+                star.sparkColor = this.glitterColor === 'random' ? star.color : this.glitterColor;
                 star.sparkTimer = Math.random() * star.sparkFreq;
             }
         };
