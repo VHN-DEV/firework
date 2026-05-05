@@ -380,28 +380,37 @@ select:focus {
 .event-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
+    gap: 0.5rem;
 }
 
 .event-grid-3 {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 0.75rem;
+    gap: 0.5rem;
 }
 
 .event-grid-4 {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 0.75rem;
+    gap: 0.5rem;
 }
 
 .event-card .form-group {
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.4rem;
 }
 
 .event-card label {
-    font-size: 0.75rem;
-    margin-bottom: 0.25rem;
+    font-size: 0.7rem;
+    margin-bottom: 0.15rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.event-card input, 
+.event-card select {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.85rem;
+    border-radius: 4px;
 }
 
 /* Advanced Settings Accordion */
@@ -822,32 +831,29 @@ select:focus {
     }
 
     .color-input-group {
-        flex-wrap: wrap;
-    }
-
-    .color-input-group>* {
-        flex: 1 1 calc(50% - 0.5rem);
+        flex-wrap: nowrap; /* Force one line */
     }
 }
 
 @media (max-width: 480px) {
+    .event-grid-3 {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
 
-    .event-grid,
-    .event-grid-3,
     .event-grid-4 {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(4, 1fr);
     }
 
     .event-grid-3 .form-group[style*="grid-column: span 2"] {
-        grid-column: span 1;
+        grid-column: span 2;
     }
 
-    .color-input-group>* {
-        flex: 1 1 100%;
+    .color-input-group {
+        flex-wrap: nowrap;
     }
 
     .event-card {
-        padding: 0.75rem;
+        padding: 0.6rem;
     }
 }
 
@@ -952,11 +958,11 @@ select:focus {
 .color-tag {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.3rem;
     background-color: var(--secondary);
-    padding: 0.2rem 0.6rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
     border: 1px solid var(--border-color);
 }
 
@@ -988,27 +994,30 @@ select:focus {
 
 .color-input-group {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.4rem;
     align-items: center;
 }
 
 .color-input-group select {
     flex: 1;
+    min-width: 0;
 }
 
 .color-input-group input[type="color"] {
-    width: 40px;
-    height: 40px;
+    width: 35px;
+    height: 32px;
     padding: 2px;
-    border-radius: 6px;
+    border-radius: 4px;
     background: var(--bg-color);
     border: 1px solid var(--border-color);
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .input-with-btn {
     display: flex;
     flex: 2;
+    min-width: 0;
 }
 
 .input-with-btn input {
