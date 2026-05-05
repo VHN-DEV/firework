@@ -1750,18 +1750,26 @@ function startSequence() {
                         }
 
                         if (event.color) {
-                            if (COLOR[event.color]) {
+                            if (Array.isArray(event.color)) {
+                                shell.color = event.color.map(c => COLOR[c] || c);
+                            } else if (COLOR[event.color]) {
                                 shell.color = COLOR[event.color];
                             } else if (event.color === 'Ngẫu nhiên' || event.color === 'random') {
                                 shell.color = 'random';
+                            } else {
+                                shell.color = event.color;
                             }
                         }
 
                         if (event.glitterColor) {
-                            if (COLOR[event.glitterColor]) {
+                            if (Array.isArray(event.glitterColor)) {
+                                shell.glitterColor = event.glitterColor.map(c => COLOR[c] || c);
+                            } else if (COLOR[event.glitterColor]) {
                                 shell.glitterColor = COLOR[event.glitterColor];
                             } else if (event.glitterColor === 'Ngẫu nhiên' || event.glitterColor === 'random') {
                                 shell.glitterColor = 'random';
+                            } else {
+                                shell.glitterColor = event.glitterColor;
                             }
                         }
                     }
@@ -2580,12 +2588,8 @@ class Shell {
         };
 
 
-        if (typeof this.color === 'string') {
-            if (this.color === 'random') {
-                color = null; // giá trị falsey tạo màu ngẫu nhiên trong starFactory
-            } else {
-                color = this.color;
-            }
+        if (typeof this.color === 'string' || Array.isArray(this.color)) {
+            color = this.color;
 
             // Các vòng có tính ngẫu nhiên về vị trí nhưng được xoay ngẫu nhiên
             if (this.shapePoints) {
@@ -2660,23 +2664,6 @@ class Shell {
             // Nổ bình thường
             else {
                 createBurst(this.starCount, starFactory);
-            }
-        }
-        else if (Array.isArray(this.color)) {
-            if (Math.random() < 0.5) {
-                const start = Math.random() * Math.PI;
-                const start2 = start + Math.PI;
-                const arc = Math.PI;
-                color = this.color[0];
-                // Việc không tạo một vòng cung đầy đủ sẽ tự động làm giảm số lượng sao.
-                createBurst(this.starCount, starFactory, start, arc);
-                color = this.color[1];
-                createBurst(this.starCount, starFactory, start2, arc);
-            } else {
-                color = this.color[0];
-                createBurst(this.starCount / 2, starFactory);
-                color = this.color[1];
-                createBurst(this.starCount / 2, starFactory);
             }
         }
         else {
@@ -2788,7 +2775,12 @@ const Star = {
     add(x, y, color, angle, speed, life, speedOffX, speedOffY) {
         const instance = this._pool.pop() || this._new();
 
-        const finalColor = (color && color !== 'random') ? color : randomColor();
+        let finalColor;
+        if (Array.isArray(color)) {
+            finalColor = color[Math.floor(Math.random() * color.length)];
+        } else {
+            finalColor = (color && color !== 'random') ? color : randomColor();
+        }
 
         instance.visible = true;
         instance.heavy = false;
