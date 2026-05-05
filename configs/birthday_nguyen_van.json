@@ -1,7 +1,7 @@
 {
   "title": "CHÚC MỪNG SINH 🎉 NHẬT 🎉",
-  "subtitle": "Một kiệt tác ánh sáng dành tặng [TÊN NGƯỜI NHẬN]",
-  "author": "Đạo diễn: [TÊN NGƯỜI TẶNG]",
+  "subtitle": "Một kiệt tác ánh sáng dành tặng Nguyễn Vân",
+  "author": "Đạo diễn: Mr. Nam",
   "loop": true,
   "events": [
     {
@@ -53,7 +53,7 @@
     },
     {
       "burst": 3,
-      "text": "[TÊN NGƯỜI NHẬN]",
+      "text": "NGUYỄN VÂN",
       "shell": "Văn bản",
       "color": "Blue",
       "x": 0.5,
