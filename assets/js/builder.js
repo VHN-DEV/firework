@@ -503,7 +503,7 @@ function loadScriptsList() {
                     <span><i class="fas fa-fireworks"></i> ${script.eventCount} phát bắn</span>
                 </div>
                 <div class="script-actions">
-                    <button class="btn primary small" onclick="editScript('${script.id}')">Sửa</button>
+                    <button class="btn primary small" onclick="editScript('${script.id}')" title="Sửa"><i class="fas fa-edit"></i></button>
                     <button class="btn secondary small" onclick="duplicateScript('${script.id}')" title="Nhân bản"><i class="fas fa-copy"></i></button>
                     <button class="btn secondary small" onclick="copyScriptLink('${script.id}')" title="Sao chép link"><i class="fas fa-link"></i></button>
                     ${!isPrivate ? `<button class="btn danger small" onclick="deleteScript('${script.id}')"><i class="fas fa-trash"></i></button>` : ''}
