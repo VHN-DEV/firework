@@ -1,44 +1,44 @@
 [
-    {
-        "id": "birthday_nguyen_van",
-        "title": "CHÚC MỪNG SINH NHẬT",
-        "author": "Đạo diễn: Mr. Nam",
-        "eventCount": 65,
-        "status": "private"
-    },
-    {
-        "id": "birthday_special",
-        "title": "Sinh nhật đặc biệt",
-        "author": "Firework Team",
-        "eventCount": 32,
-        "status": "public"
-    },
-    {
-        "id": "christmas",
-        "title": "Giáng sinh an lành",
-        "author": "Firework Team",
-        "eventCount": 15,
-        "status": "public"
-    },
-    {
-        "id": "national_day_vn",
-        "title": "Quốc khánh Việt Nam",
-        "author": "Hào khí Việt Nam",
-        "eventCount": 20,
-        "status": "public"
-    },
-    {
-        "id": "tet_holiday",
-        "title": "Chúc mừng năm mới",
-        "author": "Tết Sum Vầy",
-        "eventCount": 25,
-        "status": "public"
-    },
-    {
-        "id": "victory_day_vn",
-        "title": "Kỷ niệm Giải phóng miền Nam",
-        "author": "Chiến thắng vẻ vang",
-        "eventCount": 18,
-        "status": "public"
-    }
+  {
+    "id": "birthday_nguyen_van",
+    "title": "CHÚC MỪNG SINH NHẬT",
+    "author": "Đạo diễn: Mr. Nam",
+    "eventCount": 65,
+    "status": "private"
+  },
+  {
+    "id": "birthday_special",
+    "title": "Sinh nhật đặc biệt",
+    "author": "Firework Team",
+    "eventCount": 32,
+    "status": "private"
+  },
+  {
+    "id": "christmas",
+    "title": "Giáng sinh an lành",
+    "author": "Firework Team",
+    "eventCount": 15,
+    "status": "private"
+  },
+  {
+    "id": "national_day_vn",
+    "title": "Quốc khánh Việt Nam",
+    "author": "Hào khí Việt Nam",
+    "eventCount": 20,
+    "status": "private"
+  },
+  {
+    "id": "tet_holiday",
+    "title": "Chúc mừng năm mới",
+    "author": "Tết Sum Vầy",
+    "eventCount": 25,
+    "status": "private"
+  },
+  {
+    "id": "victory_day_vn",
+    "title": "Kỷ niệm Giải phóng miền Nam",
+    "author": "Chiến thắng vẻ vang",
+    "eventCount": 18,
+    "status": "private"
+  }
 ]
