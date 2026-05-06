@@ -850,10 +850,10 @@ select {
         }
     }
 
-    /* X, Y, Size, Trễ chia 2 cột */
+    /* X, Y, Size, Trễ chia 4 cột */
     .event-grid-4 {
         display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
+        grid-template-columns: 1fr 1fr 1fr 1fr !important;
         gap: 0.5rem;
     }
 }
