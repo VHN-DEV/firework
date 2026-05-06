@@ -459,17 +459,75 @@ function getFinalConfig() {
 }
 
 // Backend Integration
-function saveConfig(isPreview = false) {
-    let filename = document.getElementById('filename').value;
+// Helpers
+async function getAvailableScripts() {
+    if (isStaticEnv) {
+        const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
+        const localIds = Object.keys(localScripts);
+        try {
+            const response = await fetch('static/configs/configs_index.json');
+            const staticScripts = await response.json();
+            const staticIds = staticScripts.map(s => s.id);
+            return [...new Set([...localIds, ...staticIds])];
+        } catch (e) {
+            return localIds;
+        }
+    } else {
+        try {
+            const response = await fetch('static/api/manage_configs.php?action=list');
+            const data = await response.json();
+            return data.map(s => s.id);
+        } catch (e) {
+            return [];
+        }
+    }
+}
+
+async function getUniqueFilename(requestedName, currentFilename) {
+    const existingIds = await getAvailableScripts();
+    
+    // Nếu tên trùng với tên hiện tại đang sửa thì cho phép ghi đè
+    if (requestedName === currentFilename) {
+        return requestedName;
+    }
+    
+    // Nếu chưa tồn tại thì dùng luôn
+    if (!existingIds.includes(requestedName)) {
+        return requestedName;
+    }
+    
+    // Nếu đã tồn tại thì thêm số thứ tự
+    let counter = 1;
+    let newName = `${requestedName}_${counter}`;
+    while (existingIds.includes(newName)) {
+        counter++;
+        newName = `${requestedName}_${counter}`;
+    }
+    return newName;
+}
+
+async function saveConfig(isPreview = false) {
+    let filename = document.getElementById('filename').value.trim();
 
     if (!filename) {
         if (isPreview) {
             filename = 'preview_temp';
         } else {
             notify('Vui lòng nhập tên file!', 'warning');
-            return Promise.reject('No filename');
+            return;
         }
     }
+    
+    // Xử lý tên file duy nhất nếu không phải xem thử
+    if (!isPreview) {
+        const originalName = filename;
+        filename = await getUniqueFilename(filename, state.currentFilename);
+        if (filename !== originalName) {
+            document.getElementById('filename').value = filename;
+            notify(`Tên file đã tồn tại, tự động đổi thành: ${filename}`, 'info');
+        }
+    }
+
 
     const config = getFinalConfig();
 
@@ -502,7 +560,7 @@ function saveConfig(isPreview = false) {
         });
     }
 
-    return fetch('api/save_config.php', {
+    return fetch('static/api/save_config.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename, config })
@@ -586,8 +644,8 @@ function loadScriptsList() {
     list.innerHTML = '<div class="spinner"></div>';
 
     const fetchPromise = isStaticEnv 
-        ? fetch('configs/configs_index.json').then(r => r.json())
-        : fetch('api/manage_configs.php?action=list').then(r => r.json());
+        ? fetch('static/configs/configs_index.json').then(r => r.json())
+        : fetch('static/api/manage_configs.php?action=list').then(r => r.json());
 
     fetchPromise
         .then(data => {
@@ -655,7 +713,7 @@ function editScript(filename) {
         }
     }
 
-    fetch(`configs/${filename}.json?t=${Date.now()}`)
+    fetch(`static/configs/${filename}.json?t=${Date.now()}`)
         .then(response => response.json())
         .then(config => {
             loadConfigIntoState(config, filename);
@@ -682,7 +740,7 @@ function duplicateScript(filename) {
         }
     }
 
-    fetch(`configs/${filename}.json?t=${Date.now()}`)
+    fetch(`static/configs/${filename}.json?t=${Date.now()}`)
         .then(response => response.json())
         .then(handleConfig)
         .catch(err => notify('Không thể nhân bản kịch bản: ' + err, 'error'));
@@ -705,7 +763,7 @@ function deleteScript(filename) {
             }
         }
 
-        fetch('api/manage_configs.php?action=delete', {
+        fetch('static/api/manage_configs.php?action=delete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ filename })
