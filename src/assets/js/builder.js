@@ -492,22 +492,24 @@ async function getAvailableScripts() {
 }
 
 async function getUniqueFilename(requestedName, currentFilename) {
-    const existingIds = await getAvailableScripts();
+    const existingIds = (await getAvailableScripts()).map(id => id.toLowerCase());
+    const reqLower = requestedName.toLowerCase();
+    const currentLower = currentFilename ? currentFilename.toLowerCase() : '';
     
-    // Nếu tên trùng với tên hiện tại đang sửa thì cho phép ghi đè
-    if (requestedName === currentFilename) {
+    // Nếu tên trùng với tên hiện tại đang sửa (không phân biệt hoa thường) thì cho phép ghi đè
+    if (reqLower === currentLower) {
         return requestedName;
     }
     
-    // Nếu chưa tồn tại thì dùng luôn
-    if (!existingIds.includes(requestedName)) {
+    // Nếu chưa tồn tại trong danh sách đã có thì dùng luôn
+    if (!existingIds.includes(reqLower)) {
         return requestedName;
     }
     
     // Nếu đã tồn tại thì thêm số thứ tự
     let counter = 1;
     let newName = `${requestedName}_${counter}`;
-    while (existingIds.includes(newName)) {
+    while (existingIds.includes(newName.toLowerCase())) {
         counter++;
         newName = `${requestedName}_${counter}`;
     }
@@ -536,6 +538,8 @@ async function saveConfig(isPreview = false) {
         }
     }
 
+    const saveBtn = document.querySelector('.btn-save');
+    if (saveBtn) saveBtn.disabled = true;
 
     const config = getFinalConfig();
 
@@ -600,7 +604,9 @@ async function saveConfig(isPreview = false) {
                 notify('Đã xảy ra lỗi khi lưu kịch bản.', 'error');
             }
             console.error(error);
-            throw error;
+        })
+        .finally(() => {
+            if (saveBtn) saveBtn.disabled = false;
         });
 }
 
@@ -710,34 +716,15 @@ function loadScriptsList() {
 }
 
 
-function editScript(filename) {
-    if (isStaticEnv) {
-        const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
-        if (localScripts[filename]) {
-            loadConfigIntoState(localScripts[filename], filename);
-            hideModal('scripts-modal');
-            updateShareBar(filename);
-            return;
-        }
-    }
-
-    fetch(`static/configs/${filename}.json?t=${Date.now()}`)
-        .then(response => response.json())
-        .then(config => {
-            loadConfigIntoState(config, filename);
-            hideModal('scripts-modal');
-            updateShareBar(filename);
-        })
-        .catch(err => notify('Không thể tải kịch bản: ' + err, 'error'));
-}
-
-
-function duplicateScript(filename) {
-    const handleConfig = (config) => {
-        loadConfigIntoState(config, filename + '_copy');
+async function duplicateScript(filename) {
+    notify('Đang chuẩn bị nhân bản...', 'info');
+    
+    const handleConfig = async (config) => {
+        const newName = await getUniqueFilename(filename + '_copy', '');
+        loadConfigIntoState(config, newName);
         hideModal('scripts-modal');
-        document.getElementById('share-bar').classList.add('hide'); // New copy, no link yet
-        notify('Đã nhân bản kịch bản! Bạn có thể chỉnh sửa và lưu thành file mới.', 'success');
+        document.getElementById('share-bar').classList.add('hide');
+        notify(`Đã nhân bản kịch bản thành: ${newName}`, 'success');
     };
 
     if (isStaticEnv) {
@@ -749,14 +736,47 @@ function duplicateScript(filename) {
     }
 
     fetch(`static/configs/${filename}.json?t=${Date.now()}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error('Không thể tải file kịch bản');
+            return response.json();
+        })
         .then(handleConfig)
-        .catch(err => notify('Không thể nhân bản kịch bản: ' + err, 'error'));
+        .catch(err => notify('Không thể nhân bản kịch bản: ' + err.message, 'error'));
+}
+
+function editScript(filename) {
+    notify('Đang tải kịch bản...', 'info');
+    
+    if (isStaticEnv) {
+        const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
+        if (localScripts[filename]) {
+            loadConfigIntoState(localScripts[filename], filename);
+            hideModal('scripts-modal');
+            updateShareBar(filename);
+            notify('Đã tải kịch bản thành công!', 'success');
+            return;
+        }
+    }
+
+    fetch(`static/configs/${filename}.json?t=${Date.now()}`)
+        .then(response => {
+            if (!response.ok) throw new Error('Không thể tải file kịch bản');
+            return response.json();
+        })
+        .then(config => {
+            loadConfigIntoState(config, filename);
+            hideModal('scripts-modal');
+            updateShareBar(filename);
+            notify('Đã tải kịch bản thành công!', 'success');
+        })
+        .catch(err => notify('Không thể tải kịch bản: ' + err.message, 'error'));
 }
 
 
 function deleteScript(filename) {
     confirmAction(`Bạn có chắc chắn muốn xóa kịch bản "${filename}"?`, () => {
+        notify('Đang xóa kịch bản...', 'info');
+        
         if (isStaticEnv) {
             const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
             if (localScripts[filename]) {
@@ -776,7 +796,10 @@ function deleteScript(filename) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ filename })
         })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error('Mạng không ổn định hoặc lỗi server');
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     loadScriptsList();
@@ -787,7 +810,8 @@ function deleteScript(filename) {
                 } else {
                     notify('Lỗi: ' + data.message, 'error');
                 }
-            });
+            })
+            .catch(err => notify('Lỗi khi xóa: ' + err.message, 'error'));
     });
 }
 
