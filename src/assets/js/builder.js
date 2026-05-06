@@ -35,20 +35,20 @@ const PI_2 = Math.PI * 2;
 const GRAVITY = 0.9;
 
 const SHELL_TYPES = [
-    "Hoa cúc", "Văn bản", "Liễu", "Trái tim", "Ngôi sao", 
+    "Hoa cúc", "Văn bản", "Liễu", "Trái tim", "Ngôi sao",
     "Kim cương", "Bông tuyết", "Bông sen", "Hành tinh",
-    "Mặt cười", "Mặt mèo", "Vòng nhẫn", "Nổ chéo", 
+    "Mặt cười", "Mặt mèo", "Vòng nhẫn", "Nổ chéo",
     "Cây cọ", "Ma", "Đuôi ngựa", "Nhấp nháy", "Nổ lách tách", "Tạm dừng"
 ];
 
 const COLORS = [
+    { name: "Ngẫu nhiên", value: "Ngẫu nhiên" },
     { name: "Đỏ (Red)", value: "Red" },
     { name: "Xanh lá (Green)", value: "Green" },
     { name: "Xanh dương (Blue)", value: "Blue" },
     { name: "Tím (Purple)", value: "Purple" },
     { name: "Vàng (Gold)", value: "Gold" },
     { name: "Trắng (White)", value: "White" },
-    { name: "Ngẫu nhiên", value: "Ngẫu nhiên" }
 ];
 
 // Initialize UI
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-my-scripts').addEventListener('click', openScriptsModal);
     document.getElementById('btn-copy-link').addEventListener('click', copyShareLink);
     document.getElementById('btn-toggle-mini-preview').addEventListener('click', () => toggleMiniPreview());
-    
+
     // File Import
     document.getElementById('import-file').addEventListener('change', importConfig);
 
@@ -87,7 +87,7 @@ function notify(message, type = 'info') {
     const container = document.getElementById('notification-container');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    
+
     let icon = 'info-circle';
     if (type === 'success') icon = 'check-circle';
     if (type === 'error') icon = 'exclamation-circle';
@@ -138,10 +138,10 @@ function confirmAction(message, onConfirm) {
 function addEvent(config = null) {
     const id = state.nextId++;
     let newEvent;
-    
+
     if (config) {
         // Đảm bảo các trường còn thiếu có giá trị mặc định
-        newEvent = { 
+        newEvent = {
             burst: 1,
             shell: "Hoa cúc",
             color: "Ngẫu nhiên",
@@ -159,8 +159,9 @@ function addEvent(config = null) {
             starDensity: 1,
             starLife: 2500,
             spreadSize: 350,
-            ...config, 
-            id: id 
+            expanded: false,
+            ...config,
+            id: id
         };
     } else {
         // Luôn sử dụng giá trị mặc định cố định theo yêu cầu
@@ -182,7 +183,8 @@ function addEvent(config = null) {
             comet: false,
             starDensity: 1,
             starLife: 2500,
-            spreadSize: 350
+            spreadSize: 350,
+            expanded: false
         };
     }
 
@@ -246,7 +248,7 @@ function updateEvent(id, field, value) {
 
 function renderEventList() {
     const container = document.getElementById('event-list');
-    
+
     if (state.events.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
@@ -270,17 +272,17 @@ function createEventCard(event, index) {
     div.dataset.id = event.id;
     div.onclick = (e) => {
         // Tránh kích hoạt khi nhấn vào các input/button bên trong
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.closest('.color-tag')) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.closest('.color-tag') || e.target.closest('.advanced-toggle')) {
             return;
         }
         selectEvent(event.id);
     };
 
-    const shellOptions = SHELL_TYPES.map(type => 
+    const shellOptions = SHELL_TYPES.map(type =>
         `<option value="${type}" ${event.shell === type ? 'selected' : ''}>${type}</option>`
     ).join('');
 
-    const colorOptions = COLORS.map(color => 
+    const colorOptions = COLORS.map(color =>
         `<option value="${color.value}" ${event.color === color.value ? 'selected' : ''}>${color.name}</option>`
     ).join('');
 
@@ -348,7 +350,6 @@ function createEventCard(event, index) {
             </div>
             <div class="color-input-group compact">
                 <select id="preset-color-${event.id}" onchange="if(this.value) { addColorToEvent(${event.id}, this.value); this.value=''; }">
-                    <option value="">+ Mẫu...</option>
                     ${colorOptions}
                 </select>
                 <input type="color" id="picker-color-${event.id}" onchange="addColorToEvent(${event.id}, this.value)">
@@ -360,10 +361,10 @@ function createEventCard(event, index) {
         </div>
 
         <div class="advanced-toggle" onclick="toggleAdvanced(${event.id})">
-            <i class="fas fa-chevron-down"></i> Tùy chỉnh nâng cao
+            <i class="fas fa-chevron-${event.expanded ? 'up' : 'down'}"></i> Tùy chỉnh nâng cao
         </div>
 
-        <div id="advanced-${event.id}" class="advanced-settings hide">
+        <div id="advanced-${event.id}" class="advanced-settings ${event.expanded ? '' : 'hide'}">
             <div class="form-group checkbox">
                 <input type="checkbox" id="strobe-${event.id}" ${event.strobe ? 'checked' : ''} onchange="updateEvent(${event.id}, 'strobe', this.checked)">
                 <label for="strobe-${event.id}">Lấp lánh (Strobe)</label>
@@ -401,16 +402,10 @@ function handleShellChange(id, select) {
 }
 
 function toggleAdvanced(id) {
-    const el = document.getElementById(`advanced-${id}`);
-    const toggle = el.previousElementSibling;
-    const icon = toggle.querySelector('i');
-    
-    if (el.classList.contains('hide')) {
-        el.classList.remove('hide');
-        icon.className = 'fas fa-chevron-up';
-    } else {
-        el.classList.add('hide');
-        icon.className = 'fas fa-chevron-down';
+    const event = state.events.find(e => e.id === id);
+    if (event) {
+        event.expanded = !event.expanded;
+        renderEventList();
     }
 }
 
@@ -420,7 +415,7 @@ function getFinalConfig() {
         subtitle: document.getElementById('subtitle').value || "",
         author: document.getElementById('author').value || "Anonymous",
         loop: document.getElementById('loop').checked,
-        status: state.status || "public", 
+        status: state.status || "public",
         events: state.events.map(e => {
             const { id, ...cleanEvent } = e;
             return cleanEvent;
@@ -431,7 +426,7 @@ function getFinalConfig() {
 // Backend Integration
 function saveConfig(isPreview = false) {
     let filename = document.getElementById('filename').value;
-    
+
     if (!filename) {
         if (isPreview) {
             filename = 'preview_temp';
@@ -442,7 +437,7 @@ function saveConfig(isPreview = false) {
     }
 
     const config = getFinalConfig();
-    
+
     if (!isPreview) {
         showModal('save-modal');
         document.getElementById('save-status').innerText = 'Đang lưu kịch bản...';
@@ -457,42 +452,42 @@ function saveConfig(isPreview = false) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename, config })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            if (!isPreview) {
-                state.currentFilename = data.filename;
-                document.getElementById('save-status').innerText = 'Đã lưu kịch bản thành công!';
-                document.getElementById('save-spinner').classList.add('hide');
-                document.getElementById('save-actions').classList.remove('hide');
-                updateShareBar(data.filename);
-            }
-            return data.filename;
-        } else {
-            if (!isPreview) {
-                notify('Lỗi: ' + data.message, 'error');
-                hideModal('save-modal');
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (!isPreview) {
+                    state.currentFilename = data.filename;
+                    document.getElementById('save-status').innerText = 'Đã lưu kịch bản thành công!';
+                    document.getElementById('save-spinner').classList.add('hide');
+                    document.getElementById('save-actions').classList.remove('hide');
+                    updateShareBar(data.filename);
+                }
+                return data.filename;
             } else {
-                notify('Lỗi xem thử: ' + data.message, 'error');
+                if (!isPreview) {
+                    notify('Lỗi: ' + data.message, 'error');
+                    hideModal('save-modal');
+                } else {
+                    notify('Lỗi xem thử: ' + data.message, 'error');
+                }
+                throw new Error(data.message);
             }
-            throw new Error(data.message);
-        }
-    })
-    .catch(error => {
-        if (!isPreview) {
-            hideModal('save-modal');
-            notify('Đã xảy ra lỗi khi lưu kịch bản.', 'error');
-        }
-        console.error(error);
-        throw error;
-    });
+        })
+        .catch(error => {
+            if (!isPreview) {
+                hideModal('save-modal');
+                notify('Đã xảy ra lỗi khi lưu kịch bản.', 'error');
+            }
+            console.error(error);
+            throw error;
+        });
 }
 
 function updateShareBar(filename) {
     const shareBar = document.getElementById('share-bar');
     const shareUrl = document.getElementById('share-url');
     const url = window.location.origin + window.location.pathname.replace('builder.html', 'index.html') + '?config=' + filename;
-    
+
     shareUrl.innerText = url;
     shareBar.classList.remove('hide');
 }
@@ -518,19 +513,19 @@ function loadScriptsList() {
     list.innerHTML = '<div class="spinner"></div>';
 
     fetch('api/manage_configs.php?action=list')
-    .then(response => response.json())
-    .then(data => {
-        list.innerHTML = '';
-        if (data.length === 0) {
-            list.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">Bạn chưa có kịch bản nào.</p>';
-            return;
-        }
+        .then(response => response.json())
+        .then(data => {
+            list.innerHTML = '';
+            if (data.length === 0) {
+                list.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">Bạn chưa có kịch bản nào.</p>';
+                return;
+            }
 
-        data.forEach(script => {
-            const item = document.createElement('div');
-            item.className = 'script-item';
-            const isPrivate = script.status === 'private';
-            item.innerHTML = `
+            data.forEach(script => {
+                const item = document.createElement('div');
+                item.className = 'script-item';
+                const isPrivate = script.status === 'private';
+                item.innerHTML = `
                 <h4>${isPrivate ? '<i class="fas fa-lock" title="Riêng tư"></i> ' : ''}${script.title}</h4>
                 <div class="meta">
                     <span><i class="fas fa-user"></i> ${script.author}</span><br>
@@ -543,32 +538,32 @@ function loadScriptsList() {
                     ${!isPrivate ? `<button class="btn danger small" onclick="deleteScript('${script.id}')"><i class="fas fa-trash"></i></button>` : ''}
                 </div>
             `;
-            list.appendChild(item);
+                list.appendChild(item);
+            });
         });
-    });
 }
 
 function editScript(filename) {
     fetch(`configs/${filename}.json?t=${Date.now()}`)
-    .then(response => response.json())
-    .then(config => {
-        loadConfigIntoState(config, filename);
-        hideModal('scripts-modal');
-        updateShareBar(filename);
-    })
-    .catch(err => notify('Không thể tải kịch bản: ' + err, 'error'));
+        .then(response => response.json())
+        .then(config => {
+            loadConfigIntoState(config, filename);
+            hideModal('scripts-modal');
+            updateShareBar(filename);
+        })
+        .catch(err => notify('Không thể tải kịch bản: ' + err, 'error'));
 }
 
 function duplicateScript(filename) {
     fetch(`configs/${filename}.json?t=${Date.now()}`)
-    .then(response => response.json())
-    .then(config => {
-        loadConfigIntoState(config, filename + '_copy');
-        hideModal('scripts-modal');
-        document.getElementById('share-bar').classList.add('hide'); // New copy, no link yet
-        notify('Đã nhân bản kịch bản! Bạn có thể chỉnh sửa và lưu thành file mới.', 'success');
-    })
-    .catch(err => notify('Không thể nhân bản kịch bản: ' + err, 'error'));
+        .then(response => response.json())
+        .then(config => {
+            loadConfigIntoState(config, filename + '_copy');
+            hideModal('scripts-modal');
+            document.getElementById('share-bar').classList.add('hide'); // New copy, no link yet
+            notify('Đã nhân bản kịch bản! Bạn có thể chỉnh sửa và lưu thành file mới.', 'success');
+        })
+        .catch(err => notify('Không thể nhân bản kịch bản: ' + err, 'error'));
 }
 
 function deleteScript(filename) {
@@ -578,18 +573,18 @@ function deleteScript(filename) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ filename })
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                loadScriptsList();
-                if (state.currentFilename === filename) {
-                    document.getElementById('share-bar').classList.add('hide');
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadScriptsList();
+                    if (state.currentFilename === filename) {
+                        document.getElementById('share-bar').classList.add('hide');
+                    }
+                    notify('Đã xóa kịch bản thành công!', 'success');
+                } else {
+                    notify('Lỗi: ' + data.message, 'error');
                 }
-                notify('Đã xóa kịch bản thành công!', 'success');
-            } else {
-                notify('Lỗi: ' + data.message, 'error');
-            }
-        });
+            });
     });
 }
 
@@ -599,7 +594,7 @@ function exportConfig() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(config, null, 2));
     const downloadAnchorNode = document.createElement('a');
     const filename = (document.getElementById('filename').value || 'firework_config') + '.json';
-    
+
     downloadAnchorNode.setAttribute("href", dataStr);
     downloadAnchorNode.setAttribute("download", filename);
     document.body.appendChild(downloadAnchorNode);
@@ -612,7 +607,7 @@ function importConfig(e) {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = function (e) {
         try {
             const config = JSON.parse(e.target.result);
             loadConfigIntoState(config, file.name.replace('.json', ''));
@@ -630,7 +625,7 @@ function loadConfigIntoState(config, filename) {
     document.getElementById('author').value = config.author || '';
     document.getElementById('loop').checked = config.loop !== false;
     document.getElementById('filename').value = filename;
-    
+
     state.events = [];
     state.nextId = 1;
     state.currentFilename = filename;
@@ -663,7 +658,7 @@ function hideModal(id) {
 function toggleSidebar() {
     const sidebar = document.querySelector('.sidebar');
     const overlay = document.getElementById('sidebar-overlay');
-    
+
     if (sidebar.classList.contains('open')) {
         sidebar.classList.remove('open');
         overlay.classList.remove('show');
@@ -802,46 +797,163 @@ class Shell {
         this.burst(x * miniMainStage.width, y * miniMainStage.height);
     }
     burst(x, y) {
-        const speed = this.spreadSize / 96;
+        const speed = (this.spreadSize / 96) * 0.75; // Tỉ lệ lại cho màn hình nhỏ
         let sparkFreq, sparkSpeed, sparkLife;
-        if (this.glitter === 'light') { sparkFreq = 400; sparkSpeed = 0.3; sparkLife = 300; }
-        else if (this.glitter === 'willow') { sparkFreq = 80; sparkSpeed = 0.48; sparkLife = 1500; }
-        else { sparkFreq = 200; sparkSpeed = 0.44; sparkLife = 700; }
+        
+        if (this.glitter === 'willow') { sparkFreq = 100; sparkSpeed = 0.4; sparkLife = 1200; }
+        else if (this.glitter === 'light') { sparkFreq = 400; sparkSpeed = 0.2; sparkLife = 300; }
+        else { sparkFreq = 250; sparkSpeed = 0.3; sparkLife = 600; }
 
         const starFactory = (angle, speedMult) => {
             const star = Star.add(x, y, this.color, angle, speedMult * speed, this.starLife + Math.random() * this.starLife * this.starLifeVariation, 0, 0);
             if (this.glitter) {
-                star.sparkFreq = sparkFreq; star.sparkSpeed = sparkSpeed; star.sparkLife = sparkLife;
-                star.sparkColor = this.glitterColor || star.color;
+                star.sparkFreq = sparkFreq;
+                star.sparkSpeed = sparkSpeed;
+                star.sparkLife = sparkLife;
+                star.sparkColor = this.glitterColor || (Array.isArray(this.color) ? this.color[0] : this.color);
                 star.sparkTimer = Math.random() * star.sparkFreq;
+            }
+            if (this.strobe) {
+                star.strobe = true;
+                star.strobeFreq = 50 + Math.random() * 50;
             }
         };
 
         if (this.shapePoints) {
             this.shapePoints.forEach(p => {
                 const star = Star.add(x, y, this.color, 0, 0, this.starLife + Math.random() * this.starLife * this.starLifeVariation);
-                star.speedX = p.x * speed; star.speedY = p.y * speed;
+                star.speedX = p.x * speed * 1.2;
+                star.speedY = p.y * speed * 1.2;
             });
         } else {
             const count = this.starCount;
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * PI_2;
-                const speedMult = Math.random();
+                const speedMult = Math.random() * 0.5 + 0.5;
                 starFactory(angle, speedMult);
             }
         }
-        BurstFlash.add(x, y, this.spreadSize / 4);
+        
+        if (this.pistil) {
+            const pistilCount = this.starCount / 3;
+            const pistilColor = this.pistilColor || COLOR.Gold;
+            for (let i = 0; i < pistilCount; i++) {
+                const angle = Math.random() * PI_2;
+                const speedMult = Math.random() * 0.3;
+                Star.add(x, y, pistilColor, angle, speedMult * speed, this.starLife * 0.7);
+            }
+        }
+        
+        BurstFlash.add(x, y, this.spreadSize / 5);
     }
 }
 
-function getMiniShellType(name, size) {
+function getMiniShellType(event, size) {
     const s = size || 1;
-    switch(name) {
-        case 'Liễu': return { shellSize: s, spreadSize: 300 + s * 100, starDensity: 0.7, starLife: 3000 + s * 300, glitter: 'willow', glitterColor: COLOR.Gold, color: COLOR.Gold };
-        case 'Trái tim': return { shellSize: s, spreadSize: 300 + s * 100, starLife: 1000 + s * 200, color: COLOR.Red };
-        case 'Ngôi sao': return { shellSize: s, spreadSize: 350 + s * 100, starLife: 1200 + s * 200, color: COLOR.Gold };
-        default: return { shellSize: s, spreadSize: 300 + s * 100, starLife: 900 + s * 200, color: COLOR.White };
+    const type = event.shell;
+    const base = {
+        shellSize: s,
+        spreadSize: 300 + s * 100,
+        starLife: 900 + s * 200,
+        color: event.color === 'Ngẫu nhiên' ? 'random' : (COLOR[event.color] || event.color || COLOR.White),
+        strobe: event.strobe,
+        pistil: event.pistil,
+        streamers: event.streamers,
+        crossette: event.crossette,
+        crackle: event.crackle,
+        horsetail: event.horsetail,
+        comet: event.comet,
+        starDensity: event.starDensity || 1,
+        starLifeOverride: event.starLife
+    };
+
+    if (event.starLife) base.starLife = event.starLife;
+    if (event.spreadSize) base.spreadSize = event.spreadSize;
+
+    switch (type) {
+        case 'Liễu':
+            base.glitter = 'willow';
+            base.glitterColor = COLOR.Gold;
+            base.starLife = 3000 + s * 500;
+            break;
+        case 'Trái tim':
+            base.shapePoints = getHeartPoints(50);
+            break;
+        case 'Ngôi sao':
+            base.shapePoints = getStarPoints(50);
+            break;
+        case 'Kim cương':
+            base.shapePoints = getDiamondPoints(50);
+            break;
+        case 'Bông tuyết':
+            base.shapePoints = getSnowflakePoints(50);
+            break;
+        case 'Mặt cười':
+            base.shapePoints = getSmileyPoints(50);
+            break;
+        case 'Văn bản':
+            if (event.text) base.shapePoints = getTextParticles(event.text, 50);
+            break;
+        default:
+            // Hoa cúc hoặc mặc định
+            base.glitter = 'light';
+            break;
     }
+    return base;
+}
+
+// Hình dạng đơn giản cho mini preview
+function getHeartPoints(count) {
+    const pts = [];
+    for (let i = 0; i < count; i++) {
+        const t = (i / count) * PI_2;
+        pts.push({
+            x: 16 * Math.pow(Math.sin(t), 3) / 16,
+            y: -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) / 16
+        });
+    }
+    return pts;
+}
+function getStarPoints(count) {
+    const pts = [];
+    for (let i = 0; i < count; i++) {
+        const t = (i / count) * PI_2;
+        const r = (i % 2 === 0) ? 1 : 0.5;
+        pts.push({ x: Math.cos(t) * r, y: Math.sin(t) * r });
+    }
+    return pts;
+}
+function getDiamondPoints(count) {
+    const pts = [];
+    for (let i = 0; i < count; i++) {
+        const t = (i / count) * PI_2;
+        pts.push({ x: Math.pow(Math.cos(t), 3), y: Math.pow(Math.sin(t), 3) });
+    }
+    return pts;
+}
+function getSnowflakePoints(count) {
+    const pts = [];
+    for (let i = 0; i < 6; i++) {
+        const angle = (i / 6) * PI_2;
+        for (let j = 0; j < 10; j++) {
+            const r = j / 10;
+            pts.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
+        }
+    }
+    return pts;
+}
+function getSmileyPoints(count) {
+    const pts = [];
+    for (let i = 0; i < count * 0.7; i++) {
+        const t = (i / (count * 0.7)) * PI_2;
+        pts.push({ x: Math.cos(t), y: Math.sin(t) });
+    }
+    pts.push({ x: -0.3, y: -0.3 }, { x: 0.3, y: -0.3 });
+    for (let i = 0; i < 10; i++) {
+        const t = Math.PI * (0.2 + 0.6 * (i / 10));
+        pts.push({ x: Math.cos(t) * 0.5, y: Math.sin(t) * 0.5 });
+    }
+    return pts;
 }
 
 let miniPreviewLoop = null;
@@ -935,8 +1047,9 @@ function renderMiniPreview() {
 
 function resizeMiniStages() {
     const container = document.querySelector('.mini-preview-canvas-container');
-    const w = container.offsetWidth;
-    const h = container.offsetHeight;
+    if (!container) return;
+    const w = container.clientWidth || 300;
+    const h = container.clientHeight || 200;
     miniTrailsStage.resize(w, h);
     miniMainStage.resize(w, h);
 }
@@ -951,6 +1064,12 @@ function toggleMiniPreview(force) {
         el.classList.remove('hide');
         btn.classList.add('primary');
         btn.classList.remove('secondary');
+        
+        // Cập nhật tỉ lệ theo thiết bị hiện tại
+        const deviceRatio = window.innerWidth / window.innerHeight;
+        const currentW = el.offsetWidth;
+        el.style.height = (currentW / deviceRatio) + 'px';
+        
         resizeMiniStages();
         if (!miniTickerAdded) {
             miniMainStage.addEventListener('ticker', updateMiniPreview);
@@ -993,13 +1112,197 @@ function stopMiniLoop() {
 
 function launchEvent(event) {
     if (event.shell === 'Tạm dừng') return;
-    const config = getMiniShellType(event.shell, event.size);
-    if (event.color) {
-        if (Array.isArray(event.color)) config.color = event.color.map(c => COLOR[c] || c);
-        else config.color = COLOR[event.color] || event.color;
-    }
+    const config = getMiniShellType(event, event.size);
     const shell = new Shell(config);
     shell.launch(event.x || 0.5, event.y || 0.5);
+}
+
+/**
+ * RESIZE LOGIC FOR MINI PREVIEW
+ */
+let isResizingMini = false;
+let resizeType = 'both'; // 'v', 'h', 'both'
+let startX, startY, startW, startH;
+
+function initMiniResize() {
+    const handleV = document.getElementById('mini-preview-resize-v');
+    const handleH = document.getElementById('mini-preview-resize-h');
+    const handleBoth = document.getElementById('mini-preview-resize-both');
+    const container = document.getElementById('mini-preview');
+
+    const onDown = (e, type) => {
+        isResizingMini = true;
+        resizeType = type;
+        startX = e.clientX;
+        startY = e.clientY;
+        startW = container.offsetWidth;
+        startH = container.offsetHeight;
+        
+        if (e.target.setPointerCapture) {
+            e.target.setPointerCapture(e.pointerId);
+        }
+        
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    handleV.onpointerdown = (e) => onDown(e, 'v');
+    handleH.onpointerdown = (e) => onDown(e, 'h');
+    handleBoth.onpointerdown = (e) => onDown(e, 'both');
+
+    const onMove = (e) => {
+        if (!isResizingMini) return;
+        
+        // Use a consistent ratio during a single resize operation
+        const deviceRatio = window.innerWidth / window.innerHeight;
+        let newW = startW;
+        let newH = startH;
+
+        const dx = startX - e.clientX;
+        const dy = startY - e.clientY;
+
+        if (resizeType === 'v') {
+            newH = Math.max(150, startH + dy);
+            newW = newH * deviceRatio;
+        } else if (resizeType === 'h') {
+            newW = Math.max(200, startW + dx);
+            newH = newW / deviceRatio;
+        } else {
+            // Corner resize: use the larger delta to determine scale
+            const scaleW = (startW + dx) / startW;
+            const scaleH = (startH + dy) / startH;
+            const scale = Math.max(scaleW, scaleH);
+            
+            newW = Math.max(200, startW * scale);
+            newH = newW / deviceRatio;
+        }
+
+        // Check against viewport limits
+        if (newW > window.innerWidth * 0.95) {
+            newW = window.innerWidth * 0.95;
+            newH = newW / deviceRatio;
+        }
+        if (newH > window.innerHeight * 0.8) {
+            newH = window.innerHeight * 0.8;
+            newW = newH * deviceRatio;
+        }
+
+        container.style.width = newW + 'px';
+        container.style.height = newH + 'px';
+        resizeMiniStages();
+    };
+
+    const onUp = (e) => {
+        if (!isResizingMini) return;
+        isResizingMini = false;
+        if (e.target.releasePointerCapture) {
+            e.target.releasePointerCapture(e.pointerId);
+        }
+    };
+
+    [handleV, handleH, handleBoth].forEach(h => {
+        h.onpointermove = onMove;
+        h.onpointerup = onUp;
+    });
+}
+
+/**
+ * MOVE LOGIC FOR MINI PREVIEW
+ */
+let isMovingMini = false;
+let moveStartX, moveStartY, moveStartBottom, moveStartRight;
+
+function initMiniMove() {
+    const header = document.querySelector('.mini-preview-header');
+    const container = document.getElementById('mini-preview');
+
+    header.onpointerdown = (e) => {
+        if (e.target.closest('button')) return;
+        isMovingMini = true;
+        moveStartX = e.clientX;
+        moveStartY = e.clientY;
+        
+        const style = window.getComputedStyle(container);
+        moveStartBottom = parseInt(style.bottom) || 0;
+        moveStartRight = parseInt(style.right) || 0;
+        
+        header.setPointerCapture(e.pointerId);
+        e.preventDefault();
+    };
+
+    header.onpointermove = (e) => {
+        if (!isMovingMini) return;
+        
+        const dx = moveStartX - e.clientX;
+        const dy = moveStartY - e.clientY;
+        
+        let nextRight = moveStartRight + dx;
+        let nextBottom = moveStartBottom + dy;
+
+        // Keep inside viewport
+        const rect = container.getBoundingClientRect();
+        if (nextRight < 0) nextRight = 0;
+        if (nextBottom < 0) nextBottom = 0;
+        if (nextRight + rect.width > window.innerWidth) nextRight = window.innerWidth - rect.width;
+        if (nextBottom + rect.height > window.innerHeight) nextBottom = window.innerHeight - rect.height;
+
+        container.style.right = nextRight + 'px';
+        container.style.bottom = nextBottom + 'px';
+    };
+
+    header.onpointerup = (e) => {
+        isMovingMini = false;
+        if (header.releasePointerCapture) {
+            header.releasePointerCapture(e.pointerId);
+        }
+    };
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initMiniResize();
+    initMiniMove();
+});
+
+const textCanvas = document.createElement('canvas');
+const textCtx = textCanvas.getContext('2d', { willReadFrequently: true });
+
+function getTextParticles(text, fontSize = 80) {
+    textCanvas.width = 1000;
+    textCanvas.height = 200;
+    textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+    textCtx.font = `bold ${fontSize}px Outfit, Inter, sans-serif`;
+    textCtx.fillStyle = 'white';
+    textCtx.textAlign = 'center';
+    textCtx.textBaseline = 'middle';
+    textCtx.fillText(text, textCanvas.width / 2, textCanvas.height / 2);
+
+    const imgData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height).data;
+    const points = [];
+    const step = 4;
+
+    let minX = textCanvas.width, maxX = 0, minY = textCanvas.height, maxY = 0;
+    for (let y = 0; y < textCanvas.height; y += step) {
+        for (let x = 0; x < textCanvas.width; x += step) {
+            const index = (y * textCanvas.width + x) * 4;
+            const alpha = imgData[index + 3];
+            if (alpha > 128) {
+                points.push({ x, y });
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+            }
+        }
+    }
+
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    const maxDist = Math.max(maxX - minX, maxY - minY) / 2 || 1;
+
+    return points.map(p => ({
+        x: (p.x - centerX) / maxDist,
+        y: (p.y - centerY) / maxDist
+    }));
 }
 
 function selectEvent(id) {
@@ -1036,5 +1339,30 @@ window.exportConfig = exportConfig;
 window.previewConfig = previewConfig;
 window.saveConfig = saveConfig;
 window.toggleSidebar = toggleSidebar;
+window.resizeMiniStages = resizeMiniStages;
+window.shareSocial = (platform) => {
+    const url = document.getElementById('share-url').innerText;
+    const text = "Xem kịch bản pháo hoa tuyệt đẹp của tôi!";
+    let shareUrl = '';
+
+    switch (platform) {
+        case 'messenger':
+            shareUrl = `fb-messenger://share/?link=${encodeURIComponent(url)}`;
+            // Fallback for desktop
+            if (!/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+                shareUrl = `https://www.facebook.com/dialog/send?link=${encodeURIComponent(url)}&app_id=2177090129179921&redirect_uri=${encodeURIComponent(url)}`;
+            }
+            break;
+        case 'zalo':
+            shareUrl = `https://zalo.me/s/share?link=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+            break;
+        case 'tiktok':
+            // TikTok doesn't support direct link sharing via URL, just copy link
+            copyShareLink();
+            notify("TikTok chưa hỗ trợ chia sẻ link trực tiếp. Đã sao chép link để bạn dán vào TikTok!", "info");
+            return;
+    }
+    if (shareUrl) window.open(shareUrl, '_blank');
+};
 window.addEventListener('resize', resizeMiniStages);
 
