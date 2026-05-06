@@ -270,7 +270,15 @@ function updateEvent(id, field, value) {
     const event = state.events.find(e => e.id === id);
     if (event) {
         if (['burst', 'x', 'y', 'delay', 'size', 'duration', 'starLife', 'starDensity', 'spreadSize'].includes(field)) {
-            event[field] = value === '' ? undefined : Number(value);
+            let num = value === '' ? undefined : Number(value);
+            if (num !== undefined) {
+                // Clamping logic for security
+                if (field === 'x' || field === 'y') num = Math.max(0, Math.min(1, num));
+                if (field === 'size') num = Math.max(0, Math.min(10, num)); // Cho phép tối đa 10 cho chuyên gia
+                if (field === 'delay') num = Math.max(0, Math.min(60000, num));
+                if (field === 'burst') num = Math.max(1, num);
+            }
+            event[field] = num;
         } else if (['strobe', 'pistil', 'streamers', 'crossette', 'crackle', 'horsetail', 'comet'].includes(field)) {
             event[field] = value === true;
         } else {
@@ -360,19 +368,19 @@ function createEventCard(event, index) {
         <div class="event-grid-4">
             <div class="form-group">
                 <label>X (0-1)</label>
-                <input type="number" step="0.1" min="0" max="1" value="${event.x}" onchange="updateEvent(${event.id}, 'x', this.value)">
+                <input type="number" step="0.01" min="0" max="1" value="${event.x}" onchange="updateEvent(${event.id}, 'x', this.value)">
             </div>
             <div class="form-group">
                 <label>Y (0-1)</label>
-                <input type="number" step="0.1" min="0" max="1" value="${event.y}" onchange="updateEvent(${event.id}, 'y', this.value)">
+                <input type="number" step="0.01" min="0" max="1" value="${event.y}" onchange="updateEvent(${event.id}, 'y', this.value)">
             </div>
             <div class="form-group">
                 <label>Size</label>
-                <input type="number" min="0" max="5" value="${event.size}" onchange="updateEvent(${event.id}, 'size', this.value)">
+                <input type="number" step="0.1" min="0" max="10" value="${event.size}" onchange="updateEvent(${event.id}, 'size', this.value)">
             </div>
             <div class="form-group">
                 <label>Trễ (ms)</label>
-                <input type="number" step="100" min="0" value="${event.delay}" onchange="updateEvent(${event.id}, 'delay', this.value)">
+                <input type="number" step="100" min="0" max="60000" value="${event.delay}" onchange="updateEvent(${event.id}, 'delay', this.value)">
             </div>
         </div>
 
