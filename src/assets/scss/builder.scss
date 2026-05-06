@@ -118,6 +118,7 @@ main {
             padding: 0.4rem;
         }
     }
+
     padding: 1.5rem;
     gap: 1.5rem;
 }
@@ -839,8 +840,21 @@ select {
         gap: 0.75rem;
     }
 
-    .event-grid-3 .form-group[style*="grid-column: span 2"] {
-        grid-column: span 1;
+    .event-grid-3 {
+        display: grid !important;
+        grid-template-columns: 1fr 2fr !important;
+        gap: 0.5rem;
+
+        .form-group[style*="grid-column: span 2"] {
+            grid-column: span 1 !important;
+        }
+    }
+
+    /* X, Y, Size, Trễ chia 2 cột */
+    .event-grid-4 {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.5rem;
     }
 }
 
