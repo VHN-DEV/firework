@@ -282,7 +282,7 @@ function createNewScript() {
         state.background = null;
         document.getElementById('show-background').checked = false;
         document.getElementById('background-upload-container').classList.add('hide');
-        document.getElementById('background-preview').src = 'src/assets/img/background.png';
+        document.getElementById('background-preview').src = backgroundImgUrl;
         updateMiniPreviewBackground();
 
         // Add one default event
