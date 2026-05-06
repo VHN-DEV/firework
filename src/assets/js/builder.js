@@ -71,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-my-scripts')?.addEventListener('click', openScriptsModal);
     document.getElementById('btn-copy-link')?.addEventListener('click', copyShareLink);
     document.getElementById('btn-toggle-mini-preview')?.addEventListener('click', () => toggleMiniPreview());
+    document.getElementById('btn-help')?.addEventListener('click', () => showModal('help-modal'));
 
     // Background logic
     const bgToggle = document.getElementById('show-background');
