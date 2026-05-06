@@ -22,6 +22,9 @@
             <div class="logo">
                 <i class="fas fa-fireworks"></i>
                 <h1>Firework Builder</h1>
+                <button id="btn-help" class="btn-help-icon" title="Hướng dẫn sử dụng">
+                    <i class="fas fa-question-circle"></i>
+                </button>
             </div>
             <div class="header-actions-mobile show-mobile">
                 <button class="btn text" onclick="createNewScript()" title="Mới">
@@ -274,6 +277,83 @@
 
     <!-- Sidebar Overlay -->
     <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <div id="help-modal" class="modal hide">
+        <div class="modal-content large help-guide">
+            <div class="modal-header">
+                <h3><i class="fas fa-question-circle"></i> Hướng dẫn sử dụng Firework Builder</h3>
+                <button class="btn text" onclick="document.getElementById('help-modal').classList.add('hide')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="help-content">
+                <div class="help-section">
+                    <h4><i class="fas fa-cog"></i> Cấu hình chung</h4>
+                    <p>Thiết lập thông tin cơ bản cho màn trình diễn của bạn.</p>
+                    <ul>
+                        <li><strong>Tiêu đề & Dòng phụ:</strong> Nội dung hiển thị khi bắt đầu màn trình diễn.</li>
+                        <li><strong>Ảnh nền:</strong> Bạn có thể tải ảnh của riêng mình lên để làm nền cho pháo hoa.</li>
+                        <li><strong>Tên file:</strong> Đặt tên để lưu và chia sẻ. Hệ thống sẽ tự động thêm số nếu tên bị trùng.</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h4><i class="fas fa-list-ul"></i> Quản lý đợt bắn</h4>
+                    <p>Mỗi kịch bản gồm nhiều đợt bắn (Burst) khác nhau.</p>
+                    <ul>
+                        <li><strong>Đợt (Burst):</strong> Các phát bắn có cùng số đợt sẽ nổ đồng thời.</li>
+                        <li><strong>Trễ (Delay):</strong> Thời gian chờ (mili giây) trước khi phát bắn đó được kích hoạt.</li>
+                        <li><strong>Thứ tự:</strong> Các đợt bắn sẽ được thực hiện tuần tự từ nhỏ đến lớn.</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h4><i class="fas fa-rocket"></i> Thông số phát bắn</h4>
+                    <div class="help-grid">
+                        <div class="help-item">
+                            <strong>Loại pháo:</strong> Chọn hiệu ứng hình dạng (Hoa cúc, Liễu, Trái tim, Văn bản...).
+                        </div>
+                        <div class="help-item">
+                            <strong>Vị trí X/Y:</strong> Tọa độ nổ (0 là trái/trên, 1 là phải/dưới).
+                        </div>
+                        <div class="help-item">
+                            <strong>Size:</strong> Độ lớn của bông pháo khi nổ.
+                        </div>
+                        <div class="help-item">
+                            <strong>Màu sắc:</strong> Bạn có thể thêm nhiều màu cho một phát bắn để tạo hiệu ứng đa sắc.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h4><i class="fas fa-magic"></i> Tùy chỉnh nâng cao</h4>
+                    <p>Mở rộng khả năng sáng tạo với các thông số chi tiết.</p>
+                    <ul>
+                        <li><strong>Lấp lánh (Strobe):</strong> Hiệu ứng nhấp nháy liên tục của các hạt sáng.</li>
+                        <li><strong>Nổ lách tách:</strong> Thêm âm thanh và hiệu ứng nổ nhỏ li ti sau khi pháo nổ chính.</li>
+                        <li><strong>Mật độ hạt:</strong> Tăng/giảm số lượng hạt sáng trong một bông pháo.</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h4><i class="fas fa-eye"></i> Xem nhanh (Mini Preview)</h4>
+                    <p>Công cụ đắc lực giúp bạn xem ngay kết quả mà không cần chuyển trang.</p>
+                    <ul>
+                        <li>Nhấn vào một phát bắn trong danh sách để xem riêng phát bắn đó nổ.</li>
+                        <li>Bạn có thể kéo thả để di chuyển hoặc thay đổi kích thước cửa sổ xem nhanh.</li>
+                    </ul>
+                </div>
+
+                <div class="help-section actions-guide">
+                    <h4><i class="fas fa-save"></i> Lưu & Chia sẻ</h4>
+                    <p>Sau khi hoàn tất, hãy nhấn <strong>Lưu</strong>. Một đường link duy nhất sẽ được tạo ra để bạn gửi cho bạn bè hoặc đăng lên mạng xã hội.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn primary" onclick="document.getElementById('help-modal').classList.add('hide')">Đã hiểu!</button>
+            </div>
+        </div>
+    </div>
 
     <div id="mini-preview" class="mini-preview hide">
         <div class="mini-preview-header">
