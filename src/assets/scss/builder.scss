@@ -9,6 +9,32 @@
     padding: 0;
 }
 
+/* Custom Scrollbar Global */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba($primary, 0.3) 0%, rgba($accent, 0.3) 100%);
+    border-radius: 10px;
+    transition: all 0.3s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, $primary 0%, $accent 100%);
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba($primary, 0.5) transparent;
+}
+
 body {
     font-family: 'Inter', sans-serif;
     background-color: $bg-color;
@@ -1381,16 +1407,8 @@ select {
         gap: 2rem;
         max-height: 60vh;
         overflow-y: auto;
-        scrollbar-width: thin;
-        scrollbar-color: $border-color transparent;
-
-        &::-webkit-scrollbar {
-            width: 6px;
-        }
-        &::-webkit-scrollbar-thumb {
-            background-color: $border-color;
-            border-radius: 10px;
-        }
+        max-height: 60vh;
+        overflow-y: auto;
     }
 
     .help-section {
