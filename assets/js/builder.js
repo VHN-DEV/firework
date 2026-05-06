@@ -5,8 +5,23 @@
 const state = {
     events: [],
     nextId: 1,
-    currentFilename: ''
+    currentFilename: '',
+    activeEventId: null,
+    miniPreviewEnabled: false,
+    previewLoopId: null
 };
+
+const COLOR = {
+    Red: '#ff0043',
+    Green: '#14fc56',
+    Blue: '#1e7fff',
+    Purple: '#e60aff',
+    Gold: '#ffbf36',
+    White: '#ffffff'
+};
+const INVISIBLE = '_INVISIBLE_';
+const PI_2 = Math.PI * 2;
+const GRAVITY = 0.9;
 
 const SHELL_TYPES = [
     "Hoa cúc", "Văn bản", "Liễu", "Trái tim", "Ngôi sao", 
@@ -35,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-import').addEventListener('click', () => document.getElementById('import-file').click());
     document.getElementById('btn-my-scripts').addEventListener('click', openScriptsModal);
     document.getElementById('btn-copy-link').addEventListener('click', copyShareLink);
+    document.getElementById('btn-toggle-mini-preview').addEventListener('click', () => toggleMiniPreview());
     
     // File Import
     document.getElementById('import-file').addEventListener('change', importConfig);
@@ -239,8 +255,15 @@ function renderEventList() {
 
 function createEventCard(event, index) {
     const div = document.createElement('div');
-    div.className = 'event-card';
+    div.className = 'event-card' + (state.activeEventId === event.id ? ' active' : '');
     div.dataset.id = event.id;
+    div.onclick = (e) => {
+        // Tránh kích hoạt khi nhấn vào các input/button bên trong
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.closest('.color-tag')) {
+            return;
+        }
+        selectEvent(event.id);
+    };
 
     const shellOptions = SHELL_TYPES.map(type => 
         `<option value="${type}" ${event.shell === type ? 'selected' : ''}>${type}</option>`
@@ -657,3 +680,345 @@ window.deleteScript = deleteScript;
 window.addColorToEvent = addColorToEvent;
 window.removeColorFromEvent = removeColorFromEvent;
 window.copyScriptLink = copyScriptLink;
+
+/**
+ * MINI PREVIEW ENGINE
+ */
+const miniTrailsStage = new Stage('mini-trails-canvas');
+const miniMainStage = new Stage('mini-main-canvas');
+
+const Star = {
+    drawWidth: 3,
+    airDrag: 0.98,
+    airDragHeavy: 0.992,
+    active: {},
+    _pool: [],
+    _new() { return {}; },
+    add(x, y, color, angle, speed, life, speedOffX, speedOffY) {
+        const instance = this._pool.pop() || this._new();
+        let finalColor = Array.isArray(color) ? color[Math.floor(Math.random() * color.length)] : (color || COLOR.White);
+        if (finalColor === 'Ngẫu nhiên') finalColor = Object.values(COLOR)[Math.floor(Math.random() * 6)];
+        instance.visible = true;
+        instance.heavy = false;
+        instance.x = x;
+        instance.y = y;
+        instance.prevX = x;
+        instance.prevY = y;
+        instance.color = finalColor;
+        instance.speedX = Math.sin(angle) * speed + (speedOffX || 0);
+        instance.speedY = Math.cos(angle) * speed + (speedOffY || 0);
+        instance.life = life;
+        instance.fullLife = life;
+        instance.spinAngle = Math.random() * PI_2;
+        instance.spinSpeed = 0.8;
+        instance.spinRadius = 0;
+        instance.sparkFreq = 0;
+        instance.sparkSpeed = 1;
+        instance.sparkTimer = 0;
+        instance.sparkColor = finalColor;
+        instance.sparkLife = 750;
+        instance.sparkLifeVariation = 0.25;
+        instance.strobe = false;
+        if (!this.active[finalColor]) this.active[finalColor] = [];
+        this.active[finalColor].push(instance);
+        return instance;
+    },
+    returnInstance(instance) {
+        instance.onDeath && instance.onDeath(instance);
+        instance.onDeath = null;
+        instance.secondColor = null;
+        instance.transitionTime = 0;
+        instance.colorChanged = false;
+        this._pool.push(instance);
+    },
+    reset() {
+        Object.keys(this.active).forEach(c => this.active[c] = []);
+    }
+};
+
+const Spark = {
+    drawWidth: 1,
+    airDrag: 0.9,
+    active: {},
+    _pool: [],
+    _new() { return {}; },
+    add(x, y, color, angle, speed, life) {
+        const instance = this._pool.pop() || this._new();
+        instance.x = x;
+        instance.y = y;
+        instance.prevX = x;
+        instance.prevY = y;
+        instance.color = color;
+        instance.speedX = Math.sin(angle) * speed;
+        instance.speedY = Math.cos(angle) * speed;
+        instance.life = life;
+        if (!this.active[color]) this.active[color] = [];
+        this.active[color].push(instance);
+        return instance;
+    },
+    returnInstance(instance) { this._pool.push(instance); },
+    reset() {
+        Object.keys(this.active).forEach(c => this.active[c] = []);
+    }
+};
+
+const BurstFlash = {
+    active: [],
+    _pool: [],
+    _new() { return {}; },
+    add(x, y, radius) {
+        const instance = this._pool.pop() || this._new();
+        instance.x = x; instance.y = y; instance.radius = radius;
+        this.active.push(instance);
+        return instance;
+    },
+    returnInstance(instance) { this._pool.push(instance); },
+    reset() { this.active = []; }
+};
+
+class Shell {
+    constructor(options) {
+        Object.assign(this, options);
+        this.starLifeVariation = options.starLifeVariation || 0.125;
+        this.color = options.color || COLOR.White;
+        if (!this.starCount) {
+            const density = options.starDensity || 1;
+            const scaledSize = this.spreadSize / 54;
+            this.starCount = Math.max(6, scaledSize * scaledSize * density);
+        }
+    }
+    launch(x, y) {
+        this.burst(x * miniMainStage.width, y * miniMainStage.height);
+    }
+    burst(x, y) {
+        const speed = this.spreadSize / 96;
+        let sparkFreq, sparkSpeed, sparkLife;
+        if (this.glitter === 'light') { sparkFreq = 400; sparkSpeed = 0.3; sparkLife = 300; }
+        else if (this.glitter === 'willow') { sparkFreq = 80; sparkSpeed = 0.48; sparkLife = 1500; }
+        else { sparkFreq = 200; sparkSpeed = 0.44; sparkLife = 700; }
+
+        const starFactory = (angle, speedMult) => {
+            const star = Star.add(x, y, this.color, angle, speedMult * speed, this.starLife + Math.random() * this.starLife * this.starLifeVariation, 0, 0);
+            if (this.glitter) {
+                star.sparkFreq = sparkFreq; star.sparkSpeed = sparkSpeed; star.sparkLife = sparkLife;
+                star.sparkColor = this.glitterColor || star.color;
+                star.sparkTimer = Math.random() * star.sparkFreq;
+            }
+        };
+
+        if (this.shapePoints) {
+            this.shapePoints.forEach(p => {
+                const star = Star.add(x, y, this.color, 0, 0, this.starLife + Math.random() * this.starLife * this.starLifeVariation);
+                star.speedX = p.x * speed; star.speedY = p.y * speed;
+            });
+        } else {
+            const count = this.starCount;
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * PI_2;
+                const speedMult = Math.random();
+                starFactory(angle, speedMult);
+            }
+        }
+        BurstFlash.add(x, y, this.spreadSize / 4);
+    }
+}
+
+function getMiniShellType(name, size) {
+    const s = size || 1;
+    switch(name) {
+        case 'Liễu': return { shellSize: s, spreadSize: 300 + s * 100, starDensity: 0.7, starLife: 3000 + s * 300, glitter: 'willow', glitterColor: COLOR.Gold, color: COLOR.Gold };
+        case 'Trái tim': return { shellSize: s, spreadSize: 300 + s * 100, starLife: 1000 + s * 200, color: COLOR.Red };
+        case 'Ngôi sao': return { shellSize: s, spreadSize: 350 + s * 100, starLife: 1200 + s * 200, color: COLOR.Gold };
+        default: return { shellSize: s, spreadSize: 300 + s * 100, starLife: 900 + s * 200, color: COLOR.White };
+    }
+}
+
+let miniPreviewLoop = null;
+let miniBurstCounter = 0;
+
+function updateMiniPreview(frameTime, lag) {
+    if (!state.miniPreviewEnabled) return;
+    const timeStep = frameTime;
+    const speed = lag;
+
+    Object.keys(Star.active).forEach(color => {
+        const stars = Star.active[color];
+        for (let i = stars.length - 1; i >= 0; i--) {
+            const star = stars[i];
+            star.life -= timeStep;
+            if (star.life <= 0) {
+                stars.splice(i, 1);
+                Star.returnInstance(star);
+            } else {
+                star.prevX = star.x; star.prevY = star.y;
+                star.x += star.speedX * speed; star.y += star.speedY * speed;
+                star.speedX *= Star.airDrag; star.speedY *= Star.airDrag;
+                star.speedY += (timeStep / 1000 * GRAVITY);
+                if (star.sparkFreq) {
+                    star.sparkTimer -= timeStep;
+                    while (star.sparkTimer < 0) {
+                        star.sparkTimer += star.sparkFreq;
+                        Spark.add(star.x, star.y, star.sparkColor, Math.random() * PI_2, Math.random() * star.sparkSpeed, star.sparkLife);
+                    }
+                }
+            }
+        }
+    });
+
+    Object.keys(Spark.active).forEach(color => {
+        const sparks = Spark.active[color];
+        for (let i = sparks.length - 1; i >= 0; i--) {
+            const spark = sparks[i];
+            spark.life -= timeStep;
+            if (spark.life <= 0) {
+                sparks.splice(i, 1);
+                Spark.returnInstance(spark);
+            } else {
+                spark.prevX = spark.x; spark.prevY = spark.y;
+                spark.x += spark.speedX * speed; spark.y += spark.speedY * speed;
+                spark.speedX *= Spark.airDrag; spark.speedY *= Spark.airDrag;
+                spark.speedY += (timeStep / 1000 * GRAVITY);
+            }
+        }
+    });
+
+    renderMiniPreview();
+}
+
+function renderMiniPreview() {
+    const trailsCtx = miniTrailsStage.ctx;
+    const mainCtx = miniMainStage.ctx;
+    const width = miniMainStage.width;
+    const height = miniMainStage.height;
+
+    trailsCtx.globalCompositeOperation = 'source-over';
+    trailsCtx.fillStyle = 'rgba(0, 0, 0, 0.175)';
+    trailsCtx.fillRect(0, 0, width, height);
+    mainCtx.clearRect(0, 0, width, height);
+
+    trailsCtx.globalCompositeOperation = 'lighten';
+    trailsCtx.lineWidth = Star.drawWidth;
+    Object.keys(Star.active).forEach(color => {
+        const stars = Star.active[color];
+        trailsCtx.strokeStyle = color;
+        trailsCtx.beginPath();
+        stars.forEach(star => {
+            trailsCtx.moveTo(star.x, star.y);
+            trailsCtx.lineTo(star.prevX, star.prevY);
+        });
+        trailsCtx.stroke();
+    });
+
+    trailsCtx.lineWidth = Spark.drawWidth;
+    Object.keys(Spark.active).forEach(color => {
+        const sparks = Spark.active[color];
+        trailsCtx.strokeStyle = color;
+        trailsCtx.beginPath();
+        sparks.forEach(spark => {
+            trailsCtx.moveTo(spark.x, spark.y);
+            trailsCtx.lineTo(spark.prevX, spark.prevY);
+        });
+        trailsCtx.stroke();
+    });
+}
+
+function resizeMiniStages() {
+    const container = document.querySelector('.mini-preview-canvas-container');
+    const w = container.offsetWidth;
+    const h = container.offsetHeight;
+    miniTrailsStage.resize(w, h);
+    miniMainStage.resize(w, h);
+}
+
+let miniTickerAdded = false;
+
+function toggleMiniPreview(force) {
+    state.miniPreviewEnabled = force !== undefined ? force : !state.miniPreviewEnabled;
+    const el = document.getElementById('mini-preview');
+    const btn = document.getElementById('btn-toggle-mini-preview');
+    if (state.miniPreviewEnabled) {
+        el.classList.remove('hide');
+        btn.classList.add('primary');
+        btn.classList.remove('secondary');
+        resizeMiniStages();
+        if (!miniTickerAdded) {
+            miniMainStage.addEventListener('ticker', updateMiniPreview);
+            miniTickerAdded = true;
+        }
+        startMiniLoop();
+    } else {
+        el.classList.add('hide');
+        btn.classList.remove('primary');
+        btn.classList.add('secondary');
+        stopMiniLoop();
+    }
+}
+
+function startMiniLoop() {
+    if (miniPreviewLoop) clearInterval(miniPreviewLoop);
+    miniPreviewLoop = setInterval(() => {
+        if (!state.miniPreviewEnabled) return;
+        if (state.activeEventId) {
+            const event = state.events.find(e => e.id === state.activeEventId);
+            if (event) launchEvent(event);
+        } else {
+            const maxBurst = state.events.length > 0 ? Math.max(...state.events.map(e => e.burst)) : 0;
+            if (maxBurst === 0) return;
+            miniBurstCounter++;
+            if (miniBurstCounter > maxBurst) miniBurstCounter = 1;
+            const events = state.events.filter(e => e.burst === miniBurstCounter);
+            events.forEach(e => setTimeout(() => launchEvent(e), e.delay || 0));
+        }
+    }, 2000);
+}
+
+function stopMiniLoop() {
+    if (miniPreviewLoop) clearInterval(miniPreviewLoop);
+    miniPreviewLoop = null;
+    Star.reset();
+    Spark.reset();
+    BurstFlash.reset();
+}
+
+function launchEvent(event) {
+    if (event.shell === 'Tạm dừng') return;
+    const config = getMiniShellType(event.shell, event.size);
+    if (event.color) {
+        if (Array.isArray(event.color)) config.color = event.color.map(c => COLOR[c] || c);
+        else config.color = COLOR[event.color] || event.color;
+    }
+    const shell = new Shell(config);
+    shell.launch(event.x || 0.5, event.y || 0.5);
+}
+
+function selectEvent(id) {
+    if (state.activeEventId === id) {
+        state.activeEventId = null;
+    } else {
+        state.activeEventId = id;
+    }
+    renderEventList();
+    const info = document.getElementById('mini-preview-info');
+    if (state.activeEventId) {
+        const idx = state.events.findIndex(e => e.id === id) + 1;
+        info.innerText = 'Đang hiển thị phát bắn #' + idx;
+        if (!state.miniPreviewEnabled) toggleMiniPreview(true);
+    } else {
+        info.innerText = 'Đang hiển thị toàn bộ';
+    }
+}
+
+window.toggleMiniPreview = toggleMiniPreview;
+window.selectEvent = selectEvent;
+window.removeEvent = removeEvent;
+window.updateEvent = updateEvent;
+window.handleShellChange = handleShellChange;
+window.toggleAdvanced = toggleAdvanced;
+window.editScript = editScript;
+window.duplicateScript = duplicateScript;
+window.deleteScript = deleteScript;
+window.addColorToEvent = addColorToEvent;
+window.removeColorFromEvent = removeColorFromEvent;
+window.copyScriptLink = copyScriptLink;
+window.addEventListener('resize', resizeMiniStages);
+
