@@ -506,7 +506,7 @@ async function getAvailableScripts() {
             const response = await fetch('static/configs/configs_index.json');
             const staticScripts = await response.json();
             const staticIds = staticScripts.map(s => s.id);
-            return [...new Set([...localIds, ...staticIds])];
+            return [...new Set([...localIds, ...staticIds])].filter(id => id !== 'configs_index');
         } catch (e) {
             return localIds;
         }
@@ -693,6 +693,7 @@ function loadScriptsList() {
 
     fetchPromise
         .then(data => {
+            data = data.filter(s => s.id !== 'configs_index');
             list.innerHTML = '';
 
             // Add local scripts if in static env
