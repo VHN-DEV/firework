@@ -373,27 +373,26 @@ function createEventCard(event, index) {
                 <label>Đợt (Burst)</label>
                 <input type="number" value="${event.burst}" onchange="updateEvent(${event.id}, 'burst', this.value)">
             </div>
-            <div class="form-group" style="grid-column: span 2;">
+            <div class="form-group">
                 <label>Loại pháo (Shell)</label>
                 <select onchange="handleShellChange(${event.id}, this)">
                     ${shellOptions}
                 </select>
             </div>
-        </div>
-
-        <div id="shell-specific-${event.id}">
-            ${event.shell === 'Văn bản' ? `
-                <div class="form-group">
-                    <label>Nội dung chữ (Text)</label>
-                    <input type="text" value="${event.text || ''}" onchange="updateEvent(${event.id}, 'text', this.value)">
-                </div>
-            ` : ''}
-            ${event.shell === 'Tạm dừng' ? `
-                <div class="form-group">
-                    <label>Thời gian nghỉ (ms)</label>
-                    <input type="number" value="${event.duration || 1000}" onchange="updateEvent(${event.id}, 'duration', this.value)">
-                </div>
-            ` : ''}
+            <div id="shell-specific-${event.id}">
+                ${event.shell === 'Văn bản' ? `
+                    <div class="form-group">
+                        <label>Nội dung chữ (Text)</label>
+                        <input type="text" value="${event.text || ''}" onchange="updateEvent(${event.id}, 'text', this.value)">
+                    </div>
+                ` : ''}
+                ${event.shell === 'Tạm dừng' ? `
+                    <div class="form-group">
+                        <label>Thời gian nghỉ (ms)</label>
+                        <input type="number" value="${event.duration || 1000}" onchange="updateEvent(${event.id}, 'duration', this.value)">
+                    </div>
+                ` : ''}
+            </div>
         </div>
 
         <div class="event-grid-4">
@@ -994,11 +993,14 @@ const Star = {
         return instance;
     },
     returnInstance(instance) {
-        instance.onDeath && instance.onDeath(instance);
-        instance.onDeath = null;
+        if (instance.onDeath) {
+            instance.onDeath(instance);
+            instance.onDeath = null;
+        }
         instance.secondColor = null;
         instance.transitionTime = 0;
         instance.colorChanged = false;
+        instance.visible = true;
         this._pool.push(instance);
     },
     reset() {
@@ -1046,6 +1048,35 @@ const BurstFlash = {
     reset() { this.active = []; }
 };
 
+function crackleEffect(star) {
+    const count = 3 + Math.random() * 4;
+    for (let i = 0; i < count; i++) {
+        const angle = Math.random() * PI_2;
+        const speed = Math.random() * 2;
+        Spark.add(star.x, star.y, COLOR.Gold, angle, speed, 300 + Math.random() * 200);
+    }
+}
+
+function crossetteEffect(star) {
+    for (let i = 0; i < 4; i++) {
+        const angle = (i / 4) * PI_2;
+        const speed = 1.5;
+        const s = Star.add(star.x, star.y, star.color, angle, speed, 600);
+        s.sparkFreq = 40;
+        s.sparkSpeed = 0.4;
+        s.sparkLife = 400;
+        s.sparkColor = COLOR.Gold;
+    }
+}
+
+function createBurst(count, starFactory) {
+    for (let i = 0; i < count; i++) {
+        const angle = Math.random() * PI_2;
+        const speedMult = Math.random() * 0.5 + 0.5;
+        starFactory(angle, speedMult);
+    }
+}
+
 class Shell {
     constructor(options) {
         Object.assign(this, options);
@@ -1064,14 +1095,15 @@ class Shell {
         const startY = miniMainStage.height;
 
         const distance = startY - targetY;
-        const launchLife = 600 + Math.random() * 200;
-        const speed = Math.max(distance * 0.035, 3);
+        const launchLife = (this.horsetail ? 100 : 600) + Math.random() * 200;
+        const speed = Math.max(distance * (this.horsetail ? 0.05 : 0.035), 3);
 
         let cometColor = this.color;
         if (Array.isArray(cometColor)) cometColor = cometColor[0];
         if (cometColor === 'Ngẫu nhiên') cometColor = Object.values(COLOR)[Math.floor(Math.random() * 6)];
 
         const comet = Star.add(startX, startY, cometColor, Math.PI, speed, launchLife);
+        comet.heavy = true;
         comet.sparkFreq = 30;
         comet.sparkSpeed = 0.5;
         comet.sparkLife = 500;
@@ -1081,15 +1113,22 @@ class Shell {
         };
     }
     burst(x, y) {
-        const speed = (this.spreadSize / 96) * 0.75; // Tỉ lệ lại cho màn hình nhỏ
+        const speed = (this.spreadSize / 96) * 0.75;
         let sparkFreq, sparkSpeed, sparkLife;
         
+        let onDeath = null;
+        if (this.crackle) onDeath = crackleEffect;
+        if (this.crossette) onDeath = crossetteEffect;
+
         if (this.glitter === 'willow') { sparkFreq = 100; sparkSpeed = 0.4; sparkLife = 1200; }
         else if (this.glitter === 'light') { sparkFreq = 400; sparkSpeed = 0.2; sparkLife = 300; }
+        else if (this.glitter === 'streamer') { sparkFreq = 32; sparkSpeed = 1.05; sparkLife = 620; }
         else { sparkFreq = 250; sparkSpeed = 0.3; sparkLife = 600; }
 
         const starFactory = (angle, speedMult) => {
             const star = Star.add(x, y, this.color, angle, speedMult * speed, this.starLife + Math.random() * this.starLife * this.starLifeVariation, 0, 0);
+            star.onDeath = onDeath;
+            
             if (this.glitter) {
                 star.sparkFreq = sparkFreq;
                 star.sparkSpeed = sparkSpeed;
@@ -1099,7 +1138,7 @@ class Shell {
             }
             if (this.strobe) {
                 star.strobe = true;
-                star.strobeFreq = 50 + Math.random() * 50;
+                star.strobeFreq = 40 + Math.random() * 40;
             }
         };
 
@@ -1108,24 +1147,38 @@ class Shell {
                 const star = Star.add(x, y, this.color, 0, 0, this.starLife + Math.random() * this.starLife * this.starLifeVariation);
                 star.speedX = p.x * speed * 1.2;
                 star.speedY = p.y * speed * 1.2;
+                star.onDeath = onDeath;
+                if (this.glitter) {
+                    star.sparkFreq = sparkFreq;
+                    star.sparkSpeed = sparkSpeed;
+                    star.sparkLife = sparkLife;
+                    star.sparkColor = this.glitterColor || star.color;
+                    star.sparkTimer = Math.random() * star.sparkFreq;
+                }
             });
         } else {
-            const count = this.starCount;
-            for (let i = 0; i < count; i++) {
-                const angle = Math.random() * PI_2;
-                const speedMult = Math.random() * 0.5 + 0.5;
-                starFactory(angle, speedMult);
-            }
+            createBurst(this.starCount, starFactory);
         }
         
         if (this.pistil) {
-            const pistilCount = this.starCount / 3;
-            const pistilColor = this.pistilColor || COLOR.Gold;
-            for (let i = 0; i < pistilCount; i++) {
-                const angle = Math.random() * PI_2;
-                const speedMult = Math.random() * 0.3;
-                Star.add(x, y, pistilColor, angle, speedMult * speed, this.starLife * 0.7);
-            }
+            const innerShell = new Shell({
+                spreadSize: this.spreadSize * 0.5,
+                starLife: this.starLife * 0.6,
+                color: this.pistilColor || COLOR.Gold,
+                glitter: 'light'
+            });
+            innerShell.burst(x, y);
+        }
+
+        if (this.streamers) {
+            const innerShell = new Shell({
+                spreadSize: this.spreadSize * 0.9,
+                starLife: this.starLife * 0.8,
+                starCount: Math.floor(Math.max(6, this.spreadSize / 45)),
+                color: COLOR.White,
+                glitter: 'streamer'
+            });
+            innerShell.burst(x, y);
         }
         
         BurstFlash.add(x, y, this.spreadSize / 5);
@@ -1261,6 +1314,10 @@ function updateMiniPreview(frameTime, lag) {
                 star.x += star.speedX * speed; star.y += star.speedY * speed;
                 star.speedX *= Star.airDrag; star.speedY *= Star.airDrag;
                 star.speedY += (timeStep / 1000 * GRAVITY);
+                if (star.strobe) {
+                    star.visible = Math.floor(star.life / (star.strobeFreq || 50)) % 3 === 0;
+                }
+
                 if (star.sparkFreq) {
                     star.sparkTimer -= timeStep;
                     while (star.sparkTimer < 0) {
@@ -1323,8 +1380,10 @@ function renderMiniPreview() {
         trailsCtx.strokeStyle = color;
         trailsCtx.beginPath();
         stars.forEach(star => {
-            trailsCtx.moveTo(star.x, star.y);
-            trailsCtx.lineTo(star.prevX, star.prevY);
+            if (star.visible) {
+                trailsCtx.moveTo(star.x, star.y);
+                trailsCtx.lineTo(star.prevX, star.prevY);
+            }
         });
         trailsCtx.stroke();
     });
