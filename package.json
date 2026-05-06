@@ -1,0 +1,20 @@
+{
+  "name": "firework",
+  "version": "1.0.0",
+  "description": "Đây là một dự án Trình mô phỏng Pháo hoa (Firework Simulator) tuyệt đẹp chạy trực tiếp trên nền tảng Web (HTML5/Canvas), cho phép bạn tạo và tùy chỉnh các hiệu ứng pháo hoa một cách sinh động, mượt mà và chân thực.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "clean": "rimraf dist public/assets/css public/assets/js",
+    "build": "npm run clean && vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "rimraf": "^6.1.3",
+    "sass": "^1.99.0",
+    "vite": "^6.4.2"
+  }
+}
