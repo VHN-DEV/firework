@@ -14,9 +14,9 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@400;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script type="module" crossorigin src="./assets/builder-XNqZdbBF.js"></script>
+  <script type="module" crossorigin src="./assets/builder-Cp3batly.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/MyMath-DyofDy1u.js">
-  <link rel="stylesheet" crossorigin href="./assets/builder-B2fqNaK9.css">
+  <link rel="stylesheet" crossorigin href="./assets/builder-VEBq_t6X.css">
 </head>
 
 <body>
@@ -60,9 +60,22 @@
                 <i class="fas fa-link"></i>
                 <span>Link chia sẻ: <strong id="share-url"></strong></span>
             </div>
-            <button id="btn-copy-link" class="btn primary small">
-                <i class="fas fa-copy"></i> Sao chép link
-            </button>
+            <div class="share-actions">
+                <button id="btn-copy-link" class="btn primary small" title="Sao chép link">
+                    <i class="fas fa-copy"></i> Sao chép
+                </button>
+                <div class="social-share">
+                    <button class="btn-social messenger" onclick="shareSocial('messenger')" title="Chia sẻ qua Messenger">
+                        <i class="fab fa-facebook-messenger"></i>
+                    </button>
+                    <button class="btn-social zalo" onclick="shareSocial('zalo')" title="Chia sẻ qua Zalo">
+                        <span class="zalo-icon">Z</span>
+                    </button>
+                    <button class="btn-social tiktok" onclick="shareSocial('tiktok')" title="Chia sẻ qua TikTok">
+                        <i class="fab fa-tiktok"></i>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <main>
@@ -211,6 +224,9 @@
             <span><i class="fas fa-eye"></i> Xem nhanh</span>
             <button class="btn-close-mini" onclick="toggleMiniPreview(false)"><i class="fas fa-times"></i></button>
         </div>
+        <div id="mini-preview-resize-v" class="mini-preview-resize-v" title="Kéo để thay đổi chiều cao"></div>
+        <div id="mini-preview-resize-h" class="mini-preview-resize-h" title="Kéo để thay đổi chiều ngang"></div>
+        <div id="mini-preview-resize-both" class="mini-preview-resize-both" title="Kéo để thay đổi cả hai"></div>
         <div class="mini-preview-canvas-container">
             <canvas id="mini-trails-canvas"></canvas>
             <canvas id="mini-main-canvas"></canvas>

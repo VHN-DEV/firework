@@ -1,0 +1,50 @@
+{
+    "title": "Kịch bản mới",
+    "subtitle": "",
+    "author": "Anonymous",
+    "loop": true,
+    "status": "public",
+    "events": [
+        {
+            "burst": 1,
+            "shell": "Ngôi sao",
+            "color": "Ngẫu nhiên",
+            "x": 0.5,
+            "y": 0.5,
+            "delay": 0,
+            "size": 1,
+            "strobe": false,
+            "pistil": false,
+            "streamers": false,
+            "crossette": false,
+            "crackle": false,
+            "horsetail": false,
+            "comet": false,
+            "starDensity": 1,
+            "starLife": 2500,
+            "spreadSize": 350,
+            "expanded": false
+        },
+        {
+            "burst": 1,
+            "shell": "Hoa cúc",
+            "color": "Ngẫu nhiên",
+            "x": 0.5,
+            "y": 0.5,
+            "delay": 0,
+            "size": 1,
+            "strobe": false,
+            "pistil": false,
+            "streamers": false,
+            "crossette": false,
+            "crackle": false,
+            "horsetail": false,
+            "comet": false,
+            "starDensity": 1,
+            "starLife": 2500,
+            "spreadSize": 350,
+            "expanded": false,
+            "isTrusted": true
+        }
+    ]
+}

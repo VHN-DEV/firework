@@ -4,7 +4,7 @@ import { resolve } from 'path';
 export default defineConfig({
   // Base path for deployment
   base: './',
-  publicDir: 'src/assets/static',
+  publicDir: 'src/static',
   build: {
     rollupOptions: {
       input: {
@@ -18,5 +18,15 @@ export default defineConfig({
   },
   server: {
     open: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost/firework/src/static',
+        changeOrigin: true,
+      },
+      '/configs': {
+        target: 'http://localhost/firework/src/static',
+        changeOrigin: true,
+      },
+    },
   },
 });
