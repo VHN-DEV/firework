@@ -50,6 +50,16 @@ const SHELL_TYPES = [
     "Cây cọ", "Ma", "Đuôi ngựa", "Nhấp nháy", "Nổ lách tách", "Tạm dừng"
 ];
 
+const GLITTER_TYPES = [
+    { name: "Mặc định", value: "" },
+    { name: "Nhẹ (Light)", value: "light" },
+    { name: "Vừa (Medium)", value: "medium" },
+    { name: "Dày (Heavy)", value: "heavy" },
+    { name: "Đặc (Thick)", value: "thick" },
+    { name: "Dải sáng (Streamer)", value: "streamer" },
+    { name: "Liễu (Willow)", value: "willow" }
+];
+
 const COLORS = [
     { name: "Ngẫu nhiên", value: "Ngẫu nhiên" },
     { name: "Đỏ (Red)", value: "Red" },
@@ -209,15 +219,23 @@ function addEvent(config = null) {
             delay: 0,
             size: 1,
             strobe: false,
+            strobeColor: "",
             pistil: false,
+            pistilColor: "",
             streamers: false,
             crossette: false,
             crackle: false,
             horsetail: false,
             comet: false,
             starDensity: 1,
+            starCount: undefined,
             starLife: 2500,
+            starLifeVariation: 0.125,
             spreadSize: 350,
+            glitter: "",
+            glitterColor: "",
+            secondColor: "",
+            transitionTime: undefined,
             expanded: false
         };
     }
@@ -301,7 +319,7 @@ function removeEvent(id) {
 function updateEvent(id, field, value) {
     const event = state.events.find(e => e.id === id);
     if (event) {
-        if (['burst', 'x', 'y', 'delay', 'size', 'duration', 'starLife', 'starDensity', 'spreadSize'].includes(field)) {
+        if (['burst', 'x', 'y', 'delay', 'size', 'duration', 'starLife', 'starDensity', 'spreadSize', 'starCount', 'starLifeVariation', 'transitionTime'].includes(field)) {
             let num = value === '' ? undefined : Number(value);
             if (num !== undefined) {
                 // Clamping logic for security
@@ -309,6 +327,7 @@ function updateEvent(id, field, value) {
                 if (field === 'size') num = Math.max(0, Math.min(10, num)); // Cho phép tối đa 10 cho chuyên gia
                 if (field === 'delay') num = Math.max(0, Math.min(60000, num));
                 if (field === 'burst') num = Math.max(1, num);
+                if (field === 'starLifeVariation') num = Math.max(0, Math.min(1, num));
             }
             event[field] = num;
         } else if (['strobe', 'pistil', 'streamers', 'crossette', 'crackle', 'horsetail', 'comet'].includes(field)) {
@@ -437,29 +456,101 @@ function createEventCard(event, index) {
         </div>
 
         <div id="advanced-${event.id}" class="advanced-settings ${event.expanded ? '' : 'hide'}">
-            <div class="form-group checkbox">
-                <input type="checkbox" id="strobe-${event.id}" ${event.strobe ? 'checked' : ''} onchange="updateEvent(${event.id}, 'strobe', this.checked)">
-                <label for="strobe-${event.id}">Lấp lánh (Strobe)</label>
-            </div>
-            <div class="form-group checkbox">
-                <input type="checkbox" id="crackle-${event.id}" ${event.crackle ? 'checked' : ''} onchange="updateEvent(${event.id}, 'crackle', this.checked)">
-                <label for="crackle-${event.id}">Nổ lách tách</label>
-            </div>
-            <div class="form-group checkbox">
-                <input type="checkbox" id="pistil-${event.id}" ${event.pistil ? 'checked' : ''} onchange="updateEvent(${event.id}, 'pistil', this.checked)">
-                <label for="pistil-${event.id}">Nhụy ở giữa</label>
-            </div>
-            <div class="form-group checkbox">
-                <input type="checkbox" id="streamers-${event.id}" ${event.streamers ? 'checked' : ''} onchange="updateEvent(${event.id}, 'streamers', this.checked)">
-                <label for="streamers-${event.id}">Dải sáng (Streamers)</label>
-            </div>
+            <!-- Hạt và Tuổi thọ -->
             <div class="form-group">
                 <label>Mật độ hạt</label>
-                <input type="number" step="0.5" value="${event.starDensity || ''}" placeholder="Mặc định: 1" onchange="updateEvent(${event.id}, 'starDensity', this.value)">
+                <input type="number" step="0.1" value="${event.starDensity || ''}" placeholder="Mặc định: 1" onchange="updateEvent(${event.id}, 'starDensity', this.value)">
+            </div>
+            <div class="form-group">
+                <label>Số lượng hạt (starCount)</label>
+                <input type="number" value="${event.starCount || ''}" placeholder="Tự động" onchange="updateEvent(${event.id}, 'starCount', this.value)">
             </div>
             <div class="form-group">
                 <label>Tuổi thọ sao (ms)</label>
-                <input type="number" step="500" value="${event.starLife || ''}" placeholder="VD: 3000" onchange="updateEvent(${event.id}, 'starLife', this.value)">
+                <input type="number" step="100" value="${event.starLife || ''}" placeholder="VD: 2500" onchange="updateEvent(${event.id}, 'starLife', this.value)">
+            </div>
+            <div class="form-group">
+                <label>Biến thiên tuổi thọ (0-1)</label>
+                <input type="number" step="0.05" min="0" max="1" value="${event.starLifeVariation || ''}" placeholder="Mặc định: 0.125" onchange="updateEvent(${event.id}, 'starLifeVariation', this.value)">
+            </div>
+
+            <!-- Màu sắc nâng cao -->
+            <div class="form-group">
+                <label>Màu nhấp nháy (Strobe)</label>
+                <div class="color-input-group tiny">
+                    <input type="color" value="${event.strobeColor && event.strobeColor.startsWith('#') ? event.strobeColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'strobeColor', this.value)">
+                    <input type="text" value="${event.strobeColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'strobeColor', this.value)">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Màu nhụy (Pistil)</label>
+                <div class="color-input-group tiny">
+                    <input type="color" value="${event.pistilColor && event.pistilColor.startsWith('#') ? event.pistilColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'pistilColor', this.value)">
+                    <input type="text" value="${event.pistilColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'pistilColor', this.value)">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Màu lấp lánh (Glitter)</label>
+                <div class="color-input-group tiny">
+                    <input type="color" value="${event.glitterColor && event.glitterColor.startsWith('#') ? event.glitterColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'glitterColor', this.value)">
+                    <input type="text" value="${event.glitterColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'glitterColor', this.value)">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Loại lấp lánh</label>
+                <select onchange="updateEvent(${event.id}, 'glitter', this.value)">
+                    ${GLITTER_TYPES.map(g => `<option value="${g.value}" ${event.glitter === g.value ? 'selected' : ''}>${g.name}</option>`).join('')}
+                </select>
+            </div>
+
+            <!-- Chuyển đổi màu -->
+            <div class="form-group">
+                <label>Màu chuyển đổi (2nd)</label>
+                <div class="color-input-group tiny">
+                    <input type="color" value="${event.secondColor && event.secondColor.startsWith('#') ? event.secondColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'secondColor', this.value)">
+                    <input type="text" value="${event.secondColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'secondColor', this.value)">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Thời điểm chuyển (ms)</label>
+                <input type="number" step="100" value="${event.transitionTime || ''}" placeholder="Tự động" onchange="updateEvent(${event.id}, 'transitionTime', this.value)">
+            </div>
+            <div class="form-group">
+                <label>Kích thước nổ (spread)</label>
+                <input type="number" step="10" value="${event.spreadSize || ''}" placeholder="Mặc định: 350" onchange="updateEvent(${event.id}, 'spreadSize', this.value)">
+            </div>
+            <div></div> <!-- Spacer -->
+
+            <!-- Hiệu ứng Toggle -->
+            <div class="advanced-checkbox-grid">
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="strobe-${event.id}" ${event.strobe ? 'checked' : ''} onchange="updateEvent(${event.id}, 'strobe', this.checked)">
+                    <label for="strobe-${event.id}">Nhấp nháy</label>
+                </div>
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="crackle-${event.id}" ${event.crackle ? 'checked' : ''} onchange="updateEvent(${event.id}, 'crackle', this.checked)">
+                    <label for="crackle-${event.id}">Nổ lách tách</label>
+                </div>
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="pistil-${event.id}" ${event.pistil ? 'checked' : ''} onchange="updateEvent(${event.id}, 'pistil', this.checked)">
+                    <label for="pistil-${event.id}">Nhụy ở giữa</label>
+                </div>
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="streamers-${event.id}" ${event.streamers ? 'checked' : ''} onchange="updateEvent(${event.id}, 'streamers', this.checked)">
+                    <label for="streamers-${event.id}">Dải sáng</label>
+                </div>
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="crossette-${event.id}" ${event.crossette ? 'checked' : ''} onchange="updateEvent(${event.id}, 'crossette', this.checked)">
+                    <label for="crossette-${event.id}">Nổ chéo</label>
+                </div>
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="horsetail-${event.id}" ${event.horsetail ? 'checked' : ''} onchange="updateEvent(${event.id}, 'horsetail', this.checked)">
+                    <label for="horsetail-${event.id}">Đuôi ngựa</label>
+                </div>
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="comet-${event.id}" ${event.comet ? 'checked' : ''} onchange="updateEvent(${event.id}, 'comet', this.checked)">
+                    <label for="comet-${event.id}">Đuôi phóng</label>
+                </div>
             </div>
         </div>
     `;
@@ -1079,10 +1170,16 @@ function createBurst(count, starFactory) {
     }
 }
 
+function resolveColor(c) {
+    if (!c) return '';
+    if (c === 'Ngẫu nhiên') return 'Ngẫu nhiên';
+    return COLOR[c] || c;
+}
+
 class Shell {
     constructor(options) {
         Object.assign(this, options);
-        this.starLifeVariation = options.starLifeVariation || 0.125;
+        this.starLifeVariation = options.starLifeVariation !== undefined ? options.starLifeVariation : 0.125;
         this.color = options.color || COLOR.White;
         if (!this.starCount) {
             const density = options.starDensity || 1;
@@ -1131,6 +1228,12 @@ class Shell {
             const star = Star.add(x, y, this.color, angle, speedMult * speed, this.starLife + Math.random() * this.starLife * this.starLifeVariation, 0, 0);
             star.onDeath = onDeath;
             
+            if (this.secondColor) {
+                star.transitionTime = this.starLife * (Math.random() * 0.05 + 0.32);
+                if (this.transitionTime) star.transitionTime = this.transitionTime;
+                star.secondColor = this.secondColor;
+            }
+
             if (this.glitter) {
                 star.sparkFreq = sparkFreq;
                 star.sparkSpeed = sparkSpeed;
@@ -1141,6 +1244,7 @@ class Shell {
             if (this.strobe) {
                 star.strobe = true;
                 star.strobeFreq = 40 + Math.random() * 40;
+                if (this.strobeColor) star.secondColor = this.strobeColor;
             }
         };
 
@@ -1194,16 +1298,23 @@ function getMiniShellType(event, size) {
         shellSize: s,
         spreadSize: 300 + s * 100,
         starLife: 900 + s * 200,
-        color: event.color === 'Ngẫu nhiên' ? 'Ngẫu nhiên' : (COLOR[event.color] || event.color || COLOR.White),
+        color: resolveColor(event.color),
         strobe: event.strobe,
+        strobeColor: resolveColor(event.strobeColor),
         pistil: event.pistil,
+        pistilColor: resolveColor(event.pistilColor),
         streamers: event.streamers,
         crossette: event.crossette,
         crackle: event.crackle,
         horsetail: event.horsetail,
         comet: event.comet,
         starDensity: event.starDensity || 1,
-        starLifeOverride: event.starLife
+        starCount: event.starCount,
+        starLifeVariation: event.starLifeVariation,
+        glitter: event.glitter,
+        glitterColor: resolveColor(event.glitterColor),
+        secondColor: resolveColor(event.secondColor),
+        transitionTime: event.transitionTime
     };
 
     if (event.starLife) base.starLife = event.starLife;
@@ -1316,6 +1427,17 @@ function updateMiniPreview(frameTime, lag) {
                 star.x += star.speedX * speed; star.y += star.speedY * speed;
                 star.speedX *= Star.airDrag; star.speedY *= Star.airDrag;
                 star.speedY += (timeStep / 1000 * GRAVITY);
+
+                // Color transition logic
+                if (star.secondColor && !star.colorChanged && star.life < (star.transitionTime || star.fullLife * 0.4)) {
+                    star.colorChanged = true;
+                    stars.splice(i, 1);
+                    const newColor = star.secondColor;
+                    star.color = newColor;
+                    if (!Star.active[newColor]) Star.active[newColor] = [];
+                    Star.active[newColor].push(star);
+                }
+
                 if (star.strobe) {
                     star.visible = Math.floor(star.life / (star.strobeFreq || 50)) % 3 === 0;
                 }
