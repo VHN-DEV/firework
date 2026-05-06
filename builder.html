@@ -24,12 +24,24 @@
                 <h1>Firework Builder</h1>
             </div>
             <div class="header-actions-mobile show-mobile">
+                <button class="btn text" onclick="createNewScript()" title="Mới">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="btn text" onclick="document.getElementById('import-file').click()" title="Nhập">
+                    <i class="fas fa-file-import"></i>
+                </button>
+                <button class="btn text" onclick="exportConfig()" title="Xuất">
+                    <i class="fas fa-file-export"></i>
+                </button>
+                <button class="btn text" onclick="toggleMiniPreview()" title="Xem nhanh">
+                    <i class="fas fa-eye"></i>
+                </button>
                 <button id="btn-toggle-settings-header" class="btn text">
                     <i class="fas fa-cog"></i>
                 </button>
             </div>
             <div class="actions">
-                <button id="btn-import" class="btn secondary">
+                <!-- <button id="btn-import" class="btn secondary">
                     <i class="fas fa-file-import"></i> <span>Nhập</span>
                 </button>
                 <input type="file" id="import-file" class="hide" accept=".json">
@@ -38,7 +50,7 @@
                 </button>
                 <button id="btn-my-scripts" class="btn secondary">
                     <i class="fas fa-folder-open"></i> <span>Kịch bản</span>
-                </button>
+                </button> -->
                 <button id="btn-preview" class="btn secondary">
                     <i class="fas fa-play"></i> <span>Xem thử</span>
                 </button>
@@ -108,8 +120,11 @@
                     <section class="card">
                         <h3 class="hide-mobile"><i class="fas fa-cog"></i> Cấu hình chung</h3>
 
-                        <!-- Mobile Actions -->
-                        <div class="actions-mobile show-mobile">
+                        <!-- Global Actions (Desktop & Mobile) -->
+                        <div class="sidebar-global-actions">
+                            <button class="btn secondary small" onclick="createNewScript()">
+                                <i class="fas fa-plus"></i> Mới
+                            </button>
                             <button class="btn secondary small"
                                 onclick="document.getElementById('import-file').click()">
                                 <i class="fas fa-file-import"></i> Nhập
@@ -117,14 +132,20 @@
                             <button class="btn secondary small" onclick="exportConfig()">
                                 <i class="fas fa-file-export"></i> Xuất
                             </button>
-                            <button class="btn secondary small" onclick="openScriptsModal()">
+                            <button class="btn secondary small hide-mobile" onclick="openScriptsModal()">
                                 <i class="fas fa-folder-open"></i> Kịch bản
                             </button>
-                            <button class="btn secondary small" onclick="previewConfig()">
-                                <i class="fas fa-play"></i> Xem thử
+                        </div>
+
+                        <div class="actions-mobile show-mobile" style="margin-top: 1rem;">
+                            <button class="btn primary btn-save-mobile" onclick="saveConfig()">
+                                <i class="fas fa-save"></i> Lưu
                             </button>
-                            <button class="btn primary small btn-save-mobile" onclick="saveConfig()">
-                                <i class="fas fa-save"></i> Lưu kịch bản
+                            <button class="btn secondary" onclick="openScriptsModal()">
+                                <i class="fas fa-folder-open"></i> Kịch bản
+                            </button>
+                            <button class="btn secondary" onclick="previewConfig()">
+                                <i class="fas fa-play"></i> Xem thử
                             </button>
                         </div>
 
@@ -141,21 +162,23 @@
                             <input type="text" id="author" placeholder="Tên của bạn">
                         </div>
                         <div class="form-group checkbox">
-                        <input type="checkbox" id="show-background">
-                        <label for="show-background">Hiển thị nền (Show Background)</label>
-                    </div>
-                    <div id="background-upload-container" class="form-group hide">
-                        <label>Ảnh nền (Background Image)</label>
-                        <div class="background-upload-frame" id="bg-upload-frame" onclick="document.getElementById('background-file').click()">
-                            <img id="background-preview" src="src/assets/img/background.png" alt="Background Preview">
-                            <div class="upload-overlay">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                                <span>Tải ảnh lên</span>
-                            </div>
+                            <input type="checkbox" id="show-background">
+                            <label for="show-background">Hiển thị nền (Show Background)</label>
                         </div>
-                        <input type="file" id="background-file" class="hide" accept="image/*">
-                    </div>
-                    <div class="form-group checkbox">
+                        <div id="background-upload-container" class="form-group hide">
+                            <label>Ảnh nền (Background Image)</label>
+                            <div class="background-upload-frame" id="bg-upload-frame"
+                                onclick="document.getElementById('background-file').click()">
+                                <img id="background-preview" src="src/assets/img/background.png"
+                                    alt="Background Preview">
+                                <div class="upload-overlay">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <span>Tải ảnh lên</span>
+                                </div>
+                            </div>
+                            <input type="file" id="background-file" class="hide" accept="image/*">
+                        </div>
+                        <div class="form-group checkbox">
                             <input type="checkbox" id="loop" checked>
                             <label for="loop">Tự động lặp lại (Loop)</label>
                         </div>

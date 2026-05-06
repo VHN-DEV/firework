@@ -63,14 +63,14 @@ const COLORS = [
 // Initialize UI
 document.addEventListener('DOMContentLoaded', () => {
     // Buttons
-    document.getElementById('btn-add-event').addEventListener('click', addEvent);
-    document.getElementById('btn-save').addEventListener('click', saveConfig);
-    document.getElementById('btn-preview').addEventListener('click', previewConfig);
-    document.getElementById('btn-export').addEventListener('click', exportConfig);
-    document.getElementById('btn-import').addEventListener('click', () => document.getElementById('import-file').click());
-    document.getElementById('btn-my-scripts').addEventListener('click', openScriptsModal);
-    document.getElementById('btn-copy-link').addEventListener('click', copyShareLink);
-    document.getElementById('btn-toggle-mini-preview').addEventListener('click', () => toggleMiniPreview());
+    document.getElementById('btn-add-event')?.addEventListener('click', addEvent);
+    document.getElementById('btn-save')?.addEventListener('click', saveConfig);
+    document.getElementById('btn-preview')?.addEventListener('click', previewConfig);
+    document.getElementById('btn-export')?.addEventListener('click', exportConfig);
+    document.getElementById('btn-import')?.addEventListener('click', () => document.getElementById('import-file')?.click());
+    document.getElementById('btn-my-scripts')?.addEventListener('click', openScriptsModal);
+    document.getElementById('btn-copy-link')?.addEventListener('click', copyShareLink);
+    document.getElementById('btn-toggle-mini-preview')?.addEventListener('click', () => toggleMiniPreview());
 
     // Background logic
     const bgToggle = document.getElementById('show-background');
@@ -78,26 +78,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const bgFile = document.getElementById('background-file');
     const bgPreview = document.getElementById('background-preview');
 
-    bgToggle.addEventListener('change', (e) => {
+    bgToggle?.addEventListener('change', (e) => {
         state.showBackground = e.target.checked;
-        bgContainer.classList.toggle('hide', !state.showBackground);
+        bgContainer?.classList.toggle('hide', !state.showBackground);
         updateMiniPreviewBackground();
     });
 
-    bgFile.addEventListener('change', (e) => {
+    bgFile?.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (event) => {
             state.background = event.target.result;
-            bgPreview.src = state.background;
+            if (bgPreview) bgPreview.src = state.background;
             updateMiniPreviewBackground();
         };
         reader.readAsDataURL(file);
     });
 
     // File Import
-    document.getElementById('import-file').addEventListener('change', importConfig);
+    document.getElementById('import-file')?.addEventListener('change', importConfig);
 
     // Mobile specific
     const btnToggleSettings = document.getElementById('btn-toggle-settings');
@@ -259,6 +259,37 @@ function renderColorTags(event) {
             <i class="fas fa-times" onclick="removeColorFromEvent(${event.id}, ${index})"></i>
         </div>
     `).join('');
+}
+
+function createNewScript() {
+    confirmAction('Bạn có chắc chắn muốn tạo kịch bản mới? Mọi thay đổi chưa lưu sẽ bị mất.', () => {
+        // Reset state
+        state.events = [];
+        state.nextId = 1;
+        state.currentFilename = null;
+        state.activeEventId = null;
+        
+        // Reset UI
+        document.getElementById('title').value = '';
+        document.getElementById('subtitle').value = '';
+        document.getElementById('author').value = '';
+        document.getElementById('filename').value = '';
+        document.getElementById('loop').checked = true;
+        document.getElementById('share-bar').classList.add('hide');
+        
+        // Reset background
+        state.showBackground = false;
+        state.background = null;
+        document.getElementById('show-background').checked = false;
+        document.getElementById('background-upload-container').classList.add('hide');
+        document.getElementById('background-preview').src = 'src/assets/img/background.png';
+        updateMiniPreviewBackground();
+
+        // Add one default event
+        addEvent();
+        
+        notify('Đã tạo kịch bản mới!', 'success');
+    });
 }
 
 function removeEvent(id) {
@@ -1596,6 +1627,7 @@ function selectEvent(id) {
 }
 
 window.toggleMiniPreview = toggleMiniPreview;
+window.createNewScript = createNewScript;
 window.selectEvent = selectEvent;
 window.removeEvent = removeEvent;
 window.updateEvent = updateEvent;
