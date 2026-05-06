@@ -4,6 +4,7 @@ import { resolve } from 'path';
 export default defineConfig({
   // Base path for deployment
   base: './',
+  publicDir: 'src/assets/static',
   build: {
     rollupOptions: {
       input: {
