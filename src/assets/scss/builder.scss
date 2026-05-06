@@ -1,5 +1,24 @@
 @use 'variables' as *;
 
+/* Inter */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('../fonts/inter.woff2') format('woff2');
+}
+
+/* Outfit */
+@font-face {
+  font-family: 'Outfit';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('../fonts/outfit.woff2') format('woff2');
+}
+
+
 * {
     box-sizing: border-box;
     margin: 0;

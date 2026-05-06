@@ -1400,7 +1400,7 @@ async function loadBurstConfig() {
         }
 
         if (!config) {
-            const response = await fetch(`./configs/${configName}.json`);
+            const response = await fetch(`./static/configs/${configName}.json`);
             if (!response.ok) throw new Error('Config not found');
             config = await response.json();
         }
@@ -2945,8 +2945,11 @@ const Spark = {
 
 
 
+// Đảm bảo các file âm thanh được Vite nhận diện và đưa vào thư mục build
+import.meta.glob('../audio/*.mp3');
+
 const soundManager = {
-    baseURL: 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/329180/',
+    baseURL: './assets/audio/',
     ctx: new (window.AudioContext || window.webkitAudioContext),
     sources: {
         lift: {

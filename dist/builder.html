@@ -5,18 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trình Tạo Kịch Bản Pháo Hoa - Firework Builder</title>
-    <link rel="shortcut icon" type="image/png" href="./assets/firework-burst-icon-v2-BoakGxuy.png">
-    <link rel="icon" type="image/png" href="./assets/firework-burst-icon-v2-BoakGxuy.png">
-    <link rel="apple-touch-icon-precomposed" href="./assets/firework-burst-icon-v2-BoakGxuy.png">
+    <link rel="shortcut icon" type="image/png" href="./assets/img/firework-burst-icon-v2.png">
+    <link rel="icon" type="image/png" href="./assets/img/firework-burst-icon-v2.png">
+    <link rel="apple-touch-icon-precomposed" href="./assets/img/firework-burst-icon-v2.png">
     <meta name="msapplication-TileColor" content="#000000">
-    <meta name="msapplication-TileImage" content="./assets/firework-burst-icon-v2-BoakGxuy.png">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@400;700&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script type="module" crossorigin src="./assets/builder-CxDg0bD2.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/MyMath-DyofDy1u.js">
-  <link rel="stylesheet" crossorigin href="./assets/builder-DbBYPHB3.css">
+    <meta name="msapplication-TileImage" content="./assets/img/firework-burst-icon-v2.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+
+
+  <script type="module" crossorigin src="./assets/js/builder.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/js/MyMath.js">
+  <link rel="stylesheet" crossorigin href="./assets/css/builder.css">
 </head>
 
 <body>
@@ -150,7 +150,7 @@
                     <div id="background-upload-container" class="form-group hide">
                         <label>Ảnh nền (Background Image)</label>
                         <div class="background-upload-frame" id="bg-upload-frame" onclick="document.getElementById('background-file').click()">
-                            <img id="background-preview" src="./assets/background-t1HAfsqf.png" alt="Background Preview">
+                            <img id="background-preview" src="./assets/img/background.png" alt="Background Preview">
                             <div class="upload-overlay">
                                 <i class="fas fa-cloud-upload-alt"></i>
                                 <span>Tải ảnh lên</span>
@@ -163,7 +163,7 @@
                             <label for="loop">Tự động lặp lại (Loop)</label>
                         </div>
                         <div class="form-group">
-                            <label for="filename">Tên file kịch bản (Lưu vào /configs/)</label>
+                            <label for="filename">Tên file kịch bản (Lưu vào /static/configs/)</label>
                             <div class="input-with-ext">
                                 <input type="text" id="filename" placeholder="my_kịch_bản">
                                 <span>.json</span>
@@ -269,7 +269,7 @@
         </div>
         <div id="mini-preview-info" class="mini-preview-info">Đang hiển thị toàn bộ</div>
     </div>
-
+
 </body>
 
 </html>
