@@ -25,6 +25,12 @@ const state = {
     background: null
 };
 
+const isStaticEnv = window.location.hostname.includes('github.io') || 
+                    window.location.hostname.includes('vercel.app') || 
+                    window.location.hostname.includes('netlify.app') || 
+                    window.location.protocol === 'file:';
+
+
 const COLOR = {
     Red: '#ff0043',
     Green: '#14fc56',
@@ -476,6 +482,26 @@ function saveConfig(isPreview = false) {
         notify('Đang chuẩn bị xem thử...', 'info');
     }
 
+    if (isStaticEnv) {
+        // Handle static environment (GitHub Pages) using localStorage
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
+                localScripts[filename] = config;
+                localStorage.setItem('my_firework_scripts', JSON.stringify(localScripts));
+
+                if (!isPreview) {
+                    state.currentFilename = filename;
+                    document.getElementById('save-status').innerText = 'Đã lưu kịch bản thành công! (Lưu cục bộ tại trình duyệt)';
+                    document.getElementById('save-spinner').classList.add('hide');
+                    document.getElementById('save-actions').classList.remove('hide');
+                    updateShareBar(filename);
+                }
+                resolve(filename);
+            }, 500);
+        });
+    }
+
     return fetch('api/save_config.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -511,6 +537,7 @@ function saveConfig(isPreview = false) {
             throw error;
         });
 }
+
 
 function updateShareBar(filename) {
     const shareBar = document.getElementById('share-bar');
@@ -558,10 +585,32 @@ function loadScriptsList() {
     const list = document.getElementById('scripts-list');
     list.innerHTML = '<div class="spinner"></div>';
 
-    fetch('api/manage_configs.php?action=list')
-        .then(response => response.json())
+    const fetchPromise = isStaticEnv 
+        ? fetch('configs/configs_index.json').then(r => r.json())
+        : fetch('api/manage_configs.php?action=list').then(r => r.json());
+
+    fetchPromise
         .then(data => {
             list.innerHTML = '';
+
+            // Add local scripts if in static env
+            if (isStaticEnv) {
+                const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
+                Object.keys(localScripts).forEach(id => {
+                    const s = localScripts[id];
+                    // Avoid duplicates if already in static list
+                    if (!data.find(item => item.id === id)) {
+                        data.push({
+                            id: id,
+                            title: s.title || id,
+                            author: s.author || 'Tôi',
+                            eventCount: s.events ? s.events.length : 0,
+                            status: 'local'
+                        });
+                    }
+                });
+            }
+
             if (data.length === 0) {
                 list.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">Bạn chưa có kịch bản nào.</p>';
                 return;
@@ -571,8 +620,10 @@ function loadScriptsList() {
                 const item = document.createElement('div');
                 item.className = 'script-item';
                 const isPrivate = script.status === 'private';
+                const isLocal = script.status === 'local';
+                
                 item.innerHTML = `
-                <h4>${isPrivate ? '<i class="fas fa-lock" title="Riêng tư"></i> ' : ''}${script.title}</h4>
+                <h4>${isPrivate ? '<i class="fas fa-lock" title="Riêng tư"></i> ' : ''}${isLocal ? '<i class="fas fa-laptop" title="Lưu cục bộ"></i> ' : ''}${script.title}</h4>
                 <div class="meta">
                     <span><i class="fas fa-user"></i> ${script.author}</span><br>
                     <span><i class="fas fa-fireworks"></i> ${script.eventCount} phát bắn</span>
@@ -581,15 +632,29 @@ function loadScriptsList() {
                     <button class="btn primary small" onclick="editScript('${script.id}')" title="Sửa"><i class="fas fa-edit"></i></button>
                     <button class="btn secondary small" onclick="duplicateScript('${script.id}')" title="Nhân bản"><i class="fas fa-copy"></i></button>
                     <button class="btn secondary small" onclick="copyScriptLink('${script.id}')" title="Sao chép link"><i class="fas fa-link"></i></button>
-                    ${!isPrivate ? `<button class="btn danger small" onclick="deleteScript('${script.id}')"><i class="fas fa-trash"></i></button>` : ''}
+                    ${(!isPrivate || isLocal) ? `<button class="btn danger small" onclick="deleteScript('${script.id}')"><i class="fas fa-trash"></i></button>` : ''}
                 </div>
             `;
                 list.appendChild(item);
             });
+        })
+        .catch(err => {
+            list.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--error);">Không thể tải danh sách: ${err.message}</p>`;
         });
 }
 
+
 function editScript(filename) {
+    if (isStaticEnv) {
+        const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
+        if (localScripts[filename]) {
+            loadConfigIntoState(localScripts[filename], filename);
+            hideModal('scripts-modal');
+            updateShareBar(filename);
+            return;
+        }
+    }
+
     fetch(`configs/${filename}.json?t=${Date.now()}`)
         .then(response => response.json())
         .then(config => {
@@ -600,20 +665,46 @@ function editScript(filename) {
         .catch(err => notify('Không thể tải kịch bản: ' + err, 'error'));
 }
 
+
 function duplicateScript(filename) {
+    const handleConfig = (config) => {
+        loadConfigIntoState(config, filename + '_copy');
+        hideModal('scripts-modal');
+        document.getElementById('share-bar').classList.add('hide'); // New copy, no link yet
+        notify('Đã nhân bản kịch bản! Bạn có thể chỉnh sửa và lưu thành file mới.', 'success');
+    };
+
+    if (isStaticEnv) {
+        const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
+        if (localScripts[filename]) {
+            handleConfig(localScripts[filename]);
+            return;
+        }
+    }
+
     fetch(`configs/${filename}.json?t=${Date.now()}`)
         .then(response => response.json())
-        .then(config => {
-            loadConfigIntoState(config, filename + '_copy');
-            hideModal('scripts-modal');
-            document.getElementById('share-bar').classList.add('hide'); // New copy, no link yet
-            notify('Đã nhân bản kịch bản! Bạn có thể chỉnh sửa và lưu thành file mới.', 'success');
-        })
+        .then(handleConfig)
         .catch(err => notify('Không thể nhân bản kịch bản: ' + err, 'error'));
 }
 
+
 function deleteScript(filename) {
     confirmAction(`Bạn có chắc chắn muốn xóa kịch bản "${filename}"?`, () => {
+        if (isStaticEnv) {
+            const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
+            if (localScripts[filename]) {
+                delete localScripts[filename];
+                localStorage.setItem('my_firework_scripts', JSON.stringify(localScripts));
+                loadScriptsList();
+                if (state.currentFilename === filename) {
+                    document.getElementById('share-bar').classList.add('hide');
+                }
+                notify('Đã xóa kịch bản thành công!', 'success');
+                return;
+            }
+        }
+
         fetch('api/manage_configs.php?action=delete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -633,6 +724,7 @@ function deleteScript(filename) {
             });
     });
 }
+
 
 // Import / Export
 function exportConfig() {
