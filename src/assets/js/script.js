@@ -1386,9 +1386,27 @@ async function loadBurstConfig() {
     if (!configName) return;
 
     try {
-        const response = await fetch(`./configs/${configName}.json`);
-        if (!response.ok) throw new Error('Config not found');
-        burstConfig = await response.json();
+        const isStaticEnv = window.location.hostname.includes('github.io') || 
+                            window.location.hostname.includes('vercel.app') || 
+                            window.location.hostname.includes('netlify.app') || 
+                            window.location.protocol === 'file:';
+
+        let config;
+        if (isStaticEnv) {
+            const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
+            if (localScripts[configName]) {
+                config = localScripts[configName];
+            }
+        }
+
+        if (!config) {
+            const response = await fetch(`./configs/${configName}.json`);
+            if (!response.ok) throw new Error('Config not found');
+            config = await response.json();
+        }
+
+        burstConfig = config;
+
         
         // Background support
         if (burstConfig.background) {
