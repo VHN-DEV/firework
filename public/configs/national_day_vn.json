@@ -1,0 +1,142 @@
+{
+  "title": "KỶ NIỆM QUỐC KHÁNH 2/9",
+  "subtitle": "Kỷ niệm [SINCE:1945] năm ngày Độc lập Việt Nam",
+  "author": "Đạo diễn: Mr. Nam",
+  "loop": true,
+  "status": "private",
+  "events": [
+    {
+      "burst": 1,
+      "text": "2 THÁNG 9",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.4
+    },
+    {
+      "burst": 1,
+      "shell": "Nhấp nháy",
+      "color": "Red",
+      "x": 0.2,
+      "y": 0.2,
+      "delay": 300
+    },
+    {
+      "burst": 1,
+      "shell": "Nhấp nháy",
+      "color": "Red",
+      "x": 0.8,
+      "y": 0.2,
+      "delay": 300
+    },
+    {
+      "burst": 2,
+      "text": "QUỐC KHÁNH",
+      "shell": "Văn bản",
+      "color": "Red",
+      "x": 0.5,
+      "y": 0.6
+    },
+    {
+      "burst": 2,
+      "shell": "Ngôi sao",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.3,
+      "delay": 400
+    },
+    {
+      "burst": 3,
+      "text": "VIỆT NAM",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.5
+    },
+    {
+      "burst": 3,
+      "shell": "Hoa cúc",
+      "color": "Red",
+      "x": 0.2,
+      "y": 0.4,
+      "delay": 300
+    },
+    {
+      "burst": 3,
+      "shell": "Hoa cúc",
+      "color": "Red",
+      "x": 0.8,
+      "y": 0.4,
+      "delay": 600
+    },
+    {
+      "burst": 4,
+      "text": "TỰ HÀO",
+      "shell": "Văn bản",
+      "color": "White",
+      "x": 0.3,
+      "y": 0.5
+    },
+    {
+      "burst": 4,
+      "text": "DÂN TỘC",
+      "shell": "Văn bản",
+      "color": "White",
+      "x": 0.7,
+      "y": 0.5,
+      "delay": 400
+    },
+    {
+      "burst": 5,
+      "text": "MUÔN NĂM",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.5
+    },
+    {
+      "burst": 5,
+      "shell": "Cây cọ",
+      "color": "Red",
+      "x": 0.5,
+      "y": 0.2,
+      "delay": 500
+    },
+    {
+      "burst": 6,
+      "shell": "Liễu",
+      "color": "Gold",
+      "x": 0.3,
+      "y": 0.8
+    },
+    {
+      "burst": 6,
+      "shell": "Liễu",
+      "color": "Gold",
+      "x": 0.7,
+      "y": 0.8,
+      "delay": 300
+    },
+    {
+      "burst": 7,
+      "text": "🇻🇳🇻🇳🇻🇳",
+      "shell": "Văn bản",
+      "color": "Red",
+      "x": 0.5,
+      "y": 0.5
+    },
+    {
+      "burst": 7,
+      "shell": "Nổ lách tách",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.1,
+      "delay": 500
+    },
+    {
+      "burst": 8,
+      "shell": "Tạm dừng",
+      "duration": 5000
+    }
+  ]
+}

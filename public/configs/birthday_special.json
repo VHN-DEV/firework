@@ -1,0 +1,308 @@
+{
+  "title": "CHÚC MỪNG SINH 🎉 NHẬT 🎉",
+  "subtitle": "Một kiệt tác ánh sáng dành tặng [TÊN NGƯỜI NHẬN]",
+  "author": "Đạo diễn: [TÊN NGƯỜI TẶNG]",
+  "loop": true,
+  "status": "private",
+  "events": [
+    {
+      "burst": 1,
+      "text": "HAPPY BIRTHDAY",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.5
+    },
+    {
+      "burst": 1,
+      "shell": "Nhấp nháy",
+      "color": "White",
+      "x": 0.2,
+      "y": 0.3,
+      "delay": 400
+    },
+    {
+      "burst": 1,
+      "shell": "Nhấp nháy",
+      "color": "White",
+      "x": 0.8,
+      "y": 0.3,
+      "delay": 600
+    },
+    {
+      "burst": 2,
+      "shell": "Trái tim",
+      "color": "Red",
+      "x": 0.5,
+      "y": 0.4
+    },
+    {
+      "burst": 2,
+      "shell": "Trái tim",
+      "color": "Red",
+      "x": 0.2,
+      "y": 0.2,
+      "delay": 300
+    },
+    {
+      "burst": 2,
+      "shell": "Trái tim",
+      "color": "Red",
+      "x": 0.8,
+      "y": 0.2,
+      "delay": 300
+    },
+    {
+      "burst": 3,
+      "text": "[TÊN NGƯỜI NHẬN]",
+      "shell": "Văn bản",
+      "color": "Blue",
+      "x": 0.5,
+      "y": 0.5
+    },
+    {
+      "burst": 3,
+      "shell": "Ngôi sao",
+      "color": "Gold",
+      "x": 0.2,
+      "y": 0.4,
+      "delay": 200
+    },
+    {
+      "burst": 3,
+      "shell": "Ngôi sao",
+      "color": "Gold",
+      "x": 0.8,
+      "y": 0.4,
+      "delay": 400
+    },
+    {
+      "burst": 4,
+      "text": "15 - 08",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.3,
+      "y": 0.5
+    },
+    {
+      "burst": 4,
+      "text": "♌︎🦁",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.7,
+      "y": 0.5,
+      "delay": 400
+    },
+    {
+      "burst": 4,
+      "shell": "Cây cọ",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.3,
+      "delay": 800
+    },
+    {
+      "burst": 5,
+      "text": "CHÚC MỪNG",
+      "shell": "Văn bản",
+      "color": "White",
+      "x": 0.5,
+      "y": 0.3
+    },
+    {
+      "burst": 5,
+      "text": "TUỔI MỚI",
+      "shell": "Văn bản",
+      "color": "White",
+      "x": 0.5,
+      "y": 0.7,
+      "delay": 400
+    },
+    {
+      "burst": 6,
+      "text": "MÃI XINH TƯƠI",
+      "shell": "Văn bản",
+      "color": "Purple",
+      "x": 0.3,
+      "y": 0.5
+    },
+    {
+      "burst": 6,
+      "text": "LUÔN RẠNG RỠ",
+      "shell": "Văn bản",
+      "color": "Purple",
+      "x": 0.7,
+      "y": 0.5,
+      "delay": 300
+    },
+    {
+      "burst": 6,
+      "shell": "Hoa cúc",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.2,
+      "delay": 600
+    },
+    {
+      "burst": 7,
+      "text": "TỎA SÁNG",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.5
+    },
+    {
+      "burst": 7,
+      "shell": "Cây cọ",
+      "color": "Gold",
+      "x": 0.2,
+      "y": 0.4,
+      "delay": 300
+    },
+    {
+      "burst": 7,
+      "shell": "Cây cọ",
+      "color": "Gold",
+      "x": 0.8,
+      "y": 0.4,
+      "delay": 600
+    },
+    {
+      "burst": 8,
+      "text": "YÊU ĐỜI",
+      "shell": "Văn bản",
+      "color": "Green",
+      "x": 0.3,
+      "y": 0.5
+    },
+    {
+      "burst": 8,
+      "text": "BÌNH AN",
+      "shell": "Văn bản",
+      "color": "Green",
+      "x": 0.7,
+      "y": 0.5,
+      "delay": 400
+    },
+    {
+      "burst": 9,
+      "text": "SỨC KHỎE",
+      "shell": "Văn bản",
+      "color": "White",
+      "x": 0.3,
+      "y": 0.4
+    },
+    {
+      "burst": 9,
+      "text": "DỒI DÀO",
+      "shell": "Văn bản",
+      "color": "White",
+      "x": 0.7,
+      "y": 0.4,
+      "delay": 300
+    },
+    {
+      "burst": 9,
+      "shell": "Liễu",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.8,
+      "delay": 600
+    },
+    {
+      "burst": 10,
+      "text": "VẠN SỰ",
+      "shell": "Văn bản",
+      "color": "Blue",
+      "x": 0.3,
+      "y": 0.5
+    },
+    {
+      "burst": 10,
+      "text": "NHƯ Ý",
+      "shell": "Văn bản",
+      "color": "Blue",
+      "x": 0.7,
+      "y": 0.5,
+      "delay": 400
+    },
+    {
+      "burst": 11,
+      "text": "MÃI HẠNH PHÚC",
+      "shell": "Văn bản",
+      "color": "Red",
+      "x": 0.5,
+      "y": 0.6
+    },
+    {
+      "burst": 11,
+      "shell": "Trái tim",
+      "color": "Red",
+      "x": 0.2,
+      "y": 0.3,
+      "delay": 200
+    },
+    {
+      "burst": 11,
+      "shell": "Trái tim",
+      "color": "Red",
+      "x": 0.8,
+      "y": 0.3,
+      "delay": 400
+    },
+    {
+      "burst": 12,
+      "text": "❤️❤️❤️",
+      "shell": "Văn bản",
+      "color": "Red",
+      "x": 0.5,
+      "y": 0.5
+    },
+    {
+      "burst": 12,
+      "shell": "Nhấp nháy",
+      "color": "White",
+      "x": 0.5,
+      "y": 0.1,
+      "delay": 500
+    },
+    {
+      "burst": 13,
+      "text": "MỘT NGÀY",
+      "shell": "Văn bản",
+      "color": "White",
+      "x": 0.5,
+      "y": 0.4
+    },
+    {
+      "burst": 13,
+      "text": "THẬT TUYỆT VỜI NHA",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.7,
+      "delay": 400
+    },
+    {
+      "burst": 13,
+      "shell": "Liễu",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.8,
+      "delay": 1000
+    },
+    {
+      "burst": 13,
+      "shell": "Nổ lách tách",
+      "color": "White",
+      "x": 0.5,
+      "y": 0.2,
+      "delay": 1200
+    },
+    {
+      "burst": 14,
+      "shell": "Tạm dừng",
+      "duration": 3000
+    }
+  ]
+}

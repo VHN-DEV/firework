@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trình Tạo Kịch Bản Pháo Hoa - Firework Builder</title>
+    <link rel="shortcut icon" type="image/png" href="./assets/img/firework-burst-icon-v2.png">
+    <link rel="icon" type="image/png" href="./assets/img/firework-burst-icon-v2.png">
+    <link rel="apple-touch-icon-precomposed" href="./assets/img/firework-burst-icon-v2.png">
+    <meta name="msapplication-TileColor" content="#000000">
+    <meta name="msapplication-TileImage" content="assets/img/firework-burst-icon-v2.png">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script type="module" crossorigin src="./assets/builder-B49m9Rvj.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/MyMath-DyofDy1u.js">
+  <link rel="stylesheet" crossorigin href="./assets/builder-C16fWs2i.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-fireworks"></i>
+                <h1>Firework Builder</h1>
+            </div>
+            <div class="header-actions-mobile show-mobile">
+                 <button id="btn-toggle-settings-header" class="btn text">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+            <div class="actions">
+                <button id="btn-import" class="btn secondary">
+                    <i class="fas fa-file-import"></i> <span>Nhập</span>
+                </button>
+                <input type="file" id="import-file" class="hide" accept=".json">
+                <button id="btn-export" class="btn secondary">
+                    <i class="fas fa-file-export"></i> <span>Xuất</span>
+                </button>
+                <button id="btn-my-scripts" class="btn secondary">
+                    <i class="fas fa-folder-open"></i> <span>Kịch bản</span>
+                </button>
+                <button id="btn-preview" class="btn secondary">
+                    <i class="fas fa-play"></i> <span>Xem thử</span>
+                </button>
+                <button id="btn-save" class="btn primary">
+                    <i class="fas fa-save"></i> <span>Lưu</span>
+                </button>
+                <button id="btn-toggle-mini-preview" class="btn secondary" title="Bật/Tắt xem nhanh">
+                    <i class="fas fa-eye"></i> <span>Xem nhanh</span>
+                </button>
+                <a href="index.html" class="btn text"><span>Quay lại</span></a>
+            </div>
+        </header>
+
+        <div id="share-bar" class="share-bar hide">
+            <div class="share-info">
+                <i class="fas fa-link"></i>
+                <span>Link chia sẻ: <strong id="share-url"></strong></span>
+            </div>
+            <button id="btn-copy-link" class="btn primary small">
+                <i class="fas fa-copy"></i> Sao chép link
+            </button>
+        </div>
+
+        <main>
+            <!-- Sidebar: Global Settings -->
+            <aside class="sidebar">
+                <div class="sidebar-header-mobile show-mobile">
+                    <h3>Cấu hình chung</h3>
+                    <button class="btn text close-sidebar-btn" onclick="toggleSidebar()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="sidebar-content-mobile">
+                    <section class="card">
+                        <h3 class="hide-mobile"><i class="fas fa-cog"></i> Cấu hình chung</h3>
+                        
+                        <!-- Mobile Actions -->
+                        <div class="actions-mobile show-mobile">
+                            <button class="btn secondary small" onclick="document.getElementById('import-file').click()">
+                                <i class="fas fa-file-import"></i> Nhập
+                            </button>
+                            <button class="btn secondary small" onclick="exportConfig()">
+                                <i class="fas fa-file-export"></i> Xuất
+                            </button>
+                            <button class="btn secondary small" onclick="openScriptsModal()">
+                                <i class="fas fa-folder-open"></i> Kịch bản
+                            </button>
+                            <button class="btn secondary small" onclick="previewConfig()">
+                                <i class="fas fa-play"></i> Xem thử
+                            </button>
+                            <button class="btn primary small btn-save-mobile" onclick="saveConfig()">
+                                <i class="fas fa-save"></i> Lưu kịch bản
+                            </button>
+                        </div>
+
+                    <div class="form-group">
+                        <label for="title">Tiêu đề (Title)</label>
+                        <input type="text" id="title" placeholder="Ví dụ: CHÚC MỪNG SINH NHẬT">
+                    </div>
+                    <div class="form-group">
+                        <label for="subtitle">Dòng phụ (Subtitle)</label>
+                        <input type="text" id="subtitle" placeholder="Lời nhắn ngắn gọn...">
+                    </div>
+                    <div class="form-group">
+                        <label for="author">Người thực hiện (Author)</label>
+                        <input type="text" id="author" placeholder="Tên của bạn">
+                    </div>
+                    <div class="form-group checkbox">
+                        <input type="checkbox" id="loop" checked>
+                        <label for="loop">Tự động lặp lại (Loop)</label>
+                    </div>
+                    <div class="form-group">
+                        <label for="filename">Tên file kịch bản (Lưu vào /configs/)</label>
+                        <div class="input-with-ext">
+                            <input type="text" id="filename" placeholder="my_kịch_bản">
+                            <span>.json</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card info">
+                    <h4>Mẹo nhanh</h4>
+                    <ul>
+                        <li>Dùng pháo <strong>Liễu</strong> với màu <strong>Ngẫu nhiên</strong> để có hiệu ứng đẹp nhất.
+                        </li>
+                        <li>Sắp xếp các <strong>burst</strong> giống nhau để bắn đồng thời.</li>
+                        <li>Dùng <strong>delay</strong> để tạo chuỗi hiệu ứng liên hoàn.</li>
+                    </ul>
+                </section>
+                </div> <!-- End sidebar-content-mobile -->
+            </aside>
+
+            <!-- Main Content: Event List -->
+            <section class="event-list-container">
+                <div class="section-header">
+                    <h2><i class="fas fa-list-ul"></i> Danh sách các đợt bắn</h2>
+                    <button id="btn-add-event" class="btn primary small hide-mobile">
+                        <i class="fas fa-plus"></i> Thêm phát bắn
+                    </button>
+                </div>
+
+                <div id="event-list" class="event-list">
+                    <!-- Events will be added here dynamically -->
+                    <div class="empty-state">
+                        <i class="fas fa-sparkles"></i>
+                        <p>Chưa có phát bắn nào. Hãy nhấn "+" để bắt đầu.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Floating Action Button for Mobile -->
+    <button id="btn-fab-add" class="fab show-mobile" title="Thêm phát bắn">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Modals or overlays could go here -->
+    <div id="save-modal" class="modal hide">
+        <div class="modal-content">
+            <h3>Lưu kịch bản</h3>
+            <p id="save-status">Đang lưu kịch bản của bạn...</p>
+            <div id="save-spinner" class="spinner"></div>
+            <div id="save-actions" class="hide" style="margin-top: 1rem;">
+                <button class="btn secondary"
+                    onclick="document.getElementById('save-modal').classList.add('hide')">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Scripts Modal -->
+    <div id="scripts-modal" class="modal hide">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3><i class="fas fa-folder-open"></i> Kịch bản của tôi</h3>
+                <button class="btn text" onclick="document.getElementById('scripts-modal').classList.add('hide')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="scripts-grid" id="scripts-list">
+                <!-- Scripts list will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="modal hide">
+        <div class="modal-content">
+            <h3><i class="fas fa-question-circle" style="color: var(--accent);"></i> Xác nhận</h3>
+            <p id="confirm-message" style="margin: 1rem 0; font-size: 1.1rem;"></p>
+            <div class="modal-actions" style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
+                <button id="btn-confirm-yes" class="btn primary">Đồng ý</button>
+                <button id="btn-confirm-no" class="btn secondary">Hủy bỏ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notification-container" class="notification-container"></div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <div id="mini-preview" class="mini-preview hide">
+        <div class="mini-preview-header">
+            <span><i class="fas fa-eye"></i> Xem nhanh</span>
+            <button class="btn-close-mini" onclick="toggleMiniPreview(false)"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="mini-preview-canvas-container">
+            <canvas id="mini-trails-canvas"></canvas>
+            <canvas id="mini-main-canvas"></canvas>
+        </div>
+        <div id="mini-preview-info" class="mini-preview-info">Đang hiển thị toàn bộ</div>
+    </div>
+
+</body>
+
+</html>

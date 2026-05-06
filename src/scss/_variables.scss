@@ -1,0 +1,41 @@
+// Common Colors
+$black: #000;
+$white: #fff;
+
+// Builder Colors (from builder.css)
+$bg-color: #0b0e14;
+$card-bg: #161b22;
+$sidebar-bg: #0d1117;
+$primary: #4f46e5;
+$primary-hover: #6366f1;
+$secondary: #334155;
+$text-main: #f8fafc;
+$text-muted: #94a3b8;
+$border-color: #30363d;
+$accent: #f59e0b;
+$danger: #ef4444;
+$success: #10b981;
+$glass: rgba(22, 27, 34, 0.8);
+
+// Transitions
+$transition-base: 0.3s ease;
+$transition-fast: 0.2s ease;
+
+// Breakpoints
+$tablet: 840px;
+$mobile: 768px;
+$small-mobile: 480px;
+
+// Mixins
+@mixin flex-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+@mixin glass-effect {
+    background: $glass;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid $border-color;
+}
