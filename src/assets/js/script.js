@@ -1389,6 +1389,17 @@ async function loadBurstConfig() {
         const response = await fetch(`./configs/${configName}.json`);
         if (!response.ok) throw new Error('Config not found');
         burstConfig = await response.json();
+        
+        // Background support
+        if (burstConfig.background) {
+            appNodes.backgroundImage.style.backgroundImage = `url(${burstConfig.background})`;
+        } else {
+            appNodes.backgroundImage.style.backgroundImage = ''; // Use default from CSS
+        }
+        
+        if (burstConfig.showBackground !== undefined) {
+            store.setState({ config: { ...store.state.config, showBackground: !!burstConfig.showBackground } });
+        }
 
         // Xử lý các placeholder trong text
         if (burstConfig.title) burstConfig.title = replacePlaceholders(burstConfig.title);
