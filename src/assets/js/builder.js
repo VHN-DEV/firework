@@ -2,6 +2,7 @@ import fscreen from './fscreen@1.0.1.js';
 import { Stage, Ticker } from './Stage@0.1.4.js';
 import MyMath from './MyMath.js';
 import '../scss/builder.scss';
+import backgroundImgUrl from '../img/background.png';
 
 // Assign to window for global access
 window.fscreen = fscreen;
@@ -19,7 +20,9 @@ const state = {
     currentFilename: '',
     activeEventId: null,
     miniPreviewEnabled: false,
-    previewLoopId: null
+    previewLoopId: null,
+    showBackground: false,
+    background: null
 };
 
 const COLOR = {
@@ -62,6 +65,30 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-my-scripts').addEventListener('click', openScriptsModal);
     document.getElementById('btn-copy-link').addEventListener('click', copyShareLink);
     document.getElementById('btn-toggle-mini-preview').addEventListener('click', () => toggleMiniPreview());
+
+    // Background logic
+    const bgToggle = document.getElementById('show-background');
+    const bgContainer = document.getElementById('background-upload-container');
+    const bgFile = document.getElementById('background-file');
+    const bgPreview = document.getElementById('background-preview');
+
+    bgToggle.addEventListener('change', (e) => {
+        state.showBackground = e.target.checked;
+        bgContainer.classList.toggle('hide', !state.showBackground);
+        updateMiniPreviewBackground();
+    });
+
+    bgFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            state.background = event.target.result;
+            bgPreview.src = state.background;
+            updateMiniPreviewBackground();
+        };
+        reader.readAsDataURL(file);
+    });
 
     // File Import
     document.getElementById('import-file').addEventListener('change', importConfig);
@@ -415,6 +442,8 @@ function getFinalConfig() {
         subtitle: document.getElementById('subtitle').value || "",
         author: document.getElementById('author').value || "Anonymous",
         loop: document.getElementById('loop').checked,
+        showBackground: state.showBackground,
+        background: state.background,
         status: state.status || "public",
         events: state.events.map(e => {
             const { id, ...cleanEvent } = e;
@@ -492,13 +521,30 @@ function updateShareBar(filename) {
     shareBar.classList.remove('hide');
 }
 
+
 function copyShareLink() {
     const url = document.getElementById('share-url').innerText;
+    if (!url) {
+        notify('Vui lòng lưu kịch bản trước khi sao chép link!', 'warning');
+        return;
+    }
     navigator.clipboard.writeText(url).then(() => {
         const btn = document.getElementById('btn-copy-link');
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-check"></i> Đã sao chép!';
+        notify('Đã sao chép link chia sẻ!', 'success');
         setTimeout(() => btn.innerHTML = originalText, 2000);
+    }).catch(err => {
+        notify('Không thể sao chép link: ' + err, 'error');
+    });
+}
+
+function copyScriptLink(filename) {
+    const url = window.location.origin + window.location.pathname.replace('builder.html', 'index.html') + '?config=' + filename;
+    navigator.clipboard.writeText(url).then(() => {
+        notify('Đã sao chép link kịch bản!', 'success');
+    }).catch(err => {
+        notify('Không thể sao chép link: ' + err, 'error');
     });
 }
 
@@ -630,6 +676,17 @@ function loadConfigIntoState(config, filename) {
     state.nextId = 1;
     state.currentFilename = filename;
     state.status = config.status || 'public';
+    state.showBackground = !!config.showBackground;
+    state.background = config.background || null;
+
+    document.getElementById('show-background').checked = state.showBackground;
+    document.getElementById('background-upload-container').classList.toggle('hide', !state.showBackground);
+    if (state.background) {
+        document.getElementById('background-preview').src = state.background;
+    } else {
+        document.getElementById('background-preview').src = backgroundImgUrl;
+    }
+    updateMiniPreviewBackground();
 
     if (config.events && Array.isArray(config.events)) {
         config.events.forEach(ev => addEvent(ev));
@@ -668,12 +725,6 @@ function toggleSidebar() {
     }
 }
 
-function copyScriptLink(filename) {
-    const url = window.location.origin + window.location.pathname.replace('builder.html', 'index.html') + '?config=' + filename;
-    navigator.clipboard.writeText(url).then(() => {
-        notify('Đã sao chép link kịch bản!', 'success');
-    });
-}
 
 // Global exposure for onclick handlers
 window.removeEvent = removeEvent;
@@ -794,7 +845,27 @@ class Shell {
         }
     }
     launch(x, y) {
-        this.burst(x * miniMainStage.width, y * miniMainStage.height);
+        const targetX = x * miniMainStage.width;
+        const targetY = y * miniMainStage.height;
+        const startX = targetX;
+        const startY = miniMainStage.height;
+
+        const distance = startY - targetY;
+        const launchLife = 600 + Math.random() * 200;
+        const speed = Math.max(distance * 0.035, 3);
+
+        let cometColor = this.color;
+        if (Array.isArray(cometColor)) cometColor = cometColor[0];
+        if (cometColor === 'Ngẫu nhiên') cometColor = Object.values(COLOR)[Math.floor(Math.random() * 6)];
+
+        const comet = Star.add(startX, startY, cometColor, Math.PI, speed, launchLife);
+        comet.sparkFreq = 30;
+        comet.sparkSpeed = 0.5;
+        comet.sparkLife = 500;
+        comet.sparkColor = cometColor;
+        comet.onDeath = () => {
+            this.burst(targetX, targetY);
+        };
     }
     burst(x, y) {
         const speed = (this.spreadSize / 96) * 0.75; // Tỉ lệ lại cho màn hình nhỏ
@@ -810,7 +881,7 @@ class Shell {
                 star.sparkFreq = sparkFreq;
                 star.sparkSpeed = sparkSpeed;
                 star.sparkLife = sparkLife;
-                star.sparkColor = this.glitterColor || (Array.isArray(this.color) ? this.color[0] : this.color);
+                star.sparkColor = this.glitterColor || star.color;
                 star.sparkTimer = Math.random() * star.sparkFreq;
             }
             if (this.strobe) {
@@ -855,7 +926,7 @@ function getMiniShellType(event, size) {
         shellSize: s,
         spreadSize: 300 + s * 100,
         starLife: 900 + s * 200,
-        color: event.color === 'Ngẫu nhiên' ? 'random' : (COLOR[event.color] || event.color || COLOR.White),
+        color: event.color === 'Ngẫu nhiên' ? 'Ngẫu nhiên' : (COLOR[event.color] || event.color || COLOR.White),
         strobe: event.strobe,
         pistil: event.pistil,
         streamers: event.streamers,
@@ -1008,6 +1079,19 @@ function updateMiniPreview(frameTime, lag) {
     renderMiniPreview();
 }
 
+function updateMiniPreviewBackground() {
+    const container = document.querySelector('.mini-preview-canvas-container');
+    if (!container) return;
+    if (state.showBackground) {
+        const bg = state.background || backgroundImgUrl;
+        container.style.backgroundImage = `url(${bg})`;
+        container.style.backgroundSize = 'cover';
+        container.style.backgroundPosition = 'center';
+    } else {
+        container.style.backgroundImage = 'none';
+    }
+}
+
 function renderMiniPreview() {
     const trailsCtx = miniTrailsStage.ctx;
     const mainCtx = miniMainStage.ctx;
@@ -1092,12 +1176,12 @@ function startMiniLoop() {
             const event = state.events.find(e => e.id === state.activeEventId);
             if (event) launchEvent(event);
         } else {
-            const maxBurst = state.events.length > 0 ? Math.max(...state.events.map(e => e.burst)) : 0;
+            const maxBurst = state.events.length > 0 ? Math.max(...state.events.map(e => Number(e.burst) || 1)) : 0;
             if (maxBurst === 0) return;
             miniBurstCounter++;
             if (miniBurstCounter > maxBurst) miniBurstCounter = 1;
-            const events = state.events.filter(e => e.burst === miniBurstCounter);
-            events.forEach(e => setTimeout(() => launchEvent(e), e.delay || 0));
+            const events = state.events.filter(e => Number(e.burst || 1) === miniBurstCounter);
+            events.forEach(e => setTimeout(() => launchEvent(e), Number(e.delay) || 0));
         }
     }, 2000);
 }
@@ -1114,7 +1198,10 @@ function launchEvent(event) {
     if (event.shell === 'Tạm dừng') return;
     const config = getMiniShellType(event, event.size);
     const shell = new Shell(config);
-    shell.launch(event.x || 0.5, event.y || 0.5);
+    // Fix logic: check for undefined to allow 0 value
+    const x = event.x !== undefined ? event.x : 0.5;
+    const y = event.y !== undefined ? event.y : 0.5;
+    shell.launch(x, y);
 }
 
 /**
@@ -1314,9 +1401,13 @@ function selectEvent(id) {
     renderEventList();
     const info = document.getElementById('mini-preview-info');
     if (state.activeEventId) {
+        const event = state.events.find(e => e.id === id);
         const idx = state.events.findIndex(e => e.id === id) + 1;
         info.innerText = 'Đang hiển thị phát bắn #' + idx;
         if (!state.miniPreviewEnabled) toggleMiniPreview(true);
+        
+        // Bắn ngay lập tức khi chọn
+        if (event) launchEvent(event);
     } else {
         info.innerText = 'Đang hiển thị toàn bộ';
     }
@@ -1333,6 +1424,7 @@ window.duplicateScript = duplicateScript;
 window.deleteScript = deleteScript;
 window.addColorToEvent = addColorToEvent;
 window.removeColorFromEvent = removeColorFromEvent;
+window.copyShareLink = copyShareLink;
 window.copyScriptLink = copyScriptLink;
 window.openScriptsModal = openScriptsModal;
 window.exportConfig = exportConfig;
@@ -1340,29 +1432,44 @@ window.previewConfig = previewConfig;
 window.saveConfig = saveConfig;
 window.toggleSidebar = toggleSidebar;
 window.resizeMiniStages = resizeMiniStages;
+window.notify = notify;
+window.confirmAction = confirmAction;
 window.shareSocial = (platform) => {
     const url = document.getElementById('share-url').innerText;
+    if (!url) {
+        notify('Vui lòng lưu kịch bản trước khi chia sẻ!', 'warning');
+        return;
+    }
     const text = "Xem kịch bản pháo hoa tuyệt đẹp của tôi!";
     let shareUrl = '';
 
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+
     switch (platform) {
         case 'messenger':
-            shareUrl = `fb-messenger://share/?link=${encodeURIComponent(url)}`;
-            // Fallback for desktop
-            if (!/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+            if (isMobile) {
+                shareUrl = `fb-messenger://share/?link=${encodeURIComponent(url)}`;
+            } else {
+                // Facebook Send Dialog
                 shareUrl = `https://www.facebook.com/dialog/send?link=${encodeURIComponent(url)}&app_id=2177090129179921&redirect_uri=${encodeURIComponent(url)}`;
             }
             break;
         case 'zalo':
-            shareUrl = `https://zalo.me/s/share?link=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+            // Sử dụng Zalo Share API chính thức hoặc link redirect
+            shareUrl = `https://sp.zalo.me/share/base?url=${encodeURIComponent(url)}`;
             break;
         case 'tiktok':
-            // TikTok doesn't support direct link sharing via URL, just copy link
             copyShareLink();
             notify("TikTok chưa hỗ trợ chia sẻ link trực tiếp. Đã sao chép link để bạn dán vào TikTok!", "info");
             return;
     }
-    if (shareUrl) window.open(shareUrl, '_blank');
+    
+    if (shareUrl) {
+        const win = window.open(shareUrl, '_blank');
+        if (!win) {
+            notify('Vui lòng cho phép trình duyệt mở cửa sổ mới để chia sẻ.', 'warning');
+        }
+    }
 };
 window.addEventListener('resize', resizeMiniStages);
 
