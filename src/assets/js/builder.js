@@ -1993,14 +1993,14 @@ function initMiniResize() {
 
         if (resizeType === 'v') {
             newH = Math.max(150, startH + dy);
-            newW = newH * deviceRatio;
+            // Height only
         } else if (resizeType === 'h') {
             newW = Math.max(200, startW + dx);
-            newH = newW / deviceRatio;
+            // Width only
         } else {
-            // Corner resize: use the larger delta to determine scale
-            const scaleW = (startW + dx) / startW;
-            const scaleH = (startH + dy) / startH;
+            // Corner resize: maintain aspect ratio
+            const scaleW = (startX - e.clientX + startW) / startW;
+            const scaleH = (startY - e.clientY + startH) / startH;
             const scale = Math.max(scaleW, scaleH);
 
             newW = Math.max(200, startW * scale);
@@ -2010,11 +2010,11 @@ function initMiniResize() {
         // Check against viewport limits
         if (newW > window.innerWidth * 0.95) {
             newW = window.innerWidth * 0.95;
-            newH = newW / deviceRatio;
+            if (resizeType === 'both') newH = newW / deviceRatio;
         }
         if (newH > window.innerHeight * 0.8) {
             newH = window.innerHeight * 0.8;
-            newW = newH * deviceRatio;
+            if (resizeType === 'both') newW = newH * deviceRatio;
         }
 
         container.style.width = newW + 'px';
