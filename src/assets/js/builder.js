@@ -568,6 +568,9 @@ function createEventCard(event, index) {
         <div class="event-card-header">
             <span class="event-id">#${index + 1}</span>
             <div class="event-controls">
+                <button class="btn text small btn-advanced" onclick="toggleAdvanced(${event.id})" title="Tùy chỉnh nâng cao">
+                    <i class="fas fa-magic"></i>
+                </button>
                 <button class="btn text small btn-duplicate" onclick="duplicateEvent(${event.id})" title="Nhân bản phát bắn">
                     <i class="fas fa-copy"></i>
                 </button>
@@ -709,7 +712,13 @@ async function handleImageUpload(id, input) {
 window.handleImageUpload = handleImageUpload;
 
 function toggleAdvanced(id) {
-    selectEvent(id);
+    if (state.activeAdvancedId === id) {
+        closeAdvancedDrawer();
+    } else {
+        state.activeEventId = id; // Also select the event when opening advanced
+        openAdvancedDrawer(id);
+        renderEventList();
+    }
 }
 
 function openAdvancedDrawer(id) {
@@ -2138,10 +2147,8 @@ function getTextParticles(text, fontSize = 80) {
 function selectEvent(id) {
     if (state.activeEventId === id) {
         state.activeEventId = null;
-        closeAdvancedDrawer();
     } else {
         state.activeEventId = id;
-        openAdvancedDrawer(id);
     }
     renderEventList();
     const info = document.getElementById('mini-preview-info');
