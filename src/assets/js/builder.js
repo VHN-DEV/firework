@@ -44,11 +44,169 @@ const PI_2 = Math.PI * 2;
 const GRAVITY = 0.9;
 
 const SHELL_TYPES = [
-    "Hoa cúc", "Văn bản", "Liễu", "Trái tim", "Ngôi sao",
+    "Hoa cúc", "Văn bản", "Hình ảnh", "Liễu", "Trái tim", "Ngôi sao",
     "Kim cương", "Bông tuyết", "Bông sen", "Hành tinh",
     "Mặt cười", "Mặt mèo", "Vòng nhẫn", "Nổ chéo",
     "Cây cọ", "Ma", "Đuôi ngựa", "Nhấp nháy", "Nổ lách tách", "Tạm dừng"
 ];
+
+const FRAME_TYPES = [
+    { name: 'Vuông', value: 'square' },
+    { name: 'Tròn', value: 'circle' },
+    { name: 'Tam giác', value: 'triangle' },
+    { name: 'Trái tim', value: 'heart' }
+];
+
+const imageParticleCache = new Map();
+
+function normalizeAssetPath(path) {
+    if (!path) return path;
+    const isDist = window.location.pathname.includes('/dist/') || !window.location.port || window.location.port === '80';
+    
+    // Xử lý đường dẫn tương đối
+    let cleanPath = path.replace(/^\.\//, '');
+    
+    if (isDist) {
+        // Trong dist, nếu đường dẫn có 'src/assets/', chuyển thành 'assets/'
+        if (cleanPath.startsWith('src/assets/')) {
+            cleanPath = cleanPath.replace('src/assets/', 'assets/');
+        }
+        // Luôn đảm bảo không có 'dist/' lặp lại trong đường dẫn nếu ta đã ở trong dist
+        return './' + cleanPath.replace(/^dist\//, '');
+    } else {
+        // Trong dev (src), đảm bảo có 'src/assets/' nếu nó trỏ vào assets
+        if (cleanPath.startsWith('assets/') && !cleanPath.startsWith('src/assets/')) {
+            cleanPath = 'src/' + cleanPath;
+        }
+        return './' + cleanPath;
+    }
+}
+
+function getProcessedImage(img, frame = '') {
+    const size = 500;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    if (frame) {
+        ctx.save();
+        ctx.beginPath();
+        if (frame === 'circle') {
+            ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        } else if (frame === 'square') {
+            ctx.rect(0, 0, size, size);
+        } else if (frame === 'triangle') {
+            ctx.moveTo(size / 2, 0);
+            ctx.lineTo(size, size);
+            ctx.lineTo(0, size);
+            ctx.closePath();
+        } else if (frame === 'heart') {
+            ctx.translate(size / 2, size / 2);
+            ctx.beginPath();
+            for (let t = 0; t <= Math.PI * 2; t += 0.01) {
+                const x = 16 * Math.pow(Math.sin(t), 3);
+                const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+                const scale = size / 35;
+                if (t === 0) ctx.moveTo(x * scale, y * scale);
+                else ctx.lineTo(x * scale, y * scale);
+            }
+            ctx.closePath();
+            ctx.translate(-size / 2, -size / 2);
+        }
+        ctx.clip();
+    }
+
+    ctx.drawImage(img, 0, 0, size, size);
+    if (frame) ctx.restore();
+    return canvas;
+}
+
+function drawFramePath(ctx, x, y, size, frame) {
+    ctx.beginPath();
+    const r = size / 2;
+    if (frame === 'circle') {
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+    } else if (frame === 'square') {
+        ctx.rect(x - r, y - r, size, size);
+    } else if (frame === 'triangle') {
+        ctx.moveTo(x, y - r);
+        ctx.lineTo(x + r, y + r);
+        ctx.lineTo(x - r, y + r);
+        ctx.closePath();
+    } else if (frame === 'heart') {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.beginPath();
+        for (let t = 0; t <= Math.PI * 2; t += 0.1) {
+            const hx = 16 * Math.pow(Math.sin(t), 3);
+            const hy = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+            const scale = size / 35;
+            if (t === 0) ctx.moveTo(hx * scale, hy * scale);
+            else ctx.lineTo(hx * scale, hy * scale);
+        }
+        ctx.closePath();
+        ctx.restore();
+    }
+}
+
+class ImageBurst {
+    constructor(x, y, img, size, frame, color) {
+        this.x = x;
+        this.y = y;
+        this.img = img;
+        this.frame = frame;
+        this.color = color;
+        this.maxSize = size * 300; 
+        this.totalLife = 1500;
+        this.life = this.totalLife;
+    }
+    static active = [];
+    static updateAll(timeStep) {
+        for (let i = this.active.length - 1; i >= 0; i--) {
+            const b = this.active[i];
+            b.life -= timeStep;
+            if (b.life <= 0) this.active.splice(i, 1);
+        }
+    }
+    static drawAll(ctx) {
+        this.active.forEach(b => {
+            const progress = 1 - (b.life / b.totalLife);
+            const easeProgress = 1 - Math.pow(1 - progress, 3);
+            const scale = (0.1 + easeProgress * 0.9) * b.maxSize;
+            const opacity = 1 - Math.pow(progress, 2);
+            ctx.save();
+            ctx.globalAlpha = opacity;
+            if (b.color && b.color !== 'invisible') {
+                ctx.strokeStyle = b.color;
+                ctx.lineWidth = Math.max(2, scale * 0.02);
+                drawFramePath(ctx, b.x, b.y, scale, b.frame);
+                ctx.stroke();
+            }
+            ctx.drawImage(b.img, b.x - scale / 2, b.y - scale / 2, scale, scale);
+            ctx.restore();
+        });
+    }
+}
+
+window.preloadFireworkImage = (url, frame) => {
+    if (!url) return;
+    const normalizedUrl = normalizeAssetPath(url);
+    const cacheKey = `${normalizedUrl}_${frame || ''}`;
+    if (!imageParticleCache.has(cacheKey)) {
+        console.log('[Builder] Preloading image:', normalizedUrl);
+        const img = new Image();
+        img.onload = () => {
+            console.log('[Builder] Image loaded successfully:', normalizedUrl);
+            const processed = getProcessedImage(img, frame);
+            imageParticleCache.set(cacheKey, processed);
+        };
+        img.onerror = (e) => {
+            console.error('[Builder] Failed to load image:', normalizedUrl, e);
+        };
+        img.src = normalizedUrl;
+    }
+};
 
 const GLITTER_TYPES = [
     { name: "Mặc định", value: "" },
@@ -431,6 +589,14 @@ function createEventCard(event, index) {
                         <input type="text" value="${event.text || ''}" onchange="updateEvent(${event.id}, 'text', this.value)">
                     </div>
                 ` : ''}
+                ${event.shell === 'Hình ảnh' ? `
+                    <div class="form-group">
+                        <label>Khung hình (Frame)</label>
+                        <select onchange="updateEvent(${event.id}, 'frame', this.value)">
+                            ${FRAME_TYPES.map(f => `<option value="${f.value}" ${event.frame === f.value ? 'selected' : ''}>${f.name}</option>`).join('')}
+                        </select>
+                    </div>
+                ` : ''}
                 ${event.shell === 'Tạm dừng' ? `
                     <div class="form-group">
                         <label>Thời gian nghỉ (ms)</label>
@@ -459,125 +625,136 @@ function createEventCard(event, index) {
             </div>
         </div>
 
-        <div class="form-group">
-            <label>Màu sắc</label>
-            <div class="color-tags" id="color-tags-${event.id}">
-                ${renderColorTags(event)}
-            </div>
-            <div class="color-input-group compact">
-                <select id="preset-color-${event.id}" onchange="if(this.value) { addColorToEvent(${event.id}, this.value); this.value=''; }">
-                    ${colorOptions}
-                </select>
-                <input type="color" id="picker-color-${event.id}" onchange="addColorToEvent(${event.id}, this.value)">
-                <div class="input-with-btn">
-                    <input type="text" id="custom-color-${event.id}" placeholder="Hex/Tên" onkeydown="if(event.key==='Enter') { addColorToEvent(${event.id}, this.value); this.value=''; }">
-                    <button class="btn secondary small" onclick="const input=document.getElementById('custom-color-${event.id}'); addColorToEvent(${event.id}, input.value); input.value='';">Thêm</button>
+        ${event.shell === 'Hình ảnh' ? `
+            <div class="image-upload-section">
+                <label>Ảnh nổ pháo hoa</label>
+                <div class="image-upload-btn-large" onclick="document.getElementById('image-file-${event.id}').click()">
+                    ${event.imageUrl ? `<img src="${event.imageUrl}" class="full-thumb">` : '<i class="fas fa-cloud-upload-alt"></i>'}
+                    <span>${event.imageUrl ? 'Thay đổi hình ảnh' : 'Chọn hình ảnh từ thiết bị'}</span>
                 </div>
+                <input type="file" id="image-file-${event.id}" class="hide" accept="image/*" onchange="handleImageUpload(${event.id}, this)">
             </div>
-        </div>
-
-        <div class="advanced-toggle" onclick="toggleAdvanced(${event.id})">
-            <i class="fas fa-chevron-${event.expanded ? 'up' : 'down'}"></i> Tùy chỉnh nâng cao
-        </div>
-
-        <div id="advanced-${event.id}" class="advanced-settings ${event.expanded ? '' : 'hide'}">
-            <!-- Hạt và Tuổi thọ -->
-            <div class="form-group">
-                <label>Mật độ hạt</label>
-                <input type="number" step="0.1" value="${event.starDensity || ''}" placeholder="Mặc định: 1" onchange="updateEvent(${event.id}, 'starDensity', this.value)">
-            </div>
-            <div class="form-group">
-                <label>Số lượng hạt (starCount)</label>
-                <input type="number" value="${event.starCount || ''}" placeholder="Tự động" onchange="updateEvent(${event.id}, 'starCount', this.value)">
-            </div>
-            <div class="form-group">
-                <label>Tuổi thọ sao (ms)</label>
-                <input type="number" step="100" value="${event.starLife || ''}" placeholder="VD: 2500" onchange="updateEvent(${event.id}, 'starLife', this.value)">
-            </div>
-            <div class="form-group">
-                <label>Biến thiên tuổi thọ (0-1)</label>
-                <input type="number" step="0.05" min="0" max="1" value="${event.starLifeVariation || ''}" placeholder="Mặc định: 0.125" onchange="updateEvent(${event.id}, 'starLifeVariation', this.value)">
+        ` : `
+            <div class="form-group color-group">
+                <label>Màu sắc (Colors)</label>
+                <div class="color-tags" id="color-tags-${event.id}">
+                    ${renderColorTags(event)}
+                </div>
+                <div class="color-input-group compact">
+                    <select id="preset-color-${event.id}" onchange="if(this.value) { addColorToEvent(${event.id}, this.value); this.value=''; }">
+                        ${colorOptions}
+                    </select>
+                    <input type="color" id="picker-color-${event.id}" onchange="addColorToEvent(${event.id}, this.value)">
+                    <div class="input-with-btn">
+                        <input type="text" id="custom-color-${event.id}" placeholder="Hex/Tên" onkeydown="if(event.key==='Enter') { addColorToEvent(${event.id}, this.value); this.value=''; }">
+                        <button class="btn secondary small" onclick="const input=document.getElementById('custom-color-${event.id}'); addColorToEvent(${event.id}, input.value); input.value='';">Thêm</button>
+                    </div>
+                </div>
             </div>
 
-            <!-- Màu sắc nâng cao -->
-            <div class="form-group">
-                <label>Màu nhấp nháy (Strobe)</label>
-                <div class="color-input-group tiny">
-                    <input type="color" value="${event.strobeColor && event.strobeColor.startsWith('#') ? event.strobeColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'strobeColor', this.value)">
-                    <input type="text" value="${event.strobeColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'strobeColor', this.value)">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Màu nhụy (Pistil)</label>
-                <div class="color-input-group tiny">
-                    <input type="color" value="${event.pistilColor && event.pistilColor.startsWith('#') ? event.pistilColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'pistilColor', this.value)">
-                    <input type="text" value="${event.pistilColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'pistilColor', this.value)">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Màu lấp lánh (Glitter)</label>
-                <div class="color-input-group tiny">
-                    <input type="color" value="${event.glitterColor && event.glitterColor.startsWith('#') ? event.glitterColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'glitterColor', this.value)">
-                    <input type="text" value="${event.glitterColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'glitterColor', this.value)">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Loại lấp lánh</label>
-                <select onchange="updateEvent(${event.id}, 'glitter', this.value)">
-                    ${GLITTER_TYPES.map(g => `<option value="${g.value}" ${event.glitter === g.value ? 'selected' : ''}>${g.name}</option>`).join('')}
-                </select>
+            <div class="advanced-toggle" onclick="toggleAdvanced(${event.id})">
+                <i class="fas fa-chevron-${event.expanded ? 'up' : 'down'}"></i> Tùy chỉnh nâng cao
             </div>
 
-            <!-- Chuyển đổi màu -->
-            <div class="form-group">
-                <label>Màu chuyển đổi (2nd)</label>
-                <div class="color-input-group tiny">
-                    <input type="color" value="${event.secondColor && event.secondColor.startsWith('#') ? event.secondColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'secondColor', this.value)">
-                    <input type="text" value="${event.secondColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'secondColor', this.value)">
+            <div id="advanced-${event.id}" class="advanced-settings ${event.expanded ? '' : 'hide'}">
+                <!-- Hạt và Tuổi thọ -->
+                <div class="form-group">
+                    <label>Mật độ hạt</label>
+                    <input type="number" step="0.1" value="${event.starDensity || ''}" placeholder="Mặc định: 1" onchange="updateEvent(${event.id}, 'starDensity', this.value)">
                 </div>
-            </div>
-            <div class="form-group">
-                <label>Thời điểm chuyển (ms)</label>
-                <input type="number" step="100" value="${event.transitionTime || ''}" placeholder="Tự động" onchange="updateEvent(${event.id}, 'transitionTime', this.value)">
-            </div>
-            <div class="form-group">
-                <label>Kích thước nổ (spread)</label>
-                <input type="number" step="10" value="${event.spreadSize || ''}" placeholder="Mặc định: 350" onchange="updateEvent(${event.id}, 'spreadSize', this.value)">
-            </div>
-            <div></div> <!-- Spacer -->
+                <div class="form-group">
+                    <label>Số lượng hạt (starCount)</label>
+                    <input type="number" value="${event.starCount || ''}" placeholder="Tự động" onchange="updateEvent(${event.id}, 'starCount', this.value)">
+                </div>
+                <div class="form-group">
+                    <label>Tuổi thọ sao (ms)</label>
+                    <input type="number" step="100" value="${event.starLife || ''}" placeholder="VD: 2500" onchange="updateEvent(${event.id}, 'starLife', this.value)">
+                </div>
+                <div class="form-group">
+                    <label>Biến thiên tuổi thọ (0-1)</label>
+                    <input type="number" step="0.05" min="0" max="1" value="${event.starLifeVariation || ''}" placeholder="Mặc định: 0.125" onchange="updateEvent(${event.id}, 'starLifeVariation', this.value)">
+                </div>
 
-            <!-- Hiệu ứng Toggle -->
-            <div class="advanced-checkbox-grid">
-                <div class="form-group checkbox">
-                    <input type="checkbox" id="strobe-${event.id}" ${event.strobe ? 'checked' : ''} onchange="updateEvent(${event.id}, 'strobe', this.checked)">
-                    <label for="strobe-${event.id}">Nhấp nháy</label>
+                <!-- Màu sắc nâng cao -->
+                <div class="form-group">
+                    <label>Màu nhấp nháy (Strobe)</label>
+                    <div class="color-input-group tiny">
+                        <input type="color" value="${event.strobeColor && event.strobeColor.startsWith('#') ? event.strobeColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'strobeColor', this.value)">
+                        <input type="text" value="${event.strobeColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'strobeColor', this.value)">
+                    </div>
                 </div>
-                <div class="form-group checkbox">
-                    <input type="checkbox" id="crackle-${event.id}" ${event.crackle ? 'checked' : ''} onchange="updateEvent(${event.id}, 'crackle', this.checked)">
-                    <label for="crackle-${event.id}">Nổ lách tách</label>
+                <div class="form-group">
+                    <label>Màu nhụy (Pistil)</label>
+                    <div class="color-input-group tiny">
+                        <input type="color" value="${event.pistilColor && event.pistilColor.startsWith('#') ? event.pistilColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'pistilColor', this.value)">
+                        <input type="text" value="${event.pistilColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'pistilColor', this.value)">
+                    </div>
                 </div>
-                <div class="form-group checkbox">
-                    <input type="checkbox" id="pistil-${event.id}" ${event.pistil ? 'checked' : ''} onchange="updateEvent(${event.id}, 'pistil', this.checked)">
-                    <label for="pistil-${event.id}">Nhụy ở giữa</label>
+                <div class="form-group">
+                    <label>Màu lấp lánh (Glitter)</label>
+                    <div class="color-input-group tiny">
+                        <input type="color" value="${event.glitterColor && event.glitterColor.startsWith('#') ? event.glitterColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'glitterColor', this.value)">
+                        <input type="text" value="${event.glitterColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'glitterColor', this.value)">
+                    </div>
                 </div>
-                <div class="form-group checkbox">
-                    <input type="checkbox" id="streamers-${event.id}" ${event.streamers ? 'checked' : ''} onchange="updateEvent(${event.id}, 'streamers', this.checked)">
-                    <label for="streamers-${event.id}">Dải sáng</label>
+                <div class="form-group">
+                    <label>Loại lấp lánh</label>
+                    <select onchange="updateEvent(${event.id}, 'glitter', this.value)">
+                        ${GLITTER_TYPES.map(g => `<option value="${g.value}" ${event.glitter === g.value ? 'selected' : ''}>${g.name}</option>`).join('')}
+                    </select>
                 </div>
-                <div class="form-group checkbox">
-                    <input type="checkbox" id="crossette-${event.id}" ${event.crossette ? 'checked' : ''} onchange="updateEvent(${event.id}, 'crossette', this.checked)">
-                    <label for="crossette-${event.id}">Nổ chéo</label>
+
+                <!-- Chuyển đổi màu -->
+                <div class="form-group">
+                    <label>Màu chuyển đổi (2nd)</label>
+                    <div class="color-input-group tiny">
+                        <input type="color" value="${event.secondColor && event.secondColor.startsWith('#') ? event.secondColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'secondColor', this.value)">
+                        <input type="text" value="${event.secondColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'secondColor', this.value)">
+                    </div>
                 </div>
-                <div class="form-group checkbox">
-                    <input type="checkbox" id="horsetail-${event.id}" ${event.horsetail ? 'checked' : ''} onchange="updateEvent(${event.id}, 'horsetail', this.checked)">
-                    <label for="horsetail-${event.id}">Đuôi ngựa</label>
+                <div class="form-group">
+                    <label>Thời điểm chuyển (ms)</label>
+                    <input type="number" step="100" value="${event.transitionTime || ''}" placeholder="Tự động" onchange="updateEvent(${event.id}, 'transitionTime', this.value)">
                 </div>
-                <div class="form-group checkbox">
-                    <input type="checkbox" id="comet-${event.id}" ${event.comet ? 'checked' : ''} onchange="updateEvent(${event.id}, 'comet', this.checked)">
-                    <label for="comet-${event.id}">Đuôi phóng</label>
+                <div class="form-group">
+                    <label>Kích thước nổ (spread)</label>
+                    <input type="number" step="10" value="${event.spreadSize || ''}" placeholder="Mặc định: 350" onchange="updateEvent(${event.id}, 'spreadSize', this.value)">
+                </div>
+                <div></div> <!-- Spacer -->
+
+                <!-- Hiệu ứng Toggle -->
+                <div class="advanced-checkbox-grid">
+                    <div class="form-group checkbox">
+                        <input type="checkbox" id="strobe-${event.id}" ${event.strobe ? 'checked' : ''} onchange="updateEvent(${event.id}, 'strobe', this.checked)">
+                        <label for="strobe-${event.id}">Nhấp nháy</label>
+                    </div>
+                    <div class="form-group checkbox">
+                        <input type="checkbox" id="crackle-${event.id}" ${event.crackle ? 'checked' : ''} onchange="updateEvent(${event.id}, 'crackle', this.checked)">
+                        <label for="crackle-${event.id}">Nổ lách tách</label>
+                    </div>
+                    <div class="form-group checkbox">
+                        <input type="checkbox" id="pistil-${event.id}" ${event.pistil ? 'checked' : ''} onchange="updateEvent(${event.id}, 'pistil', this.checked)">
+                        <label for="pistil-${event.id}">Nhụy ở giữa</label>
+                    </div>
+                    <div class="form-group checkbox">
+                        <input type="checkbox" id="streamers-${event.id}" ${event.streamers ? 'checked' : ''} onchange="updateEvent(${event.id}, 'streamers', this.checked)">
+                        <label for="streamers-${event.id}">Dải sáng</label>
+                    </div>
+                    <div class="form-group checkbox">
+                        <input type="checkbox" id="crossette-${event.id}" ${event.crossette ? 'checked' : ''} onchange="updateEvent(${event.id}, 'crossette', this.checked)">
+                        <label for="crossette-${event.id}">Nổ chéo</label>
+                    </div>
+                    <div class="form-group checkbox">
+                        <input type="checkbox" id="horsetail-${event.id}" ${event.horsetail ? 'checked' : ''} onchange="updateEvent(${event.id}, 'horsetail', this.checked)">
+                        <label for="horsetail-${event.id}">Đuôi ngựa</label>
+                    </div>
+                    <div class="form-group checkbox">
+                        <input type="checkbox" id="comet-${event.id}" ${event.comet ? 'checked' : ''} onchange="updateEvent(${event.id}, 'comet', this.checked)">
+                        <label for="comet-${event.id}">Đuôi phóng</label>
+                    </div>
                 </div>
             </div>
-        </div>
+        `}
     `;
 
     return div;
@@ -588,6 +765,45 @@ function handleShellChange(id, select) {
     updateEvent(id, 'shell', value);
     renderEventList(); // Re-render to show/hide specific fields
 }
+
+async function handleImageUpload(id, input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    let scenarioName = document.getElementById('filename').value.trim();
+    if (!scenarioName) {
+        notify('Vui lòng nhập tên kịch bản trước khi tải ảnh!', 'warning');
+        input.value = '';
+        return;
+    }
+
+    notify('Đang tải ảnh lên...', 'info');
+
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('filename', scenarioName);
+
+    try {
+        const response = await fetch('static/api/upload_image.php', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            updateEvent(id, 'imageUrl', data.url);
+            renderEventList();
+            notify('Tải ảnh lên thành công!', 'success');
+        } else {
+            notify('Lỗi: ' + data.message, 'error');
+        }
+    } catch (e) {
+        console.error(e);
+        notify('Lỗi kết nối khi tải ảnh.', 'error');
+    }
+}
+
+window.handleImageUpload = handleImageUpload;
 
 function toggleAdvanced(id) {
     const event = state.events.find(e => e.id === id);
@@ -1042,7 +1258,18 @@ function hideModal(id) {
     document.getElementById(id).classList.add('hide');
 }
 
-function toggleSidebar() {
+let lastToggleTime = 0;
+function toggleSidebar(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    // Ngăn chặn double click/tap quá nhanh gây bật-tắt tức thì
+    const now = Date.now();
+    if (now - lastToggleTime < 300) return;
+    lastToggleTime = now;
+
     const sidebar = document.querySelector('.sidebar');
     const overlay = document.getElementById('sidebar-overlay');
 
@@ -1239,6 +1466,20 @@ class Shell {
         };
     }
     burst(x, y) {
+        if (this.shell === 'Hình ảnh' && this.imageUrl) {
+            const normalizedUrl = normalizeAssetPath(this.imageUrl);
+            const cacheKey = `${normalizedUrl}_${this.frame || ''}`;
+            const img = imageParticleCache.get(cacheKey);
+            if (img) {
+                const burstColor = Array.isArray(this.color) ? this.color[0] : (this.color || '#ffffff');
+                ImageBurst.active.push(new ImageBurst(x, y, img, this.shellSize || 1, this.frame, burstColor));
+                BurstFlash.add(x, y, this.spreadSize / 5);
+                return;
+            } else {
+                window.preloadFireworkImage(this.imageUrl, this.frame);
+            }
+        }
+
         const speed = (this.spreadSize / 96) * 0.75;
         let sparkFreq, sparkSpeed, sparkLife;
         
@@ -1368,6 +1609,11 @@ function getMiniShellType(event, size) {
         case 'Mặt cười':
             base.shapePoints = getSmileyPoints(50);
             break;
+        case 'Hình ảnh':
+            base.shell = 'Hình ảnh';
+            base.imageUrl = event.imageUrl;
+            base.frame = event.frame;
+            break;
         case 'Văn bản':
             if (event.text) base.shapePoints = getTextParticles(event.text, 50);
             break;
@@ -1436,11 +1682,7 @@ function getSmileyPoints(count) {
 let miniPreviewLoop = null;
 let miniBurstCounter = 0;
 
-function updateMiniPreview(frameTime, lag) {
-    if (!state.miniPreviewEnabled) return;
-    const timeStep = frameTime;
-    const speed = lag;
-
+function updateGlobals(timeStep, lag) {
     Object.keys(Star.active).forEach(color => {
         const stars = Star.active[color];
         for (let i = stars.length - 1; i >= 0; i--) {
@@ -1451,7 +1693,7 @@ function updateMiniPreview(frameTime, lag) {
                 Star.returnInstance(star);
             } else {
                 star.prevX = star.x; star.prevY = star.y;
-                star.x += star.speedX * speed; star.y += star.speedY * speed;
+                star.x += star.speedX * lag; star.y += star.speedY * lag;
                 star.speedX *= Star.airDrag; star.speedY *= Star.airDrag;
                 star.speedY += (timeStep / 1000 * GRAVITY);
 
@@ -1490,7 +1732,7 @@ function updateMiniPreview(frameTime, lag) {
                 Spark.returnInstance(spark);
             } else {
                 spark.prevX = spark.x; spark.prevY = spark.y;
-                spark.x += spark.speedX * speed; spark.y += spark.speedY * speed;
+                spark.x += spark.speedX * lag; spark.y += spark.speedY * lag;
                 spark.speedX *= Spark.airDrag; spark.speedY *= Spark.airDrag;
                 spark.speedY += (timeStep / 1000 * GRAVITY);
             }
@@ -1550,6 +1792,8 @@ function renderMiniPreview() {
         });
         trailsCtx.stroke();
     });
+
+    ImageBurst.drawAll(miniMainStage.ctx);
 }
 
 function resizeMiniStages() {
@@ -1562,6 +1806,14 @@ function resizeMiniStages() {
 }
 
 let miniTickerAdded = false;
+
+function updateMiniPreview(frameTime, lag) {
+    if (!state.miniPreviewEnabled) return;
+    const timeStep = frameTime;
+    
+    updateGlobals(timeStep, lag);
+    ImageBurst.updateAll(timeStep);
+}
 
 function toggleMiniPreview(force) {
     state.miniPreviewEnabled = force !== undefined ? force : !state.miniPreviewEnabled;
