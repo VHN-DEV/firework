@@ -316,6 +316,28 @@ function removeEvent(id) {
     renderEventList();
 }
 
+function duplicateEvent(id) {
+    const index = state.events.findIndex(e => e.id === id);
+    if (index === -1) return;
+
+    const eventToCopy = state.events[index];
+    // Create a deep copy of the event (except the id and expanded state)
+    const { id: _, expanded, ...eventData } = eventToCopy;
+    
+    const newId = state.nextId++;
+    const newEvent = {
+        ...JSON.parse(JSON.stringify(eventData)),
+        id: newId,
+        expanded: false
+    };
+
+    // Insert after the original event
+    state.events.splice(index + 1, 0, newEvent);
+    
+    renderEventList();
+    notify('Đã nhân bản phát bắn!', 'success');
+}
+
 function updateEvent(id, field, value) {
     const event = state.events.find(e => e.id === id);
     if (event) {
@@ -382,7 +404,10 @@ function createEventCard(event, index) {
         <div class="event-card-header">
             <span class="event-id">#${index + 1}</span>
             <div class="event-controls">
-                <button class="btn text small btn-remove" onclick="removeEvent(${event.id})">
+                <button class="btn text small btn-duplicate" onclick="duplicateEvent(${event.id})" title="Nhân bản phát bắn">
+                    <i class="fas fa-copy"></i>
+                </button>
+                <button class="btn text small btn-remove" onclick="removeEvent(${event.id})" title="Xóa phát bắn">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -1033,6 +1058,7 @@ function toggleSidebar() {
 
 // Global exposure for onclick handlers
 window.removeEvent = removeEvent;
+window.duplicateEvent = duplicateEvent;
 window.updateEvent = updateEvent;
 window.handleShellChange = handleShellChange;
 window.toggleAdvanced = toggleAdvanced;
@@ -1042,6 +1068,7 @@ window.deleteScript = deleteScript;
 window.addColorToEvent = addColorToEvent;
 window.removeColorFromEvent = removeColorFromEvent;
 window.copyScriptLink = copyScriptLink;
+window.toggleFullscreenMiniPreview = toggleFullscreenMiniPreview;
 
 /**
  * MINI PREVIEW ENGINE
@@ -1563,6 +1590,28 @@ function toggleMiniPreview(force) {
         stopMiniLoop();
     }
 }
+
+function toggleFullscreenMiniPreview() {
+    const el = document.getElementById('mini-preview');
+    if (!fscreen.fullscreenElement) {
+        fscreen.requestFullscreen(el);
+    } else {
+        fscreen.exitFullscreen();
+    }
+}
+
+// Handle fullscreen changes to resize canvas
+fscreen.onfullscreenchange = () => {
+    const el = document.getElementById('mini-preview');
+    if (fscreen.fullscreenElement) {
+        el.classList.add('fullscreen');
+        notify('Đã vào chế độ toàn màn hình', 'info');
+    } else {
+        el.classList.remove('fullscreen');
+    }
+    // Small delay to ensure DOM is updated
+    setTimeout(resizeMiniStages, 100);
+};
 
 function startMiniLoop() {
     if (miniPreviewLoop) clearInterval(miniPreviewLoop);
