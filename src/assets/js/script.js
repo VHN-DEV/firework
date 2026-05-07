@@ -1757,13 +1757,10 @@ function launchShellFromConfig(event) {
     const shellName = shellNameSelector();
     const size = shellSizeSelector();
     
-    const x = event ? event.x / mainStage.width : getRandomShellPositionH();
-    const y = event ? 1 - event.y / mainStage.height : getRandomShellPositionV();
-    
     const shellProps = shellTypes[shellName](size);
     // Nếu là hình ảnh nổ thủ công, ta thử lấy ảnh từ kịch bản hiện tại nếu có
     if (shellName === 'Hình ảnh' && !shellProps.imageUrl) {
-        const firstImgEvent = (burstConfig.events || []).find(e => e.shell === 'Hình ảnh' && e.imageUrl);
+        const firstImgEvent = (burstConfig && burstConfig.events || []).find(e => e.shell === 'Hình ảnh' && e.imageUrl);
         if (firstImgEvent) {
             shellProps.imageUrl = firstImgEvent.imageUrl;
             shellProps.frame = firstImgEvent.frame;
@@ -1772,7 +1769,14 @@ function launchShellFromConfig(event) {
     }
     
     const shell = new Shell(shellProps);
-    shell.launch(x, y);
+    
+    if (event) {
+        const scaleFactor = scaleFactorSelector();
+        // Bắn chính xác vào vị trí click (đã điều chỉnh theo tỉ lệ zoom)
+        shell.launchAt(event.x / scaleFactor, event.y / scaleFactor);
+    } else {
+        shell.launch(getRandomShellPositionH(), getRandomShellPositionV());
+    }
 }
 
 
@@ -2755,6 +2759,18 @@ class Shell {
         const launchX = position * (width - hpad * 2) + hpad;
         const launchY = height;
         const burstY = minHeight - (launchHeight * (minHeight - vpad));
+
+        this.launchAt(launchX, burstY);
+    }
+
+    launchAt(x, y) {
+        const width = stageW;
+        const height = stageH;
+
+        const launchX = x;
+        const launchY = height;
+        const burstX = x;
+        const burstY = y;
 
         const launchDistance = launchY - burstY;
         // Cần sử dụng đường cong công suất tùy chỉnh để ước chừng Vi để đạt được Khoảng cách phóng dưới tác dụng của trọng lực và lực cản của không khí.
