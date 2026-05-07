@@ -570,12 +570,6 @@ select {
 }
 
 .fab {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    width: 64px;
-    height: 64px;
-    background: linear-gradient(135deg, $primary 0%, $accent 100%);
     border-radius: 50%;
     color: white;
     border: none;
@@ -586,11 +580,6 @@ select {
     z-index: 10000;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     animation: fabPulse 2s infinite;
-
-    &:hover {
-        transform: scale(1.1) rotate(90deg);
-        box-shadow: 0 15px 30px rgba($primary, 0.6);
-    }
 
     &:active {
         transform: scale(0.9);
@@ -1802,21 +1791,22 @@ select {
 
 /* Advanced Drawer */
 .advanced-drawer {
-    position: fixed;
-    top: 75px;
-    right: -450px;
-    width: 450px;
-    height: calc(100% - 75px);
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
-    z-index: 2000;
-    transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 0;
+    height: 100%;
+    background-color: $sidebar-bg;
+    border-left: 1px solid $border-color;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 50;
 
     &.open {
-        right: 0;
+        width: 400px;
+    }
+
+    &.hide {
+        display: none;
     }
 
     .drawer-header {
@@ -1884,11 +1874,11 @@ select {
 
 /* Shrink event list when drawer is open */
 .event-list-container {
-    transition: margin-right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
     &.has-drawer-open {
         @media (min-width: 1024px) {
-            margin-right: 450px;
+            /* No longer need margin-right, flexbox handles it */
 
             .event-list {
                 grid-template-columns: repeat(3, 1fr) !important;
@@ -1906,14 +1896,27 @@ select {
 /* Mobile Drawer */
 @media (max-width: 768px) {
     .advanced-drawer {
-        width: 100%;
+        position: fixed;
+        top: 0;
         right: -100%;
-        border-left: none;
-        top: 45px;
-        height: calc(100% - 45px);
+        width: 85%;
+        max-width: 380px;
+        height: 100%;
+        z-index: 3000;
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+        transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: -15px 0 35px rgba(0, 0, 0, 0.6);
+        display: flex !important;
+        /* Ensure flex is used when open */
 
         &.open {
             right: 0;
+            width: 85%;
+            /* Reset width for mobile */
+        }
+
+        &.hide {
+            display: none !important;
         }
     }
 
