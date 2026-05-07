@@ -19,16 +19,17 @@ const state = {
     nextId: 1,
     currentFilename: '',
     activeEventId: null,
+    activeAdvancedId: null,
     miniPreviewEnabled: false,
     previewLoopId: null,
     showBackground: false,
     background: null
 };
 
-const isStaticEnv = window.location.hostname.includes('github.io') || 
-                    window.location.hostname.includes('vercel.app') || 
-                    window.location.hostname.includes('netlify.app') || 
-                    window.location.protocol === 'file:';
+const isStaticEnv = window.location.hostname.includes('github.io') ||
+    window.location.hostname.includes('vercel.app') ||
+    window.location.hostname.includes('netlify.app') ||
+    window.location.protocol === 'file:';
 
 
 const COLOR = {
@@ -62,10 +63,10 @@ const imageParticleCache = new Map();
 function normalizeAssetPath(path) {
     if (!path) return path;
     const isDist = window.location.pathname.includes('/dist/') || !window.location.port || window.location.port === '80';
-    
+
     // Xử lý đường dẫn tương đối
     let cleanPath = path.replace(/^\.\//, '');
-    
+
     if (isDist) {
         // Trong dist, nếu đường dẫn có 'src/assets/', chuyển thành 'assets/'
         if (cleanPath.startsWith('src/assets/')) {
@@ -157,7 +158,7 @@ class ImageBurst {
         this.img = img;
         this.frame = frame;
         this.color = color;
-        this.maxSize = size * 300; 
+        this.maxSize = size * 300;
         this.totalLife = 1500;
         this.life = this.totalLife;
     }
@@ -445,7 +446,7 @@ function createNewScript() {
         state.nextId = 1;
         state.currentFilename = null;
         state.activeEventId = null;
-        
+
         // Reset UI
         document.getElementById('title').value = '';
         document.getElementById('subtitle').value = '';
@@ -453,7 +454,7 @@ function createNewScript() {
         document.getElementById('filename').value = '';
         document.getElementById('loop').checked = true;
         document.getElementById('share-bar').classList.add('hide');
-        
+
         // Reset background
         state.showBackground = false;
         state.background = null;
@@ -464,7 +465,7 @@ function createNewScript() {
 
         // Add one default event
         addEvent();
-        
+
         notify('Đã tạo kịch bản mới!', 'success');
     });
 }
@@ -481,7 +482,7 @@ function duplicateEvent(id) {
     const eventToCopy = state.events[index];
     // Create a deep copy of the event (except the id and expanded state)
     const { id: _, expanded, ...eventData } = eventToCopy;
-    
+
     const newId = state.nextId++;
     const newEvent = {
         ...JSON.parse(JSON.stringify(eventData)),
@@ -491,7 +492,7 @@ function duplicateEvent(id) {
 
     // Insert after the original event
     state.events.splice(index + 1, 0, newEvent);
-    
+
     renderEventList();
     notify('Đã nhân bản phát bắn!', 'success');
 }
@@ -514,6 +515,11 @@ function updateEvent(id, field, value) {
             event[field] = value === true;
         } else {
             event[field] = value;
+        }
+
+        // Trigger preview if active
+        if (state.miniPreviewEnabled && state.activeEventId === id) {
+            launchEvent(event);
         }
     }
 }
@@ -651,109 +657,6 @@ function createEventCard(event, index) {
                     </div>
                 </div>
             </div>
-
-            <div class="advanced-toggle" onclick="toggleAdvanced(${event.id})">
-                <i class="fas fa-chevron-${event.expanded ? 'up' : 'down'}"></i> Tùy chỉnh nâng cao
-            </div>
-
-            <div id="advanced-${event.id}" class="advanced-settings ${event.expanded ? '' : 'hide'}">
-                <!-- Hạt và Tuổi thọ -->
-                <div class="form-group">
-                    <label>Mật độ hạt</label>
-                    <input type="number" step="0.1" value="${event.starDensity || ''}" placeholder="Mặc định: 1" onchange="updateEvent(${event.id}, 'starDensity', this.value)">
-                </div>
-                <div class="form-group">
-                    <label>Số lượng hạt (starCount)</label>
-                    <input type="number" value="${event.starCount || ''}" placeholder="Tự động" onchange="updateEvent(${event.id}, 'starCount', this.value)">
-                </div>
-                <div class="form-group">
-                    <label>Tuổi thọ sao (ms)</label>
-                    <input type="number" step="100" value="${event.starLife || ''}" placeholder="VD: 2500" onchange="updateEvent(${event.id}, 'starLife', this.value)">
-                </div>
-                <div class="form-group">
-                    <label>Biến thiên tuổi thọ (0-1)</label>
-                    <input type="number" step="0.05" min="0" max="1" value="${event.starLifeVariation || ''}" placeholder="Mặc định: 0.125" onchange="updateEvent(${event.id}, 'starLifeVariation', this.value)">
-                </div>
-
-                <!-- Màu sắc nâng cao -->
-                <div class="form-group">
-                    <label>Màu nhấp nháy (Strobe)</label>
-                    <div class="color-input-group tiny">
-                        <input type="color" value="${event.strobeColor && event.strobeColor.startsWith('#') ? event.strobeColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'strobeColor', this.value)">
-                        <input type="text" value="${event.strobeColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'strobeColor', this.value)">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Màu nhụy (Pistil)</label>
-                    <div class="color-input-group tiny">
-                        <input type="color" value="${event.pistilColor && event.pistilColor.startsWith('#') ? event.pistilColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'pistilColor', this.value)">
-                        <input type="text" value="${event.pistilColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'pistilColor', this.value)">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Màu lấp lánh (Glitter)</label>
-                    <div class="color-input-group tiny">
-                        <input type="color" value="${event.glitterColor && event.glitterColor.startsWith('#') ? event.glitterColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'glitterColor', this.value)">
-                        <input type="text" value="${event.glitterColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'glitterColor', this.value)">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Loại lấp lánh</label>
-                    <select onchange="updateEvent(${event.id}, 'glitter', this.value)">
-                        ${GLITTER_TYPES.map(g => `<option value="${g.value}" ${event.glitter === g.value ? 'selected' : ''}>${g.name}</option>`).join('')}
-                    </select>
-                </div>
-
-                <!-- Chuyển đổi màu -->
-                <div class="form-group">
-                    <label>Màu chuyển đổi (2nd)</label>
-                    <div class="color-input-group tiny">
-                        <input type="color" value="${event.secondColor && event.secondColor.startsWith('#') ? event.secondColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'secondColor', this.value)">
-                        <input type="text" value="${event.secondColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'secondColor', this.value)">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Thời điểm chuyển (ms)</label>
-                    <input type="number" step="100" value="${event.transitionTime || ''}" placeholder="Tự động" onchange="updateEvent(${event.id}, 'transitionTime', this.value)">
-                </div>
-                <div class="form-group">
-                    <label>Kích thước nổ (spread)</label>
-                    <input type="number" step="10" value="${event.spreadSize || ''}" placeholder="Mặc định: 350" onchange="updateEvent(${event.id}, 'spreadSize', this.value)">
-                </div>
-                <div></div> <!-- Spacer -->
-
-                <!-- Hiệu ứng Toggle -->
-                <div class="advanced-checkbox-grid">
-                    <div class="form-group checkbox">
-                        <input type="checkbox" id="strobe-${event.id}" ${event.strobe ? 'checked' : ''} onchange="updateEvent(${event.id}, 'strobe', this.checked)">
-                        <label for="strobe-${event.id}">Nhấp nháy</label>
-                    </div>
-                    <div class="form-group checkbox">
-                        <input type="checkbox" id="crackle-${event.id}" ${event.crackle ? 'checked' : ''} onchange="updateEvent(${event.id}, 'crackle', this.checked)">
-                        <label for="crackle-${event.id}">Nổ lách tách</label>
-                    </div>
-                    <div class="form-group checkbox">
-                        <input type="checkbox" id="pistil-${event.id}" ${event.pistil ? 'checked' : ''} onchange="updateEvent(${event.id}, 'pistil', this.checked)">
-                        <label for="pistil-${event.id}">Nhụy ở giữa</label>
-                    </div>
-                    <div class="form-group checkbox">
-                        <input type="checkbox" id="streamers-${event.id}" ${event.streamers ? 'checked' : ''} onchange="updateEvent(${event.id}, 'streamers', this.checked)">
-                        <label for="streamers-${event.id}">Dải sáng</label>
-                    </div>
-                    <div class="form-group checkbox">
-                        <input type="checkbox" id="crossette-${event.id}" ${event.crossette ? 'checked' : ''} onchange="updateEvent(${event.id}, 'crossette', this.checked)">
-                        <label for="crossette-${event.id}">Nổ chéo</label>
-                    </div>
-                    <div class="form-group checkbox">
-                        <input type="checkbox" id="horsetail-${event.id}" ${event.horsetail ? 'checked' : ''} onchange="updateEvent(${event.id}, 'horsetail', this.checked)">
-                        <label for="horsetail-${event.id}">Đuôi ngựa</label>
-                    </div>
-                    <div class="form-group checkbox">
-                        <input type="checkbox" id="comet-${event.id}" ${event.comet ? 'checked' : ''} onchange="updateEvent(${event.id}, 'comet', this.checked)">
-                        <label for="comet-${event.id}">Đuôi phóng</label>
-                    </div>
-                </div>
-            </div>
         `}
     `;
 
@@ -806,12 +709,155 @@ async function handleImageUpload(id, input) {
 window.handleImageUpload = handleImageUpload;
 
 function toggleAdvanced(id) {
-    const event = state.events.find(e => e.id === id);
-    if (event) {
-        event.expanded = !event.expanded;
-        renderEventList();
-    }
+    selectEvent(id);
 }
+
+function openAdvancedDrawer(id) {
+    const event = state.events.find(e => e.id === id);
+    if (!event) return;
+
+    state.activeAdvancedId = id;
+
+    // Render content
+    renderAdvancedSettings(id);
+
+    // Show drawer
+    const drawer = document.getElementById('advanced-drawer');
+    drawer.classList.add('open');
+    drawer.classList.remove('hide');
+
+    // Shrink list
+    document.querySelector('.event-list-container').classList.add('has-drawer-open');
+
+    // Highlight card
+    document.querySelectorAll('.event-card').forEach(c => c.classList.remove('active'));
+    const card = document.querySelector(`.event-card[data-id="${id}"]`);
+    if (card) card.classList.add('active');
+}
+
+function closeAdvancedDrawer() {
+    state.activeAdvancedId = null;
+    state.activeEventId = null;
+    const drawer = document.getElementById('advanced-drawer');
+    drawer.classList.remove('open');
+    document.querySelector('.event-list-container').classList.remove('has-drawer-open');
+    document.querySelectorAll('.event-card').forEach(c => c.classList.remove('active'));
+
+    setTimeout(() => {
+        if (state.activeAdvancedId === null) {
+            drawer.classList.add('hide');
+        }
+    }, 400);
+}
+
+function renderAdvancedSettings(id) {
+    const event = state.events.find(e => e.id === id);
+    if (!event) return;
+
+    const container = document.getElementById('drawer-content');
+    container.innerHTML = `
+        <div class="advanced-settings">
+            <!-- Hạt và Tuổi thọ -->
+            <div class="form-group">
+                <label>Mật độ hạt</label>
+                <input type="number" step="0.1" value="${event.starDensity || ''}" placeholder="Mặc định: 1" onchange="updateEvent(${event.id}, 'starDensity', this.value)">
+            </div>
+            <div class="form-group">
+                <label>Số lượng hạt (starCount)</label>
+                <input type="number" value="${event.starCount || ''}" placeholder="Tự động" onchange="updateEvent(${event.id}, 'starCount', this.value)">
+            </div>
+            <div class="form-group">
+                <label>Tuổi thọ sao (ms)</label>
+                <input type="number" step="100" value="${event.starLife || ''}" placeholder="VD: 2500" onchange="updateEvent(${event.id}, 'starLife', this.value)">
+            </div>
+            <div class="form-group">
+                <label>Biến thiên tuổi thọ (0-1)</label>
+                <input type="number" step="0.05" min="0" max="1" value="${event.starLifeVariation || ''}" placeholder="Mặc định: 0.125" onchange="updateEvent(${event.id}, 'starLifeVariation', this.value)">
+            </div>
+
+            <!-- Màu sắc nâng cao -->
+            <div class="form-group">
+                <label>Màu nhấp nháy (Strobe)</label>
+                <div class="color-input-group tiny">
+                    <input type="color" value="${event.strobeColor && event.strobeColor.startsWith('#') ? event.strobeColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'strobeColor', this.value)">
+                    <input type="text" value="${event.strobeColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'strobeColor', this.value)">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Màu nhụy (Pistil)</label>
+                <div class="color-input-group tiny">
+                    <input type="color" value="${event.pistilColor && event.pistilColor.startsWith('#') ? event.pistilColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'pistilColor', this.value)">
+                    <input type="text" value="${event.pistilColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'pistilColor', this.value)">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Màu lấp lánh (Glitter)</label>
+                <div class="color-input-group tiny">
+                    <input type="color" value="${event.glitterColor && event.glitterColor.startsWith('#') ? event.glitterColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'glitterColor', this.value)">
+                    <input type="text" value="${event.glitterColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'glitterColor', this.value)">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Loại lấp lánh</label>
+                <select onchange="updateEvent(${event.id}, 'glitter', this.value)">
+                    ${GLITTER_TYPES.map(g => `<option value="${g.value}" ${event.glitter === g.value ? 'selected' : ''}>${g.name}</option>`).join('')}
+                </select>
+            </div>
+
+            <!-- Chuyển đổi màu -->
+            <div class="form-group">
+                <label>Màu chuyển đổi (2nd)</label>
+                <div class="color-input-group tiny">
+                    <input type="color" value="${event.secondColor && event.secondColor.startsWith('#') ? event.secondColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'secondColor', this.value)">
+                    <input type="text" value="${event.secondColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'secondColor', this.value)">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Thời điểm chuyển (ms)</label>
+                <input type="number" step="100" value="${event.transitionTime || ''}" placeholder="Tự động" onchange="updateEvent(${event.id}, 'transitionTime', this.value)">
+            </div>
+            <div class="form-group">
+                <label>Kích thước nổ (spread)</label>
+                <input type="number" step="10" value="${event.spreadSize || ''}" placeholder="Mặc định: 350" onchange="updateEvent(${event.id}, 'spreadSize', this.value)">
+            </div>
+            <div></div> <!-- Spacer -->
+        </div>
+
+        <!-- Hiệu ứng Toggle -->
+        <div class="advanced-checkbox-grid">
+            <div class="form-group checkbox">
+                <input type="checkbox" id="strobe-${event.id}" ${event.strobe ? 'checked' : ''} onchange="updateEvent(${event.id}, 'strobe', this.checked)">
+                <label for="strobe-${event.id}">Nhấp nháy</label>
+            </div>
+            <div class="form-group checkbox">
+                <input type="checkbox" id="crackle-${event.id}" ${event.crackle ? 'checked' : ''} onchange="updateEvent(${event.id}, 'crackle', this.checked)">
+                <label for="crackle-${event.id}">Nổ lách tách</label>
+            </div>
+            <div class="form-group checkbox">
+                <input type="checkbox" id="pistil-${event.id}" ${event.pistil ? 'checked' : ''} onchange="updateEvent(${event.id}, 'pistil', this.checked)">
+                <label for="pistil-${event.id}">Nhụy ở giữa</label>
+            </div>
+            <div class="form-group checkbox">
+                <input type="checkbox" id="streamers-${event.id}" ${event.streamers ? 'checked' : ''} onchange="updateEvent(${event.id}, 'streamers', this.checked)">
+                <label for="streamers-${event.id}">Dải sáng</label>
+            </div>
+            <div class="form-group checkbox">
+                <input type="checkbox" id="crossette-${event.id}" ${event.crossette ? 'checked' : ''} onchange="updateEvent(${event.id}, 'crossette', this.checked)">
+                <label for="crossette-${event.id}">Nổ chéo</label>
+            </div>
+            <div class="form-group checkbox">
+                <input type="checkbox" id="horsetail-${event.id}" ${event.horsetail ? 'checked' : ''} onchange="updateEvent(${event.id}, 'horsetail', this.checked)">
+                <label for="horsetail-${event.id}">Đuôi ngựa</label>
+            </div>
+            <div class="form-group checkbox">
+                <input type="checkbox" id="comet-${event.id}" ${event.comet ? 'checked' : ''} onchange="updateEvent(${event.id}, 'comet', this.checked)">
+                <label for="comet-${event.id}">Đuôi phóng</label>
+            </div>
+        </div>
+    `;
+}
+
+window.closeAdvancedDrawer = closeAdvancedDrawer;
 
 function getFinalConfig() {
     return {
@@ -858,17 +904,17 @@ async function getUniqueFilename(requestedName, currentFilename) {
     const existingIds = (await getAvailableScripts()).map(id => id.toLowerCase());
     const reqLower = requestedName.toLowerCase();
     const currentLower = currentFilename ? currentFilename.toLowerCase() : '';
-    
+
     // Nếu tên trùng với tên hiện tại đang sửa (không phân biệt hoa thường) thì cho phép ghi đè
     if (reqLower === currentLower) {
         return requestedName;
     }
-    
+
     // Nếu chưa tồn tại trong danh sách đã có thì dùng luôn
     if (!existingIds.includes(reqLower)) {
         return requestedName;
     }
-    
+
     // Nếu đã tồn tại thì thêm số thứ tự
     let counter = 1;
     let newName = `${requestedName}_${counter}`;
@@ -890,7 +936,7 @@ async function saveConfig(isPreview = false) {
             return;
         }
     }
-    
+
     // Xử lý tên file duy nhất nếu không phải xem thử
     if (!isPreview) {
         const originalName = filename;
@@ -1020,7 +1066,7 @@ function loadScriptsList() {
     const list = document.getElementById('scripts-list');
     list.innerHTML = '<div class="spinner"></div>';
 
-    const fetchPromise = isStaticEnv 
+    const fetchPromise = isStaticEnv
         ? fetch('static/configs/configs_index.json').then(r => r.json())
         : fetch('static/api/manage_configs.php?action=list').then(r => r.json());
 
@@ -1057,7 +1103,7 @@ function loadScriptsList() {
                 item.className = 'script-item';
                 const isPrivate = script.status === 'private';
                 const isLocal = script.status === 'local';
-                
+
                 item.innerHTML = `
                 <h4>${isPrivate ? '<i class="fas fa-lock" title="Riêng tư"></i> ' : ''}${isLocal ? '<i class="fas fa-laptop" title="Lưu cục bộ"></i> ' : ''}${script.title}</h4>
                 <div class="meta">
@@ -1082,7 +1128,7 @@ function loadScriptsList() {
 
 async function duplicateScript(filename) {
     notify('Đang chuẩn bị nhân bản...', 'info');
-    
+
     const handleConfig = async (config) => {
         const newName = await getUniqueFilename(filename + '_copy', '');
         loadConfigIntoState(config, newName);
@@ -1110,7 +1156,7 @@ async function duplicateScript(filename) {
 
 function editScript(filename) {
     notify('Đang tải kịch bản...', 'info');
-    
+
     if (isStaticEnv) {
         const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
         if (localScripts[filename]) {
@@ -1140,7 +1186,7 @@ function editScript(filename) {
 function deleteScript(filename) {
     confirmAction(`Bạn có chắc chắn muốn xóa kịch bản "${filename}"?`, () => {
         notify('Đang xóa kịch bản...', 'info');
-        
+
         if (isStaticEnv) {
             const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
             if (localScripts[filename]) {
@@ -1264,7 +1310,7 @@ function toggleSidebar(e) {
         e.preventDefault();
         e.stopPropagation();
     }
-    
+
     // Ngăn chặn double click/tap quá nhanh gây bật-tắt tức thì
     const now = Date.now();
     if (now - lastToggleTime < 300) return;
@@ -1482,7 +1528,7 @@ class Shell {
 
         const speed = (this.spreadSize / 96) * 0.75;
         let sparkFreq, sparkSpeed, sparkLife;
-        
+
         let onDeath = null;
         if (this.crackle) onDeath = crackleEffect;
         if (this.crossette) onDeath = crossetteEffect;
@@ -1495,7 +1541,7 @@ class Shell {
         const starFactory = (angle, speedMult) => {
             const star = Star.add(x, y, this.color, angle, speedMult * speed, this.starLife + Math.random() * this.starLife * this.starLifeVariation, 0, 0);
             star.onDeath = onDeath;
-            
+
             if (this.secondColor) {
                 star.transitionTime = this.starLife * (Math.random() * 0.05 + 0.32);
                 if (this.transitionTime) star.transitionTime = this.transitionTime;
@@ -1533,7 +1579,7 @@ class Shell {
         } else {
             createBurst(this.starCount, starFactory);
         }
-        
+
         if (this.pistil) {
             const innerShell = new Shell({
                 spreadSize: this.spreadSize * 0.5,
@@ -1554,7 +1600,7 @@ class Shell {
             });
             innerShell.burst(x, y);
         }
-        
+
         BurstFlash.add(x, y, this.spreadSize / 5);
     }
 }
@@ -1810,7 +1856,7 @@ let miniTickerAdded = false;
 function updateMiniPreview(frameTime, lag) {
     if (!state.miniPreviewEnabled) return;
     const timeStep = frameTime;
-    
+
     updateGlobals(timeStep, lag);
     ImageBurst.updateAll(timeStep);
 }
@@ -1823,12 +1869,12 @@ function toggleMiniPreview(force) {
         el.classList.remove('hide');
         btn.classList.add('primary');
         btn.classList.remove('secondary');
-        
+
         // Cập nhật tỉ lệ theo thiết bị hiện tại
         const deviceRatio = window.innerWidth / window.innerHeight;
         const currentW = el.offsetWidth;
         el.style.height = (currentW / deviceRatio) + 'px';
-        
+
         resizeMiniStages();
         if (!miniTickerAdded) {
             miniMainStage.addEventListener('ticker', updateMiniPreview);
@@ -1921,11 +1967,11 @@ function initMiniResize() {
         startY = e.clientY;
         startW = container.offsetWidth;
         startH = container.offsetHeight;
-        
+
         if (e.target.setPointerCapture) {
             e.target.setPointerCapture(e.pointerId);
         }
-        
+
         e.preventDefault();
         e.stopPropagation();
     };
@@ -1936,7 +1982,7 @@ function initMiniResize() {
 
     const onMove = (e) => {
         if (!isResizingMini) return;
-        
+
         // Use a consistent ratio during a single resize operation
         const deviceRatio = window.innerWidth / window.innerHeight;
         let newW = startW;
@@ -1956,7 +2002,7 @@ function initMiniResize() {
             const scaleW = (startW + dx) / startW;
             const scaleH = (startH + dy) / startH;
             const scale = Math.max(scaleW, scaleH);
-            
+
             newW = Math.max(200, startW * scale);
             newH = newW / deviceRatio;
         }
@@ -2005,21 +2051,21 @@ function initMiniMove() {
         isMovingMini = true;
         moveStartX = e.clientX;
         moveStartY = e.clientY;
-        
+
         const style = window.getComputedStyle(container);
         moveStartBottom = parseInt(style.bottom) || 0;
         moveStartRight = parseInt(style.right) || 0;
-        
+
         header.setPointerCapture(e.pointerId);
         e.preventDefault();
     };
 
     header.onpointermove = (e) => {
         if (!isMovingMini) return;
-        
+
         const dx = moveStartX - e.clientX;
         const dy = moveStartY - e.clientY;
-        
+
         let nextRight = moveStartRight + dx;
         let nextBottom = moveStartBottom + dy;
 
@@ -2092,8 +2138,10 @@ function getTextParticles(text, fontSize = 80) {
 function selectEvent(id) {
     if (state.activeEventId === id) {
         state.activeEventId = null;
+        closeAdvancedDrawer();
     } else {
         state.activeEventId = id;
+        openAdvancedDrawer(id);
     }
     renderEventList();
     const info = document.getElementById('mini-preview-info');
@@ -2101,10 +2149,9 @@ function selectEvent(id) {
         const event = state.events.find(e => e.id === id);
         const idx = state.events.findIndex(e => e.id === id) + 1;
         info.innerText = 'Đang hiển thị phát bắn #' + idx;
-        if (!state.miniPreviewEnabled) toggleMiniPreview(true);
-        
-        // Bắn ngay lập tức khi chọn
-        if (event) launchEvent(event);
+
+        // Bắn ngay lập tức khi chọn (chỉ khi màn hình xem nhanh đang mở)
+        if (event && state.miniPreviewEnabled) launchEvent(event);
     } else {
         info.innerText = 'Đang hiển thị toàn bộ';
     }
@@ -2161,7 +2208,7 @@ window.shareSocial = (platform) => {
             notify("TikTok chưa hỗ trợ chia sẻ link trực tiếp. Đã sao chép link để bạn dán vào TikTok!", "info");
             return;
     }
-    
+
     if (shareUrl) {
         const win = window.open(shareUrl, '_blank');
         if (!win) {
