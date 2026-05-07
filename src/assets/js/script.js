@@ -567,10 +567,24 @@ appNodes.skyLighting.addEventListener('input', updateConfigNoEvent);
 appNodes.longExposure.addEventListener('click', () => setTimeout(updateConfig, 0));
 appNodes.hideControls.addEventListener('click', () => setTimeout(updateConfig, 0));
 appNodes.showBackground.addEventListener('click', () => setTimeout(updateConfig, 0));
-appNodes.pauseBtn.addEventListener('click', () => togglePause());
-appNodes.soundBtn.addEventListener('click', () => toggleSound());
-appNodes.settingsBtn.addEventListener('click', () => toggleMenu());
-appNodes.closeMenuBtn.addEventListener('click', () => toggleMenu(false));
+const stopAndRun = (fn) => (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    fn(e);
+};
+
+appNodes.pauseBtn.addEventListener('click', stopAndRun(() => togglePause()));
+appNodes.soundBtn.addEventListener('click', stopAndRun(() => toggleSound()));
+appNodes.settingsBtn.addEventListener('click', stopAndRun(() => toggleMenu()));
+appNodes.closeMenuBtn.addEventListener('click', stopAndRun(() => toggleMenu(false)));
+
+// Ngăn chặn các sự kiện chuột và chạm nổi bọt lên document (nơi Stage đang lắng nghe)
+const stopPropagation = (e) => e.stopPropagation();
+[appNodes.pauseBtn, appNodes.soundBtn, appNodes.settingsBtn, appNodes.closeMenuBtn, appNodes.btnStart].forEach(node => {
+    if (!node) return;
+    node.addEventListener('mousedown', stopPropagation);
+    node.addEventListener('touchstart', stopPropagation);
+});
 appNodes.fullscreen.addEventListener('click', () => setTimeout(toggleFullscreen, 0));
 // Việc thay đổi thang đo cũng yêu cầu kích hoạt mã xử lý thay đổi kích thước.
 appNodes.scaleFactor.addEventListener('input', () => {
@@ -3408,13 +3422,21 @@ if (IS_HEADER) {
     init();
 } else {
     // Đợi người dùng nhấn "Bắt đầu"
-    appNodes.btnStart.addEventListener('click', () => {
+    appNodes.btnStart.addEventListener('click', (e) => {
+        // Ngăn chặn sự kiện nổi bọt để tránh Stage nhận được tín hiệu bắn pháo hoa
+        e.stopPropagation();
+        e.preventDefault();
+
         // Ẩn màn hình bắt đầu và hiện màn hình loading
         appNodes.startScreen.classList.add('hide');
         appNodes.loadingInit.classList.remove('remove');
 
         // Kích hoạt âm thanh ngay lập tức (mở khóa AudioContext)
         soundManager.resumeAll();
+
+        // Đặt một khoảng thời gian chờ cho phát bắn tự động đầu tiên 
+        // để không bị chồng lấp với hành động nhấn nút
+        autoLaunchTime = 2500;
 
         // Bắt đầu tải dữ liệu
         setLoadingStatus('Đang châm ngòi');
