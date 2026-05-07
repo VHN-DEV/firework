@@ -919,6 +919,119 @@ function getTextParticles(text, fontSize = 80) {
     return result;
 }
 
+const imageParticleCache = new Map();
+
+function getProcessedImage(img, frame = '') {
+    const size = 500; // Độ phân giải cao hơn cho hình ảnh phóng to
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    if (frame) {
+        ctx.save();
+        ctx.beginPath();
+        if (frame === 'circle') {
+            ctx.arc(size / 2, size / 2, size / 2, 0, PI_2);
+        } else if (frame === 'square') {
+            ctx.rect(0, 0, size, size);
+        } else if (frame === 'triangle') {
+            ctx.moveTo(size / 2, 0);
+            ctx.lineTo(size, size);
+            ctx.lineTo(0, size);
+            ctx.closePath();
+        } else if (frame === 'heart') {
+            const x = size / 2, y = size / 2, r = size / 2.2;
+            ctx.moveTo(x, y + r / 4);
+            ctx.bezierCurveTo(x, y, x - r / 2, y - r / 2, x - r, y - r / 4);
+            ctx.bezierCurveTo(x - r, y + r / 4, x, y + r, x, y + r);
+            ctx.bezierCurveTo(x, y + r, x + r, y + r / 4, x + r, y - r / 4);
+            ctx.bezierCurveTo(x + r, y - r / 2, x, y, x, y + r / 4);
+        }
+        ctx.clip();
+    }
+
+    ctx.drawImage(img, 0, 0, size, size);
+    if (frame) ctx.restore();
+    return canvas;
+}
+
+function drawFramePath(ctx, x, y, size, frame) {
+    ctx.beginPath();
+    const r = size / 2;
+    if (frame === 'circle') {
+        ctx.arc(x, y, r, 0, PI_2);
+    } else if (frame === 'square') {
+        ctx.rect(x - r, y - r, size, size);
+    } else if (frame === 'triangle') {
+        ctx.moveTo(x, y - r);
+        ctx.lineTo(x + r, y + r);
+        ctx.lineTo(x - r, y + r);
+        ctx.closePath();
+    } else if (frame === 'heart') {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.beginPath();
+        // Phương thức vẽ trái tim chuẩn hơn (Heart curve)
+        for (let t = 0; t <= Math.PI * 2; t += 0.1) {
+            const hx = 16 * Math.pow(Math.sin(t), 3);
+            const hy = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+            const scaleFactor = size / 35;
+            if (t === 0) ctx.moveTo(hx * scaleFactor, hy * scaleFactor);
+            else ctx.lineTo(hx * scaleFactor, hy * scaleFactor);
+        }
+        ctx.closePath();
+        ctx.restore();
+    }
+}
+
+class ImageBurst {
+    constructor(x, y, img, size, frame, color) {
+        this.x = x;
+        this.y = y;
+        this.img = img;
+        this.frame = frame;
+        this.color = color;
+        this.maxSize = size * 500; // Tỷ lệ hóa size
+        this.totalLife = 2000; // 2 giây hiển thị
+        this.life = this.totalLife;
+    }
+
+    static active = [];
+
+    static updateAll(timeStep) {
+        for (let i = this.active.length - 1; i >= 0; i--) {
+            const b = this.active[i];
+            b.life -= timeStep;
+            if (b.life <= 0) this.active.splice(i, 1);
+        }
+    }
+
+    static drawAll(ctx) {
+        this.active.forEach(b => {
+            const progress = 1 - (b.life / b.totalLife);
+            // Sử dụng easeOut để hiệu ứng phóng to mượt mà hơn
+            const easeProgress = 1 - Math.pow(1 - progress, 3);
+            const scale = (0.1 + easeProgress * 0.9) * b.maxSize;
+            const opacity = 1 - Math.pow(progress, 2); // Mờ dần nhanh hơn ở cuối
+
+            ctx.save();
+            ctx.globalAlpha = opacity;
+            
+            // Vẽ khung màu nếu có
+            if (b.color && b.color !== INVISIBLE) {
+                ctx.strokeStyle = b.color;
+                ctx.lineWidth = Math.max(3, scale * 0.02);
+                drawFramePath(ctx, b.x, b.y, scale, b.frame);
+                ctx.stroke();
+            }
+
+            ctx.drawImage(b.img, b.x - scale / 2, b.y - scale / 2, scale, scale);
+            ctx.restore();
+        });
+    }
+}
+
 function getHeartPoints() {
     const points = [];
     const count = 120;
@@ -1332,10 +1445,21 @@ const diamondShell = (size = 1) => {
     };
 };
 
+const imageShell = (size = 1) => {
+    return {
+        shell: 'Hình ảnh',
+        shellSize: size,
+        spreadSize: 300 + size * 100,
+        starLife: 2000,
+        glitter: 'light'
+    };
+};
+
 const shellTypes = {
     'Ngẫu nhiên': randomShell,
     'Trái tim': heartShell,
     'Ngôi sao': starShapeShell,
+    'Hình ảnh': imageShell,
     'Mặt mèo': catShell,
     'Mặt cười': smileyShell,
     'Văn bản': textShell,
@@ -1378,6 +1502,49 @@ function replacePlaceholders(text) {
         .replace(/\[SINCE:(\d+)\]/g, (match, p1) => {
             return year - parseInt(p1);
         });
+}
+
+window.preloadFireworkImage = (url, frame) => {
+    if (!url) return;
+    const normalizedUrl = normalizeAssetPath(url);
+    const cacheKey = `${normalizedUrl}_${frame || ''}`;
+    if (!imageParticleCache.has(cacheKey)) {
+        console.log('[Firework] Preloading image:', normalizedUrl);
+        const img = new Image();
+        // img.crossOrigin = "Anonymous"; // Bỏ cái này nếu gặp lỗi CORS trên localhost
+        img.onload = () => {
+            console.log('[Firework] Image loaded successfully:', normalizedUrl);
+            const processed = getProcessedImage(img, frame);
+            imageParticleCache.set(cacheKey, processed);
+        };
+        img.onerror = (e) => {
+            console.error('[Firework] Failed to load image:', normalizedUrl, e);
+        };
+        img.src = normalizedUrl;
+    }
+};
+
+function normalizeAssetPath(path) {
+    if (!path) return path;
+    const isDist = window.location.pathname.includes('/dist/') || !window.location.port || window.location.port === '80';
+    
+    // Xử lý đường dẫn tương đối
+    let cleanPath = path.replace(/^\.\//, '');
+    
+    if (isDist) {
+        // Trong dist, nếu đường dẫn có 'src/assets/', chuyển thành 'assets/'
+        if (cleanPath.startsWith('src/assets/')) {
+            cleanPath = cleanPath.replace('src/assets/', 'assets/');
+        }
+        // Luôn đảm bảo không có 'dist/' lặp lại trong đường dẫn nếu ta đã ở trong dist
+        return './' + cleanPath.replace(/^dist\//, '');
+    } else {
+        // Trong dev (src), đảm bảo có 'src/assets/' nếu nó trỏ vào assets
+        if (cleanPath.startsWith('assets/') && !cleanPath.startsWith('src/assets/')) {
+            cleanPath = 'src/' + cleanPath;
+        }
+        return './' + cleanPath;
+    }
 }
 
 async function loadBurstConfig() {
@@ -1423,9 +1590,36 @@ async function loadBurstConfig() {
         if (burstConfig.title) burstConfig.title = replacePlaceholders(burstConfig.title);
         if (burstConfig.subtitle) burstConfig.subtitle = replacePlaceholders(burstConfig.subtitle);
         if (burstConfig.events) {
+            const imagePromises = [];
             burstConfig.events.forEach(event => {
                 if (event.text) event.text = replacePlaceholders(event.text);
+                
+                if (event.shell === 'Hình ảnh' && event.imageUrl) {
+                    const normalizedUrl = normalizeAssetPath(event.imageUrl);
+                    const cacheKey = `${normalizedUrl}_${event.frame || ''}`;
+                    if (!imageParticleCache.has(cacheKey)) {
+                        const p = new Promise(resolve => {
+                            const img = new Image();
+                            img.crossOrigin = "Anonymous";
+                            img.onload = () => {
+                                const processed = getProcessedImage(img, event.frame);
+                                imageParticleCache.set(cacheKey, processed);
+                                resolve();
+                            };
+                            img.onerror = () => {
+                                console.error('Failed to load firework image:', normalizedUrl);
+                                resolve();
+                            };
+                            img.src = normalizedUrl;
+                        });
+                        imagePromises.push(p);
+                    }
+                }
             });
+            if (imagePromises.length > 0) {
+                setLoadingStatus('Đang chuẩn bị hình ảnh...');
+                await Promise.all(imagePromises);
+            }
         }
 
         console.log('Loaded burst config:', burstConfig);
@@ -1546,14 +1740,25 @@ function getRandomShellSize() {
 
 // Khởi chạy shell từ sự kiện con trỏ người dùng, dựa trên state.config
 function launchShellFromConfig(event) {
-    const shell = new Shell(shellFromConfig(shellSizeSelector()));
-    const w = mainStage.width;
-    const h = mainStage.height;
-
-    shell.launch(
-        event ? event.x / w : getRandomShellPositionH(),
-        event ? 1 - event.y / h : getRandomShellPositionV()
-    );
+    const shellName = shellNameSelector();
+    const size = shellSizeSelector();
+    
+    const x = event ? event.x / mainStage.width : getRandomShellPositionH();
+    const y = event ? 1 - event.y / mainStage.height : getRandomShellPositionV();
+    
+    const shellProps = shellTypes[shellName](size);
+    // Nếu là hình ảnh nổ thủ công, ta thử lấy ảnh từ kịch bản hiện tại nếu có
+    if (shellName === 'Hình ảnh' && !shellProps.imageUrl) {
+        const firstImgEvent = (burstConfig.events || []).find(e => e.shell === 'Hình ảnh' && e.imageUrl);
+        if (firstImgEvent) {
+            shellProps.imageUrl = firstImgEvent.imageUrl;
+            shellProps.frame = firstImgEvent.frame;
+            shellProps.color = firstImgEvent.color;
+        }
+    }
+    
+    const shell = new Shell(shellProps);
+    shell.launch(x, y);
 }
 
 
@@ -1656,7 +1861,6 @@ function seqPyramid() {
             setTimeout(() => {
                 launchShell(0.5, true);
             }, delay);
-        } else {
             const offset = count / barrageCountHalf * 0.5;
             const delayOffset = Math.random() * 30 + 30;
             setTimeout(() => {
@@ -1740,23 +1944,25 @@ function startSequence() {
         burstCounter++;
 
         // Tìm burst lớn nhất để biết khi nào kết thúc/lặp lại
-        const maxBurst = Math.max(...burstConfig.events.map(e => e.burst));
+        const burstValues = burstConfig.events.map(e => Number(e.burst)).filter(v => !isNaN(v));
+        const maxBurst = burstValues.length > 0 ? Math.max(...burstValues) : 0;
+
+        console.log(`[Firework] Sequence status: Counter=${burstCounter}, MaxBurst=${maxBurst}, EventsCount=${burstConfig.events.length}`);
 
         // Nếu vượt quá đợt cuối
         if (burstCounter > maxBurst) {
             if (burstConfig.loop) {
-                burstCounter = 1; // Reset về đợt 1
-
-                // Kiểm tra cấu hình tạm dừng sau vòng lặp (mặc định là 0 nếu không có)
-                const pauseAfterLoop = (burstConfig.settings && burstConfig.settings.pauseAfterLoop) || 0;
-                return 2500 + pauseAfterLoop;
+                burstCounter = 0; // Reset về 0
+                console.log('[Firework] Loop active: Resetting to start.');
+                return 2000; // Nghỉ 2 giây trước khi lặp lại
             } else {
-                // Nếu không lặp lại, giữ ở trạng thái "hết kịch bản" và không bắn gì nữa
+                console.log('[Firework] Sequence finished.');
                 return 5000;
             }
         }
 
-        const events = burstConfig.events.filter(e => e.burst === burstCounter);
+        const events = burstConfig.events.filter(e => Number(e.burst) === burstCounter);
+        console.log(`[Firework] Firing ${events.length} events for burst ${burstCounter}`);
 
         if (events.length > 0) {
             let extraDelay = 0;
@@ -1786,6 +1992,15 @@ function startSequence() {
                             shapePoints: getTextParticles(event.text, 50),
                             glitter: 'light',
                             glitterColor: COLOR.Gold
+                        });
+                    } else if (event.shell === 'Hình ảnh' && event.imageUrl) {
+                        shell = new Shell({
+                            shell: 'Hình ảnh',
+                            imageUrl: event.imageUrl,
+                            frame: event.frame,
+                            size: size,
+                            color: event.color,
+                            spreadSize: event.spreadSize || (300 + size * 100)
                         });
                     } else {
                         const shellType = shellTypes[event.shell] || shellTypes['Văn bản'];
@@ -1856,8 +2071,14 @@ function startSequence() {
             return 1000;
         }
     }
+    
+    // Nếu đã có kịch bản (burstConfig) thì tuyệt đối KHÔNG chạy pháo hoa ngẫu nhiên bên dưới
+    if (burstConfig) {
+        return 1000; // Chờ 1 giây rồi thử lại đợt tiếp theo (logic an toàn)
+    }
 
-    if (isFirstSeq) {
+    // Chỉ bắn pháo hoa mặc định ở lần đầu tiên nếu KHÔNG có kịch bản đang chạy
+    if (isFirstSeq && !burstConfig) {
         isFirstSeq = false;
         if (IS_HEADER) {
             return seqTwoRandom();
@@ -1901,6 +2122,8 @@ function startSequence() {
         return seqTriple();
     }
 }
+
+
 
 
 let activePointerCount = 0;
@@ -2044,17 +2267,18 @@ function update(frameTime, lag) {
     const speed = simSpeed * lag;
 
     updateGlobals(timeStep, lag);
+    ImageBurst.updateAll(timeStep);
 
     const starDrag = 1 - (1 - Star.airDrag) * speed;
     const starDragHeavy = 1 - (1 - Star.airDragHeavy) * speed;
     const sparkDrag = 1 - (1 - Spark.airDrag) * speed;
     const gAcc = timeStep / 1000 * GRAVITY;
-    COLOR_CODES_W_INVIS.forEach(color => {
-        // Ngôi sao
+
+    // Cập nhật Ngôi sao (Stars)
+    Object.keys(Star.active).forEach(color => {
         const stars = Star.active[color];
         for (let i = stars.length - 1; i >= 0; i = i - 1) {
             const star = stars[i];
-            // Chỉ cập nhật mỗi ngôi sao một lần cho mỗi khung hình. Vì màu sắc có thể thay đổi nên có khả năng một ngôi sao có thể cập nhật hai lần mà không có điều này, dẫn đến một "bước nhảy".
             if (star.updateFrame === currentFrame) {
                 continue;
             }
@@ -2072,7 +2296,6 @@ function update(frameTime, lag) {
                 star.prevY = star.y;
                 star.x += star.speedX * speed;
                 star.y += star.speedY * speed;
-                // Áp dụng lực cản không khí nếu ngôi sao không "nặng". Tính chất nặng được sử dụng cho vỏ sao chổi.
                 if (!star.heavy) {
                     star.speedX *= starDrag;
                     star.speedY *= starDrag;
@@ -2104,12 +2327,12 @@ function update(frameTime, lag) {
                     }
                 }
 
-                // Xử lý chuyển tiếp ngôi sao
                 if (star.life < star.transitionTime) {
                     if (star.secondColor && !star.colorChanged) {
                         star.colorChanged = true;
                         star.color = star.secondColor;
                         stars.splice(i, 1);
+                        if (!Star.active[star.secondColor]) Star.active[star.secondColor] = [];
                         Star.active[star.secondColor].push(star);
                         if (star.secondColor === INVISIBLE) {
                             star.sparkFreq = 0;
@@ -2117,14 +2340,15 @@ function update(frameTime, lag) {
                     }
 
                     if (star.strobe) {
-                        // Nhấp nháy theo mẫu sau: on:off:off:on:off:off với gia số `strobeFreq` ms.
                         star.visible = Math.floor(star.life / star.strobeFreq) % 3 === 0;
                     }
                 }
             }
         }
+    });
 
-        // tia lửa
+    // Cập nhật Tia lửa (Sparks)
+    Object.keys(Spark.active).forEach(color => {
         const sparks = Spark.active[color];
         for (let i = sparks.length - 1; i >= 0; i = i - 1) {
             const spark = sparks[i];
@@ -2201,8 +2425,11 @@ function render(speed) {
     mainCtx.strokeStyle = '#fff';
     mainCtx.lineWidth = 1;
     mainCtx.beginPath();
-    COLOR_CODES.forEach(color => {
+    Object.keys(Star.active).forEach(color => {
+        if (color === INVISIBLE || color === '_pool') return;
         const stars = Star.active[color];
+        if (stars.length === 0) return;
+        
         trailsCtx.strokeStyle = color;
         trailsCtx.beginPath();
         stars.forEach(star => {
@@ -2220,8 +2447,11 @@ function render(speed) {
     // Vẽ tia lửa
     trailsCtx.lineWidth = Spark.drawWidth;
     trailsCtx.lineCap = 'butt';
-    COLOR_CODES.forEach(color => {
+    Object.keys(Spark.active).forEach(color => {
+        if (color === INVISIBLE || color === '_pool') return;
         const sparks = Spark.active[color];
+        if (sparks.length === 0) return;
+
         trailsCtx.strokeStyle = color;
         trailsCtx.beginPath();
         sparks.forEach(spark => {
@@ -2230,6 +2460,10 @@ function render(speed) {
         });
         trailsCtx.stroke();
     });
+
+
+    // Vẽ hình ảnh phóng to
+    ImageBurst.drawAll(mainCtx);
 
 
     // Hiển thị thanh tốc độ nếu hiển thị
@@ -2263,8 +2497,25 @@ function colorSky(speed) {
     targetSkyColor.b = 0;
     // Thêm từng màu đã biết vào bầu trời, nhân với số lượng hạt của màu đó. Điều này sẽ khiến các giá trị RGB vượt quá giới hạn nhưng chúng tôi sẽ điều chỉnh lại chúng sau.
     // Đồng thời cộng tổng số sao.
-    COLOR_CODES.forEach(color => {
-        const tuple = COLOR_TUPLES[color];
+    Object.keys(Star.active).forEach(color => {
+        if (color === INVISIBLE || color === '_pool') return;
+        let tuple = COLOR_TUPLES[color];
+        if (!tuple) {
+            // Phân tích màu rgb/hex nếu không có trong COLOR_TUPLES
+            if (color.startsWith('rgb')) {
+                const match = color.match(/\d+/g);
+                if (match) tuple = { r: parseInt(match[0]), g: parseInt(match[1]), b: parseInt(match[2]) };
+            } else if (color.startsWith('#')) {
+                const hex = color.substring(1);
+                tuple = {
+                    r: parseInt(hex.substring(0, 2), 16),
+                    g: parseInt(hex.substring(2, 4), 16),
+                    b: parseInt(hex.substring(4, 6), 16)
+                };
+            }
+        }
+        if (!tuple) tuple = { r: 255, g: 255, b: 255 };
+
         const count = Star.active[color].length;
         totalStarCount += count;
         targetSkyColor.r += tuple.r * count;
@@ -2537,6 +2788,30 @@ class Shell {
     }
 
     burst(x, y) {
+        // Nếu là loại hình ảnh, ta tạo ImageBurst thay vì pháo hạt
+        if (this.shell === 'Hình ảnh' && this.imageUrl) {
+            console.log('[Firework] Main simulation bursting image:', this.imageUrl);
+            const normalizedUrl = normalizeAssetPath(this.imageUrl);
+            const cacheKey = `${normalizedUrl}_${this.frame || ''}`;
+            const img = imageParticleCache.get(cacheKey);
+            if (img) {
+                // Lấy màu đầu tiên từ mảng color hoặc chính nó nếu là string
+                const burstColor = Array.isArray(this.color) ? this.color[0] : (this.color || COLOR.White);
+                ImageBurst.active.push(new ImageBurst(x, y, img, this.shellSize || 1, this.frame, burstColor));
+                console.log('[Firework] ImageBurst created on Main stage. Active list:', ImageBurst.active.length);
+                
+                // Kết xuất flash hàng đợi
+                BurstFlash.add(x, y, this.spreadSize / 4);
+                if (this.comet) {
+                    soundManager.playSound('burst', 1);
+                }
+                return;
+            } else {
+                console.warn('[Firework] Image not ready in Main simulation cache:', cacheKey);
+                window.preloadFireworkImage && window.preloadFireworkImage(this.imageUrl, this.frame);
+            }
+        }
+
         // Đặt tốc độ chụp liên tục để tổng số lần chụp tăng lên theo kích thước đã đặt. Công thức cụ thể này được rút ra từ thử nghiệm và bị ảnh hưởng bởi lực cản không khí mô phỏng.
         const speed = this.spreadSize / 96;
 
@@ -2680,7 +2955,7 @@ class Shell {
                 const star = Star.add(
                     x,
                     y,
-                    color,
+                    p.color || color,
                     0, // Angle không quan trọng vì ta sẽ ghi đè speedX/Y
                     0, // Speed không quan trọng vì ta sẽ ghi đè speedX/Y
                     this.starLife + Math.random() * this.starLife * this.starLifeVariation
@@ -2932,6 +3207,9 @@ const Spark = {
         instance.speedY = Math.cos(angle) * speed;
         instance.life = life;
 
+        if (!this.active[color]) {
+            this.active[color] = [];
+        }
         this.active[color].push(instance);
         return instance;
     },
