@@ -1761,9 +1761,12 @@ class Shell {
         }
     }
     launch(x, y) {
-        const targetX = x * miniMainStage.width;
-        const targetY = y * miniMainStage.height;
-        const startY = miniMainStage.height;
+        const width = miniMainStage.width;
+        const height = miniMainStage.height;
+
+        const targetX = x * width;
+        const targetY = y * height;
+        const startY = height;
 
         // Tính góc bắn và điểm nổ cuối dựa trên launchAngle
         const angleRad = (this.launchAngle || 0) * (Math.PI / 180);
@@ -1776,9 +1779,9 @@ class Shell {
         const launchDist = Math.sqrt(dx * dx + dy * dy);
         const launchAngle = Math.atan2(dy, dx);
 
-        const launchLife = (this.horsetail ? 100 : 600) + Math.random() * 200;
-        const rawSpeed = Math.max(launchDist * 0.035, 3);
-        const speed = rawSpeed * (this.ascentSpeed || 1);
+        const launchVelocity = Math.pow(launchDist * 0.04, 0.64) * (this.ascentSpeed || 1);
+        const speed = launchVelocity * (this.horsetail ? 1.2 : 1);
+        const launchLife = launchVelocity * (this.horsetail ? 100 : 400);
 
         let cometColor = this.color;
         if (Array.isArray(cometColor)) cometColor = cometColor[0];
@@ -1790,8 +1793,8 @@ class Shell {
         comet.sparkSpeed = 0.5;
         comet.sparkLife = 500;
         comet.sparkColor = cometColor;
-        comet.onDeath = () => {
-            this.burst(finalTargetX, targetY);
+        comet.onDeath = (c) => {
+            this.burst(c.x, c.y);
         };
     }
     burst(x, y) {
