@@ -1134,13 +1134,11 @@ async function saveConfig(isPreview = false) {
 
     let filename = document.getElementById('filename').value.trim();
 
-    if (!filename) {
-        if (isPreview) {
-            filename = 'preview_temp';
-        } else {
-            notify('Vui lòng nhập tên file!', 'warning');
-            return;
-        }
+    if (isPreview) {
+        filename = 'preview_temp';
+    } else if (!filename) {
+        notify('Vui lòng nhập tên file!', 'warning');
+        return;
     }
 
     // Xử lý tên file duy nhất nếu không phải xem thử
@@ -1547,9 +1545,11 @@ function loadConfigIntoState(config, filename) {
 
 function previewConfig() {
     saveConfig(true).then(filename => {
-        window.open(`index.html?config=${filename}`, '_blank');
+        if (filename) {
+            window.open(`index.html?config=${filename}`, '_blank');
+        }
     }).catch(err => {
-        console.error('Preview failed:', err);
+        // Lỗi đã được hiển thị trong saveConfig
     });
 }
 
