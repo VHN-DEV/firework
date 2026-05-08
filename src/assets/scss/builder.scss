@@ -1207,8 +1207,13 @@ select {
 }
 
 .btn-close-mini,
+.btn-play-mini,
 .btn-reset-mini,
 .btn-fullscreen-mini {
+    &.hide {
+        display: none !important;
+    }
+
     background: none !important;
     border: none !important;
     color: $text-muted !important;
@@ -1240,7 +1245,7 @@ select {
     width: 100% !important;
     flex: 1 !important;
     position: relative !important;
-    background: #000 !important;
+    background-color: #000;
 
     canvas {
         position: absolute !important;

@@ -272,6 +272,16 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsDataURL(file);
     });
 
+    document.getElementById('loop')?.addEventListener('change', (e) => {
+        const isLoop = e.target.checked;
+        if (isLoop) {
+            startMiniLoop();
+        } else {
+            stopMiniLoop();
+        }
+        document.getElementById('btn-play-mini')?.classList.toggle('hide', isLoop);
+    });
+
     // File Import
     document.getElementById('import-file')?.addEventListener('change', importConfig);
 
@@ -1943,6 +1953,7 @@ function updateGlobals(timeStep, lag) {
     renderMiniPreview();
 }
 
+let miniBgImage = null;
 function updateMiniPreviewBackground() {
     const container = document.querySelector('.mini-preview-canvas-container');
     if (!container) return;
@@ -1951,8 +1962,12 @@ function updateMiniPreviewBackground() {
         container.style.backgroundImage = `url(${bg})`;
         container.style.backgroundSize = 'cover';
         container.style.backgroundPosition = 'center';
+        
+        if (!miniBgImage) miniBgImage = new Image();
+        if (miniBgImage.src !== bg) miniBgImage.src = bg;
     } else {
         container.style.backgroundImage = 'none';
+        miniBgImage = null;
     }
 }
 
@@ -1966,9 +1981,20 @@ function renderMiniPreview() {
     trailsCtx.scale(dpr, dpr);
     mainCtx.scale(dpr, dpr);
 
-    trailsCtx.globalCompositeOperation = 'source-over';
-    trailsCtx.fillStyle = 'rgba(0, 0, 0, 0.175)';
-    trailsCtx.fillRect(0, 0, width, height);
+    if (state.showBackground) {
+        // When background is enabled, use destination-out to fade trails while keeping the canvas transparent.
+        // This allows the div's background-image to be visible through the firework trails.
+        trailsCtx.globalCompositeOperation = 'destination-out';
+        trailsCtx.fillStyle = 'rgba(0, 0, 0, 0.175)';
+        trailsCtx.fillRect(0, 0, width, height);
+        trailsCtx.globalCompositeOperation = 'source-over';
+    } else {
+        // Default: clear with semi-transparent black
+        trailsCtx.globalCompositeOperation = 'source-over';
+        trailsCtx.fillStyle = 'rgba(0, 0, 0, 0.175)';
+        trailsCtx.fillRect(0, 0, width, height);
+    }
+    
     mainCtx.clearRect(0, 0, width, height);
 
     trailsCtx.globalCompositeOperation = 'lighten';
@@ -2049,11 +2075,14 @@ function toggleMiniPreview(force) {
         el.style.height = (currentW / deviceRatio + nonCanvasH) + 'px';
 
         resizeMiniStages();
+        updateMiniPreviewBackground();
         if (!miniTickerAdded) {
             miniMainStage.addEventListener('ticker', updateMiniPreview);
             miniTickerAdded = true;
         }
-        startMiniLoop();
+        if (document.getElementById('loop').checked) {
+            startMiniLoop();
+        }
     } else {
         el.classList.add('hide');
         btn.classList.remove('primary');
@@ -2097,6 +2126,7 @@ fscreen.onfullscreenchange = () => {
 
 function startMiniLoop() {
     if (miniPreviewLoop) clearInterval(miniPreviewLoop);
+    miniBurstCounter = 0;
     miniPreviewLoop = setInterval(() => {
         if (!state.miniPreviewEnabled) return;
         if (state.activeEventId) {
@@ -2111,6 +2141,30 @@ function startMiniLoop() {
             events.forEach(e => setTimeout(() => launchEvent(e), Number(e.delay) || 0));
         }
     }, 2000);
+}
+
+function playMiniPreviewOnce() {
+    if (miniPreviewLoop) clearInterval(miniPreviewLoop);
+    if (state.events.length === 0) return;
+    
+    // Đặt lại counter và thông báo trạng thái
+    const info = document.getElementById('mini-preview-info');
+    if (info) info.innerText = 'Đang chạy kịch bản...';
+    
+    const maxBurst = Math.max(...state.events.map(e => Number(e.burst) || 1));
+    for (let b = 1; b <= maxBurst; b++) {
+        setTimeout(() => {
+            if (!state.miniPreviewEnabled || document.getElementById('loop').checked) return;
+            const events = state.events.filter(e => Number(e.burst || 1) === b);
+            events.forEach(e => setTimeout(() => launchEvent(e), Number(e.delay) || 0));
+            
+            if (b === maxBurst) {
+                setTimeout(() => {
+                    if (info && !state.activeEventId) info.innerText = 'Đã chạy xong';
+                }, 2000);
+            }
+        }, (b - 1) * 2000);
+    }
 }
 
 function stopMiniLoop() {
@@ -2340,6 +2394,7 @@ function selectEvent(id) {
 window.toggleMiniPreview = toggleMiniPreview;
 window.toggleFullscreenMiniPreview = toggleFullscreenMiniPreview;
 window.resetMiniPreviewSize = resetMiniPreviewSize;
+window.playMiniPreviewOnce = playMiniPreviewOnce;
 window.createNewScript = createNewScript;
 window.selectEvent = selectEvent;
 window.removeEvent = removeEvent;
