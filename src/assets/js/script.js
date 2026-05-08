@@ -3240,8 +3240,8 @@ const Star = {
         instance.prevX = x;
         instance.prevY = y;
         instance.color = finalColor;
-        instance.speedX = Math.sin(angle) * speed + (speedOffX || 0);
-        instance.speedY = Math.cos(angle) * speed + (speedOffY || 0);
+        instance.speedX = Math.cos(angle) * speed + (speedOffX || 0);
+        instance.speedY = Math.sin(angle) * speed + (speedOffY || 0);
         instance.life = life;
         instance.fullLife = life;
         instance.spinAngle = Math.random() * PI_2;
@@ -3298,8 +3298,8 @@ const Spark = {
         instance.prevX = x;
         instance.prevY = y;
         instance.color = color;
-        instance.speedX = Math.sin(angle) * speed;
-        instance.speedY = Math.cos(angle) * speed;
+        instance.speedX = Math.cos(angle) * speed;
+        instance.speedY = Math.sin(angle) * speed;
         instance.life = life;
 
         if (!this.active[color]) {
