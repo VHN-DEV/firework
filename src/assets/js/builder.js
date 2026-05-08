@@ -1957,10 +1957,14 @@ function updateMiniPreviewBackground() {
 }
 
 function renderMiniPreview() {
+    const { dpr } = miniMainStage;
     const trailsCtx = miniTrailsStage.ctx;
     const mainCtx = miniMainStage.ctx;
     const width = miniMainStage.width;
     const height = miniMainStage.height;
+
+    trailsCtx.scale(dpr, dpr);
+    mainCtx.scale(dpr, dpr);
 
     trailsCtx.globalCompositeOperation = 'source-over';
     trailsCtx.fillStyle = 'rgba(0, 0, 0, 0.175)';
@@ -1995,6 +1999,9 @@ function renderMiniPreview() {
     });
 
     ImageBurst.drawAll(miniMainStage.ctx);
+
+    trailsCtx.setTransform(1, 0, 0, 1, 0, 0);
+    mainCtx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 function resizeMiniStages() {
@@ -2148,10 +2155,10 @@ function initMiniResize() {
 
         if (resizeType === 'v') {
             newH = Math.max(150, startH + dy);
-            // Height only
+            newW = newH * deviceRatio;
         } else if (resizeType === 'h') {
             newW = Math.max(200, startW + dx);
-            // Width only
+            newH = newW / deviceRatio;
         } else {
             // Corner resize: maintain aspect ratio
             const scaleW = (startX - e.clientX + startW) / startW;
@@ -2165,11 +2172,11 @@ function initMiniResize() {
         // Check against viewport limits
         if (newW > window.innerWidth * 0.95) {
             newW = window.innerWidth * 0.95;
-            if (resizeType === 'both') newH = newW / deviceRatio;
+            newH = newW / deviceRatio;
         }
         if (newH > window.innerHeight * 0.8) {
             newH = window.innerHeight * 0.8;
-            if (resizeType === 'both') newW = newH * deviceRatio;
+            newW = newH * deviceRatio;
         }
 
         container.style.width = newW + 'px';
