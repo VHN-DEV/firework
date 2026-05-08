@@ -1469,6 +1469,19 @@ const imageShell = (size = 1) => {
     };
 };
 
+const multiBurstShell = (size = 1) => {
+    const color = randomColor({ limitWhite: true });
+    return {
+        shellSize: size,
+        spreadSize: 300 + size * 100,
+        starLife: 900 + size * 200,
+        starDensity: 1.2,
+        color,
+        multiBurst: true,
+        glitter: 'light'
+    };
+};
+
 const shellTypes = {
     'Ngẫu nhiên': randomShell,
     'Trái tim': heartShell,
@@ -1484,6 +1497,7 @@ const shellTypes = {
     'Bông sen': lotusShell,
     'Con bướm': butterflyShell,
     'Kim cương': diamondShell,
+    'Nổ nhiều lần': multiBurstShell,
     'Nổ lách tách': crackleShell,
     'Nổ chéo': crossetteShell,
     'Hoa cúc': crysanthemumShell,
@@ -2870,6 +2884,29 @@ class Shell {
             } else {
                 console.warn('[Firework] Image not ready in Main simulation cache:', cacheKey);
                 window.preloadFireworkImage && window.preloadFireworkImage(this.imageUrl, this.frame);
+            }
+        }
+
+        // Handle multi-burst logic
+        if (this.multiBurst && !this.isSubBurst) {
+            const count = 4 + Math.floor(Math.random() * 4);
+            for (let i = 0; i < count; i++) {
+                const delay = 400 + Math.random() * 1200;
+                setTimeout(() => {
+                    if (!isRunning()) return;
+                    const offsetX = (Math.random() - 0.5) * this.spreadSize * 1.8;
+                    const offsetY = (Math.random() - 0.5) * this.spreadSize * 1.8;
+                    const subShell = new Shell({
+                        shellSize: this.shellSize * 0.7,
+                        spreadSize: this.spreadSize * 0.6,
+                        starLife: this.starLife * 0.8,
+                        color: this.color === 'random' ? randomColor() : this.color,
+                        glitter: this.glitter,
+                        glitterColor: this.glitterColor,
+                        isSubBurst: true
+                    });
+                    subShell.burst(x + offsetX, y + offsetY);
+                }, delay);
             }
         }
 
