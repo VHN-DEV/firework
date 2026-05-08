@@ -2758,6 +2758,10 @@ function crackleEffect(star) {
 class Shell {
     constructor(options) {
         Object.assign(this, options);
+        // Safety clamp for launch angle
+        if (this.launchAngle !== undefined) {
+            this.launchAngle = Math.max(-80, Math.min(80, this.launchAngle));
+        }
         this.starLifeVariation = options.starLifeVariation || 0.125;
         this.color = options.color || randomColor();
         this.glitterColor = options.glitterColor || this.color;
@@ -2773,18 +2777,9 @@ class Shell {
     launch(position, launchHeight) {
         const width = stageW;
         const height = stageH;
-        // Khoảng cách từ các cạnh của màn hình để giữ vỏ.
-        const hpad = 60;
-        // Khoảng cách từ đỉnh màn hình để giữ cho vỏ nổ.
-        const vpad = 50;
-        // Chiều cao bùng nổ tối thiểu, tính theo phần trăm chiều cao sân khấu
-        const minHeightPercent = 0.45;
-        // Chiều cao bùng nổ tối thiểu tính bằng px
-        const minHeight = height - height * minHeightPercent;
-
-        const launchX = position * (width - hpad * 2) + hpad;
+        const launchX = position * width;
         const launchY = height;
-        const burstY = minHeight - (launchHeight * (minHeight - vpad));
+        const burstY = launchHeight * height;
 
         this.launchAt(launchX, burstY);
     }
