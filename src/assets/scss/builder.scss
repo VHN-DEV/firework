@@ -1207,6 +1207,7 @@ select {
 }
 
 .btn-close-mini,
+.btn-reset-mini,
 .btn-fullscreen-mini {
     background: none !important;
     border: none !important;
@@ -1228,6 +1229,10 @@ select {
 }
 
 .btn-fullscreen-mini:hover {
+    color: $accent !important;
+}
+
+.btn-reset-mini:hover {
     color: $accent !important;
 }
 
