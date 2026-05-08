@@ -29,8 +29,6 @@ const state = {
 const isStaticEnv = window.location.hostname.includes('github.io') ||
     window.location.hostname.includes('vercel.app') ||
     window.location.hostname.includes('netlify.app') ||
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1' ||
     window.location.protocol === 'file:';
 
 
@@ -937,6 +935,9 @@ async function getUniqueFilename(requestedName, currentFilename) {
 }
 
 async function saveConfig(isPreview = false) {
+    // If called from event listener, isPreview will be the event object (truthy)
+    if (typeof isPreview !== 'boolean') isPreview = false;
+
     let filename = document.getElementById('filename').value.trim();
 
     if (!filename) {
@@ -986,6 +987,11 @@ async function saveConfig(isPreview = false) {
                     document.getElementById('save-spinner').classList.add('hide');
                     document.getElementById('save-actions').classList.remove('hide');
                     updateShareBar(filename);
+
+                    // Auto-close modal after success message
+                    setTimeout(() => {
+                        hideModal('save-modal');
+                    }, 1500);
                 }
                 resolve(filename);
             }, 500);
@@ -1006,6 +1012,11 @@ async function saveConfig(isPreview = false) {
                     document.getElementById('save-spinner').classList.add('hide');
                     document.getElementById('save-actions').classList.remove('hide');
                     updateShareBar(data.filename);
+
+                    // Auto-close modal after success message
+                    setTimeout(() => {
+                        hideModal('save-modal');
+                    }, 1500);
                 }
                 return data.filename;
             } else {
@@ -1038,6 +1049,12 @@ function updateShareBar(filename) {
 
     shareUrl.innerText = url;
     shareBar.classList.remove('hide');
+    
+    // Add highlight effect
+    shareBar.classList.add('highlight-save');
+    setTimeout(() => {
+        shareBar.classList.remove('highlight-save');
+    }, 2000);
 }
 
 
@@ -1115,6 +1132,11 @@ function loadScriptsList() {
                 const isPrivate = script.status === 'private';
                 const isLocal = script.status === 'local';
 
+                item.onclick = (e) => {
+                    if (e.target.closest('.btn')) return;
+                    copyScriptLink(script.id);
+                };
+
                 item.innerHTML = `
                 <h4>${isPrivate ? '<i class="fas fa-lock" title="Riêng tư"></i> ' : ''}${isLocal ? '<i class="fas fa-laptop" title="Lưu cục bộ"></i> ' : ''}${script.title}</h4>
                 <div class="meta">
@@ -1124,7 +1146,7 @@ function loadScriptsList() {
                 <div class="script-actions">
                     <button class="btn primary small" onclick="editScript('${script.id}')" title="Sửa"><i class="fas fa-edit"></i></button>
                     <button class="btn secondary small" onclick="duplicateScript('${script.id}')" title="Nhân bản"><i class="fas fa-copy"></i></button>
-                    <button class="btn secondary small" onclick="copyScriptLink('${script.id}')" title="Sao chép link"><i class="fas fa-link"></i></button>
+                    <button class="btn secondary small" onclick="previewScript('${script.id}')" title="Xem thử"><i class="fas fa-play"></i></button>
                     ${(!isPrivate || isLocal) ? `<button class="btn danger small" onclick="deleteScript('${script.id}')"><i class="fas fa-trash"></i></button>` : ''}
                 </div>
             `;
@@ -1163,6 +1185,11 @@ async function duplicateScript(filename) {
         })
         .then(handleConfig)
         .catch(err => notify('Không thể nhân bản kịch bản: ' + err.message, 'error'));
+}
+
+function previewScript(filename) {
+    const url = window.location.origin + window.location.pathname.replace('builder.html', 'index.html') + '?config=' + filename;
+    window.open(url, '_blank');
 }
 
 function editScript(filename) {
@@ -1352,6 +1379,7 @@ window.deleteScript = deleteScript;
 window.addColorToEvent = addColorToEvent;
 window.removeColorFromEvent = removeColorFromEvent;
 window.copyScriptLink = copyScriptLink;
+window.previewScript = previewScript;
 window.toggleFullscreenMiniPreview = toggleFullscreenMiniPreview;
 
 /**

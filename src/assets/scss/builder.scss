@@ -669,6 +669,8 @@ select {
     flex-direction: column;
     gap: 0.5rem;
 
+    cursor: pointer;
+
     &:hover {
         border-color: $primary;
         transform: translateY(-2px);
@@ -1351,6 +1353,18 @@ select {
     &.hide {
         display: none;
     }
+
+    &.highlight-save {
+        animation: highlightPulse 2s ease;
+        border-color: $accent;
+        box-shadow: 0 0 20px rgba($accent, 0.4);
+    }
+}
+
+@keyframes highlightPulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba($accent, 0.7); }
+    50% { transform: scale(1.02); box-shadow: 0 0 20px 10px rgba($accent, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba($accent, 0); }
 }
 
 .share-info {
