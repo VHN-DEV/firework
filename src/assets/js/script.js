@@ -1540,20 +1540,28 @@ window.preloadFireworkImage = (url, frame) => {
 
 function normalizeAssetPath(path) {
     if (!path) return path;
-    const isDist = window.location.pathname.includes('/dist/') || !window.location.port || window.location.port === '80';
+    
+    // Check if we are in a built environment
+    const isStaticHost = window.location.hostname.includes('github.io') || 
+                         window.location.hostname.includes('vercel.app') || 
+                         window.location.hostname.includes('netlify.app');
+    
+    const isDist = isStaticHost || 
+                   window.location.pathname.includes('/dist/') || 
+                   window.location.pathname.includes('/build/');
     
     // Xử lý đường dẫn tương đối
     let cleanPath = path.replace(/^\.\//, '');
     
     if (isDist) {
-        // Trong dist, nếu đường dẫn có 'src/assets/', chuyển thành 'assets/'
+        // Trong môi trường production/dist, chuyển 'src/assets/' thành 'assets/'
         if (cleanPath.startsWith('src/assets/')) {
             cleanPath = cleanPath.replace('src/assets/', 'assets/');
         }
-        // Luôn đảm bảo không có 'dist/' lặp lại trong đường dẫn nếu ta đã ở trong dist
+        // Đảm bảo đường dẫn là tương đối từ gốc site
         return './' + cleanPath.replace(/^dist\//, '');
     } else {
-        // Trong dev (src), đảm bảo có 'src/assets/' nếu nó trỏ vào assets
+        // Trong môi trường dev, đảm bảo có 'src/assets/'
         if (cleanPath.startsWith('assets/') && !cleanPath.startsWith('src/assets/')) {
             cleanPath = 'src/' + cleanPath;
         }

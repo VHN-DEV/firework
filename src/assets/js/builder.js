@@ -62,20 +62,28 @@ const imageParticleCache = new Map();
 
 function normalizeAssetPath(path) {
     if (!path) return path;
-    const isDist = window.location.pathname.includes('/dist/') || !window.location.port || window.location.port === '80';
+    
+    // Check if we are in a built environment (no src in path or on static host)
+    const isStaticHost = window.location.hostname.includes('github.io') || 
+                         window.location.hostname.includes('vercel.app') || 
+                         window.location.hostname.includes('netlify.app');
+    
+    const isDist = isStaticHost || 
+                   window.location.pathname.includes('/dist/') || 
+                   window.location.pathname.includes('/build/');
 
     // Xử lý đường dẫn tương đối
     let cleanPath = path.replace(/^\.\//, '');
 
     if (isDist) {
-        // Trong dist, nếu đường dẫn có 'src/assets/', chuyển thành 'assets/'
+        // Trong môi trường production/dist, chuyển 'src/assets/' thành 'assets/'
         if (cleanPath.startsWith('src/assets/')) {
             cleanPath = cleanPath.replace('src/assets/', 'assets/');
         }
-        // Luôn đảm bảo không có 'dist/' lặp lại trong đường dẫn nếu ta đã ở trong dist
+        // Đảm bảo đường dẫn là tương đối từ gốc site
         return './' + cleanPath.replace(/^dist\//, '');
     } else {
-        // Trong dev (src), đảm bảo có 'src/assets/' nếu nó trỏ vào assets
+        // Trong môi trường dev, đảm bảo có 'src/assets/'
         if (cleanPath.startsWith('assets/') && !cleanPath.startsWith('src/assets/')) {
             cleanPath = 'src/' + cleanPath;
         }
@@ -195,10 +203,8 @@ window.preloadFireworkImage = (url, frame) => {
     const normalizedUrl = normalizeAssetPath(url);
     const cacheKey = `${normalizedUrl}_${frame || ''}`;
     if (!imageParticleCache.has(cacheKey)) {
-        console.log('[Builder] Preloading image:', normalizedUrl);
         const img = new Image();
         img.onload = () => {
-            console.log('[Builder] Image loaded successfully:', normalizedUrl);
             const processed = getProcessedImage(img, frame);
             imageParticleCache.set(cacheKey, processed);
         };
@@ -308,6 +314,67 @@ function notify(message, type = 'info') {
         toast.classList.add('fade-out');
         setTimeout(() => toast.remove(), 300);
     }, 4000);
+}
+
+function showLoading(message = 'Đang xử lý...') {
+    const loader = document.getElementById('global-loading');
+    const msgEl = document.getElementById('loading-message');
+    if (loader && msgEl) {
+        msgEl.innerText = message;
+        loader.classList.remove('hide');
+    }
+}
+
+function hideLoading() {
+    const loader = document.getElementById('global-loading');
+    if (loader) {
+        loader.classList.add('hide');
+    }
+}
+
+function validateConfig() {
+    let isValid = true;
+    const errors = [];
+
+    // Reset previous errors
+    document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    document.querySelectorAll('.validation-error-text').forEach(el => el.remove());
+
+    const filenameInput = document.getElementById('filename');
+    const filename = filenameInput.value.trim();
+
+    if (!filename) {
+        isValid = false;
+        errors.push('Tên file không được để trống');
+        filenameInput.classList.add('is-invalid');
+    } else if (!/^[a-zA-Z0-9_-]+$/.test(filename)) {
+        isValid = false;
+        errors.push('Tên file chỉ được chứa chữ cái, số, gạch nối và gạch dưới');
+        filenameInput.classList.add('is-invalid');
+    }
+
+    if (state.events.length === 0) {
+        isValid = false;
+        errors.push('Kịch bản phải có ít nhất một phát bắn');
+    }
+
+    if (state.events.length > 200) {
+        isValid = false;
+        errors.push('Kịch bản quá lớn (tối đa 200 phát bắn)');
+    }
+
+    // Check for high burst counts
+    const highBurstEvent = state.events.find(e => e.burst > 100);
+    if (highBurstEvent) {
+        isValid = false;
+        errors.push(`Phát bắn #${state.events.indexOf(highBurstEvent) + 1} có số đợt quá lớn (tối đa 100)`);
+    }
+
+    if (!isValid) {
+        errors.forEach(err => notify(err, 'error'));
+    }
+
+    return isValid;
 }
 
 function confirmAction(message, onConfirm) {
@@ -683,7 +750,25 @@ async function handleImageUpload(id, input) {
         return;
     }
 
-    notify('Đang tải ảnh lên...', 'info');
+    showLoading('Đang xử lý hình ảnh...');
+
+    if (isStaticEnv) {
+        // Trên GitHub Pages hoặc môi trường tĩnh, dùng FileReader để lấy DataURL
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            updateEvent(id, 'imageUrl', dataUrl);
+            renderEventList();
+            hideLoading();
+            notify('Đã tải ảnh lên (Lưu cục bộ dưới dạng DataURL)!', 'success');
+        };
+        reader.onerror = () => {
+            hideLoading();
+            notify('Lỗi khi đọc file ảnh.', 'error');
+        };
+        reader.readAsDataURL(file);
+        return;
+    }
 
     const formData = new FormData();
     formData.append('image', file);
@@ -696,6 +781,7 @@ async function handleImageUpload(id, input) {
         });
         const data = await response.json();
 
+        hideLoading();
         if (data.success) {
             updateEvent(id, 'imageUrl', data.url);
             renderEventList();
@@ -704,7 +790,7 @@ async function handleImageUpload(id, input) {
             notify('Lỗi: ' + data.message, 'error');
         }
     } catch (e) {
-        console.error(e);
+        hideLoading();
         notify('Lỗi kết nối khi tải ảnh.', 'error');
     }
 }
@@ -938,6 +1024,10 @@ async function saveConfig(isPreview = false) {
     // If called from event listener, isPreview will be the event object (truthy)
     if (typeof isPreview !== 'boolean') isPreview = false;
 
+    if (!isPreview && !validateConfig()) {
+        return;
+    }
+
     let filename = document.getElementById('filename').value.trim();
 
     if (!filename) {
@@ -970,7 +1060,7 @@ async function saveConfig(isPreview = false) {
         document.getElementById('save-spinner').classList.remove('hide');
         document.getElementById('save-actions').classList.add('hide');
     } else {
-        notify('Đang chuẩn bị xem thử...', 'info');
+        showLoading('Đang chuẩn bị xem thử...');
     }
 
     if (isStaticEnv) {
@@ -992,6 +1082,8 @@ async function saveConfig(isPreview = false) {
                     setTimeout(() => {
                         hideModal('save-modal');
                     }, 1500);
+                } else {
+                    hideLoading();
                 }
                 resolve(filename);
             }, 500);
@@ -1017,9 +1109,12 @@ async function saveConfig(isPreview = false) {
                     setTimeout(() => {
                         hideModal('save-modal');
                     }, 1500);
+                } else {
+                    hideLoading();
                 }
                 return data.filename;
             } else {
+                hideLoading();
                 if (!isPreview) {
                     notify('Lỗi: ' + data.message, 'error');
                     hideModal('save-modal');
@@ -1030,11 +1125,11 @@ async function saveConfig(isPreview = false) {
             }
         })
         .catch(error => {
+            hideLoading();
             if (!isPreview) {
                 hideModal('save-modal');
                 notify('Đã xảy ra lỗi khi lưu kịch bản.', 'error');
             }
-            console.error(error);
         })
         .finally(() => {
             if (saveBtn) saveBtn.disabled = false;
@@ -1049,7 +1144,7 @@ function updateShareBar(filename) {
 
     shareUrl.innerText = url;
     shareBar.classList.remove('hide');
-    
+
     // Add highlight effect
     shareBar.classList.add('highlight-save');
     setTimeout(() => {
@@ -1160,13 +1255,14 @@ function loadScriptsList() {
 
 
 async function duplicateScript(filename) {
-    notify('Đang chuẩn bị nhân bản...', 'info');
+    showLoading('Đang nhân bản kịch bản...');
 
     const handleConfig = async (config) => {
         const newName = await getUniqueFilename(filename + '_copy', '');
         loadConfigIntoState(config, newName);
         hideModal('scripts-modal');
         document.getElementById('share-bar').classList.add('hide');
+        hideLoading();
         notify(`Đã nhân bản kịch bản thành: ${newName}`, 'success');
     };
 
@@ -1184,7 +1280,10 @@ async function duplicateScript(filename) {
             return response.json();
         })
         .then(handleConfig)
-        .catch(err => notify('Không thể nhân bản kịch bản: ' + err.message, 'error'));
+        .catch(err => {
+            hideLoading();
+            notify('Không thể nhân bản kịch bản: ' + err.message, 'error');
+        });
 }
 
 function previewScript(filename) {
@@ -1193,7 +1292,7 @@ function previewScript(filename) {
 }
 
 function editScript(filename) {
-    notify('Đang tải kịch bản...', 'info');
+    showLoading('Đang tải kịch bản...');
 
     if (isStaticEnv) {
         const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
@@ -1201,6 +1300,7 @@ function editScript(filename) {
             loadConfigIntoState(localScripts[filename], filename);
             hideModal('scripts-modal');
             updateShareBar(filename);
+            hideLoading();
             notify('Đã tải kịch bản thành công!', 'success');
             return;
         }
@@ -1215,15 +1315,19 @@ function editScript(filename) {
             loadConfigIntoState(config, filename);
             hideModal('scripts-modal');
             updateShareBar(filename);
+            hideLoading();
             notify('Đã tải kịch bản thành công!', 'success');
         })
-        .catch(err => notify('Không thể tải kịch bản: ' + err.message, 'error'));
+        .catch(err => {
+            hideLoading();
+            notify('Không thể tải kịch bản: ' + err.message, 'error');
+        });
 }
 
 
 function deleteScript(filename) {
     confirmAction(`Bạn có chắc chắn muốn xóa kịch bản "${filename}"?`, () => {
-        notify('Đang xóa kịch bản...', 'info');
+        showLoading('Đang xóa kịch bản...');
 
         if (isStaticEnv) {
             const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
@@ -1234,6 +1338,7 @@ function deleteScript(filename) {
                 if (state.currentFilename === filename) {
                     document.getElementById('share-bar').classList.add('hide');
                 }
+                hideLoading();
                 notify('Đã xóa kịch bản thành công!', 'success');
                 return;
             }
@@ -1249,6 +1354,7 @@ function deleteScript(filename) {
                 return response.json();
             })
             .then(data => {
+                hideLoading();
                 if (data.success) {
                     loadScriptsList();
                     if (state.currentFilename === filename) {
@@ -1259,7 +1365,10 @@ function deleteScript(filename) {
                     notify('Lỗi: ' + data.message, 'error');
                 }
             })
-            .catch(err => notify('Lỗi khi xóa: ' + err.message, 'error'));
+            .catch(err => {
+                hideLoading();
+                notify('Lỗi khi xóa: ' + err.message, 'error');
+            });
     });
 }
 
@@ -1282,17 +1391,24 @@ function importConfig(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = function (e) {
-        try {
-            const config = JSON.parse(e.target.result);
-            loadConfigIntoState(config, file.name.replace('.json', ''));
-            notify('Đã nhập kịch bản thành công!', 'success');
-        } catch (err) {
-            notify('Lỗi: File JSON không đúng định dạng.', 'error');
-        }
-    };
-    reader.readAsText(file);
+    confirmAction('Việc nhập kịch bản mới sẽ ghi đè lên kịch bản hiện tại. Bạn có chắc chắn muốn tiếp tục?', () => {
+        showLoading('Đang nhập kịch bản...');
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            try {
+                const config = JSON.parse(e.target.result);
+                loadConfigIntoState(config, file.name.replace('.json', ''));
+                hideLoading();
+                notify('Đã nhập kịch bản thành công!', 'success');
+            } catch (err) {
+                hideLoading();
+                notify('Lỗi: File JSON không đúng định dạng.', 'error');
+            }
+        };
+        reader.readAsText(file);
+    });
+    // Reset input
+    e.target.value = '';
 }
 
 function loadConfigIntoState(config, filename) {
