@@ -2071,7 +2071,8 @@ function startSequence() {
                         'comet', 'starLife', 'starDensity', 'spreadSize',
                         'starCount', 'starLifeVariation', 'glitter', 'secondColor',
                         'transitionTime', 'floral', 'ring', 'strobeFreq',
-                        'launchAngle', 'ascentSpeed', 'rotation'
+                        'launchAngle', 'ascentSpeed', 'rotation',
+                        'liftSound', 'burstSound'
                     ];
 
                     overrides.forEach(prop => {
@@ -2832,7 +2833,14 @@ class Shell {
 
         comet.onDeath = comet => this.burst(comet.x, comet.y);
 
-        soundManager.playSound('lift');
+        // Âm thanh phóng tùy chỉnh
+        if (this.liftSound === 'none') {
+            // Im lặng
+        } else if (this.liftSound && soundManager.sources[this.liftSound]) {
+            soundManager.playSound(this.liftSound);
+        } else {
+            soundManager.playSound('lift');
+        }
     }
 
     burst(x, y) {
@@ -2877,7 +2885,9 @@ class Shell {
         }
         if (this.crackle) onDeath = (star) => {
             if (!playedDeathSound) {
-                soundManager.playSound('crackle');
+                // Âm thanh nổ tùy chỉnh cho crackle
+                const snd = this.burstSound !== undefined ? this.burstSound : 'crackle';
+                if (snd !== 'none' && snd) soundManager.playSound(snd);
                 playedDeathSound = true;
             }
             crackleEffect(star);
@@ -3134,14 +3144,19 @@ class Shell {
         // Điều này có thể được phát hiện bởi sự hiện diện của sao chổi.
         if (this.comet) {
             // Chia tỷ lệ âm thanh nổ dựa trên kích thước vỏ hiện tại và kích thước vỏ đã chọn (tối đa).
-            // Chụp kích thước vỏ đã chọn sẽ luôn phát ra âm thanh giống nhau bất kể kích thước đã chọn,
-            // nhưng khi đạn nhỏ hơn được bắn tự động, chúng sẽ phát ra âm thanh nhỏ hơn. Nghe có vẻ không hay lắm
-            // Tuy nhiên, khi một giá trị quá nhỏ được đưa ra, thay vì dựa vào tỷ lệ, chúng ta chỉ
-            // hãy nhìn vào sự khác biệt về kích thước và ánh xạ nó tới một phạm vi được cho là có âm thanh hay.
             const maxDiff = 2;
             const sizeDifferenceFromMaxSize = Math.min(maxDiff, shellSizeSelector() - this.shellSize);
             const soundScale = (1 - sizeDifferenceFromMaxSize / maxDiff) * 0.3 + 0.7;
-            soundManager.playSound('burst', soundScale);
+
+            // Âm thanh nổ tùy chỉnh
+            const burstSnd = this.burstSound;
+            if (burstSnd === 'none') {
+                // Im lặng
+            } else if (burstSnd && soundManager.sources[burstSnd]) {
+                soundManager.playSound(burstSnd, soundScale);
+            } else {
+                soundManager.playSound('burst', soundScale);
+            }
         }
     }
 }

@@ -445,6 +445,8 @@ function addEvent(config = null) {
             launchAngle: 0,
             ascentSpeed: 1,
             rotation: undefined,
+            liftSound: '',
+            burstSound: '',
             expanded: false,
             ...config,
             id: id
@@ -483,6 +485,8 @@ function addEvent(config = null) {
             launchAngle: 0,
             ascentSpeed: 1,
             rotation: undefined,
+            liftSound: '',
+            burstSound: '',
             expanded: false
         };
     }
@@ -738,6 +742,32 @@ function createEventCard(event, index) {
                 <input type="number" step="15" min="-180" max="180" value="${event.rotation !== undefined ? event.rotation : ''}" placeholder="Ngẫu nhiên" onchange="updateEvent(${event.id}, 'rotation', this.value === '' ? undefined : this.value)">
             </div>
         </div>
+
+        <div class="event-grid-physics">
+            <div class="form-group">
+                <label>Âm thanh phóng</label>
+                <select onchange="updateEvent(${event.id}, 'liftSound', this.value)">
+                    <option value="" ${!event.liftSound ? 'selected' : ''}>Mặc định</option>
+                    <option value="burstSmall" ${event.liftSound === 'burstSmall' ? 'selected' : ''}>Nhỏ</option>
+                    <option value="crackleSmall" ${event.liftSound === 'crackleSmall' ? 'selected' : ''}>Lách tách</option>
+                    <option value="none" ${event.liftSound === 'none' ? 'selected' : ''}>Im lặng</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Âm thanh nổ</label>
+                <select onchange="updateEvent(${event.id}, 'burstSound', this.value)">
+                    <option value="" ${!event.burstSound ? 'selected' : ''}>Mặc định</option>
+                    <option value="burstSmall" ${event.burstSound === 'burstSmall' ? 'selected' : ''}>Nhỏ</option>
+                    <option value="crackle" ${event.burstSound === 'crackle' ? 'selected' : ''}>Lách tách to</option>
+                    <option value="crackleSmall" ${event.burstSound === 'crackleSmall' ? 'selected' : ''}>Lách tách nhỏ</option>
+                    <option value="none" ${event.burstSound === 'none' ? 'selected' : ''}>Im lặng</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <!-- placeholder to keep 3-col grid -->
+            </div>
+        </div>
+
 
         ${event.shell === 'Hình ảnh' ? `
             <div class="image-upload-section">
@@ -1880,7 +1910,9 @@ function getMiniShellType(event, size) {
         strobeFreq: event.strobeFreq,
         launchAngle: event.launchAngle,
         ascentSpeed: event.ascentSpeed,
-        rotation: event.rotation
+        rotation: event.rotation,
+        liftSound: event.liftSound,
+        burstSound: event.burstSound
     };
 
     if (event.starLife) base.starLife = event.starLife;
