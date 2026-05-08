@@ -1572,7 +1572,7 @@ function normalizeAssetPath(path) {
 async function loadBurstConfig() {
     const urlParams = new URLSearchParams(window.location.search);
     const configName = urlParams.get('config');
-    if (!configName) return;
+    if (!configName || configName === 'undefined') return;
 
     try {
         const isStaticEnv = window.location.hostname.includes('github.io') || 
@@ -3469,7 +3469,7 @@ const soundManager = {
             volume: 0.7,
             playbackRateMin: 0.9,
             playbackRateMax: 1.1,
-            fileNames: ['whistle/whistle-jauk.mp3', 'whistle/whistling-rocket.mp3', 'whistle/tiny-rocket.mp3']
+            fileNames: ['whistle/firework-whistle.mp3', 'whistle/whistling-rocket.mp3', 'whistle/tiny_rocketwav.mp3']
         },
         burstOut: {
             label: 'Nổ – Tỏa rộng',
