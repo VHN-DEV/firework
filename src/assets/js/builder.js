@@ -45,7 +45,7 @@ const PI_2 = Math.PI * 2;
 const GRAVITY = 0.9;
 
 const SHELL_TYPES = [
-    "Hoa cúc", "Văn bản", "Hình ảnh", "Liễu", "Trái tim", "Ngôi sao",
+    "Hoa cúc", "Nổ nhiều lần", "Văn bản", "Hình ảnh", "Liễu", "Trái tim", "Ngôi sao",
     "Kim cương", "Bông tuyết", "Bông sen", "Hành tinh",
     "Mặt cười", "Mặt mèo", "Vòng nhẫn", "Nổ chéo",
     "Cây cọ", "Ma", "Đuôi ngựa", "Nhấp nháy", "Nổ lách tách", "Tạm dừng"
