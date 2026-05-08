@@ -586,6 +586,20 @@ select {
     }
 }
 
+.fab.show-mobile {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, $primary 0%, $accent 100%);
+
+    &:hover {
+        transform: scale(1.1) rotate(90deg);
+        box-shadow: 0 15px 30px rgba($primary, 0.6);
+    }
+}
+
 @keyframes fabPulse {
     0% {
         box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7);
