@@ -38,7 +38,15 @@ export default defineConfig({
             else subDir = 'misc';
           }
 
+          // Special case: audio files under src/assets/audio/ — preserve subdir
+          if (originalFileName && originalFileName.startsWith('src/assets/audio/')) {
+            // e.g. src/assets/audio/lift/lift1.mp3 → assets/audio/lift/lift1.mp3
+            const audioRel = originalFileName.replace('src/assets/audio/', '');
+            return `assets/audio/${audioRel}`;
+          }
+
           return `assets/${subDir}/[name][extname]`;
+
         },
       },
     },
