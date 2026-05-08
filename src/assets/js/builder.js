@@ -2023,6 +2023,16 @@ function updateMiniPreview(frameTime, lag) {
     ImageBurst.updateAll(timeStep);
 }
 
+
+
+function getNonCanvasHeight() {
+    const el = document.getElementById('mini-preview');
+    if (!el) return 0;
+    const header = el.querySelector('.mini-preview-header');
+    const info = el.querySelector('.mini-preview-info');
+    return (header ? header.offsetHeight : 0) + (info ? info.offsetHeight : 0);
+}
+
 function toggleMiniPreview(force) {
     state.miniPreviewEnabled = force !== undefined ? force : !state.miniPreviewEnabled;
     const el = document.getElementById('mini-preview');
@@ -2032,10 +2042,11 @@ function toggleMiniPreview(force) {
         btn.classList.add('primary');
         btn.classList.remove('secondary');
 
-        // Cập nhật tỉ lệ theo thiết bị hiện tại
+        // Cập nhật tỉ lệ theo thiết bị hiện tại (Chỉ tính riêng phần Canvas)
         const deviceRatio = window.innerWidth / window.innerHeight;
         const currentW = el.offsetWidth;
-        el.style.height = (currentW / deviceRatio) + 'px';
+        const nonCanvasH = getNonCanvasHeight();
+        el.style.height = (currentW / deviceRatio + nonCanvasH) + 'px';
 
         resizeMiniStages();
         if (!miniTickerAdded) {
@@ -2146,6 +2157,7 @@ function initMiniResize() {
         if (!isResizingMini) return;
 
         // Use a consistent ratio during a single resize operation
+        const nonCanvasH = getNonCanvasHeight();
         const deviceRatio = window.innerWidth / window.innerHeight;
         let newW = startW;
         let newH = startH;
@@ -2155,28 +2167,28 @@ function initMiniResize() {
 
         if (resizeType === 'v') {
             newH = Math.max(150, startH + dy);
-            newW = newH * deviceRatio;
+            newW = (newH - nonCanvasH) * deviceRatio;
         } else if (resizeType === 'h') {
             newW = Math.max(200, startW + dx);
-            newH = newW / deviceRatio;
+            newH = (newW / deviceRatio) + nonCanvasH;
         } else {
-            // Corner resize: maintain aspect ratio
+            // Corner resize: maintain aspect ratio of canvas area
             const scaleW = (startX - e.clientX + startW) / startW;
             const scaleH = (startY - e.clientY + startH) / startH;
             const scale = Math.max(scaleW, scaleH);
 
             newW = Math.max(200, startW * scale);
-            newH = newW / deviceRatio;
+            newH = (newW / deviceRatio) + nonCanvasH;
         }
 
         // Check against viewport limits
         if (newW > window.innerWidth * 0.95) {
             newW = window.innerWidth * 0.95;
-            newH = newW / deviceRatio;
+            newH = (newW / deviceRatio) + nonCanvasH;
         }
         if (newH > window.innerHeight * 0.8) {
             newH = window.innerHeight * 0.8;
-            newW = newH * deviceRatio;
+            newW = (newH - nonCanvasH) * deviceRatio;
         }
 
         container.style.width = newW + 'px';
