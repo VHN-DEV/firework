@@ -62,15 +62,15 @@ const imageParticleCache = new Map();
 
 function normalizeAssetPath(path) {
     if (!path) return path;
-    
+
     // Check if we are in a built environment (no src in path or on static host)
-    const isStaticHost = window.location.hostname.includes('github.io') || 
-                         window.location.hostname.includes('vercel.app') || 
-                         window.location.hostname.includes('netlify.app');
-    
-    const isDist = isStaticHost || 
-                   window.location.pathname.includes('/dist/') || 
-                   window.location.pathname.includes('/build/');
+    const isStaticHost = window.location.hostname.includes('github.io') ||
+        window.location.hostname.includes('vercel.app') ||
+        window.location.hostname.includes('netlify.app');
+
+    const isDist = isStaticHost ||
+        window.location.pathname.includes('/dist/') ||
+        window.location.pathname.includes('/build/');
 
     // Xử lý đường dẫn tương đối
     let cleanPath = path.replace(/^\.\//, '');
@@ -753,23 +753,42 @@ function createEventCard(event, index) {
                 <label>Âm thanh phóng</label>
                 <select onchange="updateEvent(${event.id}, 'liftSound', this.value)">
                     <option value="" ${!event.liftSound ? 'selected' : ''}>Mặc định</option>
-                    <option value="burstSmall" ${event.liftSound === 'burstSmall' ? 'selected' : ''}>Nhỏ</option>
-                    <option value="crackleSmall" ${event.liftSound === 'crackleSmall' ? 'selected' : ''}>Lách tách</option>
+                    <option value="liftWick" ${event.liftSound === 'liftWick' ? 'selected' : ''}>Phóng – Ngòi pháo thật</option>
+                    <option value="liftDeep" ${event.liftSound === 'liftDeep' ? 'selected' : ''}>Phóng – Trầm</option>
+                    <option value="liftSharp" ${event.liftSound === 'liftSharp' ? 'selected' : ''}>Phóng – Sắc</option>
+                    <option value="liftSoft" ${event.liftSound === 'liftSoft' ? 'selected' : ''}>Phóng – Mềm</option>
+                    <option value="burstSmall" ${event.liftSound === 'burstSmall' ? 'selected' : ''}>Phóng – Nhỏ</option>
+                    <option value="crackleSmall" ${event.liftSound === 'crackleSmall' ? 'selected' : ''}>Phóng – Lách tách</option>
+                    <option value="liftWhoosh" ${event.liftSound === 'liftWhoosh' ? 'selected' : ''}>Phóng – Vút mạnh (Mới)</option>
                     <option value="none" ${event.liftSound === 'none' ? 'selected' : ''}>Im lặng</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Âm thanh bay</label>
+                <select onchange="updateEvent(${event.id}, 'whistleSound', this.value)">
+                    <option value="" ${!event.whistleSound ? 'selected' : ''}>Không có</option>
+                    <option value="whistle" ${event.whistleSound === 'whistle' ? 'selected' : ''}>🚀 Bay – Víuuuu classic</option>
+                    <option value="whistleHigh" ${event.whistleSound === 'whistleHigh' ? 'selected' : ''}>🚀 Bay – Víuuuu cao</option>
+                    <option value="whistleSwish" ${event.whistleSound === 'whistleSwish' ? 'selected' : ''}>🚀 Bay – Víuuuu rơi</option>
+                    <option value="whistleRocket" ${event.whistleSound === 'whistleRocket' ? 'selected' : ''}>🚀 Bay – Tên lửa vút (Mới)</option>
                 </select>
             </div>
             <div class="form-group">
                 <label>Âm thanh nổ</label>
                 <select onchange="updateEvent(${event.id}, 'burstSound', this.value)">
-                    <option value="" ${!event.burstSound ? 'selected' : ''}>Mặc định</option>
-                    <option value="burstSmall" ${event.burstSound === 'burstSmall' ? 'selected' : ''}>Nhỏ</option>
-                    <option value="crackle" ${event.burstSound === 'crackle' ? 'selected' : ''}>Lách tách to</option>
-                    <option value="crackleSmall" ${event.burstSound === 'crackleSmall' ? 'selected' : ''}>Lách tách nhỏ</option>
+                    <option value="" ${!event.burstSound ? 'selected' : ''}>Mặc định (Mạnh)</option>
+                    <option value="burstDeep" ${event.burstSound === 'burstDeep' ? 'selected' : ''}>Nổ – Trầm vũ</option>
+                    <option value="burstSoft" ${event.burstSound === 'burstSoft' ? 'selected' : ''}>Nổ – Nhẹ nhàng</option>
+                    <option value="burstSmall" ${event.burstSound === 'burstSmall' ? 'selected' : ''}>Nổ – Nhỏ</option>
+                    <option value="burstWhoosh" ${event.burstSound === 'burstWhoosh' ? 'selected' : ''}>Nổ – Vút</option>
+                    <option value="crackleBang" ${event.burstSound === 'crackleBang' ? 'selected' : ''}>Nổ – Tiếng bụp thật</option>
+                    <option value="crackle" ${event.burstSound === 'crackle' ? 'selected' : ''}>Lách tách – To</option>
+                    <option value="crackleHeavy" ${event.burstSound === 'crackleHeavy' ? 'selected' : ''}>Lách tách – Dồn dập</option>
+                    <option value="crackleFirecracker" ${event.burstSound === 'crackleFirecracker' ? 'selected' : ''}>Lách tách – Pháo thật</option>
+                    <option value="crackleSmall" ${event.burstSound === 'crackleSmall' ? 'selected' : ''}>Lách tách – Nhỏ</option>
+                    <option value="burstOut" ${event.burstSound === 'burstOut' ? 'selected' : ''}>Nổ – Tỏa rộng (Mới)</option>
                     <option value="none" ${event.burstSound === 'none' ? 'selected' : ''}>Im lặng</option>
                 </select>
-            </div>
-            <div class="form-group">
-                <!-- placeholder to keep 3-col grid -->
             </div>
         </div>
 
@@ -1917,7 +1936,8 @@ function getMiniShellType(event, size) {
         ascentSpeed: event.ascentSpeed,
         rotation: event.rotation,
         liftSound: event.liftSound,
-        burstSound: event.burstSound
+        burstSound: event.burstSound,
+        whistleSound: event.whistleSound
     };
 
     if (event.starLife) base.starLife = event.starLife;
@@ -2086,7 +2106,7 @@ function updateMiniPreviewBackground() {
         container.style.backgroundImage = `url(${bg})`;
         container.style.backgroundSize = 'cover';
         container.style.backgroundPosition = 'center';
-        
+
         if (!miniBgImage) miniBgImage = new Image();
         if (miniBgImage.src !== bg) miniBgImage.src = bg;
     } else {
@@ -2118,7 +2138,7 @@ function renderMiniPreview() {
         trailsCtx.fillStyle = 'rgba(0, 0, 0, 0.175)';
         trailsCtx.fillRect(0, 0, width, height);
     }
-    
+
     mainCtx.clearRect(0, 0, width, height);
 
     trailsCtx.globalCompositeOperation = 'lighten';
@@ -2270,18 +2290,18 @@ function startMiniLoop() {
 function playMiniPreviewOnce() {
     if (miniPreviewLoop) clearInterval(miniPreviewLoop);
     if (state.events.length === 0) return;
-    
+
     // Đặt lại counter và thông báo trạng thái
     const info = document.getElementById('mini-preview-info');
     if (info) info.innerText = 'Đang chạy kịch bản...';
-    
+
     const maxBurst = Math.max(...state.events.map(e => Number(e.burst) || 1));
     for (let b = 1; b <= maxBurst; b++) {
         setTimeout(() => {
             if (!state.miniPreviewEnabled || document.getElementById('loop').checked) return;
             const events = state.events.filter(e => Number(e.burst || 1) === b);
             events.forEach(e => setTimeout(() => launchEvent(e), Number(e.delay) || 0));
-            
+
             if (b === maxBurst) {
                 setTimeout(() => {
                     if (info && !state.activeEventId) info.innerText = 'Đã chạy xong';

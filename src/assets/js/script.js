@@ -2072,7 +2072,7 @@ function startSequence() {
                         'starCount', 'starLifeVariation', 'glitter', 'secondColor',
                         'transitionTime', 'floral', 'ring', 'strobeFreq',
                         'launchAngle', 'ascentSpeed', 'rotation',
-                        'liftSound', 'burstSound'
+                        'liftSound', 'burstSound', 'whistleSound'
                     ];
 
                     overrides.forEach(prop => {
@@ -2841,6 +2841,11 @@ class Shell {
         } else {
             soundManager.playSound('lift');
         }
+
+        // Âm thanh bay tùy chỉnh (Whistle)
+        if (this.whistleSound && this.whistleSound !== 'none' && soundManager.sources[this.whistleSound]) {
+            soundManager.playSound(this.whistleSound);
+        }
     }
 
     burst(x, y) {
@@ -3314,51 +3319,164 @@ const Spark = {
 
 
 // Đảm bảo các file âm thanh được Vite nhận diện và đưa vào thư mục build
-import.meta.glob('../audio/*.mp3');
+import.meta.glob('../audio/**/*.mp3');
 
 const soundManager = {
     baseURL: './assets/audio/',
     ctx: new (window.AudioContext || window.webkitAudioContext),
     sources: {
+        // === Âm thanh phóng ===
         lift: {
+            label: 'Phóng – Mặc định',
             volume: 1,
             playbackRateMin: 0.85,
             playbackRateMax: 0.95,
-            fileNames: [
-                'lift1.mp3',
-                'lift2.mp3',
-                'lift3.mp3'
-            ]
+            fileNames: ['lift/lift1.mp3', 'lift/lift2.mp3', 'lift/lift3.mp3']
         },
+        liftDeep: {
+            label: 'Phóng – Trầm',
+            volume: 1.1,
+            playbackRateMin: 0.55,
+            playbackRateMax: 0.65,
+            fileNames: ['lift/lift1.mp3', 'lift/lift2.mp3']
+        },
+        liftSharp: {
+            label: 'Phóng – Sắc',
+            volume: 0.9,
+            playbackRateMin: 1.35,
+            playbackRateMax: 1.55,
+            fileNames: ['lift/lift2.mp3', 'lift/lift3.mp3']
+        },
+        liftSoft: {
+            label: 'Phóng – Mềm',
+            volume: 0.5,
+            playbackRateMin: 0.75,
+            playbackRateMax: 0.85,
+            fileNames: ['lift/lift3.mp3']
+        },
+        // === Âm thanh nổ ===
         burst: {
+            label: 'Nổ – Mạnh',
             volume: 1,
             playbackRateMin: 0.8,
             playbackRateMax: 0.9,
-            fileNames: [
-                'burst1.mp3',
-                'burst2.mp3'
-            ]
+            fileNames: ['burst/burst1.mp3', 'burst/burst2.mp3']
+        },
+        burstDeep: {
+            label: 'Nổ – Trầm vũ',
+            volume: 1.2,
+            playbackRateMin: 0.45,
+            playbackRateMax: 0.55,
+            fileNames: ['burst/burst1.mp3', 'burst/burst2.mp3']
+        },
+        burstSoft: {
+            label: 'Nổ – Nhẹ nhàng',
+            volume: 0.35,
+            playbackRateMin: 0.9,
+            playbackRateMax: 1.1,
+            fileNames: ['burst/burst-sm-1.mp3', 'burst/burst-sm-2.mp3']
         },
         burstSmall: {
+            label: 'Nổ – Nhỏ',
             volume: 0.25,
             playbackRateMin: 0.8,
             playbackRateMax: 1,
-            fileNames: [
-                'burst-sm-1.mp3',
-                'burst-sm-2.mp3'
-            ]
+            fileNames: ['burst/burst-sm-1.mp3', 'burst/burst-sm-2.mp3']
         },
+        burstWhoosh: {
+            label: 'Nổ – Vút',
+            volume: 0.8,
+            playbackRateMin: 1.5,
+            playbackRateMax: 1.8,
+            fileNames: ['burst/burst1.mp3']
+        },
+        // === Tiếng lach tách ===
         crackle: {
+            label: 'Lách tách – To',
             volume: 0.2,
             playbackRateMin: 1,
             playbackRateMax: 1,
-            fileNames: ['crackle1.mp3']
+            fileNames: ['burst/crackle1.mp3']
+        },
+        crackleHeavy: {
+            label: 'Lách tách – Dồn dập',
+            volume: 0.45,
+            playbackRateMin: 0.7,
+            playbackRateMax: 0.8,
+            fileNames: ['burst/crackle1.mp3']
         },
         crackleSmall: {
+            label: 'Lách tách – Nhỏ',
             volume: 0.3,
             playbackRateMin: 1,
             playbackRateMax: 1,
-            fileNames: ['crackle-sm-1.mp3']
+            fileNames: ['burst/crackle-sm-1.mp3']
+        },
+        crackleFirecracker: {
+            label: 'Lách tách – Pháo thật',
+            volume: 0.6,
+            playbackRateMin: 0.9,
+            playbackRateMax: 1.0,
+            fileNames: ['burst/crackle-heavy-1.mp3']
+        },
+        crackleBang: {
+            label: 'Nổ – Tiếng bụp',
+            volume: 0.8,
+            playbackRateMin: 0.85,
+            playbackRateMax: 1.15,
+            fileNames: ['burst/crackle-bang-1.mp3']
+        },
+        // === Âm thanh phóng thật (từ BigSoundBank CC) ===
+        liftWick: {
+            label: 'Phóng – Ngòi pháo thật',
+            volume: 0.85,
+            playbackRateMin: 0.9,
+            playbackRateMax: 1.1,
+            fileNames: ['lift/lift-wick-1.mp3', 'lift/lift-wick-2.mp3', 'lift/lift-wick-3.mp3', 'lift/lift-wick-4.mp3']
+        },
+        // === Âm thanh bay (Whistle) ===
+        whistle: {
+            label: 'Bay – Víuuuu classic',
+            volume: 0.6,
+            playbackRateMin: 0.9,
+            playbackRateMax: 1.1,
+            fileNames: ['whistle/firework-whistle.mp3']
+        },
+        whistleHigh: {
+            label: 'Bay – Víuuuu cao',
+            volume: 0.6,
+            playbackRateMin: 1.3,
+            playbackRateMax: 1.6,
+            fileNames: ['whistle/tiny_rocketwav.mp3']
+        },
+        whistleSwish: {
+            label: 'Bay – Víuuuu rơi',
+            volume: 0.7,
+            playbackRateMin: 0.8,
+            playbackRateMax: 1.0,
+            fileNames: ['whistle/falling-whistle-swish.mp3']
+        },
+        // === Âm thanh mới từ Pixabay ===
+        liftWhoosh: {
+            label: 'Phóng – Vút mạnh',
+            volume: 0.8,
+            playbackRateMin: 0.9,
+            playbackRateMax: 1.1,
+            fileNames: ['lift/lift-whoosh-4.mp3', 'lift/lift-whoosh-2.mp3']
+        },
+        whistleRocket: {
+            label: 'Bay – Tên lửa vút',
+            volume: 0.7,
+            playbackRateMin: 0.9,
+            playbackRateMax: 1.1,
+            fileNames: ['whistle/whistle-jauk.mp3', 'whistle/whistling-rocket.mp3', 'whistle/tiny-rocket.mp3']
+        },
+        burstOut: {
+            label: 'Nổ – Tỏa rộng',
+            volume: 0.9,
+            playbackRateMin: 0.8,
+            playbackRateMax: 1.0,
+            fileNames: ['burst/burst-out.mp3']
         }
     },
 
@@ -3380,14 +3498,17 @@ const soundManager = {
             const { fileNames } = source;
             const filePromises = [];
             fileNames.forEach(fileName => {
-                const fileURL = this.baseURL + fileName;
-                // Promise sẽ giải quyết bằng bộ đệm âm thanh được giải mã.
-                const promise = fetch(fileURL)
+                const filePath = this.baseURL + fileName;
+                const promise = fetch(filePath)
                     .then(checkStatus)
                     .then(response => response.arrayBuffer())
                     .then(data => new Promise(resolve => {
                         this.ctx.decodeAudioData(data, resolve);
-                    }));
+                    }))
+                    .catch(err => {
+                        console.warn(`[Sound] Failed to load: ${filePath}`, err);
+                        return null;
+                    });
 
                 filePromises.push(promise);
                 allFilePromises.push(promise);
@@ -3395,7 +3516,7 @@ const soundManager = {
 
             Promise.all(filePromises)
                 .then(buffers => {
-                    source.buffers = buffers;
+                    source.buffers = buffers.filter(b => b !== null);
                 });
         });
 
