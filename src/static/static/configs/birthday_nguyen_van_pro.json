@@ -1,0 +1,931 @@
+{
+  "title": "CHÚC MỪNG SINH NHẬT",
+  "subtitle": "Một kiệt tác ánh sáng dành tặng Nguyễn Vân",
+  "author": "Đạo diễn: Mr. Nam",
+  "loop": true,
+  "status": "private",
+  "events": [
+    {
+      "burst": 1,
+      "text": "HAPPY BIRTHDAY",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.5,
+      "strobe": true,
+      "strobeColor": "White",
+      "comet": true,
+      "ascentSpeed": 0.85
+    },
+    {
+      "burst": 1,
+      "shell": "Nhấp nháy",
+      "color": "White",
+      "x": 0.2,
+      "y": 0.3,
+      "delay": 200,
+      "comet": true,
+      "launchAngle": -15
+    },
+    {
+      "burst": 1,
+      "shell": "Nhấp nháy",
+      "color": "White",
+      "x": 0.8,
+      "y": 0.3,
+      "delay": 400,
+      "comet": true,
+      "launchAngle": 15
+    },
+    {
+      "burst": 1,
+      "shell": "Nhấp nháy",
+      "color": "White",
+      "x": 0.3,
+      "y": 0.7,
+      "delay": 600,
+      "comet": true,
+      "launchAngle": -10
+    },
+    {
+      "burst": 1,
+      "shell": "Nhấp nháy",
+      "color": "White",
+      "x": 0.7,
+      "y": 0.7,
+      "delay": 800,
+      "comet": true,
+      "launchAngle": 10
+    },
+    {
+      "burst": 2,
+      "shell": "Tạm dừng",
+      "duration": 1500
+    },
+    {
+      "burst": 3,
+      "text": "NGUYỄN VÂN",
+      "shell": "Văn bản",
+      "color": "Red",
+      "x": 0.5,
+      "y": 0.4,
+      "pistil": true,
+      "pistilColor": "Gold",
+      "comet": true,
+      "ascentSpeed": 0.85
+    },
+    {
+      "burst": 3,
+      "shell": "Trái tim",
+      "color": "Red",
+      "x": 0.15,
+      "y": 0.2,
+      "delay": 300,
+      "comet": true,
+      "strobe": true,
+      "launchAngle": -20,
+      "rotation": 0
+    },
+    {
+      "burst": 3,
+      "shell": "Trái tim",
+      "color": "Red",
+      "x": 0.85,
+      "y": 0.2,
+      "delay": 300,
+      "comet": true,
+      "strobe": true,
+      "launchAngle": 20,
+      "rotation": 0
+    },
+    {
+      "burst": 3,
+      "shell": "Kim cương",
+      "color": "White",
+      "x": 0.3,
+      "y": 0.6,
+      "delay": 600,
+      "comet": true,
+      "glitter": "light"
+    },
+    {
+      "burst": 3,
+      "shell": "Kim cương",
+      "color": "White",
+      "x": 0.7,
+      "y": 0.6,
+      "delay": 800,
+      "comet": true,
+      "glitter": "light"
+    },
+    {
+      "burst": 4,
+      "shell": "Tạm dừng",
+      "duration": 1000
+    },
+    {
+      "burst": 5,
+      "text": "15 - 08",
+      "shell": "Văn bản",
+      "color": "Blue",
+      "x": 0.4,
+      "y": 0.5,
+      "comet": true,
+      "secondColor": "White",
+      "ascentSpeed": 0.9
+    },
+    {
+      "burst": 5,
+      "text": "♌︎🦁",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.6,
+      "y": 0.5,
+      "delay": 400,
+      "comet": true,
+      "pistil": true,
+      "ascentSpeed": 0.9
+    },
+    {
+      "burst": 5,
+      "shell": "Ngôi sao",
+      "color": "Gold",
+      "x": 0.3,
+      "y": 0.3,
+      "delay": 200,
+      "comet": true,
+      "crossette": true,
+      "launchAngle": -18,
+      "rotation": 18
+    },
+    {
+      "burst": 5,
+      "shell": "Ngôi sao",
+      "color": "Gold",
+      "x": 0.7,
+      "y": 0.3,
+      "delay": 400,
+      "comet": true,
+      "crossette": true,
+      "launchAngle": 18,
+      "rotation": -18
+    },
+    {
+      "burst": 5,
+      "shell": "Hành tinh",
+      "color": "Purple",
+      "x": 0.5,
+      "y": 0.2,
+      "delay": 600,
+      "comet": true,
+      "secondColor": "Gold"
+    },
+    {
+      "burst": 5,
+      "shell": "Bông tuyết",
+      "color": "White",
+      "x": 0.5,
+      "y": 0.8,
+      "delay": 1000,
+      "comet": true,
+      "glitter": "willow"
+    },
+    {
+      "burst": 6,
+      "shell": "Tạm dừng",
+      "duration": 1500
+    },
+    {
+      "burst": 7,
+      "text": "CHÚC MỪNG",
+      "shell": "Văn bản",
+      "color": "Purple",
+      "x": 0.3,
+      "y": 0.4,
+      "comet": true,
+      "strobe": true
+    },
+    {
+      "burst": 7,
+      "text": "TUỔI MỚI",
+      "shell": "Văn bản",
+      "color": "Purple",
+      "x": 0.7,
+      "y": 0.4,
+      "delay": 400,
+      "comet": true,
+      "strobe": true
+    },
+    {
+      "burst": 7,
+      "shell": "Hoa cúc",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.2,
+      "delay": 800,
+      "comet": true,
+      "pistil": true,
+      "pistilColor": "White"
+    },
+    {
+      "burst": 7,
+      "shell": "Ma",
+      "color": "White",
+      "x": 0.2,
+      "y": 0.6,
+      "delay": 1000,
+      "comet": true,
+      "horsetail": true
+    },
+    {
+      "burst": 7,
+      "shell": "Ma",
+      "color": "White",
+      "x": 0.8,
+      "y": 0.6,
+      "delay": 1200,
+      "comet": true,
+      "horsetail": true
+    },
+    {
+      "burst": 8,
+      "shell": "Tạm dừng",
+      "duration": 2000
+    },
+    {
+      "burst": 9,
+      "text": "MÃI XINH TƯƠI",
+      "shell": "Văn bản",
+      "color": "Green",
+      "x": 0.5,
+      "y": 0.3,
+      "comet": true,
+      "glitter": "streamer"
+    },
+    {
+      "burst": 9,
+      "shell": "Bông sen",
+      "color": "Red",
+      "x": 0.5,
+      "y": 0.6,
+      "delay": 400,
+      "comet": true,
+      "pistil": true,
+      "pistilColor": "Gold"
+    },
+    {
+      "burst": 9,
+      "shell": "Con bướm",
+      "color": "Gold",
+      "x": 0.2,
+      "y": 0.4,
+      "delay": 700,
+      "comet": true,
+      "secondColor": "White",
+      "launchAngle": -15
+    },
+    {
+      "burst": 9,
+      "shell": "Con bướm",
+      "color": "Gold",
+      "x": 0.8,
+      "y": 0.4,
+      "delay": 900,
+      "comet": true,
+      "secondColor": "White",
+      "launchAngle": 15
+    },
+    {
+      "burst": 9,
+      "shell": "Mặt cười",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.1,
+      "delay": 1200,
+      "comet": true,
+      "strobe": true
+    },
+    {
+      "burst": 10,
+      "shell": "Tạm dừng",
+      "duration": 1500
+    },
+    {
+      "burst": 11,
+      "text": "LUÔN RẠNG RỠ",
+      "shell": "Văn bản",
+      "color": "White",
+      "x": 0.5,
+      "y": 0.5,
+      "comet": true,
+      "strobe": true,
+      "strobeColor": "Gold"
+    },
+    {
+      "burst": 11,
+      "shell": "Nhấp nháy",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.2,
+      "delay": 300,
+      "comet": true,
+      "starDensity": 2
+    },
+    {
+      "burst": 11,
+      "shell": "Cây cọ",
+      "color": "Gold",
+      "x": 0.1,
+      "y": 0.4,
+      "delay": 600,
+      "comet": true,
+      "glitter": "thick",
+      "launchAngle": -30,
+      "ascentSpeed": 1.15
+    },
+    {
+      "burst": 11,
+      "shell": "Cây cọ",
+      "color": "Gold",
+      "x": 0.9,
+      "y": 0.4,
+      "delay": 900,
+      "comet": true,
+      "glitter": "thick",
+      "launchAngle": 30,
+      "ascentSpeed": 1.15
+    },
+    {
+      "burst": 11,
+      "shell": "Đuôi ngựa",
+      "color": "White",
+      "x": 0.3,
+      "y": 0.8,
+      "delay": 1200,
+      "comet": true,
+      "horsetail": true
+    },
+    {
+      "burst": 11,
+      "shell": "Đuôi ngựa",
+      "color": "White",
+      "x": 0.7,
+      "y": 0.8,
+      "delay": 1400,
+      "comet": true,
+      "horsetail": true
+    },
+    {
+      "burst": 12,
+      "shell": "Tạm dừng",
+      "duration": 2000
+    },
+    {
+      "burst": 13,
+      "text": "VẠN SỰ NHƯ Ý",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.4,
+      "comet": true,
+      "glitter": "willow",
+      "ascentSpeed": 0.8
+    },
+    {
+      "burst": 13,
+      "shell": "Liễu",
+      "color": "Gold",
+      "x": 0.2,
+      "y": 0.8,
+      "delay": 400,
+      "comet": true,
+      "starLifeVariation": 0.5,
+      "glitterColor": "White"
+    },
+    {
+      "burst": 13,
+      "shell": "Liễu",
+      "color": "Gold",
+      "x": 0.4,
+      "y": 0.8,
+      "delay": 600,
+      "comet": true,
+      "starLifeVariation": 0.5,
+      "glitterColor": "White"
+    },
+    {
+      "burst": 13,
+      "shell": "Liễu",
+      "color": "Gold",
+      "x": 0.6,
+      "y": 0.8,
+      "delay": 800,
+      "comet": true,
+      "starLifeVariation": 0.5,
+      "glitterColor": "White"
+    },
+    {
+      "burst": 13,
+      "shell": "Liễu",
+      "color": "Gold",
+      "x": 0.8,
+      "y": 0.8,
+      "delay": 1000,
+      "comet": true,
+      "starLifeVariation": 0.5,
+      "glitterColor": "White"
+    },
+    {
+      "burst": 14,
+      "shell": "Tạm dừng",
+      "duration": 2500
+    },
+    {
+      "burst": 15,
+      "text": "HAPPY BIRTHDAY",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.3,
+      "comet": true,
+      "strobe": true
+    },
+    {
+      "burst": 15,
+      "text": "NGUYỄN VÂN",
+      "shell": "Văn bản",
+      "color": "Red",
+      "x": 0.5,
+      "y": 0.7,
+      "delay": 800,
+      "comet": true,
+      "pistil": true,
+      "pistilColor": "White"
+    },
+    {
+      "burst": 15,
+      "shell": "Nổ lách tách",
+      "color": "White",
+      "x": 0.2,
+      "y": 0.2,
+      "delay": 1200,
+      "comet": true,
+      "crackle": true
+    },
+    {
+      "burst": 15,
+      "shell": "Nổ lách tách",
+      "color": "White",
+      "x": 0.8,
+      "y": 0.2,
+      "delay": 1400,
+      "comet": true,
+      "crackle": true
+    },
+    {
+      "burst": 15,
+      "shell": "Nổ lách tách",
+      "color": "White",
+      "x": 0.5,
+      "y": 0.1,
+      "delay": 1600,
+      "comet": true,
+      "crackle": true
+    },
+    {
+      "burst": 15,
+      "shell": "Nhấp nháy",
+      "color": "White",
+      "x": 0.1,
+      "y": 0.5,
+      "delay": 1800,
+      "comet": true,
+      "secondColor": "Blue"
+    },
+    {
+      "burst": 15,
+      "shell": "Nhấp nháy",
+      "color": "White",
+      "x": 0.9,
+      "y": 0.5,
+      "delay": 2000,
+      "comet": true,
+      "secondColor": "Blue"
+    },
+    {
+      "burst": 15,
+      "shell": "Trái tim",
+      "color": "Red",
+      "x": 0.3,
+      "y": 0.4,
+      "delay": 2200,
+      "comet": true,
+      "pistil": true,
+      "pistilColor": "White",
+      "launchAngle": -22,
+      "rotation": 0
+    },
+    {
+      "burst": 15,
+      "shell": "Trái tim",
+      "color": "Red",
+      "x": 0.7,
+      "y": 0.4,
+      "delay": 2400,
+      "comet": true,
+      "pistil": true,
+      "pistilColor": "White",
+      "launchAngle": 22,
+      "rotation": 0
+    },
+    {
+      "burst": 15,
+      "shell": "Ngôi sao",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.9,
+      "delay": 2600,
+      "comet": true,
+      "crossette": true
+    },
+    {
+      "burst": 16,
+      "shell": "Tạm dừng",
+      "duration": 1000
+    },
+    {
+      "burst": 17,
+      "text": "MÃI HẠNH PHÚC NHÉ",
+      "shell": "Văn bản",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.4,
+      "comet": true,
+      "strobe": true,
+      "strobeColor": "White",
+      "starDensity": 2
+    },
+    {
+      "burst": 17,
+      "shell": "Hoa cúc",
+      "color": "Gold",
+      "x": 0.2,
+      "y": 0.3,
+      "delay": 200,
+      "comet": true,
+      "pistil": true,
+      "pistilColor": "Red"
+    },
+    {
+      "burst": 17,
+      "shell": "Hoa cúc",
+      "color": "White",
+      "x": 0.8,
+      "y": 0.3,
+      "delay": 400,
+      "comet": true,
+      "pistil": true,
+      "pistilColor": "Blue"
+    },
+    {
+      "burst": 17,
+      "shell": "Nhấp nháy",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.2,
+      "delay": 600,
+      "comet": true,
+      "starCount": 200,
+      "glitter": "heavy"
+    },
+    {
+      "burst": 17,
+      "shell": "Nổ lách tách",
+      "color": "White",
+      "x": 0.1,
+      "y": 0.5,
+      "delay": 800,
+      "comet": true,
+      "crackle": true,
+      "secondColor": "Gold"
+    },
+    {
+      "burst": 17,
+      "shell": "Nổ lách tách",
+      "color": "White",
+      "x": 0.9,
+      "y": 0.5,
+      "delay": 1000,
+      "comet": true,
+      "crackle": true,
+      "secondColor": "Gold"
+    },
+    {
+      "burst": 17,
+      "shell": "Nổ chéo",
+      "color": "Gold",
+      "x": 0.3,
+      "y": 0.6,
+      "delay": 1200,
+      "comet": true,
+      "crossette": true,
+      "starDensity": 1.5
+    },
+    {
+      "burst": 17,
+      "shell": "Nổ chéo",
+      "color": "Red",
+      "x": 0.7,
+      "y": 0.6,
+      "delay": 1400,
+      "comet": true,
+      "crossette": true,
+      "starDensity": 1.5
+    },
+    {
+      "burst": 17,
+      "shell": "Cây cọ",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.5,
+      "delay": 1600,
+      "comet": true,
+      "glitter": "thick",
+      "starLife": 4000
+    },
+    {
+      "burst": 17,
+      "shell": "Vòng nhẫn",
+      "color": "Blue",
+      "x": 0.2,
+      "y": 0.4,
+      "delay": 1800,
+      "comet": true,
+      "strobe": true
+    },
+    {
+      "burst": 17,
+      "shell": "Vòng nhẫn",
+      "color": "Purple",
+      "x": 0.8,
+      "y": 0.4,
+      "delay": 2000,
+      "comet": true,
+      "strobe": true
+    },
+    {
+      "burst": 17,
+      "shell": "Ma",
+      "color": "White",
+      "x": 0.4,
+      "y": 0.2,
+      "delay": 2200,
+      "comet": true,
+      "horsetail": true
+    },
+    {
+      "burst": 17,
+      "shell": "Ma",
+      "color": "White",
+      "x": 0.6,
+      "y": 0.2,
+      "delay": 2400,
+      "comet": true,
+      "horsetail": true
+    },
+    {
+      "burst": 17,
+      "shell": "Đuôi ngựa",
+      "color": "Gold",
+      "x": 0.1,
+      "y": 0.8,
+      "delay": 2600,
+      "comet": true,
+      "horsetail": true,
+      "starLife": 5000,
+      "launchAngle": -25
+    },
+    {
+      "burst": 17,
+      "shell": "Đuôi ngựa",
+      "color": "White",
+      "x": 0.9,
+      "y": 0.8,
+      "delay": 2800,
+      "comet": true,
+      "horsetail": true,
+      "starLife": 5000,
+      "launchAngle": 25
+    },
+    {
+      "burst": 17,
+      "shell": "Trái tim",
+      "color": "Red",
+      "x": 0.5,
+      "y": 0.3,
+      "delay": 3000,
+      "comet": true,
+      "pistil": true,
+      "pistilColor": "White",
+      "starDensity": 2,
+      "rotation": 0,
+      "ascentSpeed": 0.9
+    },
+    {
+      "burst": 17,
+      "shell": "Ngôi sao",
+      "color": "Gold",
+      "x": 0.3,
+      "y": 0.4,
+      "delay": 3200,
+      "comet": true,
+      "crossette": true,
+      "launchAngle": -15,
+      "rotation": 36
+    },
+    {
+      "burst": 17,
+      "shell": "Kim cương",
+      "color": "White",
+      "x": 0.7,
+      "y": 0.4,
+      "delay": 3400,
+      "comet": true,
+      "strobe": true,
+      "rotation": 45
+    },
+    {
+      "burst": 17,
+      "shell": "Hoa cúc",
+      "color": "Red",
+      "x": 0.2,
+      "y": 0.2,
+      "delay": 3600,
+      "comet": true,
+      "secondColor": "Gold"
+    },
+    {
+      "burst": 17,
+      "shell": "Hoa cúc",
+      "color": "Blue",
+      "x": 0.8,
+      "y": 0.2,
+      "delay": 3800,
+      "comet": true,
+      "secondColor": "White"
+    },
+    {
+      "burst": 17,
+      "shell": "Nhấp nháy",
+      "color": "White",
+      "x": 0.5,
+      "y": 0.1,
+      "delay": 4000,
+      "comet": true,
+      "starCount": 300,
+      "glitter": "streamer"
+    },
+    {
+      "burst": 17,
+      "shell": "Nổ lách tách",
+      "color": "Gold",
+      "x": 0.1,
+      "y": 0.3,
+      "delay": 4200,
+      "comet": true,
+      "crackle": true
+    },
+    {
+      "burst": 17,
+      "shell": "Nổ lách tách",
+      "color": "Gold",
+      "x": 0.9,
+      "y": 0.3,
+      "delay": 4400,
+      "comet": true,
+      "crackle": true
+    },
+    {
+      "burst": 17,
+      "shell": "Liễu",
+      "color": "Gold",
+      "x": 0.3,
+      "y": 0.9,
+      "delay": 4600,
+      "comet": true,
+      "glitter": "willow",
+      "starLife": 6000
+    },
+    {
+      "burst": 17,
+      "shell": "Liễu",
+      "color": "Gold",
+      "x": 0.7,
+      "y": 0.9,
+      "delay": 4800,
+      "comet": true,
+      "glitter": "willow",
+      "starLife": 6000
+    },
+    {
+      "burst": 17,
+      "shell": "Cây cọ",
+      "color": "Green",
+      "x": 0.5,
+      "y": 0.6,
+      "delay": 5000,
+      "comet": true,
+      "glitter": "thick",
+      "pistil": true
+    },
+    {
+      "burst": 17,
+      "shell": "Nổ chéo",
+      "color": "Purple",
+      "x": 0.2,
+      "y": 0.5,
+      "delay": 5200,
+      "comet": true,
+      "crossette": true
+    },
+    {
+      "burst": 17,
+      "shell": "Nổ chéo",
+      "color": "Gold",
+      "x": 0.8,
+      "y": 0.5,
+      "delay": 5400,
+      "comet": true,
+      "crossette": true
+    },
+    {
+      "burst": 17,
+      "shell": "Hoa cúc",
+      "color": "White",
+      "x": 0.4,
+      "y": 0.4,
+      "delay": 5600,
+      "comet": true,
+      "pistil": true
+    },
+    {
+      "burst": 17,
+      "shell": "Hoa cúc",
+      "color": "Red",
+      "x": 0.6,
+      "y": 0.4,
+      "delay": 5800,
+      "comet": true,
+      "pistil": true
+    },
+    {
+      "burst": 17,
+      "shell": "Nhấp nháy",
+      "color": "Gold",
+      "x": 0.5,
+      "y": 0.2,
+      "delay": 6000,
+      "comet": true,
+      "strobe": true,
+      "strobeColor": "White",
+      "starCount": 400
+    },
+    {
+      "burst": 17,
+      "shell": "Nổ lách tách",
+      "color": "White",
+      "x": 0.1,
+      "y": 0.1,
+      "delay": 6200,
+      "comet": true,
+      "crackle": true
+    },
+    {
+      "burst": 17,
+      "shell": "Liễu",
+      "color": "Ngẫu nhiên",
+      "glitterColor": "Ngẫu nhiên",
+      "x": 0.5,
+      "y": 0.3,
+      "delay": 7500,
+      "size": 4,
+      "comet": true,
+      "pistil": true,
+      "pistilColor": "Gold",
+      "starCount": 500,
+      "starLife": 8000,
+      "ascentSpeed": 0.7,
+      "burstSound": "burstSmall"
+    },
+    {
+      "burst": 17,
+      "shell": "Tạm dừng",
+      "duration": 6000
+    },
+    {
+      "burst": 20,
+      "shell": "Tạm dừng",
+      "duration": 3000
+    }
+  ]
+}
