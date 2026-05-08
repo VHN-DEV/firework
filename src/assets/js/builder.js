@@ -436,9 +436,12 @@ function addEvent(config = null) {
             crackle: false,
             horsetail: false,
             comet: false,
+            floral: false,
+            ring: false,
             starDensity: 1,
             starLife: 2500,
             spreadSize: 350,
+            strobeFreq: 50,
             expanded: false,
             ...config,
             id: id
@@ -468,10 +471,12 @@ function addEvent(config = null) {
             starLife: 2500,
             starLifeVariation: 0.125,
             spreadSize: 350,
-            glitter: "",
             glitterColor: "",
             secondColor: "",
             transitionTime: undefined,
+            floral: false,
+            ring: false,
+            strobeFreq: 50,
             expanded: false
         };
     }
@@ -577,7 +582,7 @@ function duplicateEvent(id) {
 function updateEvent(id, field, value) {
     const event = state.events.find(e => e.id === id);
     if (event) {
-        if (['burst', 'x', 'y', 'delay', 'size', 'duration', 'starLife', 'starDensity', 'spreadSize', 'starCount', 'starLifeVariation', 'transitionTime'].includes(field)) {
+        if (['burst', 'x', 'y', 'delay', 'size', 'duration', 'starLife', 'starDensity', 'spreadSize', 'starCount', 'starLifeVariation', 'transitionTime', 'strobeFreq'].includes(field)) {
             let num = value === '' ? undefined : Number(value);
             if (num !== undefined) {
                 // Clamping logic for security
@@ -588,7 +593,7 @@ function updateEvent(id, field, value) {
                 if (field === 'starLifeVariation') num = Math.max(0, Math.min(1, num));
             }
             event[field] = num;
-        } else if (['strobe', 'pistil', 'streamers', 'crossette', 'crackle', 'horsetail', 'comet'].includes(field)) {
+        } else if (['strobe', 'pistil', 'streamers', 'crossette', 'crackle', 'horsetail', 'comet', 'floral', 'ring'].includes(field)) {
             event[field] = value === true;
         } else {
             event[field] = value;
@@ -925,6 +930,10 @@ function renderAdvancedSettings(id) {
                 <label>Kích thước nổ (spread)</label>
                 <input type="number" step="10" value="${event.spreadSize || ''}" placeholder="Mặc định: 350" onchange="updateEvent(${event.id}, 'spreadSize', this.value)">
             </div>
+            <div class="form-group">
+                <label>Tốc độ nháy (ms)</label>
+                <input type="number" step="10" value="${event.strobeFreq || ''}" placeholder="Mặc định: 50" onchange="updateEvent(${event.id}, 'strobeFreq', this.value)">
+            </div>
             <div></div> <!-- Spacer -->
         </div>
 
@@ -957,6 +966,14 @@ function renderAdvancedSettings(id) {
             <div class="form-group checkbox">
                 <input type="checkbox" id="comet-${event.id}" ${event.comet ? 'checked' : ''} onchange="updateEvent(${event.id}, 'comet', this.checked)">
                 <label for="comet-${event.id}">Đuôi phóng</label>
+            </div>
+            <div class="form-group checkbox">
+                <input type="checkbox" id="floral-${event.id}" ${event.floral ? 'checked' : ''} onchange="updateEvent(${event.id}, 'floral', this.checked)">
+                <label for="floral-${event.id}">Hoa nở (Floral)</label>
+            </div>
+            <div class="form-group checkbox">
+                <input type="checkbox" id="ring-${event.id}" ${event.ring ? 'checked' : ''} onchange="updateEvent(${event.id}, 'ring', this.checked)">
+                <label for="ring-${event.id}">Vòng nhẫn (Ring)</label>
             </div>
         </div>
     `;
@@ -1627,6 +1644,20 @@ function crossetteEffect(star) {
     }
 }
 
+function floralEffect(star) {
+    const count = 24;
+    for (let i = 0; i < count; i++) {
+        const angle = (i / count) * PI_2;
+        const speed = Math.random() * 2 + 1;
+        const s = Star.add(star.x, star.y, star.color, angle, speed, 800 + Math.random() * 400);
+        s.sparkFreq = 80;
+        s.sparkSpeed = 0.3;
+        s.sparkLife = 500;
+        s.sparkColor = COLOR.White;
+    }
+    BurstFlash.add(star.x, star.y, 40);
+}
+
 function createBurst(count, starFactory) {
     for (let i = 0; i < count; i++) {
         const angle = Math.random() * PI_2;
@@ -1697,6 +1728,7 @@ class Shell {
         let onDeath = null;
         if (this.crackle) onDeath = crackleEffect;
         if (this.crossette) onDeath = crossetteEffect;
+        if (this.floral) onDeath = floralEffect;
 
         if (this.glitter === 'willow') { sparkFreq = 100; sparkSpeed = 0.4; sparkLife = 1200; }
         else if (this.glitter === 'light') { sparkFreq = 400; sparkSpeed = 0.2; sparkLife = 300; }
@@ -1722,7 +1754,7 @@ class Shell {
             }
             if (this.strobe) {
                 star.strobe = true;
-                star.strobeFreq = 40 + Math.random() * 40;
+                star.strobeFreq = this.strobeFreq || (40 + Math.random() * 40);
                 if (this.strobeColor) star.secondColor = this.strobeColor;
             }
         };
@@ -1743,6 +1775,14 @@ class Shell {
             });
         } else {
             createBurst(this.starCount, starFactory);
+        }
+
+        if (this.ring) {
+            const ringCount = Math.floor(Math.max(10, this.starCount * 0.5));
+            for (let i = 0; i < ringCount; i++) {
+                const angle = (i / ringCount) * PI_2;
+                starFactory(angle, 1.1);
+            }
         }
 
         if (this.pistil) {
@@ -1793,7 +1833,10 @@ function getMiniShellType(event, size) {
         glitter: event.glitter,
         glitterColor: resolveColor(event.glitterColor),
         secondColor: resolveColor(event.secondColor),
-        transitionTime: event.transitionTime
+        transitionTime: event.transitionTime,
+        floral: event.floral,
+        ring: event.ring,
+        strobeFreq: event.strobeFreq
     };
 
     if (event.starLife) base.starLife = event.starLife;
