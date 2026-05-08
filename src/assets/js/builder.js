@@ -593,18 +593,23 @@ function updateEvent(id, field, value) {
     const event = state.events.find(e => e.id === id);
     if (event) {
         if (['burst', 'x', 'y', 'delay', 'size', 'duration', 'starLife', 'starDensity', 'spreadSize', 'starCount', 'starLifeVariation', 'transitionTime', 'strobeFreq', 'launchAngle', 'ascentSpeed', 'rotation'].includes(field)) {
-            let num = value === '' ? undefined : Number(value);
-            if (num !== undefined) {
-                // Clamping logic for security
-                if (field === 'x' || field === 'y') num = Math.max(0, Math.min(1, num));
-                if (field === 'size') num = Math.max(0, Math.min(10, num)); // Cho phép tối đa 10 cho chuyên gia
-                if (field === 'delay') num = Math.max(0, Math.min(60000, num));
-                if (field === 'burst') num = Math.max(1, num);
-                if (field === 'starLifeVariation') num = Math.max(0, Math.min(1, num));
-                if (field === 'launchAngle') num = Math.max(-80, Math.min(80, num));
-                if (field === 'ascentSpeed') num = Math.max(0.1, Math.min(5, num));
+            // Handle explicit undefined (e.g. rotation cleared to "random")
+            if (value === undefined || value === null) {
+                event[field] = undefined;
+            } else {
+                let num = value === '' ? undefined : Number(value);
+                if (num !== undefined && !isNaN(num)) {
+                    // Clamping logic for security
+                    if (field === 'x' || field === 'y') num = Math.max(0, Math.min(1, num));
+                    if (field === 'size') num = Math.max(0, Math.min(10, num));
+                    if (field === 'delay') num = Math.max(0, Math.min(60000, num));
+                    if (field === 'burst') num = Math.max(1, num);
+                    if (field === 'starLifeVariation') num = Math.max(0, Math.min(1, num));
+                    if (field === 'launchAngle') num = Math.max(-80, Math.min(80, num));
+                    if (field === 'ascentSpeed') num = Math.max(0.1, Math.min(5, num));
+                }
+                event[field] = num;
             }
-            event[field] = num;
         } else if (['strobe', 'pistil', 'streamers', 'crossette', 'crackle', 'horsetail', 'comet', 'floral', 'ring'].includes(field)) {
             event[field] = value === true;
         } else {
