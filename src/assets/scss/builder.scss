@@ -1324,8 +1324,8 @@ select {
 
 @media (max-width: $mobile) {
     .mini-preview {
-        width: 280px;
-        /* Increased default size */
+        width: 220px;
+        /* Reduced size for better balance */
         bottom: 6rem;
         right: 1rem;
         max-width: 90vw;
