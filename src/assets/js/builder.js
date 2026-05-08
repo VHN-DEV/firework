@@ -2071,6 +2071,17 @@ function toggleFullscreenMiniPreview() {
     }
 }
 
+function resetMiniPreviewSize() {
+    const el = document.getElementById('mini-preview');
+    if (!el) return;
+    const deviceRatio = window.innerWidth / window.innerHeight;
+    const currentW = el.offsetWidth;
+    const nonCanvasH = getNonCanvasHeight();
+    el.style.height = (currentW / deviceRatio + nonCanvasH) + 'px';
+    resizeMiniStages();
+    notify('Đã khôi phục tỉ lệ màn hình', 'info');
+}
+
 // Handle fullscreen changes to resize canvas
 fscreen.onfullscreenchange = () => {
     const el = document.getElementById('mini-preview');
@@ -2156,7 +2167,6 @@ function initMiniResize() {
     const onMove = (e) => {
         if (!isResizingMini) return;
 
-        // Use a consistent ratio during a single resize operation
         const nonCanvasH = getNonCanvasHeight();
         const deviceRatio = window.innerWidth / window.innerHeight;
         let newW = startW;
@@ -2167,28 +2177,26 @@ function initMiniResize() {
 
         if (resizeType === 'v') {
             newH = Math.max(150, startH + dy);
-            newW = (newH - nonCanvasH) * deviceRatio;
         } else if (resizeType === 'h') {
             newW = Math.max(200, startW + dx);
-            newH = (newW / deviceRatio) + nonCanvasH;
         } else {
-            // Corner resize: maintain aspect ratio of canvas area
+            // Corner resize: maintain CURRENT aspect ratio
             const scaleW = (startX - e.clientX + startW) / startW;
             const scaleH = (startY - e.clientY + startH) / startH;
             const scale = Math.max(scaleW, scaleH);
 
             newW = Math.max(200, startW * scale);
-            newH = (newW / deviceRatio) + nonCanvasH;
+            newH = Math.max(150, startH * scale);
         }
 
         // Check against viewport limits
         if (newW > window.innerWidth * 0.95) {
             newW = window.innerWidth * 0.95;
-            newH = (newW / deviceRatio) + nonCanvasH;
+            if (resizeType === 'both') newH = (newW * startH) / startW;
         }
         if (newH > window.innerHeight * 0.8) {
             newH = window.innerHeight * 0.8;
-            newW = (newH - nonCanvasH) * deviceRatio;
+            if (resizeType === 'both') newW = (newH * startW) / startH;
         }
 
         container.style.width = newW + 'px';
@@ -2330,6 +2338,8 @@ function selectEvent(id) {
 }
 
 window.toggleMiniPreview = toggleMiniPreview;
+window.toggleFullscreenMiniPreview = toggleFullscreenMiniPreview;
+window.resetMiniPreviewSize = resetMiniPreviewSize;
 window.createNewScript = createNewScript;
 window.selectEvent = selectEvent;
 window.removeEvent = removeEvent;
