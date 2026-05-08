@@ -2070,7 +2070,8 @@ function startSequence() {
                         'streamers', 'crossette', 'crackle', 'horsetail',
                         'comet', 'starLife', 'starDensity', 'spreadSize',
                         'starCount', 'starLifeVariation', 'glitter', 'secondColor',
-                        'transitionTime', 'floral', 'ring', 'strobeFreq'
+                        'transitionTime', 'floral', 'ring', 'strobeFreq',
+                        'launchAngle', 'ascentSpeed', 'rotation'
                     ];
 
                     overrides.forEach(prop => {
@@ -2782,16 +2783,23 @@ class Shell {
         const burstX = x;
         const burstY = y;
 
-        const launchDistance = launchY - burstY;
+        // Nếu có launchAngle, ta tính lại điểm nổ (burstX) để đạt được góc bắn mong muốn
+        const angleRad = (this.launchAngle || 0) * (Math.PI / 180);
+        const finalBurstX = burstX + Math.sin(angleRad) * (launchY - burstY);
+        const finalDx = finalBurstX - launchX;
+        const dy = burstY - launchY;
+
+        const launchDistance = Math.sqrt(finalDx * finalDx + dy * dy);
         // Cần sử dụng đường cong công suất tùy chỉnh để ước chừng Vi để đạt được Khoảng cách phóng dưới tác dụng của trọng lực và lực cản của không khí.
         // Những con số kỳ diệu đến từ thử nghiệm.
-        const launchVelocity = Math.pow(launchDistance * 0.04, 0.64);
+        const launchVelocity = Math.pow(launchDistance * 0.04, 0.64) * (this.ascentSpeed || 1);
+        const computedAngle = Math.atan2(dy, finalDx);
 
         const comet = this.comet = Star.add(
             launchX,
             launchY,
             typeof this.color === 'string' && this.color !== 'random' ? this.color : COLOR.White,
-            Math.PI,
+            computedAngle,
             launchVelocity * (this.horsetail ? 1.2 : 1),
             // Thời gian treo được suy ra tuyến tính từ Vi; con số chính xác đến từ thử nghiệm
             launchVelocity * (this.horsetail ? 100 : 400)
@@ -2979,7 +2987,8 @@ class Shell {
             if (this.shapePoints) {
                 // Chỉ xoay ngẫu nhiên nếu KHÔNG phải là pháo văn bản để giữ chữ dễ đọc
                 const isText = this.shapePoints.isText;
-                const shapeStartAngle = isText ? 0 : (Math.random() - 0.5) * 0.4;
+                const rotationRad = (this.rotation || 0) * (Math.PI / 180);
+                const shapeStartAngle = isText ? 0 : (this.rotation !== undefined ? rotationRad : (Math.random() - 0.5) * 0.4);
                 const cosA = Math.cos(shapeStartAngle);
                 const sinA = Math.sin(shapeStartAngle);
 

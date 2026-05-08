@@ -517,6 +517,19 @@ select {
     gap: 0.5rem;
 }
 
+.event-grid-physics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    padding-top: 0.25rem;
+    border-top: 1px dashed rgba(255, 255, 255, 0.07);
+    margin-top: 0.25rem;
+
+    label {
+        color: #9b8ec4;
+    }
+}
+
 .event-card .form-group {
     margin-bottom: 0.4rem;
 }
@@ -937,6 +950,10 @@ select {
         grid-template-columns: 1fr 1fr 1fr 1fr !important;
         gap: 0.5rem;
     }
+
+    .event-grid-physics {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
 }
 
 @media (max-width: $small-mobile) {
@@ -946,6 +963,10 @@ select {
 
     .event-grid-4 {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .event-grid-physics {
+        grid-template-columns: repeat(3, 1fr);
     }
 
     .event-card {

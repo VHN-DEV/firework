@@ -442,6 +442,9 @@ function addEvent(config = null) {
             starLife: 2500,
             spreadSize: 350,
             strobeFreq: 50,
+            launchAngle: 0,
+            ascentSpeed: 1,
+            rotation: undefined,
             expanded: false,
             ...config,
             id: id
@@ -477,6 +480,9 @@ function addEvent(config = null) {
             floral: false,
             ring: false,
             strobeFreq: 50,
+            launchAngle: 0,
+            ascentSpeed: 1,
+            rotation: undefined,
             expanded: false
         };
     }
@@ -582,7 +588,7 @@ function duplicateEvent(id) {
 function updateEvent(id, field, value) {
     const event = state.events.find(e => e.id === id);
     if (event) {
-        if (['burst', 'x', 'y', 'delay', 'size', 'duration', 'starLife', 'starDensity', 'spreadSize', 'starCount', 'starLifeVariation', 'transitionTime', 'strobeFreq'].includes(field)) {
+        if (['burst', 'x', 'y', 'delay', 'size', 'duration', 'starLife', 'starDensity', 'spreadSize', 'starCount', 'starLifeVariation', 'transitionTime', 'strobeFreq', 'launchAngle', 'ascentSpeed', 'rotation'].includes(field)) {
             let num = value === '' ? undefined : Number(value);
             if (num !== undefined) {
                 // Clamping logic for security
@@ -591,6 +597,8 @@ function updateEvent(id, field, value) {
                 if (field === 'delay') num = Math.max(0, Math.min(60000, num));
                 if (field === 'burst') num = Math.max(1, num);
                 if (field === 'starLifeVariation') num = Math.max(0, Math.min(1, num));
+                if (field === 'launchAngle') num = Math.max(-80, Math.min(80, num));
+                if (field === 'ascentSpeed') num = Math.max(0.1, Math.min(5, num));
             }
             event[field] = num;
         } else if (['strobe', 'pistil', 'streamers', 'crossette', 'crackle', 'horsetail', 'comet', 'floral', 'ring'].includes(field)) {
@@ -713,6 +721,21 @@ function createEventCard(event, index) {
             <div class="form-group">
                 <label>Trễ (ms)</label>
                 <input type="number" step="100" min="0" max="60000" value="${event.delay}" onchange="updateEvent(${event.id}, 'delay', this.value)">
+            </div>
+        </div>
+
+        <div class="event-grid-physics">
+            <div class="form-group">
+                <label title="Góc bắn tính bằng độ. 0 = thẳng đứng, dương = nghiêng phải, âm = nghiêng trái">Góc bắn (°)</label>
+                <input type="number" step="5" min="-80" max="80" value="${event.launchAngle || 0}" onchange="updateEvent(${event.id}, 'launchAngle', this.value)">
+            </div>
+            <div class="form-group">
+                <label title="Tốc độ bay lên. 1 = bình thường, >1 = nhanh hơn">Tốc độ bay (x)</label>
+                <input type="number" step="0.1" min="0.1" max="5" value="${event.ascentSpeed || 1}" onchange="updateEvent(${event.id}, 'ascentSpeed', this.value)">
+            </div>
+            <div class="form-group">
+                <label title="Góc xoay hình nổ tính bằng độ (dành cho pháo có hình dạng)">Xoay hình (°)</label>
+                <input type="number" step="15" min="-180" max="180" value="${event.rotation !== undefined ? event.rotation : ''}" placeholder="Ngẫu nhiên" onchange="updateEvent(${event.id}, 'rotation', this.value === '' ? undefined : this.value)">
             </div>
         </div>
 
@@ -1686,25 +1709,35 @@ class Shell {
     launch(x, y) {
         const targetX = x * miniMainStage.width;
         const targetY = y * miniMainStage.height;
-        const startX = targetX;
         const startY = miniMainStage.height;
 
-        const distance = startY - targetY;
+        // Tính góc bắn và điểm nổ cuối dựa trên launchAngle
+        const angleRad = (this.launchAngle || 0) * (Math.PI / 180);
+        const verticalDist = startY - targetY;
+        const finalTargetX = targetX + Math.sin(angleRad) * verticalDist;
+        const startX = targetX;
+
+        const dx = finalTargetX - startX;
+        const dy = targetY - startY;
+        const launchDist = Math.sqrt(dx * dx + dy * dy);
+        const launchAngle = Math.atan2(dy, dx);
+
         const launchLife = (this.horsetail ? 100 : 600) + Math.random() * 200;
-        const speed = Math.max(distance * (this.horsetail ? 0.05 : 0.035), 3);
+        const rawSpeed = Math.max(launchDist * 0.035, 3);
+        const speed = rawSpeed * (this.ascentSpeed || 1);
 
         let cometColor = this.color;
         if (Array.isArray(cometColor)) cometColor = cometColor[0];
         if (cometColor === 'Ngẫu nhiên') cometColor = Object.values(COLOR)[Math.floor(Math.random() * 6)];
 
-        const comet = Star.add(startX, startY, cometColor, Math.PI, speed, launchLife);
+        const comet = Star.add(startX, startY, cometColor, launchAngle, speed, launchLife);
         comet.heavy = true;
         comet.sparkFreq = 30;
         comet.sparkSpeed = 0.5;
         comet.sparkLife = 500;
         comet.sparkColor = cometColor;
         comet.onDeath = () => {
-            this.burst(targetX, targetY);
+            this.burst(finalTargetX, targetY);
         };
     }
     burst(x, y) {
@@ -1760,10 +1793,18 @@ class Shell {
         };
 
         if (this.shapePoints) {
+            const isText = this.shapePoints.isText;
+            const rotationRad = (this.rotation || 0) * (Math.PI / 180);
+            const shapeAngle = isText ? 0 : (this.rotation !== undefined ? rotationRad : (Math.random() - 0.5) * 0.4);
+            const cosA = Math.cos(shapeAngle);
+            const sinA = Math.sin(shapeAngle);
+
             this.shapePoints.forEach(p => {
+                const rx = p.x * cosA - p.y * sinA;
+                const ry = p.x * sinA + p.y * cosA;
                 const star = Star.add(x, y, this.color, 0, 0, this.starLife + Math.random() * this.starLife * this.starLifeVariation);
-                star.speedX = p.x * speed * 1.2;
-                star.speedY = p.y * speed * 1.2;
+                star.speedX = rx * speed * 1.2;
+                star.speedY = ry * speed * 1.2;
                 star.onDeath = onDeath;
                 if (this.glitter) {
                     star.sparkFreq = sparkFreq;
@@ -1836,7 +1877,10 @@ function getMiniShellType(event, size) {
         transitionTime: event.transitionTime,
         floral: event.floral,
         ring: event.ring,
-        strobeFreq: event.strobeFreq
+        strobeFreq: event.strobeFreq,
+        launchAngle: event.launchAngle,
+        ascentSpeed: event.ascentSpeed,
+        rotation: event.rotation
     };
 
     if (event.starLife) base.starLife = event.starLife;
