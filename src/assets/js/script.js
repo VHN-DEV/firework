@@ -2068,7 +2068,9 @@ function startSequence() {
                     const overrides = [
                         'strobe', 'strobeColor', 'pistil', 'pistilColor',
                         'streamers', 'crossette', 'crackle', 'horsetail',
-                        'comet', 'starLife', 'starDensity', 'spreadSize'
+                        'comet', 'starLife', 'starDensity', 'spreadSize',
+                        'starCount', 'starLifeVariation', 'glitter', 'secondColor',
+                        'transitionTime', 'floral', 'ring', 'strobeFreq'
                     ];
 
                     overrides.forEach(prop => {
@@ -2936,16 +2938,16 @@ class Shell {
             );
 
             if (this.secondColor) {
-                star.transitionTime = this.starLife * (Math.random() * 0.05 + 0.32);
+                star.transitionTime = this.transitionTime || this.starLife * (Math.random() * 0.05 + 0.32);
                 star.secondColor = this.secondColor;
             }
 
             if (this.strobe) {
-                star.transitionTime = this.starLife * (Math.random() * 0.08 + 0.46);
+                star.transitionTime = this.transitionTime || this.starLife * (Math.random() * 0.08 + 0.46);
                 star.strobe = true;
                 // Có bao nhiêu mili giây giữa lần chuyển đổi trạng thái nhấp nháy "tích tắc". Lưu ý rằng kiểu nhấp nháy
                 // đang bật:tắt:tắt, vì vậy đây là khoảng thời gian "bật", trong khi khoảng thời gian "tắt" dài gấp đôi.
-                star.strobeFreq = Math.random() * 20 + 40;
+                star.strobeFreq = this.strobeFreq || Math.random() * 20 + 40;
                 if (this.strobeColor) {
                     star.secondColor = this.strobeColor;
                 }
@@ -3016,6 +3018,19 @@ class Shell {
                     }
                     star.sparkTimer = Math.random() * star.sparkFreq;
                 }
+
+                // Apply advanced properties
+                if (this.secondColor) {
+                    star.transitionTime = this.transitionTime || this.starLife * (Math.random() * 0.05 + 0.32);
+                    star.secondColor = this.secondColor;
+                }
+                if (this.strobe) {
+                    star.transitionTime = this.transitionTime || this.starLife * (Math.random() * 0.08 + 0.46);
+                    star.strobe = true;
+                    star.strobeFreq = this.strobeFreq || Math.random() * 20 + 40;
+                    if (this.strobeColor) star.secondColor = this.strobeColor;
+                }
+                star.onDeath = onDeath;
             });
             } else if (this.ring) {
                 const ringStartAngle = Math.random() * Math.PI;
@@ -3053,6 +3068,19 @@ class Shell {
                         }
                         star.sparkTimer = Math.random() * star.sparkFreq;
                     }
+
+                    // Apply advanced properties
+                    if (this.secondColor) {
+                        star.transitionTime = this.transitionTime || this.starLife * (Math.random() * 0.05 + 0.32);
+                        star.secondColor = this.secondColor;
+                    }
+                    if (this.strobe) {
+                        star.transitionTime = this.transitionTime || this.starLife * (Math.random() * 0.08 + 0.46);
+                        star.strobe = true;
+                        star.strobeFreq = this.strobeFreq || Math.random() * 20 + 40;
+                        if (this.strobeColor) star.secondColor = this.strobeColor;
+                    }
+                    star.onDeath = onDeath;
                 });
             }
             // Nổ bình thường
