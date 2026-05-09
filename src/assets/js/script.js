@@ -2076,7 +2076,7 @@ function startSequence() {
                     }
 
                     const x = event.x !== undefined ? event.x / 100 : 0.5;
-                    const y = event.y !== undefined ? event.y / 100 : 0.5;
+                    const y = event.y !== undefined ? (100 - event.y) / 100 : 0.5;
 
                     // Ghi đè các thuộc tính nâng cao từ event nếu có
                     const overrides = [

@@ -11,7 +11,7 @@
       "shell": "Văn bản",
       "color": "Gold",
       "x": 50,
-      "y": 40,
+      "y": 60,
       "launchAngle": 90
     },
     {
@@ -19,7 +19,7 @@
       "shell": "Nhấp nháy",
       "color": "Red",
       "x": 20,
-      "y": 30,
+      "y": 70,
       "delay": 400,
       "launchAngle": 90
     },
@@ -28,7 +28,7 @@
       "shell": "Nhấp nháy",
       "color": "Red",
       "x": 80,
-      "y": 30,
+      "y": 70,
       "delay": 400,
       "launchAngle": 90
     },
@@ -38,7 +38,7 @@
       "shell": "Văn bản",
       "color": "Red",
       "x": 50,
-      "y": 30,
+      "y": 70,
       "launchAngle": 90
     },
     {
@@ -47,7 +47,7 @@
       "shell": "Văn bản",
       "color": "Red",
       "x": 50,
-      "y": 70,
+      "y": 30,
       "delay": 400,
       "launchAngle": 90
     },
@@ -76,7 +76,7 @@
       "shell": "Văn bản",
       "color": "White",
       "x": 30,
-      "y": 40,
+      "y": 60,
       "launchAngle": 90
     },
     {
@@ -85,7 +85,7 @@
       "shell": "Văn bản",
       "color": "White",
       "x": 70,
-      "y": 40,
+      "y": 60,
       "delay": 300,
       "launchAngle": 90
     },
@@ -94,7 +94,7 @@
       "shell": "Hoa cúc",
       "color": "Gold",
       "x": 50,
-      "y": 80,
+      "y": 20,
       "delay": 600,
       "launchAngle": 90
     },
@@ -122,7 +122,7 @@
       "shell": "Nổ lách tách",
       "color": "Gold",
       "x": 50,
-      "y": 20,
+      "y": 80,
       "delay": 800,
       "launchAngle": 90
     },
@@ -131,7 +131,7 @@
       "shell": "Liễu",
       "color": "Gold",
       "x": 20,
-      "y": 70,
+      "y": 30,
       "launchAngle": 90
     },
     {
@@ -139,7 +139,7 @@
       "shell": "Liễu",
       "color": "Gold",
       "x": 50,
-      "y": 70,
+      "y": 30,
       "delay": 200,
       "launchAngle": 90
     },
@@ -148,7 +148,7 @@
       "shell": "Liễu",
       "color": "Gold",
       "x": 80,
-      "y": 70,
+      "y": 30,
       "delay": 400,
       "launchAngle": 90
     },
@@ -166,7 +166,7 @@
       "shell": "Cây cọ",
       "color": "Gold",
       "x": 50,
-      "y": 10,
+      "y": 90,
       "delay": 500,
       "launchAngle": 90
     },
