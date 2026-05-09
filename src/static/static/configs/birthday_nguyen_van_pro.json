@@ -10,52 +10,53 @@
       "text": "HAPPY BIRTHDAY",
       "shell": "Văn bản",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.5,
+      "x": 50,
+      "y": 50,
       "strobe": true,
       "strobeColor": "White",
       "comet": true,
-      "ascentSpeed": 0.85
+      "ascentSpeed": 0.85,
+      "launchAngle": 90
     },
     {
       "burst": 1,
       "shell": "Nhấp nháy",
       "color": "White",
-      "x": 0.2,
-      "y": 0.3,
+      "x": 20,
+      "y": 30,
       "delay": 200,
       "comet": true,
-      "launchAngle": -15
+      "launchAngle": 75
     },
     {
       "burst": 1,
       "shell": "Nhấp nháy",
       "color": "White",
-      "x": 0.8,
-      "y": 0.3,
+      "x": 80,
+      "y": 30,
       "delay": 400,
       "comet": true,
-      "launchAngle": 15
+      "launchAngle": 105
     },
     {
       "burst": 1,
       "shell": "Nhấp nháy",
       "color": "White",
-      "x": 0.3,
-      "y": 0.7,
+      "x": 30,
+      "y": 70,
       "delay": 600,
       "comet": true,
-      "launchAngle": -10
+      "launchAngle": 80
     },
     {
       "burst": 1,
       "shell": "Nhấp nháy",
       "color": "White",
-      "x": 0.7,
-      "y": 0.7,
+      "x": 70,
+      "y": 70,
       "delay": 800,
       "comet": true,
-      "launchAngle": 10
+      "launchAngle": 100
     },
     {
       "burst": 2,
@@ -67,56 +68,59 @@
       "text": "NGUYỄN VÂN",
       "shell": "Văn bản",
       "color": "Red",
-      "x": 0.5,
-      "y": 0.4,
+      "x": 50,
+      "y": 40,
       "pistil": true,
       "pistilColor": "Gold",
       "comet": true,
-      "ascentSpeed": 0.85
+      "ascentSpeed": 0.85,
+      "launchAngle": 90
     },
     {
       "burst": 3,
       "shell": "Trái tim",
       "color": "Red",
-      "x": 0.15,
-      "y": 0.2,
+      "x": 15,
+      "y": 20,
       "delay": 300,
       "comet": true,
       "strobe": true,
-      "launchAngle": -20,
+      "launchAngle": 70,
       "rotation": 0
     },
     {
       "burst": 3,
       "shell": "Trái tim",
       "color": "Red",
-      "x": 0.85,
-      "y": 0.2,
+      "x": 85,
+      "y": 20,
       "delay": 300,
       "comet": true,
       "strobe": true,
-      "launchAngle": 20,
+      "launchAngle": 110,
       "rotation": 0
     },
     {
       "burst": 3,
       "shell": "Kim cương",
       "color": "White",
-      "x": 0.3,
-      "y": 0.6,
+      "x": 30,
+      "y": 60,
       "delay": 600,
       "comet": true,
-      "glitter": "light"
+      "glitter": "light",
+      "launchAngle": 90
     },
     {
       "burst": 3,
       "shell": "Kim cương",
       "color": "White",
-      "x": 0.7,
-      "y": 0.6,
+      "x": 70,
+      "y": 60,
       "delay": 800,
       "comet": true,
-      "glitter": "light"
+      "glitter": "light",
+      "launchAngle": 90
     },
     {
       "burst": 4,
@@ -128,67 +132,71 @@
       "text": "15 - 08",
       "shell": "Văn bản",
       "color": "Blue",
-      "x": 0.4,
-      "y": 0.5,
+      "x": 40,
+      "y": 50,
       "comet": true,
       "secondColor": "White",
-      "ascentSpeed": 0.9
+      "ascentSpeed": 0.9,
+      "launchAngle": 90
     },
     {
       "burst": 5,
       "text": "♌︎🦁",
       "shell": "Văn bản",
       "color": "Gold",
-      "x": 0.6,
-      "y": 0.5,
+      "x": 60,
+      "y": 50,
       "delay": 400,
       "comet": true,
       "pistil": true,
-      "ascentSpeed": 0.9
+      "ascentSpeed": 0.9,
+      "launchAngle": 90
     },
     {
       "burst": 5,
       "shell": "Ngôi sao",
       "color": "Gold",
-      "x": 0.3,
-      "y": 0.3,
+      "x": 30,
+      "y": 30,
       "delay": 200,
       "comet": true,
       "crossette": true,
-      "launchAngle": -18,
+      "launchAngle": 72,
       "rotation": 18
     },
     {
       "burst": 5,
       "shell": "Ngôi sao",
       "color": "Gold",
-      "x": 0.7,
-      "y": 0.3,
+      "x": 70,
+      "y": 30,
       "delay": 400,
       "comet": true,
       "crossette": true,
-      "launchAngle": 18,
+      "launchAngle": 108,
       "rotation": -18
     },
     {
       "burst": 5,
       "shell": "Hành tinh",
       "color": "Purple",
-      "x": 0.5,
-      "y": 0.2,
+      "x": 50,
+      "y": 20,
       "delay": 600,
       "comet": true,
-      "secondColor": "Gold"
+      "secondColor": "Gold",
+      "launchAngle": 90
     },
     {
       "burst": 5,
       "shell": "Bông tuyết",
       "color": "White",
-      "x": 0.5,
-      "y": 0.8,
+      "x": 50,
+      "y": 80,
       "delay": 1000,
       "comet": true,
-      "glitter": "willow"
+      "glitter": "willow",
+      "launchAngle": 90
     },
     {
       "burst": 6,
@@ -200,52 +208,57 @@
       "text": "CHÚC MỪNG",
       "shell": "Văn bản",
       "color": "Purple",
-      "x": 0.3,
-      "y": 0.4,
+      "x": 30,
+      "y": 40,
       "comet": true,
-      "strobe": true
+      "strobe": true,
+      "launchAngle": 90
     },
     {
       "burst": 7,
       "text": "TUỔI MỚI",
       "shell": "Văn bản",
       "color": "Purple",
-      "x": 0.7,
-      "y": 0.4,
+      "x": 70,
+      "y": 40,
       "delay": 400,
       "comet": true,
-      "strobe": true
+      "strobe": true,
+      "launchAngle": 90
     },
     {
       "burst": 7,
       "shell": "Hoa cúc",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.2,
+      "x": 50,
+      "y": 20,
       "delay": 800,
       "comet": true,
       "pistil": true,
-      "pistilColor": "White"
+      "pistilColor": "White",
+      "launchAngle": 90
     },
     {
       "burst": 7,
       "shell": "Ma",
       "color": "White",
-      "x": 0.2,
-      "y": 0.6,
+      "x": 20,
+      "y": 60,
       "delay": 1000,
       "comet": true,
-      "horsetail": true
+      "horsetail": true,
+      "launchAngle": 90
     },
     {
       "burst": 7,
       "shell": "Ma",
       "color": "White",
-      "x": 0.8,
-      "y": 0.6,
+      "x": 80,
+      "y": 60,
       "delay": 1200,
       "comet": true,
-      "horsetail": true
+      "horsetail": true,
+      "launchAngle": 90
     },
     {
       "burst": 8,
@@ -257,53 +270,56 @@
       "text": "MÃI XINH TƯƠI",
       "shell": "Văn bản",
       "color": "Green",
-      "x": 0.5,
-      "y": 0.3,
+      "x": 50,
+      "y": 30,
       "comet": true,
-      "glitter": "streamer"
+      "glitter": "streamer",
+      "launchAngle": 90
     },
     {
       "burst": 9,
       "shell": "Bông sen",
       "color": "Red",
-      "x": 0.5,
-      "y": 0.6,
+      "x": 50,
+      "y": 60,
       "delay": 400,
       "comet": true,
       "pistil": true,
-      "pistilColor": "Gold"
+      "pistilColor": "Gold",
+      "launchAngle": 90
     },
     {
       "burst": 9,
       "shell": "Con bướm",
       "color": "Gold",
-      "x": 0.2,
-      "y": 0.4,
+      "x": 20,
+      "y": 40,
       "delay": 700,
       "comet": true,
       "secondColor": "White",
-      "launchAngle": -15
+      "launchAngle": 75
     },
     {
       "burst": 9,
       "shell": "Con bướm",
       "color": "Gold",
-      "x": 0.8,
-      "y": 0.4,
+      "x": 80,
+      "y": 40,
       "delay": 900,
       "comet": true,
       "secondColor": "White",
-      "launchAngle": 15
+      "launchAngle": 105
     },
     {
       "burst": 9,
       "shell": "Mặt cười",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.1,
+      "x": 50,
+      "y": 10,
       "delay": 1200,
       "comet": true,
-      "strobe": true
+      "strobe": true,
+      "launchAngle": 90
     },
     {
       "burst": 10,
@@ -315,65 +331,69 @@
       "text": "LUÔN RẠNG RỠ",
       "shell": "Văn bản",
       "color": "White",
-      "x": 0.5,
-      "y": 0.5,
+      "x": 50,
+      "y": 50,
       "comet": true,
       "strobe": true,
-      "strobeColor": "Gold"
+      "strobeColor": "Gold",
+      "launchAngle": 90
     },
     {
       "burst": 11,
       "shell": "Nhấp nháy",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.2,
+      "x": 50,
+      "y": 20,
       "delay": 300,
       "comet": true,
-      "starDensity": 2
+      "starDensity": 2,
+      "launchAngle": 90
     },
     {
       "burst": 11,
       "shell": "Cây cọ",
       "color": "Gold",
-      "x": 0.1,
-      "y": 0.4,
+      "x": 10,
+      "y": 40,
       "delay": 600,
       "comet": true,
       "glitter": "thick",
-      "launchAngle": -30,
+      "launchAngle": 60,
       "ascentSpeed": 1.15
     },
     {
       "burst": 11,
       "shell": "Cây cọ",
       "color": "Gold",
-      "x": 0.9,
-      "y": 0.4,
+      "x": 90,
+      "y": 40,
       "delay": 900,
       "comet": true,
       "glitter": "thick",
-      "launchAngle": 30,
+      "launchAngle": 120,
       "ascentSpeed": 1.15
     },
     {
       "burst": 11,
       "shell": "Đuôi ngựa",
       "color": "White",
-      "x": 0.3,
-      "y": 0.8,
+      "x": 30,
+      "y": 80,
       "delay": 1200,
       "comet": true,
-      "horsetail": true
+      "horsetail": true,
+      "launchAngle": 90
     },
     {
       "burst": 11,
       "shell": "Đuôi ngựa",
       "color": "White",
-      "x": 0.7,
-      "y": 0.8,
+      "x": 70,
+      "y": 80,
       "delay": 1400,
       "comet": true,
-      "horsetail": true
+      "horsetail": true,
+      "launchAngle": 90
     },
     {
       "burst": 12,
@@ -385,55 +405,60 @@
       "text": "VẠN SỰ NHƯ Ý",
       "shell": "Văn bản",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.4,
+      "x": 50,
+      "y": 40,
       "comet": true,
       "glitter": "willow",
-      "ascentSpeed": 0.8
+      "ascentSpeed": 0.8,
+      "launchAngle": 90
     },
     {
       "burst": 13,
       "shell": "Liễu",
       "color": "Gold",
-      "x": 0.2,
-      "y": 0.8,
+      "x": 20,
+      "y": 80,
       "delay": 400,
       "comet": true,
       "starLifeVariation": 0.5,
-      "glitterColor": "White"
+      "glitterColor": "White",
+      "launchAngle": 90
     },
     {
       "burst": 13,
       "shell": "Liễu",
       "color": "Gold",
-      "x": 0.4,
-      "y": 0.8,
+      "x": 40,
+      "y": 80,
       "delay": 600,
       "comet": true,
       "starLifeVariation": 0.5,
-      "glitterColor": "White"
+      "glitterColor": "White",
+      "launchAngle": 90
     },
     {
       "burst": 13,
       "shell": "Liễu",
       "color": "Gold",
-      "x": 0.6,
-      "y": 0.8,
+      "x": 60,
+      "y": 80,
       "delay": 800,
       "comet": true,
       "starLifeVariation": 0.5,
-      "glitterColor": "White"
+      "glitterColor": "White",
+      "launchAngle": 90
     },
     {
       "burst": 13,
       "shell": "Liễu",
       "color": "Gold",
-      "x": 0.8,
-      "y": 0.8,
+      "x": 80,
+      "y": 80,
       "delay": 1000,
       "comet": true,
       "starLifeVariation": 0.5,
-      "glitterColor": "White"
+      "glitterColor": "White",
+      "launchAngle": 90
     },
     {
       "burst": 14,
@@ -445,108 +470,116 @@
       "text": "HAPPY BIRTHDAY",
       "shell": "Văn bản",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.3,
+      "x": 50,
+      "y": 30,
       "comet": true,
-      "strobe": true
+      "strobe": true,
+      "launchAngle": 90
     },
     {
       "burst": 15,
       "text": "NGUYỄN VÂN",
       "shell": "Văn bản",
       "color": "Red",
-      "x": 0.5,
-      "y": 0.7,
+      "x": 50,
+      "y": 70,
       "delay": 800,
       "comet": true,
       "pistil": true,
-      "pistilColor": "White"
+      "pistilColor": "White",
+      "launchAngle": 90
     },
     {
       "burst": 15,
       "shell": "Nổ lách tách",
       "color": "White",
-      "x": 0.2,
-      "y": 0.2,
+      "x": 20,
+      "y": 20,
       "delay": 1200,
       "comet": true,
-      "crackle": true
+      "crackle": true,
+      "launchAngle": 90
     },
     {
       "burst": 15,
       "shell": "Nổ lách tách",
       "color": "White",
-      "x": 0.8,
-      "y": 0.2,
+      "x": 80,
+      "y": 20,
       "delay": 1400,
       "comet": true,
-      "crackle": true
+      "crackle": true,
+      "launchAngle": 90
     },
     {
       "burst": 15,
       "shell": "Nổ lách tách",
       "color": "White",
-      "x": 0.5,
-      "y": 0.1,
+      "x": 50,
+      "y": 10,
       "delay": 1600,
       "comet": true,
-      "crackle": true
+      "crackle": true,
+      "launchAngle": 90
     },
     {
       "burst": 15,
       "shell": "Nhấp nháy",
       "color": "White",
-      "x": 0.1,
-      "y": 0.5,
+      "x": 10,
+      "y": 50,
       "delay": 1800,
       "comet": true,
-      "secondColor": "Blue"
+      "secondColor": "Blue",
+      "launchAngle": 90
     },
     {
       "burst": 15,
       "shell": "Nhấp nháy",
       "color": "White",
-      "x": 0.9,
-      "y": 0.5,
+      "x": 90,
+      "y": 50,
       "delay": 2000,
       "comet": true,
-      "secondColor": "Blue"
+      "secondColor": "Blue",
+      "launchAngle": 90
     },
     {
       "burst": 15,
       "shell": "Trái tim",
       "color": "Red",
-      "x": 0.3,
-      "y": 0.4,
+      "x": 30,
+      "y": 40,
       "delay": 2200,
       "comet": true,
       "pistil": true,
       "pistilColor": "White",
-      "launchAngle": -22,
+      "launchAngle": 68,
       "rotation": 0
     },
     {
       "burst": 15,
       "shell": "Trái tim",
       "color": "Red",
-      "x": 0.7,
-      "y": 0.4,
+      "x": 70,
+      "y": 40,
       "delay": 2400,
       "comet": true,
       "pistil": true,
       "pistilColor": "White",
-      "launchAngle": 22,
+      "launchAngle": 112,
       "rotation": 0
     },
     {
       "burst": 15,
       "shell": "Ngôi sao",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.9,
+      "x": 50,
+      "y": 90,
       "delay": 2600,
       "comet": true,
-      "crossette": true
+      "crossette": true,
+      "launchAngle": 90
     },
     {
       "burst": 16,
@@ -558,355 +591,384 @@
       "text": "MÃI HẠNH PHÚC NHÉ",
       "shell": "Văn bản",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.4,
+      "x": 50,
+      "y": 40,
       "comet": true,
       "strobe": true,
       "strobeColor": "White",
-      "starDensity": 2
+      "starDensity": 2,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Hoa cúc",
       "color": "Gold",
-      "x": 0.2,
-      "y": 0.3,
+      "x": 20,
+      "y": 30,
       "delay": 200,
       "comet": true,
       "pistil": true,
-      "pistilColor": "Red"
+      "pistilColor": "Red",
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Hoa cúc",
       "color": "White",
-      "x": 0.8,
-      "y": 0.3,
+      "x": 80,
+      "y": 30,
       "delay": 400,
       "comet": true,
       "pistil": true,
-      "pistilColor": "Blue"
+      "pistilColor": "Blue",
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Nhấp nháy",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.2,
+      "x": 50,
+      "y": 20,
       "delay": 600,
       "comet": true,
       "starCount": 200,
-      "glitter": "heavy"
+      "glitter": "heavy",
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Nổ lách tách",
       "color": "White",
-      "x": 0.1,
-      "y": 0.5,
+      "x": 10,
+      "y": 50,
       "delay": 800,
       "comet": true,
       "crackle": true,
-      "secondColor": "Gold"
+      "secondColor": "Gold",
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Nổ lách tách",
       "color": "White",
-      "x": 0.9,
-      "y": 0.5,
+      "x": 90,
+      "y": 50,
       "delay": 1000,
       "comet": true,
       "crackle": true,
-      "secondColor": "Gold"
+      "secondColor": "Gold",
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Nổ chéo",
       "color": "Gold",
-      "x": 0.3,
-      "y": 0.6,
+      "x": 30,
+      "y": 60,
       "delay": 1200,
       "comet": true,
       "crossette": true,
-      "starDensity": 1.5
+      "starDensity": 1.5,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Nổ chéo",
       "color": "Red",
-      "x": 0.7,
-      "y": 0.6,
+      "x": 70,
+      "y": 60,
       "delay": 1400,
       "comet": true,
       "crossette": true,
-      "starDensity": 1.5
+      "starDensity": 1.5,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Cây cọ",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.5,
+      "x": 50,
+      "y": 50,
       "delay": 1600,
       "comet": true,
       "glitter": "thick",
-      "starLife": 4000
+      "starLife": 4000,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Vòng nhẫn",
       "color": "Blue",
-      "x": 0.2,
-      "y": 0.4,
+      "x": 20,
+      "y": 40,
       "delay": 1800,
       "comet": true,
-      "strobe": true
+      "strobe": true,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Vòng nhẫn",
       "color": "Purple",
-      "x": 0.8,
-      "y": 0.4,
+      "x": 80,
+      "y": 40,
       "delay": 2000,
       "comet": true,
-      "strobe": true
+      "strobe": true,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Ma",
       "color": "White",
-      "x": 0.4,
-      "y": 0.2,
+      "x": 40,
+      "y": 20,
       "delay": 2200,
       "comet": true,
-      "horsetail": true
+      "horsetail": true,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Ma",
       "color": "White",
-      "x": 0.6,
-      "y": 0.2,
+      "x": 60,
+      "y": 20,
       "delay": 2400,
       "comet": true,
-      "horsetail": true
+      "horsetail": true,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Đuôi ngựa",
       "color": "Gold",
-      "x": 0.1,
-      "y": 0.8,
+      "x": 10,
+      "y": 80,
       "delay": 2600,
       "comet": true,
       "horsetail": true,
       "starLife": 5000,
-      "launchAngle": -25
+      "launchAngle": 65
     },
     {
       "burst": 17,
       "shell": "Đuôi ngựa",
       "color": "White",
-      "x": 0.9,
-      "y": 0.8,
+      "x": 90,
+      "y": 80,
       "delay": 2800,
       "comet": true,
       "horsetail": true,
       "starLife": 5000,
-      "launchAngle": 25
+      "launchAngle": 115
     },
     {
       "burst": 17,
       "shell": "Trái tim",
       "color": "Red",
-      "x": 0.5,
-      "y": 0.3,
+      "x": 50,
+      "y": 30,
       "delay": 3000,
       "comet": true,
       "pistil": true,
       "pistilColor": "White",
       "starDensity": 2,
       "rotation": 0,
-      "ascentSpeed": 0.9
+      "ascentSpeed": 0.9,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Ngôi sao",
       "color": "Gold",
-      "x": 0.3,
-      "y": 0.4,
+      "x": 30,
+      "y": 40,
       "delay": 3200,
       "comet": true,
       "crossette": true,
-      "launchAngle": -15,
+      "launchAngle": 75,
       "rotation": 36
     },
     {
       "burst": 17,
       "shell": "Kim cương",
       "color": "White",
-      "x": 0.7,
-      "y": 0.4,
+      "x": 70,
+      "y": 40,
       "delay": 3400,
       "comet": true,
       "strobe": true,
-      "rotation": 45
+      "rotation": 45,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Hoa cúc",
       "color": "Red",
-      "x": 0.2,
-      "y": 0.2,
+      "x": 20,
+      "y": 20,
       "delay": 3600,
       "comet": true,
-      "secondColor": "Gold"
+      "secondColor": "Gold",
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Hoa cúc",
       "color": "Blue",
-      "x": 0.8,
-      "y": 0.2,
+      "x": 80,
+      "y": 20,
       "delay": 3800,
       "comet": true,
-      "secondColor": "White"
+      "secondColor": "White",
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Nhấp nháy",
       "color": "White",
-      "x": 0.5,
-      "y": 0.1,
+      "x": 50,
+      "y": 10,
       "delay": 4000,
       "comet": true,
       "starCount": 300,
-      "glitter": "streamer"
+      "glitter": "streamer",
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Nổ lách tách",
       "color": "Gold",
-      "x": 0.1,
-      "y": 0.3,
+      "x": 10,
+      "y": 30,
       "delay": 4200,
       "comet": true,
-      "crackle": true
+      "crackle": true,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Nổ lách tách",
       "color": "Gold",
-      "x": 0.9,
-      "y": 0.3,
+      "x": 90,
+      "y": 30,
       "delay": 4400,
       "comet": true,
-      "crackle": true
+      "crackle": true,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Liễu",
       "color": "Gold",
-      "x": 0.3,
-      "y": 0.9,
+      "x": 30,
+      "y": 90,
       "delay": 4600,
       "comet": true,
       "glitter": "willow",
-      "starLife": 6000
+      "starLife": 6000,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Liễu",
       "color": "Gold",
-      "x": 0.7,
-      "y": 0.9,
+      "x": 70,
+      "y": 90,
       "delay": 4800,
       "comet": true,
       "glitter": "willow",
-      "starLife": 6000
+      "starLife": 6000,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Cây cọ",
       "color": "Green",
-      "x": 0.5,
-      "y": 0.6,
+      "x": 50,
+      "y": 60,
       "delay": 5000,
       "comet": true,
       "glitter": "thick",
-      "pistil": true
+      "pistil": true,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Nổ chéo",
       "color": "Purple",
-      "x": 0.2,
-      "y": 0.5,
+      "x": 20,
+      "y": 50,
       "delay": 5200,
       "comet": true,
-      "crossette": true
+      "crossette": true,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Nổ chéo",
       "color": "Gold",
-      "x": 0.8,
-      "y": 0.5,
+      "x": 80,
+      "y": 50,
       "delay": 5400,
       "comet": true,
-      "crossette": true
+      "crossette": true,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Hoa cúc",
       "color": "White",
-      "x": 0.4,
-      "y": 0.4,
+      "x": 40,
+      "y": 40,
       "delay": 5600,
       "comet": true,
-      "pistil": true
+      "pistil": true,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Hoa cúc",
       "color": "Red",
-      "x": 0.6,
-      "y": 0.4,
+      "x": 60,
+      "y": 40,
       "delay": 5800,
       "comet": true,
-      "pistil": true
+      "pistil": true,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Nhấp nháy",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.2,
+      "x": 50,
+      "y": 20,
       "delay": 6000,
       "comet": true,
       "strobe": true,
       "strobeColor": "White",
-      "starCount": 400
+      "starCount": 400,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Nổ lách tách",
       "color": "White",
-      "x": 0.1,
-      "y": 0.1,
+      "x": 10,
+      "y": 10,
       "delay": 6200,
       "comet": true,
-      "crackle": true
+      "crackle": true,
+      "launchAngle": 90
     },
     {
       "burst": 17,
       "shell": "Liễu",
       "color": "Ngẫu nhiên",
       "glitterColor": "Ngẫu nhiên",
-      "x": 0.5,
-      "y": 0.3,
+      "x": 50,
+      "y": 30,
       "delay": 7500,
       "size": 4,
       "comet": true,
@@ -915,7 +977,8 @@
       "starCount": 500,
       "starLife": 8000,
       "ascentSpeed": 0.7,
-      "burstSound": "burstSmall"
+      "burstSound": "burstSmall",
+      "launchAngle": 90
     },
     {
       "burst": 17,
@@ -927,5 +990,6 @@
       "shell": "Tạm dừng",
       "duration": 3000
     }
-  ]
+  ],
+  "version": 2
 }
