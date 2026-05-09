@@ -425,8 +425,8 @@ function addEvent(config = null) {
             burst: 1,
             shell: "Hoa cúc",
             color: "Ngẫu nhiên",
-            x: 0.5,
-            y: 0.5,
+            x: 50,
+            y: 50,
             delay: 0,
             size: 1,
             strobe: false,
@@ -442,7 +442,7 @@ function addEvent(config = null) {
             starLife: 2500,
             spreadSize: 350,
             strobeFreq: 50,
-            launchAngle: 0,
+            launchAngle: 90,
             ascentSpeed: 1,
             rotation: undefined,
             liftSound: '',
@@ -458,8 +458,8 @@ function addEvent(config = null) {
             burst: 1,
             shell: "Hoa cúc",
             color: "Ngẫu nhiên",
-            x: 0.5,
-            y: 0.5,
+            x: 50,
+            y: 50,
             delay: 0,
             size: 1,
             strobe: false,
@@ -482,7 +482,7 @@ function addEvent(config = null) {
             floral: false,
             ring: false,
             strobeFreq: 50,
-            launchAngle: 0,
+            launchAngle: 90,
             ascentSpeed: 1,
             rotation: undefined,
             liftSound: '',
@@ -600,12 +600,12 @@ function updateEvent(id, field, value) {
                 let num = value === '' ? undefined : Number(value);
                 if (num !== undefined && !isNaN(num)) {
                     // Clamping logic for security
-                    if (field === 'x' || field === 'y') num = Math.max(0, Math.min(1, num));
+                    if (field === 'x' || field === 'y') num = Math.max(0, Math.min(100, num));
                     if (field === 'size') num = Math.max(0, Math.min(10, num));
                     if (field === 'delay') num = Math.max(0, Math.min(60000, num));
                     if (field === 'burst') num = Math.max(1, num);
                     if (field === 'starLifeVariation') num = Math.max(0, Math.min(1, num));
-                    if (field === 'launchAngle') num = Math.max(-80, Math.min(80, num));
+                    if (field === 'launchAngle') num = Math.max(0, Math.min(180, num));
                     if (field === 'ascentSpeed') num = Math.max(0.1, Math.min(5, num));
                 }
                 event[field] = num;
@@ -716,12 +716,12 @@ function createEventCard(event, index) {
 
         <div class="event-grid-4">
             <div class="form-group">
-                <label>X (0-1)</label>
-                <input type="number" step="0.01" min="0" max="1" value="${event.x}" onchange="updateEvent(${event.id}, 'x', this.value)">
+                <label>X (0-100)</label>
+                <input type="number" step="0.1" min="0" max="100" value="${event.x}" onchange="updateEvent(${event.id}, 'x', this.value)">
             </div>
             <div class="form-group">
-                <label>Y (0-1)</label>
-                <input type="number" step="0.01" min="0" max="1" value="${event.y}" onchange="updateEvent(${event.id}, 'y', this.value)">
+                <label>Y (0-100)</label>
+                <input type="number" step="0.1" min="0" max="100" value="${event.y}" onchange="updateEvent(${event.id}, 'y', this.value)">
             </div>
             <div class="form-group">
                 <label>Size</label>
@@ -735,8 +735,8 @@ function createEventCard(event, index) {
 
         <div class="event-grid-physics">
             <div class="form-group">
-                <label title="Góc bắn tính bằng độ. 0 = thẳng đứng, dương = nghiêng phải, âm = nghiêng trái">Góc bắn (°)</label>
-                <input type="number" step="5" min="-80" max="80" value="${event.launchAngle || 0}" onchange="updateEvent(${event.id}, 'launchAngle', this.value)">
+                <label title="Góc bắn tính bằng độ. 90 = thẳng đứng, 0 = nằm ngang trái, 180 = nằm ngang phải">Góc bắn (0-180°)</label>
+                <input type="number" step="1" min="0" max="180" value="${event.launchAngle || 90}" onchange="updateEvent(${event.id}, 'launchAngle', this.value)">
             </div>
             <div class="form-group">
                 <label title="Tốc độ bay lên. 1 = bình thường, >1 = nhanh hơn">Tốc độ bay (x)</label>
@@ -1764,12 +1764,13 @@ class Shell {
         const width = miniMainStage.width;
         const height = miniMainStage.height;
 
-        const targetX = x * width;
-        const targetY = y * height;
+        const targetX = (x / 100) * width;
+        const targetY = (y / 100) * height;
         const startY = height;
 
         // Tính góc bắn và điểm nổ cuối dựa trên launchAngle
-        const angleRad = (this.launchAngle || 0) * (Math.PI / 180);
+        // 90 độ là thẳng đứng, 0 độ là trái, 180 độ là phải
+        const angleRad = ((this.launchAngle !== undefined ? this.launchAngle : 90) - 90) * (Math.PI / 180);
         const verticalDist = startY - targetY;
         const finalTargetX = targetX + Math.sin(angleRad) * verticalDist;
         const startX = targetX;
@@ -2327,8 +2328,8 @@ function launchEvent(event) {
     const config = getMiniShellType(event, event.size);
     const shell = new Shell(config);
     // Fix logic: check for undefined to allow 0 value
-    const x = event.x !== undefined ? event.x : 0.5;
-    const y = event.y !== undefined ? event.y : 0.5;
+    const x = event.x !== undefined ? event.x : 50;
+    const y = event.y !== undefined ? event.y : 50;
     shell.launch(x, y);
 }
 

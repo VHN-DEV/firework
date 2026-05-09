@@ -2075,8 +2075,8 @@ function startSequence() {
                         }
                     }
 
-                    const x = event.x !== undefined ? event.x : 0.5;
-                    const y = event.y !== undefined ? event.y : 0.5;
+                    const x = event.x !== undefined ? event.x / 100 : 0.5;
+                    const y = event.y !== undefined ? event.y / 100 : 0.5;
 
                     // Ghi đè các thuộc tính nâng cao từ event nếu có
                     const overrides = [
@@ -2760,7 +2760,7 @@ class Shell {
         Object.assign(this, options);
         // Safety clamp for launch angle
         if (this.launchAngle !== undefined) {
-            this.launchAngle = Math.max(-80, Math.min(80, this.launchAngle));
+            this.launchAngle = Math.max(0, Math.min(180, this.launchAngle));
         }
         this.starLifeVariation = options.starLifeVariation || 0.125;
         this.color = options.color || randomColor();
@@ -2794,7 +2794,8 @@ class Shell {
         const burstY = y;
 
         // Nếu có launchAngle, ta tính lại điểm nổ (burstX) để đạt được góc bắn mong muốn
-        const angleRad = (this.launchAngle || 0) * (Math.PI / 180);
+        // 90 độ là thẳng đứng, 0 độ là trái, 180 độ là phải
+        const angleRad = (this.launchAngle !== undefined ? this.launchAngle - 90 : 0) * (Math.PI / 180);
         const finalBurstX = burstX + Math.sin(angleRad) * (launchY - burstY);
         const finalDx = finalBurstX - launchX;
         const dy = burstY - launchY;

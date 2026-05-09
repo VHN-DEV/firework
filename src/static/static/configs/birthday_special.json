@@ -10,299 +10,336 @@
       "text": "HAPPY BIRTHDAY",
       "shell": "Văn bản",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.5
+      "x": 50,
+      "y": 50,
+      "launchAngle": 90
     },
     {
       "burst": 1,
       "shell": "Nhấp nháy",
       "color": "White",
-      "x": 0.2,
-      "y": 0.3,
-      "delay": 400
+      "x": 20,
+      "y": 30,
+      "delay": 400,
+      "launchAngle": 90
     },
     {
       "burst": 1,
       "shell": "Nhấp nháy",
       "color": "White",
-      "x": 0.8,
-      "y": 0.3,
-      "delay": 600
+      "x": 80,
+      "y": 30,
+      "delay": 600,
+      "launchAngle": 90
     },
     {
       "burst": 2,
       "shell": "Trái tim",
       "color": "Red",
-      "x": 0.5,
-      "y": 0.4
+      "x": 50,
+      "y": 40,
+      "launchAngle": 90
     },
     {
       "burst": 2,
       "shell": "Trái tim",
       "color": "Red",
-      "x": 0.2,
-      "y": 0.2,
-      "delay": 300
+      "x": 20,
+      "y": 20,
+      "delay": 300,
+      "launchAngle": 90
     },
     {
       "burst": 2,
       "shell": "Trái tim",
       "color": "Red",
-      "x": 0.8,
-      "y": 0.2,
-      "delay": 300
+      "x": 80,
+      "y": 20,
+      "delay": 300,
+      "launchAngle": 90
     },
     {
       "burst": 3,
       "text": "[TÊN NGƯỜI NHẬN]",
       "shell": "Văn bản",
       "color": "Blue",
-      "x": 0.5,
-      "y": 0.5
+      "x": 50,
+      "y": 50,
+      "launchAngle": 90
     },
     {
       "burst": 3,
       "shell": "Ngôi sao",
       "color": "Gold",
-      "x": 0.2,
-      "y": 0.4,
-      "delay": 200
+      "x": 20,
+      "y": 40,
+      "delay": 200,
+      "launchAngle": 90
     },
     {
       "burst": 3,
       "shell": "Ngôi sao",
       "color": "Gold",
-      "x": 0.8,
-      "y": 0.4,
-      "delay": 400
+      "x": 80,
+      "y": 40,
+      "delay": 400,
+      "launchAngle": 90
     },
     {
       "burst": 4,
       "text": "15 - 08",
       "shell": "Văn bản",
       "color": "Gold",
-      "x": 0.3,
-      "y": 0.5
+      "x": 30,
+      "y": 50,
+      "launchAngle": 90
     },
     {
       "burst": 4,
       "text": "♌︎🦁",
       "shell": "Văn bản",
       "color": "Gold",
-      "x": 0.7,
-      "y": 0.5,
-      "delay": 400
+      "x": 70,
+      "y": 50,
+      "delay": 400,
+      "launchAngle": 90
     },
     {
       "burst": 4,
       "shell": "Cây cọ",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.3,
-      "delay": 800
+      "x": 50,
+      "y": 30,
+      "delay": 800,
+      "launchAngle": 90
     },
     {
       "burst": 5,
       "text": "CHÚC MỪNG",
       "shell": "Văn bản",
       "color": "White",
-      "x": 0.5,
-      "y": 0.3
+      "x": 50,
+      "y": 30,
+      "launchAngle": 90
     },
     {
       "burst": 5,
       "text": "TUỔI MỚI",
       "shell": "Văn bản",
       "color": "White",
-      "x": 0.5,
-      "y": 0.7,
-      "delay": 400
+      "x": 50,
+      "y": 70,
+      "delay": 400,
+      "launchAngle": 90
     },
     {
       "burst": 6,
       "text": "MÃI XINH TƯƠI",
       "shell": "Văn bản",
       "color": "Purple",
-      "x": 0.3,
-      "y": 0.5
+      "x": 30,
+      "y": 50,
+      "launchAngle": 90
     },
     {
       "burst": 6,
       "text": "LUÔN RẠNG RỠ",
       "shell": "Văn bản",
       "color": "Purple",
-      "x": 0.7,
-      "y": 0.5,
-      "delay": 300
+      "x": 70,
+      "y": 50,
+      "delay": 300,
+      "launchAngle": 90
     },
     {
       "burst": 6,
       "shell": "Hoa cúc",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.2,
-      "delay": 600
+      "x": 50,
+      "y": 20,
+      "delay": 600,
+      "launchAngle": 90
     },
     {
       "burst": 7,
       "text": "TỎA SÁNG",
       "shell": "Văn bản",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.5
+      "x": 50,
+      "y": 50,
+      "launchAngle": 90
     },
     {
       "burst": 7,
       "shell": "Cây cọ",
       "color": "Gold",
-      "x": 0.2,
-      "y": 0.4,
-      "delay": 300
+      "x": 20,
+      "y": 40,
+      "delay": 300,
+      "launchAngle": 90
     },
     {
       "burst": 7,
       "shell": "Cây cọ",
       "color": "Gold",
-      "x": 0.8,
-      "y": 0.4,
-      "delay": 600
+      "x": 80,
+      "y": 40,
+      "delay": 600,
+      "launchAngle": 90
     },
     {
       "burst": 8,
       "text": "YÊU ĐỜI",
       "shell": "Văn bản",
       "color": "Green",
-      "x": 0.3,
-      "y": 0.5
+      "x": 30,
+      "y": 50,
+      "launchAngle": 90
     },
     {
       "burst": 8,
       "text": "BÌNH AN",
       "shell": "Văn bản",
       "color": "Green",
-      "x": 0.7,
-      "y": 0.5,
-      "delay": 400
+      "x": 70,
+      "y": 50,
+      "delay": 400,
+      "launchAngle": 90
     },
     {
       "burst": 9,
       "text": "SỨC KHỎE",
       "shell": "Văn bản",
       "color": "White",
-      "x": 0.3,
-      "y": 0.4
+      "x": 30,
+      "y": 40,
+      "launchAngle": 90
     },
     {
       "burst": 9,
       "text": "DỒI DÀO",
       "shell": "Văn bản",
       "color": "White",
-      "x": 0.7,
-      "y": 0.4,
-      "delay": 300
+      "x": 70,
+      "y": 40,
+      "delay": 300,
+      "launchAngle": 90
     },
     {
       "burst": 9,
       "shell": "Liễu",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.8,
-      "delay": 600
+      "x": 50,
+      "y": 80,
+      "delay": 600,
+      "launchAngle": 90
     },
     {
       "burst": 10,
       "text": "VẠN SỰ",
       "shell": "Văn bản",
       "color": "Blue",
-      "x": 0.3,
-      "y": 0.5
+      "x": 30,
+      "y": 50,
+      "launchAngle": 90
     },
     {
       "burst": 10,
       "text": "NHƯ Ý",
       "shell": "Văn bản",
       "color": "Blue",
-      "x": 0.7,
-      "y": 0.5,
-      "delay": 400
+      "x": 70,
+      "y": 50,
+      "delay": 400,
+      "launchAngle": 90
     },
     {
       "burst": 11,
       "text": "MÃI HẠNH PHÚC",
       "shell": "Văn bản",
       "color": "Red",
-      "x": 0.5,
-      "y": 0.6
+      "x": 50,
+      "y": 60,
+      "launchAngle": 90
     },
     {
       "burst": 11,
       "shell": "Trái tim",
       "color": "Red",
-      "x": 0.2,
-      "y": 0.3,
-      "delay": 200
+      "x": 20,
+      "y": 30,
+      "delay": 200,
+      "launchAngle": 90
     },
     {
       "burst": 11,
       "shell": "Trái tim",
       "color": "Red",
-      "x": 0.8,
-      "y": 0.3,
-      "delay": 400
+      "x": 80,
+      "y": 30,
+      "delay": 400,
+      "launchAngle": 90
     },
     {
       "burst": 12,
       "text": "❤️❤️❤️",
       "shell": "Văn bản",
       "color": "Red",
-      "x": 0.5,
-      "y": 0.5
+      "x": 50,
+      "y": 50,
+      "launchAngle": 90
     },
     {
       "burst": 12,
       "shell": "Nhấp nháy",
       "color": "White",
-      "x": 0.5,
-      "y": 0.1,
-      "delay": 500
+      "x": 50,
+      "y": 10,
+      "delay": 500,
+      "launchAngle": 90
     },
     {
       "burst": 13,
       "text": "MỘT NGÀY",
       "shell": "Văn bản",
       "color": "White",
-      "x": 0.5,
-      "y": 0.4
+      "x": 50,
+      "y": 40,
+      "launchAngle": 90
     },
     {
       "burst": 13,
       "text": "THẬT TUYỆT VỜI NHA",
       "shell": "Văn bản",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.7,
-      "delay": 400
+      "x": 50,
+      "y": 70,
+      "delay": 400,
+      "launchAngle": 90
     },
     {
       "burst": 13,
       "shell": "Liễu",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.8,
-      "delay": 1000
+      "x": 50,
+      "y": 80,
+      "delay": 1000,
+      "launchAngle": 90
     },
     {
       "burst": 13,
       "shell": "Nổ lách tách",
       "color": "White",
-      "x": 0.5,
-      "y": 0.2,
-      "delay": 1200
+      "x": 50,
+      "y": 20,
+      "delay": 1200,
+      "launchAngle": 90
     },
     {
       "burst": 14,
       "shell": "Tạm dừng",
       "duration": 3000
     }
-  ]
+  ],
+  "version": 2
 }

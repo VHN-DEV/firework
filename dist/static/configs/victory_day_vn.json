@@ -10,101 +10,114 @@
       "text": "30 THÁNG 4",
       "shell": "Văn bản",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.4
+      "x": 50,
+      "y": 40,
+      "launchAngle": 90
     },
     {
       "burst": 1,
       "shell": "Nhấp nháy",
       "color": "Red",
-      "x": 0.2,
-      "y": 0.3,
-      "delay": 300
+      "x": 20,
+      "y": 30,
+      "delay": 300,
+      "launchAngle": 90
     },
     {
       "burst": 1,
       "shell": "Nhấp nháy",
       "color": "Blue",
-      "x": 0.8,
-      "y": 0.3,
-      "delay": 500
+      "x": 80,
+      "y": 30,
+      "delay": 500,
+      "launchAngle": 90
     },
     {
       "burst": 2,
       "text": "GIẢI PHÓNG",
       "shell": "Văn bản",
       "color": "Red",
-      "x": 0.3,
-      "y": 0.5
+      "x": 30,
+      "y": 50,
+      "launchAngle": 90
     },
     {
       "burst": 2,
       "text": "MIỀN NAM",
       "shell": "Văn bản",
       "color": "Red",
-      "x": 0.7,
-      "y": 0.5,
-      "delay": 400
+      "x": 70,
+      "y": 50,
+      "delay": 400,
+      "launchAngle": 90
     },
     {
       "burst": 3,
       "text": "THỐNG NHẤT",
       "shell": "Văn bản",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.5
+      "x": 50,
+      "y": 50,
+      "launchAngle": 90
     },
     {
       "burst": 3,
       "shell": "Hoa cúc",
       "color": "Red",
-      "x": 0.5,
-      "y": 0.2,
-      "delay": 600
+      "x": 50,
+      "y": 20,
+      "delay": 600,
+      "launchAngle": 90
     },
     {
       "burst": 4,
       "shell": "Liễu",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.8
+      "x": 50,
+      "y": 80,
+      "launchAngle": 90
     },
     {
       "burst": 4,
       "shell": "Ngôi sao",
       "color": "Gold",
-      "x": 0.2,
-      "y": 0.4,
-      "delay": 200
+      "x": 20,
+      "y": 40,
+      "delay": 200,
+      "launchAngle": 90
     },
     {
       "burst": 4,
       "shell": "Ngôi sao",
       "color": "Gold",
-      "x": 0.8,
-      "y": 0.4,
-      "delay": 400
+      "x": 80,
+      "y": 40,
+      "delay": 400,
+      "launchAngle": 90
     },
     {
       "burst": 5,
       "text": "HOÀ BÌNH",
       "shell": "Văn bản",
       "color": "White",
-      "x": 0.5,
-      "y": 0.5
+      "x": 50,
+      "y": 50,
+      "launchAngle": 90
     },
     {
       "burst": 5,
       "shell": "Nổ lách tách",
       "color": "Gold",
-      "x": 0.5,
-      "y": 0.1,
-      "delay": 500
+      "x": 50,
+      "y": 10,
+      "delay": 500,
+      "launchAngle": 90
     },
     {
       "burst": 6,
       "shell": "Tạm dừng",
       "duration": 5000
     }
-  ]
+  ],
+  "version": 2
 }
