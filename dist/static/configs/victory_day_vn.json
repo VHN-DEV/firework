@@ -11,7 +11,7 @@
       "shell": "Văn bản",
       "color": "Gold",
       "x": 50,
-      "y": 40,
+      "y": 60,
       "launchAngle": 90
     },
     {
@@ -19,7 +19,7 @@
       "shell": "Nhấp nháy",
       "color": "Red",
       "x": 20,
-      "y": 30,
+      "y": 70,
       "delay": 300,
       "launchAngle": 90
     },
@@ -28,7 +28,7 @@
       "shell": "Nhấp nháy",
       "color": "Blue",
       "x": 80,
-      "y": 30,
+      "y": 70,
       "delay": 500,
       "launchAngle": 90
     },
@@ -65,7 +65,7 @@
       "shell": "Hoa cúc",
       "color": "Red",
       "x": 50,
-      "y": 20,
+      "y": 80,
       "delay": 600,
       "launchAngle": 90
     },
@@ -74,7 +74,7 @@
       "shell": "Liễu",
       "color": "Gold",
       "x": 50,
-      "y": 80,
+      "y": 20,
       "launchAngle": 90
     },
     {
@@ -82,7 +82,7 @@
       "shell": "Ngôi sao",
       "color": "Gold",
       "x": 20,
-      "y": 40,
+      "y": 60,
       "delay": 200,
       "launchAngle": 90
     },
@@ -91,7 +91,7 @@
       "shell": "Ngôi sao",
       "color": "Gold",
       "x": 80,
-      "y": 40,
+      "y": 60,
       "delay": 400,
       "launchAngle": 90
     },
@@ -109,7 +109,7 @@
       "shell": "Nổ lách tách",
       "color": "Gold",
       "x": 50,
-      "y": 10,
+      "y": 90,
       "delay": 500,
       "launchAngle": 90
     },

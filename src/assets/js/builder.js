@@ -1619,6 +1619,8 @@ const Star = {
         const instance = this._pool.pop() || this._new();
         let finalColor = Array.isArray(color) ? color[Math.floor(Math.random() * color.length)] : (color || COLOR.White);
         if (finalColor === 'Ngẫu nhiên') finalColor = Object.values(COLOR)[Math.floor(Math.random() * 6)];
+        // Convert color name to hex if available
+        if (COLOR[finalColor]) finalColor = COLOR[finalColor];
         instance.visible = true;
         instance.heavy = false;
         instance.x = x;
@@ -1765,7 +1767,7 @@ class Shell {
         const height = miniMainStage.height;
 
         const targetX = (x / 100) * width;
-        const targetY = (y / 100) * height;
+        const targetY = ((100 - y) / 100) * height;
         const startY = height;
 
         // Tính góc bắn và điểm nổ cuối dựa trên launchAngle
@@ -2185,6 +2187,29 @@ function resizeMiniStages() {
     const h = container.clientHeight || 200;
     miniTrailsStage.resize(w, h);
     miniMainStage.resize(w, h);
+    updateMiniRulers();
+}
+
+function updateMiniRulers() {
+    const rulerX = document.getElementById('mini-ruler-x');
+    const rulerY = document.getElementById('mini-ruler-y');
+    if (!rulerX || !rulerY) return;
+
+    rulerX.innerHTML = '';
+    rulerY.innerHTML = '';
+
+    const steps = [0, 20, 40, 60, 80, 100];
+    
+    steps.forEach(s => {
+        const spanX = document.createElement('span');
+        spanX.innerText = s;
+        rulerX.appendChild(spanX);
+
+        const spanY = document.createElement('span');
+        // Y ruler: 100 is top, 0 is bottom
+        spanY.innerText = 100 - s;
+        rulerY.appendChild(spanY);
+    });
 }
 
 let miniTickerAdded = false;
