@@ -3536,7 +3536,14 @@ const soundManager = {
                     .then(checkStatus)
                     .then(response => response.arrayBuffer())
                     .then(data => new Promise(resolve => {
-                        this.ctx.decodeAudioData(data, resolve);
+                        this.ctx.decodeAudioData(
+                            data,
+                            resolve,
+                            err => {
+                                console.warn(`[Sound] Failed to decode: ${filePath}`, err);
+                                resolve(null);
+                            }
+                        );
                     }))
                     .catch(err => {
                         console.warn(`[Sound] Failed to load: ${filePath}`, err);
