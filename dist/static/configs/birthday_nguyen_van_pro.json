@@ -273,7 +273,8 @@
       "x": 50,
       "y": 70,
       "comet": true,
-      "glitter": "streamer",
+      "strobe": true,
+      "strobeColor": "White",
       "launchAngle": 90
     },
     {

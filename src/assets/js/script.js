@@ -40,7 +40,11 @@ let burstConfig = null;
 let burstCounter = 0;
 
 function getDefaultScaleFactor() {
-    if (IS_MOBILE) return 0.9;
+    const isMobile = window.innerWidth <= 640;
+    if (isMobile) {
+        // Tỷ lệ động dựa trên chiều rộng màn hình (chuẩn hóa quanh 450px) để tránh tràn viền trên mobile
+        return Math.min(0.9, window.innerWidth / 450);
+    }
     if (IS_HEADER) return 0.75;
     return 1;
 }
@@ -136,7 +140,7 @@ const store = {
         // Lưu ý rằng các giá trị cấu hình được sử dụng cho <select> phải là chuỗi, trừ khi chuyển đổi giá trị thành chuỗi theo cách thủ công
         // tại thời điểm kết xuất và phân tích cú pháp khi thay đổi.
         config: {
-            quality: String(IS_HIGH_END_DEVICE ? QUALITY_HIGH : QUALITY_NORMAL), // sẽ được phản ánh thành một biến toàn cục có tên `quality` trong `configDidUpdate`, để hoàn thiện.
+            quality: String(IS_HIGH_END_DEVICE ? QUALITY_HIGH : QUALITY_NORMAL), // Mặc định dựa trên cấu hình phần cứng thiết bị
             customText: '',
             shell: [
                 'Nổ lách tách',
@@ -903,7 +907,7 @@ function getTextParticles(text, fontSize = 80) {
 
     const imgData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height).data;
     const points = [];
-    const step = 3; // Giảm bước nhảy xuống 3 để tăng độ chi tiết (Chi tiết gấp đôi so với 6)
+    const step = 3; // Lấy mẫu 3px để có độ phân giải tốt và chi tiết cao nhất cho pháo chữ
 
     let minX = textCanvas.width, maxX = 0, minY = textCanvas.height, maxY = 0;
     for (let y = 0; y < textCanvas.height; y += step) {
@@ -1537,11 +1541,9 @@ window.preloadFireworkImage = (url, frame) => {
     const normalizedUrl = normalizeAssetPath(url);
     const cacheKey = `${normalizedUrl}_${frame || ''}`;
     if (!imageParticleCache.has(cacheKey)) {
-        console.log('[Firework] Preloading image:', normalizedUrl);
         const img = new Image();
         // img.crossOrigin = "Anonymous"; // Bỏ cái này nếu gặp lỗi CORS trên localhost
         img.onload = () => {
-            console.log('[Firework] Image loaded successfully:', normalizedUrl);
             const processed = getProcessedImage(img, frame);
             imageParticleCache.set(cacheKey, processed);
         };
@@ -1658,7 +1660,7 @@ async function loadBurstConfig() {
             }
         }
 
-        console.log('Loaded burst config:', burstConfig);
+
 
         // Cập nhật tiêu đề trang (SEO) nếu có
         if (burstConfig.seoTitle) {
@@ -1987,22 +1989,20 @@ function startSequence() {
         const burstValues = burstConfig.events.map(e => Number(e.burst)).filter(v => !isNaN(v));
         const maxBurst = burstValues.length > 0 ? Math.max(...burstValues) : 0;
 
-        console.log(`[Firework] Sequence status: Counter=${burstCounter}, MaxBurst=${maxBurst}, EventsCount=${burstConfig.events.length}`);
+
 
         // Nếu vượt quá đợt cuối
         if (burstCounter > maxBurst) {
             if (burstConfig.loop) {
                 burstCounter = 0; // Reset về 0
-                console.log('[Firework] Loop active: Resetting to start.');
                 return 2000; // Nghỉ 2 giây trước khi lặp lại
             } else {
-                console.log('[Firework] Sequence finished.');
                 return 5000;
             }
         }
 
         const events = burstConfig.events.filter(e => Number(e.burst) === burstCounter);
-        console.log(`[Firework] Firing ${events.length} events for burst ${burstCounter}`);
+
 
         if (events.length > 0) {
             let extraDelay = 0;
@@ -2075,8 +2075,17 @@ function startSequence() {
                         }
                     }
 
-                    const x = event.x !== undefined ? event.x / 100 : 0.5;
-                    const y = event.y !== undefined ? (100 - event.y) / 100 : 0.5;
+                    let xVal = event.x !== undefined ? event.x : 50;
+                    let yVal = event.y !== undefined ? event.y : 50;
+
+                    if (IS_MOBILE) {
+                        // Ánh xạ tọa độ từ 0-100% vào khoảng an toàn 15% - 85% để tránh pháo bị tràn mép màn hình
+                        xVal = 15 + (xVal / 100) * 70;
+                        yVal = 15 + (yVal / 100) * 70;
+                    }
+
+                    const x = xVal / 100;
+                    const y = (100 - yVal) / 100;
 
                     // Ghi đè các thuộc tính nâng cao từ event nếu có
                     const overrides = [
@@ -2329,6 +2338,9 @@ function update(frameTime, lag) {
             star.updateFrame = currentFrame;
 
             star.life -= timeStep;
+            if (star.targetY !== undefined && (star.y <= star.targetY || star.speedY >= 0)) {
+                star.life = 0; // Buộc nổ khi đạt tới độ cao mục tiêu hoặc bắt đầu rơi xuống
+            }
             if (star.life <= 0) {
                 stars.splice(i, 1);
                 Star.returnInstance(star);
@@ -2766,11 +2778,15 @@ class Shell {
         this.color = options.color || randomColor();
         this.glitterColor = options.glitterColor || this.color;
 
-        // Đặt starCount mặc định nếu cần, sẽ dựa trên kích thước vỏ và tỷ lệ theo cấp số nhân, chẳng hạn như diện tích bề mặt của hình cầu.
+        // Đặt starCount mặc định trước khi spreadSize bị thu nhỏ để giữ nguyên mật độ hạt cao/chi tiết trên mobile
         if (!this.starCount) {
             const density = options.starDensity || 1;
             const scaledSize = this.spreadSize / 54;
             this.starCount = Math.max(6, scaledSize * scaledSize * density);
+        }
+
+        if (IS_MOBILE && this.spreadSize) {
+            this.spreadSize *= 0.65;
         }
     }
 
@@ -2815,6 +2831,7 @@ class Shell {
             // Thời gian treo được suy ra tuyến tính từ Vi; con số chính xác đến từ thử nghiệm
             launchVelocity * (this.horsetail ? 100 : 400)
         );
+        comet.targetY = burstY; // Ghi nhớ độ cao cần nổ
 
         // làm sao chổi trở nên “nặng” hạn chế lực cản không khí
         comet.heavy = true;
@@ -2861,7 +2878,6 @@ class Shell {
     burst(x, y) {
         // Nếu là loại hình ảnh, ta tạo ImageBurst thay vì pháo hạt
         if (this.shell === 'Hình ảnh' && this.imageUrl) {
-            console.log('[Firework] Main simulation bursting image:', this.imageUrl);
             const normalizedUrl = normalizeAssetPath(this.imageUrl);
             const cacheKey = `${normalizedUrl}_${this.frame || ''}`;
             const img = imageParticleCache.get(cacheKey);
@@ -2869,7 +2885,7 @@ class Shell {
                 // Lấy màu đầu tiên từ mảng color hoặc chính nó nếu là string
                 const burstColor = Array.isArray(this.color) ? this.color[0] : (this.color || COLOR.White);
                 ImageBurst.active.push(new ImageBurst(x, y, img, this.shellSize || 1, this.frame, burstColor));
-                console.log('[Firework] ImageBurst created on Main stage. Active list:', ImageBurst.active.length);
+
                 
                 // Kết xuất flash hàng đợi
                 BurstFlash.add(x, y, this.spreadSize / 4);
@@ -3268,6 +3284,7 @@ const Star = {
 
         instance.visible = true;
         instance.heavy = false;
+        instance.targetY = undefined;
         instance.x = x;
         instance.y = y;
         instance.prevX = x;
@@ -3304,6 +3321,7 @@ const Star = {
         instance.secondColor = null;
         instance.transitionTime = 0;
         instance.colorChanged = false;
+        instance.targetY = undefined;
         // Thêm trở lại hồ bơi.
         this._pool.push(instance);
     }
@@ -3536,17 +3554,20 @@ const soundManager = {
                     .then(checkStatus)
                     .then(response => response.arrayBuffer())
                     .then(data => new Promise(resolve => {
-                        this.ctx.decodeAudioData(
+                        const decodePromise = this.ctx.decodeAudioData(
                             data,
                             resolve,
                             err => {
-                                console.warn(`[Sound] Failed to decode: ${filePath}`, err);
                                 resolve(null);
                             }
                         );
+                        if (decodePromise && typeof decodePromise.catch === 'function') {
+                            decodePromise.catch(err => {
+                                // Silent catch to prevent "Uncaught (in promise)" in modern browsers
+                            });
+                        }
                     }))
                     .catch(err => {
-                        console.warn(`[Sound] Failed to load: ${filePath}`, err);
                         return null;
                     });
 

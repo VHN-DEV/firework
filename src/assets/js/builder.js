@@ -1623,6 +1623,7 @@ const Star = {
         if (COLOR[finalColor]) finalColor = COLOR[finalColor];
         instance.visible = true;
         instance.heavy = false;
+        instance.targetY = undefined;
         instance.x = x;
         instance.y = y;
         instance.prevX = x;
@@ -1655,6 +1656,7 @@ const Star = {
         instance.transitionTime = 0;
         instance.colorChanged = false;
         instance.visible = true;
+        instance.targetY = undefined;
         this._pool.push(instance);
     },
     reset() {
@@ -1791,6 +1793,7 @@ class Shell {
         if (cometColor === 'Ngẫu nhiên') cometColor = Object.values(COLOR)[Math.floor(Math.random() * 6)];
 
         const comet = Star.add(startX, startY, cometColor, launchAngle, speed, launchLife);
+        comet.targetY = targetY; // Ghi nhớ độ cao cần nổ
         comet.heavy = true;
         comet.sparkFreq = 30;
         comet.sparkSpeed = 0.5;
@@ -2049,6 +2052,9 @@ function updateGlobals(timeStep, lag) {
         for (let i = stars.length - 1; i >= 0; i--) {
             const star = stars[i];
             star.life -= timeStep;
+            if (star.targetY !== undefined && (star.y <= star.targetY || star.speedY >= 0)) {
+                star.life = 0; // Buộc nổ khi đạt tới độ cao mục tiêu hoặc bắt đầu rơi xuống
+            }
             if (star.life <= 0) {
                 stars.splice(i, 1);
                 Star.returnInstance(star);
