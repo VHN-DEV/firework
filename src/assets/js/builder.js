@@ -57,7 +57,7 @@ const COLOR = {
 const SHELL_TYPES = [
     "Hoa cúc", "Liễu", "Cây cọ", "Xoay vòng", "Xoắn ốc", "Cháy lâu", "Vòng nhẫn", "Nổ chéo", "Nổ lách tách",
     "Nhấp nháy", "Đuôi ngựa", "Ma", "Nổ nhiều lần", "Trái tim", "Ngôi sao", "Kim cương", "Bông tuyết", "Bông sen",
-    "Hành tinh", "Con bướm", "Cỏ 3 lá", "Cỏ 4 lá", "Mặt cười", "Mặt mèo", "Văn bản", "Hình ảnh", "Tạm dừng"
+    "Hành tinh", "Con bướm", "Cỏ 3 lá", "Cỏ 4 lá", "Mặt cười", "Mặt mèo", "Văn bản", "Hình ảnh", "Lời nhắn", "Tạm dừng"
 ];
 
 const SHELL_ICONS = {
@@ -65,7 +65,7 @@ const SHELL_ICONS = {
     'Vòng nhẫn': '⭕', 'Nổ chéo': '✖️', 'Nổ lách tách': '🎇', 'Nhấp nháy': '✨', 'Đuôi ngựa': '🐎', 'Ma': '👻',
     'Nổ nhiều lần': '💥', 'Trái tim': '❤️', 'Ngôi sao': '⭐', 'Kim cương': '💎', 'Bông tuyết': '❄️',
     'Bông sen': '🌸', 'Hành tinh': '🪐', 'Con bướm': '🦋', 'Cỏ 3 lá': '☘️', 'Cỏ 4 lá': '🍀', 'Mặt cười': '😊',
-    'Mặt mèo': '🐱', 'Văn bản': '🔤', 'Hình ảnh': '🖼️', 'Tạm dừng': '⏸️'
+    'Mặt mèo': '🐱', 'Văn bản': '🔤', 'Hình ảnh': '🖼️', 'Lời nhắn': '💬', 'Tạm dừng': '⏸️'
 };
 
 // Hiệu ứng luôn có sẵn trong loại pháo (trình phát tự bật), hiển thị dạng đã tích và khóa trong mục Nâng cao
@@ -716,7 +716,7 @@ function updateTimelineSummary() {
     const maxBurst = getMaxBurst();
     let total = 0;
     for (let b = 1; b <= maxBurst; b++) total += getBurstDuration(getBurstEvents(b));
-    const shots = state.events.filter(e => e.shell !== 'Tạm dừng').length;
+    const shots = state.events.filter(isFireworkShot).length;
     el.textContent = state.events.length
         ? `${maxBurst} đợt · ${shots} phát bắn · khoảng ${formatDuration(total)}`
         : 'Chưa có phát bắn nào';
@@ -743,11 +743,23 @@ function renderColorDots(event) {
     ).join('');
 }
 
+// Phát bắn ra pháo (không phải "Tạm dừng" hay "Lời nhắn")
+function isFireworkShot(event) {
+    return event.shell !== 'Tạm dừng' && event.shell !== 'Lời nhắn';
+}
+
+const CAPTION_POSITIONS = [['bottom', 'Dưới (như phụ đề)'], ['middle', 'Giữa'], ['top', 'Trên']];
+
 function renderShotRow(event) {
     const index = state.events.indexOf(event) + 1;
     const isPause = event.shell === 'Tạm dừng';
+    const delayText = Number(event.delay) ? `+${formatNumber(event.delay)} ms` : 'Ngay';
     const meta = isPause
         ? `<span><i class="fas fa-hourglass-half"></i>Nghỉ ${formatDuration(Number(event.duration) || 2000)}</span>`
+        : event.shell === 'Lời nhắn'
+        ? `<span><i class="fas fa-clock"></i>${delayText}</span>
+           <span><i class="fas fa-hourglass-half"></i>Hiện ${formatDuration(Number(event.duration) || 4000)}</span>
+           <span><i class="fas fa-up-down"></i>${(CAPTION_POSITIONS.find(([v]) => v === (event.position || 'bottom')) || [, ''])[1]}</span>`
         : `<span><i class="fas fa-location-dot"></i>${formatNumber(event.x)}, ${formatNumber(event.y)}</span>
            <span><i class="fas fa-clock"></i>${Number(event.delay) ? `+${formatNumber(event.delay)} ms` : 'Ngay'}</span>
            <span><i class="fas fa-maximize"></i>Cỡ ${formatNumber(event.size ?? 1)}</span>
@@ -775,7 +787,7 @@ function renderShotRow(event) {
 
 function renderBurstGroup(burst, events) {
     const duration = getBurstDuration(events);
-    const shots = events.filter(e => e.shell !== 'Tạm dừng').length;
+    const shots = events.filter(isFireworkShot).length;
     const maxDelay = Math.max(0, ...events.map(e => Number(e.delay) || 0));
     // Phát bắn có thời gian trễ dài hơn cả đợt sẽ nổ chồng sang đợt sau
     const warn = maxDelay > duration
@@ -1014,6 +1026,40 @@ function renderInspector() {
                     onchange="updateEvent(${event.id}, 'duration', this.value)">
                 <small class="field-hint">Ảnh hiện dần ~1,8 giây, giữ lại, rồi tan thành tia lửa. Muốn đợt sau chờ ảnh tan hết thì thêm phát "Tạm dừng".</small>
             </div>`;
+    } else if (event.shell === 'Lời nhắn') {
+        const option = (field, value, name) => `<option value="${value}" ${(event[field] || '') === value ? 'selected' : ''}>${name}</option>`;
+        specific = `
+            <div>
+                <label for="f-text">Nội dung lời nhắn</label>
+                <textarea id="f-text" rows="3" maxlength="200" placeholder="VD: Chúc mẹ luôn mạnh khỏe và hạnh phúc!"
+                    oninput="updateEvent(${event.id}, 'text', this.value)">${escapeHtml(event.text)}</textarea>
+                <small class="field-hint">Hiện trên bầu trời như phụ đề, đúng lúc với pháo và nhạc nền. Enter để xuống dòng; có thể dùng [YEAR], [LUNAR_YEAR].</small>
+            </div>
+            <div class="grid-2">
+                <div>
+                    <label for="f-duration">Hiện trong (ms)</label>
+                    <input type="number" id="f-duration" step="500" min="1000" max="30000" value="${event.duration ?? ''}" placeholder="4000"
+                        onchange="updateEvent(${event.id}, 'duration', this.value)">
+                </div>
+                <div>
+                    <label for="f-position">Vị trí</label>
+                    <select id="f-position" onchange="updateEvent(${event.id}, 'position', this.value)">
+                        ${CAPTION_POSITIONS.map(([value, name]) => option('position', value === 'bottom' ? '' : value, name)).join('')}
+                    </select>
+                </div>
+                <div>
+                    <label for="f-effect">Hiệu ứng chữ</label>
+                    <select id="f-effect" onchange="updateEvent(${event.id}, 'effect', this.value)">
+                        ${option('effect', '', 'Hiện dần')}${option('effect', 'type', 'Gõ từng chữ')}
+                    </select>
+                </div>
+                <div>
+                    <label for="f-textSize">Cỡ chữ</label>
+                    <select id="f-textSize" onchange="updateEvent(${event.id}, 'textSize', this.value)">
+                        ${option('textSize', '', 'Vừa')}${option('textSize', 'large', 'Lớn')}
+                    </select>
+                </div>
+            </div>`;
     } else if (isPause) {
         specific = `
             <div>
@@ -1043,7 +1089,7 @@ function renderInspector() {
         return;
     }
 
-    const others = getBurstEvents(Number(event.burst) || 1).filter(e => e !== event && e.shell !== 'Tạm dừng');
+    const others = getBurstEvents(Number(event.burst) || 1).filter(e => e !== event && isFireworkShot(e));
     const positionSection = section('position', 'location-crosshairs', 'Vị trí & kích thước', `${formatNumber(event.x)}, ${formatNumber(event.y)}`, `
         <div id="xy-pad" class="xy-pad${previewDevice === 'mobile' ? ' is-mobile' : ''}" title="Bấm hoặc kéo để chọn điểm nổ">
             ${others.map(o => `<span class="xy-other" style="left:${Number(o.x) || 0}%; top:${100 - (Number(o.y) || 0)}%">${state.events.indexOf(o) + 1}</span>`).join('')}
@@ -1069,7 +1115,8 @@ function renderInspector() {
     const colors = Array.isArray(event.color) ? event.color : [event.color || 'Ngẫu nhiên'];
     const presetValues = COLORS.map(c => c.value);
     const customColors = colors.filter(c => !presetValues.includes(c));
-    const colorSection = section('color', 'palette', event.shell === 'Hình ảnh' ? 'Màu khung ảnh' : 'Màu sắc', '', `
+    const isCaption = event.shell === 'Lời nhắn';
+    const colorSection = section('color', 'palette', event.shell === 'Hình ảnh' ? 'Màu khung ảnh' : isCaption ? 'Màu chữ' : 'Màu sắc', '', `
         <div class="swatches">
             ${COLORS.map(c => `
                 <button type="button" class="swatch${c.value === 'Ngẫu nhiên' ? ' random' : ''}${colors.includes(c.value) ? ' selected' : ''}"
@@ -1086,7 +1133,16 @@ function renderInspector() {
                 onkeydown="if (event.key === 'Enter') { addColorToEvent(${event.id}, this.value); }">
             <button type="button" class="btn secondary small" onclick="addCustomColor(${event.id})">Thêm</button>
         </div>
-        <small class="note">Chọn nhiều màu để pháo đa sắc. "Ngẫu nhiên" (ô cầu vồng) cho mỗi hạt một màu.</small>`);
+        <small class="note">${isCaption
+            ? 'Lời nhắn dùng màu đầu tiên; "Ngẫu nhiên" (ô cầu vồng) là chữ trắng.'
+            : 'Chọn nhiều màu để pháo đa sắc. "Ngẫu nhiên" (ô cầu vồng) cho mỗi hạt một màu.'}</small>`);
+
+    // Lời nhắn chỉ cần thời điểm, nội dung và màu chữ
+    if (isCaption) {
+        panel.innerHTML = header + typeSection + basicSection + colorSection;
+        panel.scrollTop = keepScroll;
+        return;
+    }
 
     const soundSelect = (field, label, options) => `
         <div>

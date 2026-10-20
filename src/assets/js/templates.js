@@ -112,7 +112,7 @@ export const OCCASIONS = [
 // Bố cục chung (~45 giây): mở màn → lời chào → hình → nổ dọc đường → tên người nhận → bánh xe xoay
 // → hình bay nhiều tầng → lời chúc → thiên hà xoắn ốc → cao trào → kết bằng pháo cháy lâu.
 // Mọi vị trí đã thử trên máy tính, máy tính bảng và điện thoại (trình phát tự co vùng bắn trên điện thoại).
-function buildShow(o, recipient) {
+function buildShow(o, recipient, who) {
     const [c1, c2, c3] = o.palette;
     const events = [];
     let burst = 0;
@@ -172,9 +172,10 @@ function buildShow(o, recipient) {
     shot({ shell: 'Cây cọ', x: 78, y: 50, color: c2, delay: 3000 });
     pause(2000);
 
-    // 8. Lời chúc
+    // 8. Lời chúc trên trời, kèm lời nhắn gõ từng chữ phía dưới
     burst++;
     text(o.texts[1], c2);
+    events.push({ burst, shell: 'Lời nhắn', text: o.subtitle(who), delay: 1200, duration: 6000, effect: 'type', color: 'White' });
     pause(1000);
 
     // 9. Thiên hà xoắn ốc giữa, hai phát bay lượn hai bên
@@ -222,6 +223,6 @@ export function buildTemplate(occasionId, { recipient = '', sender = '' } = {}) 
         seoTitle: o.seoTitle(who),
         loop: false,
         showBackground: false,
-        events: buildShow(o, name)
+        events: buildShow(o, name, who)
     };
 }

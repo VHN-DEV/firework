@@ -2163,7 +2163,76 @@ function replayShow() {
     burstCounter = 0;
     autoLaunchTime = 800;
     musicPlayer.restart();
+    clearCaptions();
     togglePause(false);
+}
+
+// ---------------------------------------------------------------------------
+// LỜI NHẮN THEO THỜI GIAN: phát "Lời nhắn" hiện một dòng chữ như phụ đề, khớp nhịp với pháo và nhạc nền.
+// Trường của phát: text, duration (ms, mặc định 4000), position ('bottom' | 'middle' | 'top'),
+// effect ('' hiện dần | 'type' gõ từng chữ), textSize ('' | 'large'), color (màu đầu tiên).
+// ---------------------------------------------------------------------------
+
+function getCaptionLayer() {
+    let layer = appNodes.stageContainer.querySelector('.caption-layer');
+    if (!layer) {
+        layer = document.createElement('div');
+        layer.className = 'caption-layer';
+        appNodes.stageContainer.appendChild(layer);
+    }
+    return layer;
+}
+
+function dismissCaption(el) {
+    if (!el.isConnected || el.classList.contains('is-leaving')) return;
+    clearInterval(el.typingTimer);
+    el.classList.add('is-leaving');
+    setTimeout(() => el.remove(), 700);
+}
+
+// Chạy lại kịch bản (xem nhanh, "Xem lại"): bỏ các lời nhắn đang hiện
+function clearCaptions() {
+    const layer = appNodes.stageContainer.querySelector('.caption-layer');
+    if (layer) layer.querySelectorAll('.caption').forEach(el => {
+        clearInterval(el.typingTimer);
+        el.remove();
+    });
+}
+
+function showCaption(event) {
+    const text = String(replacePlaceholders(event.text || '')).trim();
+    if (!text) return;
+    const position = ['top', 'middle', 'bottom'].includes(event.position) ? event.position : 'bottom';
+    const layer = getCaptionLayer();
+    // Lời nhắn mới ở cùng vị trí thay cho lời nhắn cũ, như phụ đề
+    layer.querySelectorAll(`.caption--${position}`).forEach(dismissCaption);
+
+    const el = document.createElement('div');
+    el.className = `caption caption--${position}${event.textSize === 'large' ? ' caption--large' : ''}`;
+    const first = Array.isArray(event.color) ? event.color[0] : event.color;
+    el.style.setProperty('--caption-color', !first || first === 'Ngẫu nhiên' || first === 'random' ? '#ffffff' : (COLOR[first] || first));
+    layer.appendChild(el);
+
+    const chars = Array.from(text);
+    let duration = Math.max(1000, Number(event.duration) || 4000);
+    if (event.effect === 'type') {
+        // Gõ từng chữ, con trỏ nhấp nháy; luôn giữ chữ đủ lâu sau khi gõ xong
+        el.classList.add('caption--typing');
+        let shown = 0;
+        el.textContent = '';
+        el.typingTimer = setInterval(() => {
+            shown++;
+            el.textContent = chars.slice(0, shown).join('');
+            if (shown >= chars.length) {
+                clearInterval(el.typingTimer);
+                el.classList.remove('caption--typing');
+            }
+        }, 45);
+        duration = Math.max(duration, chars.length * 45 + 1500);
+    } else {
+        el.textContent = text;
+    }
+    setTimeout(() => dismissCaption(el), duration);
 }
 
 appNodes.endScreen.querySelector('.end-screen__replay').addEventListener('click', replayShow);
@@ -2619,7 +2688,8 @@ function startSequence() {
                     return;
                 }
 
-                const launch = () => {
+                // Lời nhắn: hiện chữ như phụ đề, không bắn pháo
+                const launch = event.shell === 'Lời nhắn' ? () => showCaption(event) : () => {
                     const size = event.size !== undefined ? event.size : shellSizeSelector();
                     let options;
 
@@ -4758,6 +4828,7 @@ if (IS_PREVIEW) {
             burstCounter = 0;
             autoLaunchTime = 0;
             previewRestartPending = true;
+            clearCaptions();
         }
     });
 

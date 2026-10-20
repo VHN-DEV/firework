@@ -186,4 +186,7 @@ Dùng `starDensity` để tạo cơn mưa sao:
 - `"Xoắn ốc"` (Mặc định bay xoắn đôi, nổ thành thiên hà nhiều nhánh xoáy)
 - `"Cháy lâu"` (Hạt cháy ~6 giây, lơ lửng rơi chậm, lấp lánh trước khi tàn)
 - `"Hình ảnh"` (Cần có `imageUrl`, xem ví dụ 3)
+- `"Lời nhắn"` (Không bắn pháo: hiện một dòng chữ như phụ đề đúng lúc với pháo và nhạc. `text` nội dung (xuống dòng bằng `\n`),
+  `duration` thời gian hiện (ms, mặc định `4000`), `position` `"bottom"` (mặc định) / `"middle"` / `"top"`,
+  `effect` `"type"` để gõ từng chữ, `textSize` `"large"` cho chữ lớn, `color` màu chữ, `delay` lúc hiện trong đợt)
 - `"Tạm dừng"` (Dùng kèm `duration` tính bằng ms, mặc định `2000`)

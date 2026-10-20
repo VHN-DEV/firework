@@ -21,7 +21,11 @@ export async function run(browser, base, { check }) {
     const story = {
         title: 'CHÚC MỪNG SINH NHẬT', subtitle: 'Tuổi mới rực rỡ', author: 'Từ: Con gái', recipient: 'Mẹ yêu',
         introMessage: 'Con có món quà nhỏ cho mẹ!', outroMessage: 'Con thương mẹ nhiều lắm!', loop: false,
-        events: [{ burst: 1, shell: 'Hoa cúc', x: 50, y: 60, burstSound: 'crackleBang' }, { burst: 2, shell: 'Trái tim', x: 50, y: 60, color: 'Red' }]
+        events: [
+            { burst: 1, shell: 'Hoa cúc', x: 50, y: 60, burstSound: 'crackleBang' },
+            { burst: 1, shell: 'Lời nhắn', text: 'Mẹ ơi, con yêu mẹ!', delay: 500, duration: 3000 },
+            { burst: 2, shell: 'Trái tim', x: 50, y: 60, color: 'Red' }
+        ]
     };
     writeConfig('zz_e2e_card', { ...story, music: { url: './uploads/music/zz_e2e/melody.wav', volume: 0.6, start: 1 } });
     writeConfig('zz_e2e_gift', { ...story, startFrame: 'gift' });
@@ -62,6 +66,8 @@ export async function run(browser, base, { check }) {
         await page.waitForFunction(() => window.__music && !window.__music.paused, { timeout: 20000 }).catch(() => {});
         const music = await page.evaluate(() => window.__music && { paused: window.__music.paused, t: window.__music.currentTime });
         check('nhạc nền phát từ giây đã chọn cùng đợt pháo đầu', music && !music.paused && music.t >= 1 && music.t < 2.5, JSON.stringify(music));
+        const caption = await page.waitForFunction(() => document.querySelector('.caption')?.textContent, { timeout: 10000 }).then(h => h.jsonValue(), () => null);
+        check('lời nhắn hiện đúng lúc trong đợt', caption === 'Mẹ ơi, con yêu mẹ!', caption);
         check('chỉ tải âm thanh kịch bản dùng (cơ bản + tiếng bụp)', new Set(audio).size === 10 && audio.includes('burst/crackle-bang-1.mp3'), [...new Set(audio)].join(', '));
         await page.keyboard.press('p');
         await sleep(300);
