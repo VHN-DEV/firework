@@ -52,6 +52,8 @@ const SHELL_TYPES = [
 ];
 
 const FRAME_TYPES = [
+    // Phát bắn chưa chọn khung (frame trống) thực tế hiển thị không khung, nên cần một lựa chọn tương ứng
+    { name: 'Không khung', value: '' },
     { name: 'Vuông', value: 'square' },
     { name: 'Tròn', value: 'circle' },
     { name: 'Tam giác', value: 'triangle' },
@@ -60,35 +62,44 @@ const FRAME_TYPES = [
 
 const imageParticleCache = new Map();
 
+// Thoát ký tự HTML trước khi chèn dữ liệu người dùng (chữ, màu, tên kịch bản...) vào innerHTML.
+// Tránh vỡ giao diện khi chữ có dấu nháy và tránh chạy mã độc từ kịch bản do người khác lưu.
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function normalizeAssetPath(path) {
     if (!path) return path;
 
-    // Check if we are in a built environment (no src in path or on static host)
-    const isStaticHost = window.location.hostname.includes('github.io') ||
-        window.location.hostname.includes('vercel.app') ||
-        window.location.hostname.includes('netlify.app');
-
-    const isDist = isStaticHost ||
-        window.location.pathname.includes('/dist/') ||
-        window.location.pathname.includes('/build/');
+    // Ảnh dạng data:/blob: (ảnh lưu cục bộ trên GitHub Pages) và URL tuyệt đối thì giữ nguyên
+    if (/^(data:|blob:|https?:|\/)/i.test(path)) return path;
 
     // Xử lý đường dẫn tương đối
     let cleanPath = path.replace(/^\.\//, '');
 
-    if (isDist) {
-        // Trong môi trường production/dist, chuyển 'src/assets/' thành 'assets/'
-        if (cleanPath.startsWith('src/assets/')) {
-            cleanPath = cleanPath.replace('src/assets/', 'assets/');
-        }
-        // Đảm bảo đường dẫn là tương đối từ gốc site
-        return './' + cleanPath.replace(/^dist\//, '');
-    } else {
+    if (import.meta.env.DEV) {
         // Trong môi trường dev, đảm bảo có 'src/assets/'
-        if (cleanPath.startsWith('assets/') && !cleanPath.startsWith('src/assets/')) {
+        if (cleanPath.startsWith('assets/')) {
             cleanPath = 'src/' + cleanPath;
         }
-        return './' + cleanPath;
+    } else if (cleanPath.startsWith('src/assets/')) {
+        // Trong bản build, chuyển 'src/assets/' thành 'assets/'
+        cleanPath = cleanPath.replace('src/assets/', 'assets/');
     }
+    // Đảm bảo đường dẫn là tương đối từ gốc site
+    return './' + cleanPath.replace(/^dist\//, '');
+}
+
+// Link xem/chia sẻ kịch bản, tính từ vị trí builder.html hiện tại (đúng cả khi URL không có ".html")
+function getShowUrl(filename) {
+    const url = new URL('index.html', window.location.href);
+    url.searchParams.set('config', filename);
+    return url.href;
 }
 
 function getProcessedImage(img, frame = '') {
@@ -238,7 +249,8 @@ const COLORS = [
 // Initialize UI
 document.addEventListener('DOMContentLoaded', () => {
     // Buttons
-    document.getElementById('btn-add-event')?.addEventListener('click', addEvent);
+    // Bọc trong arrow function: nếu truyền thẳng addEvent, đối tượng MouseEvent sẽ bị coi là cấu hình phát bắn
+    document.getElementById('btn-add-event')?.addEventListener('click', () => addEvent());
     document.getElementById('btn-save')?.addEventListener('click', saveConfig);
     document.getElementById('btn-preview')?.addEventListener('click', previewConfig);
     document.getElementById('btn-export')?.addEventListener('click', exportConfig);
@@ -272,15 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsDataURL(file);
     });
 
-    document.getElementById('loop')?.addEventListener('change', (e) => {
-        const isLoop = e.target.checked;
-        if (isLoop) {
-            startMiniLoop();
-        } else {
-            stopMiniLoop();
-        }
-        document.getElementById('btn-play-mini')?.classList.toggle('hide', isLoop);
-    });
+    document.getElementById('loop')?.addEventListener('change', syncLoopState);
 
     // File Import
     document.getElementById('import-file')?.addEventListener('change', importConfig);
@@ -302,6 +306,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Đồng bộ vòng lặp xem nhanh và nút "Chạy kịch bản" với ô "Tự động lặp lại",
+// kể cả khi ô này được đổi bằng code (tạo mới, mở/nhập kịch bản) vì khi đó không có sự kiện 'change'.
+function syncLoopState() {
+    const isLoop = document.getElementById('loop').checked;
+    if (isLoop && state.miniPreviewEnabled) {
+        startMiniLoop();
+    } else {
+        stopMiniLoop();
+    }
+    document.getElementById('btn-play-mini')?.classList.toggle('hide', isLoop);
+}
+
 function notify(message, type = 'info') {
     const container = document.getElementById('notification-container');
     const toast = document.createElement('div');
@@ -314,7 +330,7 @@ function notify(message, type = 'info') {
 
     toast.innerHTML = `
         <i class="fas fa-${icon}"></i>
-        <span>${message}</span>
+        <span>${escapeHtml(message)}</span>
     `;
 
     container.appendChild(toast);
@@ -497,19 +513,23 @@ function addEvent(config = null) {
 
 function addColorToEvent(id, color) {
     const event = state.events.find(e => e.id === id);
+    color = typeof color === 'string' ? color.trim() : color;
     if (!event || !color) return;
 
-    if (Array.isArray(event.color)) {
-        event.color.push(color);
-    } else {
-        event.color = [event.color, color];
+    const current = Array.isArray(event.color) ? event.color : [event.color];
+    if (color === 'Ngẫu nhiên' || !event.color || event.color === 'Ngẫu nhiên') {
+        // "Ngẫu nhiên" là lựa chọn riêng: chọn màu cụ thể thì thay thế nó (không tạo mảng ["Ngẫu nhiên", "Red"])
+        event.color = color;
+    } else if (!current.includes(color)) {
+        event.color = [...current, color];
     }
     renderEventList();
 }
 
 function removeColorFromEvent(id, index) {
     const event = state.events.find(e => e.id === id);
-    if (!event || !Array.isArray(event.color)) {
+    if (!event) return;
+    if (!Array.isArray(event.color)) {
         // Nếu là string, không thể xóa bằng index (về mặc định)
         event.color = "Ngẫu nhiên";
     } else {
@@ -523,9 +543,9 @@ function removeColorFromEvent(id, index) {
 function renderColorTags(event) {
     const colors = Array.isArray(event.color) ? event.color : [event.color];
     return colors.map((c, index) => `
-        <div class="color-tag" style="--tag-color: ${c}">
+        <div class="color-tag" style="--tag-color: ${escapeHtml(COLOR[c] || c)}">
             <span class="dot"></span>
-            <span class="label">${c}</span>
+            <span class="label">${escapeHtml(c)}</span>
             <i class="fas fa-times" onclick="removeColorFromEvent(${event.id}, ${index})"></i>
         </div>
     `).join('');
@@ -545,6 +565,7 @@ function createNewScript() {
         document.getElementById('author').value = '';
         document.getElementById('filename').value = '';
         document.getElementById('loop').checked = true;
+        syncLoopState();
         document.getElementById('share-bar').classList.add('hide');
 
         // Reset background
@@ -589,21 +610,31 @@ function duplicateEvent(id) {
     notify('Đã nhân bản phát bắn!', 'success');
 }
 
+// Giá trị dùng khi người dùng xóa trống các ô bắt buộc (thiếu "Đợt" thì phát bắn không bao giờ được bắn)
+const REQUIRED_NUMBER_DEFAULTS = { burst: 1, x: 50, y: 50, size: 1, delay: 0 };
+
 function updateEvent(id, field, value) {
     const event = state.events.find(e => e.id === id);
     if (event) {
+        let needsRender = false;
         if (['burst', 'x', 'y', 'delay', 'size', 'duration', 'starLife', 'starDensity', 'spreadSize', 'starCount', 'starLifeVariation', 'transitionTime', 'strobeFreq', 'launchAngle', 'ascentSpeed', 'rotation'].includes(field)) {
             // Handle explicit undefined (e.g. rotation cleared to "random")
             if (value === undefined || value === null) {
                 event[field] = undefined;
             } else {
-                let num = value === '' ? undefined : Number(value);
-                if (num !== undefined && !isNaN(num)) {
+                let num = value === '' ? NaN : Number(value);
+                if (isNaN(num)) {
+                    // Ô tùy chọn để trống = tự động (undefined); ô bắt buộc thì về giá trị mặc định
+                    num = REQUIRED_NUMBER_DEFAULTS[field];
+                    needsRender = num !== undefined;
+                }
+                if (num !== undefined) {
                     // Clamping logic for security
                     if (field === 'x' || field === 'y') num = Math.max(0, Math.min(100, num));
                     if (field === 'size') num = Math.max(0, Math.min(10, num));
                     if (field === 'delay') num = Math.max(0, Math.min(60000, num));
-                    if (field === 'burst') num = Math.max(1, num);
+                    // Đợt phải là số nguyên, nếu không sẽ không khớp với bộ đếm đợt khi trình diễn
+                    if (field === 'burst') num = Math.max(1, Math.round(num));
                     if (field === 'starLifeVariation') num = Math.max(0, Math.min(1, num));
                     if (field === 'launchAngle') num = Math.max(0, Math.min(180, num));
                     if (field === 'ascentSpeed') num = Math.max(0.1, Math.min(5, num));
@@ -615,6 +646,9 @@ function updateEvent(id, field, value) {
         } else {
             event[field] = value;
         }
+
+        // Hiện lại giá trị mặc định trong ô vừa bị xóa trống
+        if (needsRender) renderEventList();
 
         // Trigger preview if active
         if (state.miniPreviewEnabled && state.activeEventId === id) {
@@ -694,7 +728,7 @@ function createEventCard(event, index) {
                 ${event.shell === 'Văn bản' ? `
                     <div class="form-group">
                         <label>Nội dung chữ (Text)</label>
-                        <input type="text" value="${event.text || ''}" onchange="updateEvent(${event.id}, 'text', this.value)">
+                        <input type="text" value="${escapeHtml(event.text)}" onchange="updateEvent(${event.id}, 'text', this.value)">
                     </div>
                 ` : ''}
                 ${event.shell === 'Hình ảnh' ? `
@@ -708,7 +742,7 @@ function createEventCard(event, index) {
                 ${event.shell === 'Tạm dừng' ? `
                     <div class="form-group">
                         <label>Thời gian nghỉ (ms)</label>
-                        <input type="number" value="${event.duration || 1000}" onchange="updateEvent(${event.id}, 'duration', this.value)">
+                        <input type="number" value="${event.duration || 2000}" onchange="updateEvent(${event.id}, 'duration', this.value)">
                     </div>
                 ` : ''}
             </div>
@@ -736,7 +770,7 @@ function createEventCard(event, index) {
         <div class="event-grid-physics">
             <div class="form-group">
                 <label title="Góc bắn tính bằng độ. 90 = thẳng đứng, 0 = nằm ngang trái, 180 = nằm ngang phải">Góc bắn (0-180°)</label>
-                <input type="number" step="1" min="0" max="180" value="${event.launchAngle || 90}" onchange="updateEvent(${event.id}, 'launchAngle', this.value)">
+                <input type="number" step="1" min="0" max="180" value="${event.launchAngle ?? 90}" onchange="updateEvent(${event.id}, 'launchAngle', this.value)">
             </div>
             <div class="form-group">
                 <label title="Tốc độ bay lên. 1 = bình thường, >1 = nhanh hơn">Tốc độ bay (x)</label>
@@ -797,7 +831,7 @@ function createEventCard(event, index) {
             <div class="image-upload-section">
                 <label>Ảnh nổ pháo hoa</label>
                 <div class="image-upload-btn-large" onclick="document.getElementById('image-file-${event.id}').click()">
-                    ${event.imageUrl ? `<img src="${event.imageUrl}" class="full-thumb">` : '<i class="fas fa-cloud-upload-alt"></i>'}
+                    ${event.imageUrl ? `<img src="${escapeHtml(normalizeAssetPath(event.imageUrl))}" class="full-thumb">` : '<i class="fas fa-cloud-upload-alt"></i>'}
                     <span>${event.imageUrl ? 'Thay đổi hình ảnh' : 'Chọn hình ảnh từ thiết bị'}</span>
                 </div>
                 <input type="file" id="image-file-${event.id}" class="hide" accept="image/*" onchange="handleImageUpload(${event.id}, this)">
@@ -867,7 +901,7 @@ async function handleImageUpload(id, input) {
     formData.append('filename', scenarioName);
 
     try {
-        const response = await fetch('static/api/upload_image.php', {
+        const response = await fetch('api/upload_image.php', {
             method: 'POST',
             body: formData
         });
@@ -937,6 +971,12 @@ function closeAdvancedDrawer() {
     }, 400);
 }
 
+// Giá trị cho <input type="color">: chỉ nhận dạng #rrggbb, tên màu (Gold...) được đổi sang mã tương ứng
+function colorInputValue(color) {
+    const hex = COLOR[color] || color;
+    return typeof hex === 'string' && /^#[0-9a-f]{6}$/i.test(hex) ? hex : '#ffffff';
+}
+
 function renderAdvancedSettings(id) {
     const event = state.events.find(e => e.id === id);
     if (!event) return;
@@ -966,22 +1006,22 @@ function renderAdvancedSettings(id) {
             <div class="form-group">
                 <label>Màu nhấp nháy (Strobe)</label>
                 <div class="color-input-group tiny">
-                    <input type="color" value="${event.strobeColor && event.strobeColor.startsWith('#') ? event.strobeColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'strobeColor', this.value)">
-                    <input type="text" value="${event.strobeColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'strobeColor', this.value)">
+                    <input type="color" value="${colorInputValue(event.strobeColor)}" onchange="updateEvent(${event.id}, 'strobeColor', this.value)">
+                    <input type="text" value="${escapeHtml(event.strobeColor)}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'strobeColor', this.value)">
                 </div>
             </div>
             <div class="form-group">
                 <label>Màu nhụy (Pistil)</label>
                 <div class="color-input-group tiny">
-                    <input type="color" value="${event.pistilColor && event.pistilColor.startsWith('#') ? event.pistilColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'pistilColor', this.value)">
-                    <input type="text" value="${event.pistilColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'pistilColor', this.value)">
+                    <input type="color" value="${colorInputValue(event.pistilColor)}" onchange="updateEvent(${event.id}, 'pistilColor', this.value)">
+                    <input type="text" value="${escapeHtml(event.pistilColor)}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'pistilColor', this.value)">
                 </div>
             </div>
             <div class="form-group">
                 <label>Màu lấp lánh (Glitter)</label>
                 <div class="color-input-group tiny">
-                    <input type="color" value="${event.glitterColor && event.glitterColor.startsWith('#') ? event.glitterColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'glitterColor', this.value)">
-                    <input type="text" value="${event.glitterColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'glitterColor', this.value)">
+                    <input type="color" value="${colorInputValue(event.glitterColor)}" onchange="updateEvent(${event.id}, 'glitterColor', this.value)">
+                    <input type="text" value="${escapeHtml(event.glitterColor)}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'glitterColor', this.value)">
                 </div>
             </div>
             <div class="form-group">
@@ -995,8 +1035,8 @@ function renderAdvancedSettings(id) {
             <div class="form-group">
                 <label>Màu chuyển đổi (2nd)</label>
                 <div class="color-input-group tiny">
-                    <input type="color" value="${event.secondColor && event.secondColor.startsWith('#') ? event.secondColor : '#ffffff'}" onchange="updateEvent(${event.id}, 'secondColor', this.value)">
-                    <input type="text" value="${event.secondColor || ''}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'secondColor', this.value)">
+                    <input type="color" value="${colorInputValue(event.secondColor)}" onchange="updateEvent(${event.id}, 'secondColor', this.value)">
+                    <input type="text" value="${escapeHtml(event.secondColor)}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'secondColor', this.value)">
                 </div>
             </div>
             <div class="form-group">
@@ -1081,7 +1121,7 @@ async function getAvailableScripts() {
         const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
         const localIds = Object.keys(localScripts);
         try {
-            const response = await fetch('static/configs/configs_index.json');
+            const response = await fetch('configs/configs_index.json');
             const staticScripts = await response.json();
             const staticIds = staticScripts.map(s => s.id);
             return [...new Set([...localIds, ...staticIds])].filter(id => id !== 'configs_index');
@@ -1090,7 +1130,7 @@ async function getAvailableScripts() {
         }
     } else {
         try {
-            const response = await fetch('static/api/manage_configs.php?action=list');
+            const response = await fetch('api/manage_configs.php?action=list');
             const data = await response.json();
             return data.map(s => s.id);
         } catch (e) {
@@ -1141,6 +1181,11 @@ async function saveConfig(isPreview = false) {
         return;
     }
 
+    // Khóa các nút Lưu (desktop + mobile) ngay từ đầu để bấm 2 lần không lưu 2 lần
+    const saveBtns = document.querySelectorAll('#btn-save, .btn-save-mobile');
+    const setSaving = (saving) => saveBtns.forEach(btn => btn.disabled = saving);
+    setSaving(true);
+
     // Xử lý tên file duy nhất nếu không phải xem thử
     if (!isPreview) {
         const originalName = filename;
@@ -1150,9 +1195,6 @@ async function saveConfig(isPreview = false) {
             notify(`Tên file đã tồn tại, tự động đổi thành: ${filename}`, 'info');
         }
     }
-
-    const saveBtn = document.querySelector('.btn-save');
-    if (saveBtn) saveBtn.disabled = true;
 
     const config = getFinalConfig();
 
@@ -1169,9 +1211,19 @@ async function saveConfig(isPreview = false) {
         // Handle static environment (GitHub Pages) using localStorage
         return new Promise((resolve) => {
             setTimeout(() => {
-                const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
-                localScripts[filename] = config;
-                localStorage.setItem('my_firework_scripts', JSON.stringify(localScripts));
+                setSaving(false);
+                try {
+                    const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
+                    localScripts[filename] = config;
+                    localStorage.setItem('my_firework_scripts', JSON.stringify(localScripts));
+                } catch (e) {
+                    // Thường do vượt giới hạn ~5MB của localStorage (ảnh nền/ảnh pháo lưu dạng DataURL rất nặng)
+                    hideLoading();
+                    hideModal('save-modal');
+                    notify('Không thể lưu vào trình duyệt: dữ liệu quá lớn (hãy dùng ảnh nhẹ hơn hoặc bớt ảnh).', 'error');
+                    resolve(null);
+                    return;
+                }
 
                 if (!isPreview) {
                     state.currentFilename = filename;
@@ -1192,7 +1244,7 @@ async function saveConfig(isPreview = false) {
         });
     }
 
-    return fetch('static/api/save_config.php', {
+    return fetch('api/save_config.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename, config })
@@ -1234,7 +1286,7 @@ async function saveConfig(isPreview = false) {
             }
         })
         .finally(() => {
-            if (saveBtn) saveBtn.disabled = false;
+            setSaving(false);
         });
 }
 
@@ -1242,7 +1294,7 @@ async function saveConfig(isPreview = false) {
 function updateShareBar(filename) {
     const shareBar = document.getElementById('share-bar');
     const shareUrl = document.getElementById('share-url');
-    const url = window.location.origin + window.location.pathname.replace('builder.html', 'index.html') + '?config=' + filename;
+    const url = getShowUrl(filename);
 
     shareUrl.innerText = url;
     shareBar.classList.remove('hide');
@@ -1273,7 +1325,7 @@ function copyShareLink() {
 }
 
 function copyScriptLink(filename) {
-    const url = window.location.origin + window.location.pathname.replace('builder.html', 'index.html') + '?config=' + filename;
+    const url = getShowUrl(filename);
     navigator.clipboard.writeText(url).then(() => {
         notify('Đã sao chép link kịch bản!', 'success');
     }).catch(err => {
@@ -1292,18 +1344,19 @@ function loadScriptsList() {
     list.innerHTML = '<div class="spinner"></div>';
 
     const fetchPromise = isStaticEnv
-        ? fetch('static/configs/configs_index.json').then(r => r.json())
-        : fetch('static/api/manage_configs.php?action=list').then(r => r.json());
+        ? fetch('configs/configs_index.json').then(r => r.json())
+        : fetch('api/manage_configs.php?action=list').then(r => r.json());
 
     fetchPromise
         .then(data => {
-            data = data.filter(s => s.id !== 'configs_index');
+            // Bỏ file chỉ mục và file tạm tạo ra mỗi lần bấm "Xem thử"
+            data = data.filter(s => s.id !== 'configs_index' && s.id !== 'preview_temp');
             list.innerHTML = '';
 
             // Add local scripts if in static env
             if (isStaticEnv) {
                 const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
-                Object.keys(localScripts).forEach(id => {
+                Object.keys(localScripts).filter(id => id !== 'preview_temp').forEach(id => {
                     const s = localScripts[id];
                     // Avoid duplicates if already in static list
                     if (!data.find(item => item.id === id)) {
@@ -1335,10 +1388,10 @@ function loadScriptsList() {
                 };
 
                 item.innerHTML = `
-                <h4>${isPrivate ? '<i class="fas fa-lock" title="Riêng tư"></i> ' : ''}${isLocal ? '<i class="fas fa-laptop" title="Lưu cục bộ"></i> ' : ''}${script.title}</h4>
+                <h4>${isPrivate ? '<i class="fas fa-lock" title="Riêng tư"></i> ' : ''}${isLocal ? '<i class="fas fa-laptop" title="Lưu cục bộ"></i> ' : ''}${escapeHtml(script.title)}</h4>
                 <div class="meta">
-                    <span><i class="fas fa-user"></i> ${script.author}</span><br>
-                    <span><i class="fas fa-fireworks"></i> ${script.eventCount} phát bắn</span>
+                    <span><i class="fas fa-user"></i> ${escapeHtml(script.author)}</span><br>
+                    <span><i class="fas fa-fireworks"></i> ${escapeHtml(script.eventCount)} phát bắn</span>
                 </div>
                 <div class="script-actions">
                     <button class="btn primary small" onclick="editScript('${script.id}')" title="Sửa"><i class="fas fa-edit"></i></button>
@@ -1351,7 +1404,7 @@ function loadScriptsList() {
             });
         })
         .catch(err => {
-            list.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--error);">Không thể tải danh sách: ${err.message}</p>`;
+            list.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--error);">Không thể tải danh sách: ${escapeHtml(err.message)}</p>`;
         });
 }
 
@@ -1376,7 +1429,7 @@ async function duplicateScript(filename) {
         }
     }
 
-    fetch(`static/configs/${filename}.json?t=${Date.now()}`)
+    fetch(`configs/${filename}.json?t=${Date.now()}`)
         .then(response => {
             if (!response.ok) throw new Error('Không thể tải file kịch bản');
             return response.json();
@@ -1389,8 +1442,7 @@ async function duplicateScript(filename) {
 }
 
 function previewScript(filename) {
-    const url = window.location.origin + window.location.pathname.replace('builder.html', 'index.html') + '?config=' + filename;
-    window.open(url, '_blank');
+    window.open(getShowUrl(filename), '_blank');
 }
 
 function editScript(filename) {
@@ -1408,7 +1460,7 @@ function editScript(filename) {
         }
     }
 
-    fetch(`static/configs/${filename}.json?t=${Date.now()}`)
+    fetch(`configs/${filename}.json?t=${Date.now()}`)
         .then(response => {
             if (!response.ok) throw new Error('Không thể tải file kịch bản');
             return response.json();
@@ -1446,7 +1498,7 @@ function deleteScript(filename) {
             }
         }
 
-        fetch('static/api/manage_configs.php?action=delete', {
+        fetch('api/manage_configs.php?action=delete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ filename })
@@ -1518,6 +1570,7 @@ function loadConfigIntoState(config, filename) {
     document.getElementById('subtitle').value = config.subtitle || '';
     document.getElementById('author').value = config.author || '';
     document.getElementById('loop').checked = config.loop !== false;
+    syncLoopState();
     document.getElementById('filename').value = filename;
 
     state.events = [];
@@ -1544,12 +1597,18 @@ function loadConfigIntoState(config, filename) {
 }
 
 function previewConfig() {
+    // Mở tab ngay lúc bấm nút: nếu đợi lưu xong mới mở, trình duyệt (nhất là Safari/iPhone) sẽ chặn popup
+    const previewWindow = window.open('', '_blank');
     saveConfig(true).then(filename => {
         if (filename) {
-            window.open(`index.html?config=${filename}`, '_blank');
+            if (previewWindow) previewWindow.location.href = getShowUrl(filename);
+            else window.open(getShowUrl(filename), '_blank');
+        } else if (previewWindow) {
+            previewWindow.close();
         }
     }).catch(err => {
         // Lỗi đã được hiển thị trong saveConfig
+        if (previewWindow) previewWindow.close();
     });
 }
 
@@ -1753,6 +1812,21 @@ function resolveColor(c) {
     return COLOR[c] || c;
 }
 
+const randomColorHex = () => Object.values(COLOR)[Math.floor(Math.random() * Object.keys(COLOR).length)];
+
+// Màu đơn (màu chuyển, màu nhấp nháy): "Ngẫu nhiên" được chọn sẵn một màu cụ thể vì bộ vẽ không hiểu chữ "Ngẫu nhiên"
+function resolveSingleColor(c) {
+    const color = resolveColor(Array.isArray(c) ? c[0] : c);
+    return color === 'Ngẫu nhiên' ? randomColorHex() : color;
+}
+
+// Màu tia lấp lánh: trống hoặc "Ngẫu nhiên" thì theo màu hạt, mảng màu thì chọn ngẫu nhiên một màu
+function pickSparkColor(glitterColor, starColor) {
+    const c = Array.isArray(glitterColor) ? glitterColor[Math.floor(Math.random() * glitterColor.length)] : glitterColor;
+    if (!c || c === 'Ngẫu nhiên') return starColor;
+    return COLOR[c] || c;
+}
+
 class Shell {
     constructor(options) {
         Object.assign(this, options);
@@ -1784,13 +1858,13 @@ class Shell {
         const launchDist = Math.sqrt(dx * dx + dy * dy);
         const launchAngle = Math.atan2(dy, dx);
 
-        const launchVelocity = Math.pow(launchDist * 0.04, 0.64) * (this.ascentSpeed || 1);
+        const launchVelocity = Math.pow(launchDist * 0.04, 0.64);
         const speed = launchVelocity * (this.horsetail ? 1.2 : 1);
         const launchLife = launchVelocity * (this.horsetail ? 100 : 400);
 
         let cometColor = this.color;
         if (Array.isArray(cometColor)) cometColor = cometColor[0];
-        if (cometColor === 'Ngẫu nhiên') cometColor = Object.values(COLOR)[Math.floor(Math.random() * 6)];
+        if (cometColor === 'Ngẫu nhiên') cometColor = randomColorHex();
 
         const comet = Star.add(startX, startY, cometColor, launchAngle, speed, launchLife);
         comet.targetY = targetY; // Ghi nhớ độ cao cần nổ
@@ -1798,7 +1872,8 @@ class Shell {
         comet.sparkFreq = 30;
         comet.sparkSpeed = 0.5;
         comet.sparkLife = 500;
-        comet.sparkColor = cometColor;
+        // Pháo vô hình (Ma) vẫn có vệt tia vàng khi bay lên như trình phát chính
+        comet.sparkColor = cometColor === INVISIBLE ? COLOR.Gold : cometColor;
         comet.onDeath = (c) => {
             this.burst(c.x, c.y);
         };
@@ -1845,7 +1920,7 @@ class Shell {
                 star.sparkFreq = sparkFreq;
                 star.sparkSpeed = sparkSpeed;
                 star.sparkLife = sparkLife;
-                star.sparkColor = this.glitterColor || star.color;
+                star.sparkColor = pickSparkColor(this.glitterColor, star.color);
                 star.sparkTimer = Math.random() * star.sparkFreq;
             }
             if (this.strobe) {
@@ -1873,7 +1948,7 @@ class Shell {
                     star.sparkFreq = sparkFreq;
                     star.sparkSpeed = sparkSpeed;
                     star.sparkLife = sparkLife;
-                    star.sparkColor = this.glitterColor || star.color;
+                    star.sparkColor = pickSparkColor(this.glitterColor, star.color);
                     star.sparkTimer = Math.random() * star.sparkFreq;
                 }
             });
@@ -1915,7 +1990,7 @@ class Shell {
 }
 
 function getMiniShellType(event, size) {
-    const s = size || 1;
+    const s = size ?? 1;
     const type = event.shell;
     const base = {
         shellSize: s,
@@ -1923,7 +1998,7 @@ function getMiniShellType(event, size) {
         starLife: 900 + s * 200,
         color: resolveColor(event.color),
         strobe: event.strobe,
-        strobeColor: resolveColor(event.strobeColor),
+        strobeColor: resolveSingleColor(event.strobeColor),
         pistil: event.pistil,
         pistilColor: resolveColor(event.pistilColor),
         streamers: event.streamers,
@@ -1935,8 +2010,8 @@ function getMiniShellType(event, size) {
         starCount: event.starCount,
         starLifeVariation: event.starLifeVariation,
         glitter: event.glitter,
-        glitterColor: resolveColor(event.glitterColor),
-        secondColor: resolveColor(event.secondColor),
+        glitterColor: event.glitterColor,
+        secondColor: resolveSingleColor(event.secondColor),
         transitionTime: event.transitionTime,
         floral: event.floral,
         ring: event.ring,
@@ -1952,11 +2027,37 @@ function getMiniShellType(event, size) {
     if (event.starLife) base.starLife = event.starLife;
     if (event.spreadSize) base.spreadSize = event.spreadSize;
 
+    // Hiệu ứng đặc trưng của từng loại pháo luôn bật (giống trình phát chính),
+    // vì builder lưu sẵn crackle/strobe/ring... = false cho mọi phát bắn.
     switch (type) {
         case 'Liễu':
-            base.glitter = 'willow';
-            base.glitterColor = COLOR.Gold;
-            base.starLife = 3000 + s * 500;
+            base.glitter = event.glitter || 'willow';
+            base.glitterColor = base.glitterColor || COLOR.Gold;
+            if (!event.starLife) base.starLife = 3000 + s * 500;
+            break;
+        case 'Nổ lách tách':
+            base.crackle = true;
+            break;
+        case 'Nổ chéo':
+            base.crossette = true;
+            break;
+        case 'Vòng nhẫn':
+            base.ring = true;
+            break;
+        case 'Nhấp nháy':
+            base.strobe = true;
+            break;
+        case 'Đuôi ngựa':
+            base.horsetail = true;
+            break;
+        case 'Cây cọ':
+            base.glitter = event.glitter || 'heavy';
+            break;
+        case 'Ma':
+            // Hiện dần từ vô hình sang màu đã chọn
+            base.secondColor = base.secondColor || resolveSingleColor(event.color || 'Ngẫu nhiên');
+            base.color = INVISIBLE;
+            base.streamers = true;
             break;
         case 'Trái tim':
             base.shapePoints = getHeartPoints(50);
@@ -1977,13 +2078,20 @@ function getMiniShellType(event, size) {
             base.shell = 'Hình ảnh';
             base.imageUrl = event.imageUrl;
             base.frame = event.frame;
+            // Khung ảnh chỉ vẽ được một màu
+            base.color = resolveSingleColor(event.color);
             break;
         case 'Văn bản':
-            if (event.text) base.shapePoints = getTextParticles(event.text, 50);
+            if (event.text) {
+                const starDensity = event.starDensity !== undefined ? event.starDensity : 1;
+                // Bước lấy mẫu tối thiểu 2px để chữ dày không tạo quá nhiều hạt
+                const step = Math.max(2, Math.round(4 / starDensity));
+                base.shapePoints = getTextParticles(event.text, 50, step);
+            }
             break;
         default:
-            // Hoa cúc hoặc mặc định
-            base.glitter = 'light';
+            // Hoa cúc hoặc mặc định (vẫn tôn trọng "Loại lấp lánh" người dùng chọn)
+            base.glitter = event.glitter || 'light';
             break;
     }
     return base;
@@ -2156,6 +2264,8 @@ function renderMiniPreview() {
     trailsCtx.globalCompositeOperation = 'lighten';
     trailsCtx.lineWidth = Star.drawWidth;
     Object.keys(Star.active).forEach(color => {
+        // Hạt vô hình (pháo "Ma" trước khi hiện màu) không được vẽ
+        if (color === INVISIBLE) return;
         const stars = Star.active[color];
         trailsCtx.strokeStyle = color;
         trailsCtx.beginPath();
@@ -2170,6 +2280,7 @@ function renderMiniPreview() {
 
     trailsCtx.lineWidth = Spark.drawWidth;
     Object.keys(Spark.active).forEach(color => {
+        if (color === INVISIBLE) return;
         const sparks = Spark.active[color];
         trailsCtx.strokeStyle = color;
         trailsCtx.beginPath();
@@ -2272,6 +2383,11 @@ function toggleMiniPreview(force) {
 
 function toggleFullscreenMiniPreview() {
     const el = document.getElementById('mini-preview');
+    // iPhone không hỗ trợ toàn màn hình cho phần tử thường: báo thay vì ném lỗi
+    if (!fscreen.fullscreenEnabled) {
+        notify('Trình duyệt này không hỗ trợ chế độ toàn màn hình.', 'warning');
+        return;
+    }
     if (!fscreen.fullscreenElement) {
         fscreen.requestFullscreen(el);
     } else {
@@ -2303,35 +2419,60 @@ fscreen.onfullscreenchange = () => {
     setTimeout(resizeMiniStages, 100);
 };
 
+// Thời lượng một đợt giống hệt trình phát chính (startSequence × 1.25):
+// đợt có pháo = 2500ms + "Tạm dừng" dài nhất, đợt trống = 1000ms.
+function getBurstDuration(events) {
+    if (events.length === 0) return 1000 * 1.25;
+    const pauses = events.filter(e => e.shell === 'Tạm dừng').map(e => Number(e.duration) || 2000);
+    return (2500 + Math.max(0, ...pauses)) * 1.25;
+}
+
+function getMaxBurst() {
+    return state.events.length > 0 ? Math.max(...state.events.map(e => Number(e.burst) || 1)) : 0;
+}
+
 function startMiniLoop() {
-    if (miniPreviewLoop) clearInterval(miniPreviewLoop);
+    if (miniPreviewLoop) clearTimeout(miniPreviewLoop);
     miniBurstCounter = 0;
-    miniPreviewLoop = setInterval(() => {
-        if (!state.miniPreviewEnabled) return;
-        if (state.activeEventId) {
-            const event = state.events.find(e => e.id === state.activeEventId);
-            if (event) launchEvent(event);
-        } else {
-            const maxBurst = state.events.length > 0 ? Math.max(...state.events.map(e => Number(e.burst) || 1)) : 0;
-            if (maxBurst === 0) return;
-            miniBurstCounter++;
-            if (miniBurstCounter > maxBurst) miniBurstCounter = 1;
-            const events = state.events.filter(e => Number(e.burst || 1) === miniBurstCounter);
-            events.forEach(e => setTimeout(() => launchEvent(e), Number(e.delay) || 0));
+    const tick = () => {
+        let wait = 2000;
+        if (state.miniPreviewEnabled) {
+            if (state.activeEventId) {
+                const event = state.events.find(e => e.id === state.activeEventId);
+                if (event) launchEvent(event);
+            } else {
+                const maxBurst = getMaxBurst();
+                if (maxBurst > 0) {
+                    miniBurstCounter++;
+                    if (miniBurstCounter > maxBurst) {
+                        // Nghỉ trước khi lặp lại như trình phát chính
+                        miniBurstCounter = 0;
+                        wait = 2000 * 1.25;
+                    } else {
+                        const events = state.events.filter(e => Number(e.burst || 1) === miniBurstCounter);
+                        events.forEach(e => setTimeout(() => launchEvent(e), Number(e.delay) || 0));
+                        wait = getBurstDuration(events);
+                    }
+                }
+            }
         }
-    }, 2000);
+        miniPreviewLoop = setTimeout(tick, wait);
+    };
+    miniPreviewLoop = setTimeout(tick, 2000);
 }
 
 function playMiniPreviewOnce() {
-    if (miniPreviewLoop) clearInterval(miniPreviewLoop);
+    if (miniPreviewLoop) clearTimeout(miniPreviewLoop);
     if (state.events.length === 0) return;
 
     // Đặt lại counter và thông báo trạng thái
     const info = document.getElementById('mini-preview-info');
     if (info) info.innerText = 'Đang chạy kịch bản...';
 
-    const maxBurst = Math.max(...state.events.map(e => Number(e.burst) || 1));
+    const maxBurst = getMaxBurst();
+    let startTime = 0;
     for (let b = 1; b <= maxBurst; b++) {
+        const duration = getBurstDuration(state.events.filter(e => Number(e.burst || 1) === b));
         setTimeout(() => {
             if (!state.miniPreviewEnabled || document.getElementById('loop').checked) return;
             const events = state.events.filter(e => Number(e.burst || 1) === b);
@@ -2340,14 +2481,15 @@ function playMiniPreviewOnce() {
             if (b === maxBurst) {
                 setTimeout(() => {
                     if (info && !state.activeEventId) info.innerText = 'Đã chạy xong';
-                }, 2000);
+                }, duration);
             }
-        }, (b - 1) * 2000);
+        }, startTime);
+        startTime += duration;
     }
 }
 
 function stopMiniLoop() {
-    if (miniPreviewLoop) clearInterval(miniPreviewLoop);
+    if (miniPreviewLoop) clearTimeout(miniPreviewLoop);
     miniPreviewLoop = null;
     Star.reset();
     Spark.reset();
@@ -2511,11 +2653,17 @@ document.addEventListener('DOMContentLoaded', () => {
 const textCanvas = document.createElement('canvas');
 const textCtx = textCanvas.getContext('2d', { willReadFrequently: true });
 
-function getTextParticles(text, fontSize = 80) {
+function getTextParticles(text, fontSize = 80, step = 4) {
     textCanvas.width = 1000;
     textCanvas.height = 200;
     textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
     textCtx.font = `bold ${fontSize}px Outfit, Inter, sans-serif`;
+    // Chữ quá dài so với khung vẽ thì thu nhỏ cỡ chữ, tránh bị cắt mất hai đầu
+    const maxTextWidth = textCanvas.width - 20;
+    const textWidth = textCtx.measureText(text).width;
+    if (textWidth > maxTextWidth) {
+        textCtx.font = `bold ${Math.floor(fontSize * maxTextWidth / textWidth)}px Outfit, Inter, sans-serif`;
+    }
     textCtx.fillStyle = 'white';
     textCtx.textAlign = 'center';
     textCtx.textBaseline = 'middle';
@@ -2523,7 +2671,6 @@ function getTextParticles(text, fontSize = 80) {
 
     const imgData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height).data;
     const points = [];
-    const step = 4;
 
     let minX = textCanvas.width, maxX = 0, minY = textCanvas.height, maxY = 0;
     for (let y = 0; y < textCanvas.height; y += step) {
@@ -2544,10 +2691,13 @@ function getTextParticles(text, fontSize = 80) {
     const centerY = (minY + maxY) / 2;
     const maxDist = Math.max(maxX - minX, maxY - minY) / 2 || 1;
 
-    return points.map(p => ({
+    const result = points.map(p => ({
         x: (p.x - centerX) / maxDist,
         y: (p.y - centerY) / maxDist
     }));
+    // Đánh dấu là chữ để không bị xoay ngẫu nhiên khi nổ (giống trình phát chính)
+    result.isText = true;
+    return result;
 }
 
 function selectEvent(id) {

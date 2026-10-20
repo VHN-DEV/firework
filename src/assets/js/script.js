@@ -42,8 +42,9 @@ let burstCounter = 0;
 function getDefaultScaleFactor() {
     const isMobile = window.innerWidth <= 640;
     if (isMobile) {
-        // Tỷ lệ động dựa trên chiều rộng màn hình (chuẩn hóa quanh 450px) để tránh tràn viền trên mobile
-        return Math.min(0.9, window.innerWidth / 450);
+        // Tỷ lệ động dựa trên chiều rộng màn hình (chuẩn hóa quanh 450px) để tránh tràn viền trên mobile.
+        // Làm tròn 2 chữ số để khớp với giá trị trong ô chọn "Tỉ lệ".
+        return Math.round(Math.min(0.9, window.innerWidth / 450) * 100) / 100;
     }
     if (IS_HEADER) return 0.75;
     return 1;
@@ -180,7 +181,7 @@ const store = {
 
     subscribe(listener) {
         this._listeners.add(listener);
-        return () => this._listeners.remove(listener);
+        return () => this._listeners.delete(listener);
     },
 
     // Tải/duy trì trạng thái chọn vào localStorage
@@ -234,21 +235,30 @@ const store = {
 
     persist() {
         const config = this.state.config;
-        localStorage.setItem('cm_fireworks_data', JSON.stringify({
-            schemaVersion: '1.2',
-            data: {
-                quality: config.quality,
-                size: config.size,
-                skyLighting: config.skyLighting,
-                scaleFactor: config.scaleFactor
-            }
-        }));
+        try {
+            localStorage.setItem('cm_fireworks_data', JSON.stringify({
+                schemaVersion: '1.2',
+                data: {
+                    quality: config.quality,
+                    size: config.size,
+                    skyLighting: config.skyLighting,
+                    scaleFactor: config.scaleFactor
+                }
+            }));
+        } catch (e) {
+            // localStorage không khả dụng (chế độ ẩn danh, bị chặn...) - bỏ qua
+        }
     }
 };
 
 
 if (!IS_HEADER) {
-    store.load();
+    try {
+        store.load();
+    } catch (e) {
+        // Dữ liệu đã lưu bị hỏng hoặc không đọc được: dùng cấu hình mặc định thay vì làm treo ứng dụng
+        console.error('Không thể tải cấu hình đã lưu:', e);
+    }
 }
 
 // hành động
@@ -580,7 +590,13 @@ const stopAndRun = (fn) => (e) => {
 appNodes.pauseBtn.addEventListener('click', stopAndRun(() => togglePause()));
 appNodes.soundBtn.addEventListener('click', stopAndRun(() => toggleSound()));
 appNodes.settingsBtn.addEventListener('click', stopAndRun(() => toggleMenu()));
-appNodes.closeMenuBtn.addEventListener('click', stopAndRun(() => toggleMenu(false)));
+// Chạm góc phải trên để mở menu: trình duyệt di động còn phát thêm một cú click giả lập ngay tại chỗ đó,
+// trúng nút Đóng vừa hiện ra làm menu đóng lại ngay. Bỏ qua click đóng trong khoảng ngắn sau khi mở.
+let menuOpenedByCornerAt = 0;
+appNodes.closeMenuBtn.addEventListener('click', stopAndRun(() => {
+    if (Date.now() - menuOpenedByCornerAt < 600) return;
+    toggleMenu(false);
+}));
 
 // Ngăn chặn các sự kiện chuột và chạm nổi bọt lên document (nơi Stage đang lắng nghe)
 const stopPropagation = (e) => e.stopPropagation();
@@ -668,6 +684,20 @@ function randomColor(options) {
 
 function whiteOrGold() {
     return Math.random() < 0.5 ? COLOR.Gold : COLOR.White;
+}
+
+// Đổi màu trong kịch bản (tên như "Red", mã hex, "Ngẫu nhiên" hoặc mảng màu) sang dạng bộ vẽ hiểu được.
+// "Ngẫu nhiên" ở cấp ngoài cùng thành 'random' (mỗi hạt một màu).
+function resolveEventColor(color) {
+    if (Array.isArray(color)) return color.map(c => resolveSingleColor(c));
+    if (color === 'Ngẫu nhiên' || color === 'random') return 'random';
+    return COLOR[color] || color;
+}
+
+// Màu đơn (màu chuyển, nhụy, nhấp nháy, phần tử trong mảng màu): "Ngẫu nhiên" được chọn sẵn một màu cụ thể.
+function resolveSingleColor(color) {
+    if (color === 'Ngẫu nhiên' || color === 'random') return randomColor();
+    return COLOR[color] || color;
 }
 
 
@@ -895,11 +925,17 @@ function randomFastShell() {
 const textCanvas = document.createElement('canvas');
 const textCtx = textCanvas.getContext('2d', { willReadFrequently: true });
 
-function getTextParticles(text, fontSize = 80) {
+function getTextParticles(text, fontSize = 80, step = 3) {
     textCanvas.width = 1000; // Tăng chiều rộng để hỗ trợ văn bản dài hơn
     textCanvas.height = 200; // Tăng chiều cao
     textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
     textCtx.font = `bold ${fontSize}px Roboto, sans-serif`;
+    // Chữ quá dài so với khung vẽ thì thu nhỏ cỡ chữ, tránh bị cắt mất hai đầu
+    const maxTextWidth = textCanvas.width - 20;
+    const textWidth = textCtx.measureText(text).width;
+    if (textWidth > maxTextWidth) {
+        textCtx.font = `bold ${Math.floor(fontSize * maxTextWidth / textWidth)}px Roboto, sans-serif`;
+    }
     textCtx.fillStyle = 'white';
     textCtx.textAlign = 'center';
     textCtx.textBaseline = 'middle';
@@ -907,7 +943,6 @@ function getTextParticles(text, fontSize = 80) {
 
     const imgData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height).data;
     const points = [];
-    const step = 3; // Lấy mẫu 3px để có độ phân giải tốt và chi tiết cao nhất cho pháo chữ
 
     let minX = textCanvas.width, maxX = 0, minY = textCanvas.height, maxY = 0;
     for (let y = 0; y < textCanvas.height; y += step) {
@@ -1556,33 +1591,24 @@ window.preloadFireworkImage = (url, frame) => {
 
 function normalizeAssetPath(path) {
     if (!path) return path;
-    
-    // Check if we are in a built environment
-    const isStaticHost = window.location.hostname.includes('github.io') || 
-                         window.location.hostname.includes('vercel.app') || 
-                         window.location.hostname.includes('netlify.app');
-    
-    const isDist = isStaticHost || 
-                   window.location.pathname.includes('/dist/') || 
-                   window.location.pathname.includes('/build/');
-    
+
+    // Ảnh dạng data:/blob: (ảnh lưu cục bộ trên GitHub Pages) và URL tuyệt đối thì giữ nguyên
+    if (/^(data:|blob:|https?:|\/)/i.test(path)) return path;
+
     // Xử lý đường dẫn tương đối
     let cleanPath = path.replace(/^\.\//, '');
-    
-    if (isDist) {
-        // Trong môi trường production/dist, chuyển 'src/assets/' thành 'assets/'
-        if (cleanPath.startsWith('src/assets/')) {
-            cleanPath = cleanPath.replace('src/assets/', 'assets/');
-        }
-        // Đảm bảo đường dẫn là tương đối từ gốc site
-        return './' + cleanPath.replace(/^dist\//, '');
-    } else {
+
+    if (import.meta.env.DEV) {
         // Trong môi trường dev, đảm bảo có 'src/assets/'
-        if (cleanPath.startsWith('assets/') && !cleanPath.startsWith('src/assets/')) {
+        if (cleanPath.startsWith('assets/')) {
             cleanPath = 'src/' + cleanPath;
         }
-        return './' + cleanPath;
+    } else if (cleanPath.startsWith('src/assets/')) {
+        // Trong bản build, chuyển 'src/assets/' thành 'assets/'
+        cleanPath = cleanPath.replace('src/assets/', 'assets/');
     }
+    // Đảm bảo đường dẫn là tương đối từ gốc site
+    return './' + cleanPath.replace(/^dist\//, '');
 }
 
 async function loadBurstConfig() {
@@ -1598,24 +1624,32 @@ async function loadBurstConfig() {
 
         let config;
         if (isStaticEnv) {
-            const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
-            if (localScripts[configName]) {
-                config = localScripts[configName];
+            try {
+                const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
+                if (localScripts[configName]) {
+                    config = localScripts[configName];
+                }
+            } catch (e) {
+                // localStorage hỏng hoặc bị chặn: thử tải file kịch bản bên dưới
             }
         }
 
         if (!config) {
-            const response = await fetch(`./static/configs/${configName}.json`);
+            const response = await fetch(`./configs/${encodeURIComponent(configName)}.json`);
             if (!response.ok) throw new Error('Config not found');
             config = await response.json();
         }
 
+        if (!config || !Array.isArray(config.events)) {
+            throw new Error('Invalid config: missing events');
+        }
+
         burstConfig = config;
 
-        
+
         // Background support
         if (burstConfig.background) {
-            appNodes.backgroundImage.style.backgroundImage = `url(${burstConfig.background})`;
+            appNodes.backgroundImage.style.backgroundImage = `url(${JSON.stringify(normalizeAssetPath(burstConfig.background))})`;
         } else {
             appNodes.backgroundImage.style.backgroundImage = ''; // Use default from CSS
         }
@@ -1638,7 +1672,6 @@ async function loadBurstConfig() {
                     if (!imageParticleCache.has(cacheKey)) {
                         const p = new Promise(resolve => {
                             const img = new Image();
-                            img.crossOrigin = "Anonymous";
                             img.onload = () => {
                                 const processed = getProcessedImage(img, event.frame);
                                 imageParticleCache.set(cacheKey, processed);
@@ -1673,11 +1706,13 @@ async function loadBurstConfig() {
         if (burstConfig.title || burstConfig.author) {
             const overlay = document.createElement('div');
             overlay.className = 'config-overlay';
-            overlay.innerHTML = `
-                ${burstConfig.title ? `<h1>${burstConfig.title}</h1>` : ''}
-                ${burstConfig.subtitle ? `<h2>${burstConfig.subtitle}</h2>` : ''}
-                ${burstConfig.author ? `<p>${burstConfig.author}</p>` : ''}
-            `;
+            [['h1', burstConfig.title], ['h2', burstConfig.subtitle], ['p', burstConfig.author]].forEach(([tag, text]) => {
+                if (!text) return;
+                const el = document.createElement(tag);
+                // Dùng textContent: kịch bản do người khác soạn không thể chèn mã HTML/JS vào trang
+                el.textContent = text;
+                overlay.appendChild(el);
+            });
             document.body.appendChild(overlay);
             setTimeout(() => overlay.classList.add('fade-out'), 5000);
             setTimeout(() => overlay.remove(), 7000);
@@ -1688,6 +1723,10 @@ async function loadBurstConfig() {
 }
 
 async function init() {
+    // Tải kịch bản từ URL trước khi chạy mô phỏng: tránh bắn pháo ngẫu nhiên khi mạng chậm
+    // và giữ được dòng trạng thái "Đang chuẩn bị hình ảnh..." trên màn hình tải.
+    await loadBurstConfig();
+
     // Xóa trạng thái tải
     appNodes.loadingInit.remove();
     appNodes.stageContainer.classList.remove('remove');
@@ -1722,11 +1761,17 @@ async function init() {
         { label: 'Normal', value: SKY_LIGHT_NORMAL }
     ]);
 
-    // 0.9 là mặc định trên thiết bị di động
+    // Tỉ lệ mặc định trên điện thoại tính theo chiều rộng màn hình (vd 0.83) nên phải có trong danh sách,
+    // nếu không ô chọn bị trống và lần đổi cài đặt kế tiếp sẽ đọc ra NaN làm hỏng hình vẽ.
+    const scaleValues = [0.5, 0.62, 0.75, 0.9, 1.0, 1.5, 2.0];
+    const currentScale = Number((store.state.config.scaleFactor || 1).toFixed(2));
+    if (!scaleValues.includes(currentScale)) {
+        scaleValues.push(currentScale);
+        scaleValues.sort((a, b) => a - b);
+    }
     setOptionsForSelect(
         appNodes.scaleFactor,
-        [0.5, 0.62, 0.75, 0.9, 1.0, 1.5, 2.0]
-            .map(value => ({ value: value.toFixed(2), label: `${value * 100}%` }))
+        scaleValues.map(value => ({ value: value.toFixed(2), label: `${Math.round(value * 100)}%` }))
     );
 
     // Bắt đầu mô phỏng
@@ -1737,9 +1782,6 @@ async function init() {
 
     // Áp dụng cấu hình ban đầu
     configDidUpdate();
-
-    // Load burst config từ URL
-    await loadBurstConfig();
 }
 
 
@@ -1788,7 +1830,7 @@ function launchShellFromConfig(event) {
         if (firstImgEvent) {
             shellProps.imageUrl = firstImgEvent.imageUrl;
             shellProps.frame = firstImgEvent.frame;
-            shellProps.color = firstImgEvent.color;
+            if (firstImgEvent.color) shellProps.color = resolveSingleColor(Array.isArray(firstImgEvent.color) ? firstImgEvent.color[0] : firstImgEvent.color);
         }
     }
     
@@ -1903,6 +1945,7 @@ function seqPyramid() {
             setTimeout(() => {
                 launchShell(0.5, true);
             }, delay);
+        } else {
             const offset = count / barrageCountHalf * 0.5;
             const delayOffset = Math.random() * 30 + 30;
             setTimeout(() => {
@@ -2013,81 +2056,72 @@ function startSequence() {
                 }
 
                 const launch = () => {
-                    let shell;
                     const size = event.size !== undefined ? event.size : shellSizeSelector();
+                    let options;
 
                     if (event.shell === 'Văn bản' && event.text) {
-                        let finalColor;
-                        if (Array.isArray(event.color)) {
-                            finalColor = event.color.map(c => COLOR[c] || c);
-                        } else {
-                            finalColor = (event.color && COLOR[event.color]) || event.color || randomColor();
-                        }
-
-                        shell = new Shell({
+                        options = {
                             shellSize: size,
-                            color: finalColor,
+                            color: randomColor(),
                             spreadSize: 300 + size * 100,
                             starLife: 1400 + size * 200,
-                            shapePoints: getTextParticles(event.text, 50),
                             glitter: 'light',
                             glitterColor: COLOR.Gold
-                        });
+                        };
                     } else if (event.shell === 'Hình ảnh' && event.imageUrl) {
-                        shell = new Shell({
+                        options = {
                             shell: 'Hình ảnh',
                             imageUrl: event.imageUrl,
                             frame: event.frame,
-                            size: size,
-                            color: event.color,
-                            spreadSize: event.spreadSize || (300 + size * 100)
-                        });
+                            shellSize: size,
+                            spreadSize: 300 + size * 100
+                        };
                     } else {
                         const shellType = shellTypes[event.shell] || shellTypes['Văn bản'];
-                        shell = new Shell(shellType(size));
+                        options = shellType(size);
+                    }
 
-                        if (event.text) {
-                            shell.shapePoints = getTextParticles(event.text, 50);
-                        }
+                    if (event.text) {
+                        const starDensity = event.starDensity !== undefined ? event.starDensity : 1;
+                        // Bước lấy mẫu tối thiểu 2px để chữ dày không tạo ra hàng chục nghìn hạt làm treo máy
+                        const step = Math.max(2, Math.round(3 / starDensity));
+                        options.shapePoints = getTextParticles(event.text, 50, step);
+                    }
 
-                        if (event.color) {
-                            if (Array.isArray(event.color)) {
-                                shell.color = event.color.map(c => COLOR[c] || c);
-                            } else if (COLOR[event.color]) {
-                                shell.color = COLOR[event.color];
-                            } else if (event.color === 'Ngẫu nhiên' || event.color === 'random') {
-                                shell.color = 'random';
-                            } else {
-                                shell.color = event.color;
-                            }
-                        }
+                    const hasValue = (value) => value !== undefined && value !== null && value !== '';
 
-                        if (event.glitterColor) {
-                            if (Array.isArray(event.glitterColor)) {
-                                shell.glitterColor = event.glitterColor.map(c => COLOR[c] || c);
-                            } else if (COLOR[event.glitterColor]) {
-                                shell.glitterColor = COLOR[event.glitterColor];
-                            } else if (event.glitterColor === 'Ngẫu nhiên' || event.glitterColor === 'random') {
-                                shell.glitterColor = 'random';
-                            } else {
-                                shell.glitterColor = event.glitterColor;
-                            }
+                    if (hasValue(event.color)) {
+                        const color = resolveEventColor(event.color);
+                        if (options.shell === 'Hình ảnh') {
+                            // Khung ảnh chỉ vẽ được một màu
+                            options.color = color === 'random' ? randomColor() : color;
+                        } else if (options.color === INVISIBLE && options.secondColor) {
+                            // Pháo "Ma": giữ hiệu ứng hiện dần từ vô hình, màu đã chọn là màu hiện ra
+                            if (color !== 'random') options.secondColor = Array.isArray(color) ? color[0] : color;
+                        } else {
+                            options.color = color;
                         }
+                    }
+
+                    if (hasValue(event.glitterColor)) {
+                        options.glitterColor = resolveEventColor(event.glitterColor);
                     }
 
                     let xVal = event.x !== undefined ? event.x : 50;
                     let yVal = event.y !== undefined ? event.y : 50;
 
                     if (IS_MOBILE) {
-                        // Ánh xạ tọa độ từ 0-100% vào khoảng an toàn 15% - 85% để tránh pháo bị tràn mép màn hình
+                        // Ánh xạ x vào khoảng an toàn 15% - 85% để tránh pháo bị tràn mép màn hình bên trái/phải
                         xVal = 15 + (xVal / 100) * 70;
-                        yVal = 15 + (yVal / 100) * 70;
+                        // Ánh xạ y vào khoảng an toàn 5% - 95% (rộng hơn nhiều vì màn hình dọc rất dài, tránh làm nổ quá thấp)
+                        yVal = 5 + (yVal / 100) * 90;
                     }
 
                     const x = xVal / 100;
                     const y = (100 - yVal) / 100;
 
-                    // Ghi đè các thuộc tính nâng cao từ event nếu có
+                    // Ghi đè các thuộc tính nâng cao từ event nếu có.
+                    // Áp dụng TRƯỚC khi tạo Shell để số hạt, kích thước trên mobile và giới hạn góc bắn được tính đúng.
                     const overrides = [
                         'strobe', 'strobeColor', 'pistil', 'pistilColor',
                         'streamers', 'crossette', 'crackle', 'horsetail',
@@ -2099,16 +2133,24 @@ function startSequence() {
                     ];
 
                     overrides.forEach(prop => {
-                        if (event[prop] !== undefined) {
-                            if (prop === 'strobeColor' || prop === 'pistilColor') {
-                                shell[prop] = COLOR[event[prop]] || event[prop];
-                            } else {
-                                shell[prop] = event[prop];
-                            }
+                        const value = event[prop];
+                        // Bỏ qua ô để trống và ô tích chưa bật (false): giữ mặc định của loại pháo,
+                        // ví dụ pháo "Nổ lách tách" vẫn lách tách dù builder lưu sẵn crackle: false.
+                        if (!hasValue(value) || value === false) return;
+
+                        if (prop === 'strobeColor' || prop === 'pistilColor' || prop === 'secondColor') {
+                            options[prop] = resolveSingleColor(value);
+                        } else if (prop === 'starDensity') {
+                            // Mật độ là hệ số so với mật độ gốc của loại pháo (1 = giữ nguyên)
+                            options.starDensity = (options.starDensity || 1) * value;
+                        } else {
+                            options[prop] = value;
                         }
                     });
 
-                    shell.launch(x, y);
+                    const shell = new Shell(options);
+                    // Nổ đúng tọa độ đã đặt trong kịch bản
+                    shell.launchAt(x * stageW, y * stageH);
                 };
 
                 if (event.delay) {
@@ -2184,6 +2226,8 @@ let isUpdatingSpeed = false;
 
 function handlePointerStart(event) {
     activePointerCount++;
+    // Chưa bắt đầu màn trình diễn: bỏ qua, tránh chạm vào góc màn hình chờ làm tạm dừng/mở menu ngầm
+    if (appNodes.stageContainer.classList.contains('remove')) return;
     const btnSize = 50;
 
     if (event.y < btnSize) {
@@ -2196,6 +2240,7 @@ function handlePointerStart(event) {
             return;
         }
         if (event.x > mainStage.width - btnSize) {
+            menuOpenedByCornerAt = Date.now();
             toggleMenu();
             return;
         }
@@ -2225,6 +2270,10 @@ function handlePointerMove(event) {
 }
 
 function handleKeydown(event) {
+    // Đang gõ chữ trong menu (ví dụ ô "Văn bản") thì chỉ giữ lại phím Esc, tránh gõ chữ "o"/"p" làm đóng menu/tạm dừng
+    if (/^(INPUT|SELECT|TEXTAREA)$/.test(event.target.tagName) && event.keyCode !== 27) {
+        return;
+    }
     // P
     if (event.keyCode === 80) {
         togglePause();
@@ -2774,7 +2823,7 @@ class Shell {
         if (this.launchAngle !== undefined) {
             this.launchAngle = Math.max(0, Math.min(180, this.launchAngle));
         }
-        this.starLifeVariation = options.starLifeVariation || 0.125;
+        this.starLifeVariation = options.starLifeVariation ?? 0.125;
         this.color = options.color || randomColor();
         this.glitterColor = options.glitterColor || this.color;
 
@@ -2790,12 +2839,22 @@ class Shell {
         }
     }
 
+    // Dùng cho các chuỗi bắn ngẫu nhiên: `launchHeight` từ 0 (thấp) đến 1 (cao).
+    // Pháo theo kịch bản dùng `launchAt()` để nổ đúng tọa độ đã đặt.
     launch(position, launchHeight) {
         const width = stageW;
         const height = stageH;
-        const launchX = position * width;
-        const launchY = height;
-        const burstY = launchHeight * height;
+        // Khoảng cách từ các cạnh của màn hình để giữ vỏ.
+        const hpad = 60;
+        // Khoảng cách từ đỉnh màn hình để giữ cho vỏ nổ.
+        const vpad = 50;
+        // Chiều cao bùng nổ tối thiểu, tính theo phần trăm chiều cao sân khấu
+        const minHeightPercent = 0.45;
+        // Chiều cao bùng nổ tối thiểu tính bằng px
+        const minHeight = height - height * minHeightPercent;
+
+        const launchX = position * (width - hpad * 2) + hpad;
+        const burstY = minHeight - (launchHeight * (minHeight - vpad));
 
         this.launchAt(launchX, burstY);
     }
@@ -2819,7 +2878,7 @@ class Shell {
         const launchDistance = Math.sqrt(finalDx * finalDx + dy * dy);
         // Cần sử dụng đường cong công suất tùy chỉnh để ước chừng Vi để đạt được Khoảng cách phóng dưới tác dụng của trọng lực và lực cản của không khí.
         // Những con số kỳ diệu đến từ thử nghiệm.
-        const launchVelocity = Math.pow(launchDistance * 0.04, 0.64) * (this.ascentSpeed || 1);
+        const launchVelocity = Math.pow(launchDistance * 0.04, 0.64);
         const computedAngle = Math.atan2(dy, finalDx);
 
         const comet = this.comet = Star.add(
@@ -3369,11 +3428,11 @@ const Spark = {
 
 
 
-// Đảm bảo các file âm thanh được Vite nhận diện và đưa vào thư mục build
-import.meta.glob('../audio/**/*.mp3');
+// Lấy URL thật của các file âm thanh từ Vite: đúng cả khi chạy dev (src/assets/audio) lẫn bản build (assets/audio)
+const AUDIO_URLS = import.meta.glob('../audio/**/*.mp3', { eager: true, query: '?url', import: 'default' });
 
 const soundManager = {
-    baseURL: './assets/audio/',
+    baseURL: '../audio/',
     ctx: new (window.AudioContext || window.webkitAudioContext),
     sources: {
         // === Âm thanh phóng ===
@@ -3549,7 +3608,7 @@ const soundManager = {
             const { fileNames } = source;
             const filePromises = [];
             fileNames.forEach(fileName => {
-                const filePath = this.baseURL + fileName;
+                const filePath = AUDIO_URLS[this.baseURL + fileName];
                 const promise = fetch(filePath)
                     .then(checkStatus)
                     .then(response => response.arrayBuffer())
@@ -3616,8 +3675,8 @@ const soundManager = {
      *                             Note that a scale of 0 will mute the sound.
      */
     playSound(type, scale = 1) {
-        // Đảm bảo `scale` nằm trong phạm vi hợp lệ.
-        scale = MyMath.clamp(scale, 0, 1);
+        // Đảm bảo `scale` nằm trong phạm vi hợp lệ (NaN sẽ khiến gain.value ném lỗi).
+        scale = Number.isFinite(scale) ? MyMath.clamp(scale, 0, 1) : 1;
 
         // Không cho phép bắt đầu âm thanh mới nếu âm thanh bị tắt, ứng dụng đang chạy ở chế độ chuyển động chậm hoặc bị tạm dừng.
         // Kiểm tra chuyển động chậm có một số khoảng trống trong trường hợp người dùng không kéo xong thanh tốc độ
@@ -3637,8 +3696,9 @@ const soundManager = {
 
         const source = this.sources[type];
 
-        if (!source) {
-            throw new Error(`Sound of type "${type}" doesn't exist.`);
+        // Tên âm thanh lạ trong kịch bản, hoặc file chưa tải xong/tải lỗi: bỏ qua thay vì làm hỏng khung hình
+        if (!source || !source.buffers || source.buffers.length === 0) {
+            return;
         }
 
         const initialVolume = source.volume;
@@ -3677,6 +3737,7 @@ function setLoadingStatus(status) {
 
 // Tiêu đề hồ sơ không cần âm thanh, chỉ cần khởi tạo.
 if (IS_HEADER) {
+    appNodes.startScreen.classList.add('hide');
     init();
 } else {
     // Đợi người dùng nhấn "Bắt đầu"

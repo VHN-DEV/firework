@@ -56,12 +56,9 @@ export default defineConfig({
   },
   server: {
     open: true,
+    // Chỉ API PHP cần chuyển qua Apache (XAMPP); configs/ và uploads/ được Vite phục vụ trực tiếp từ publicDir (src/static)
     proxy: {
-      '/static/api': {
-        target: 'http://localhost/firework/src/static',
-        changeOrigin: true,
-      },
-      '/static/configs': {
+      '/api': {
         target: 'http://localhost/firework/src/static',
         changeOrigin: true,
       },

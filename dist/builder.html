@@ -50,10 +50,11 @@
                 </button>
             </div>
             <div class="actions">
+                <!-- Ô chọn file dùng chung cho các nút "Nhập" (phải nằm ngoài comment, nếu không nút Nhập báo lỗi) -->
+                <input type="file" id="import-file" class="hide" accept=".json">
                 <!-- <button id="btn-import" class="btn secondary">
                     <i class="fas fa-file-import"></i> <span>Nhập</span>
                 </button>
-                <input type="file" id="import-file" class="hide" accept=".json">
                 <button id="btn-export" class="btn secondary">
                     <i class="fas fa-file-export"></i> <span>Xuất</span>
                 </button>
@@ -192,7 +193,7 @@
                             <label for="loop">Tự động lặp lại (Loop)</label>
                         </div>
                         <div class="form-group">
-                            <label for="filename">Tên file kịch bản (Lưu vào /static/configs/)</label>
+                            <label for="filename">Tên file kịch bản (Lưu vào /configs/)</label>
                             <div class="input-with-ext">
                                 <input type="text" id="filename" placeholder="my_kịch_bản">
                                 <span>.json</span>
@@ -432,7 +433,7 @@
 
 
 
-
+
 </body>
 
 </html>

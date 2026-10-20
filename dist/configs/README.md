@@ -22,7 +22,7 @@ Thư mục này chứa các file JSON để **tùy biến lời chúc và hiệu
 | `title` | Tiêu đề lớn hiển thị lúc mở màn. |
 | `subtitle`| Dòng phụ bên dưới tiêu đề. |
 | `author` | Tên người đạo diễn/người gửi. |
-| `loop` | `true`: Tự động lặp lại show; `false`: Chạy xong sẽ chuyển sang chế độ pháo ngẫu nhiên. |
+| `loop` | `true`: Tự động lặp lại show; `false`: Chạy hết một lần rồi dừng. |
 
 ### 2. Cấu trúc Event (Mỗi phát bắn)
 Mỗi phần tử trong mảng `events` đại diện cho một phát bắn hoặc một dòng chữ.
@@ -34,7 +34,7 @@ Mỗi phần tử trong mảng `events` đại diện cho một phát bắn ho�
 | **`text`** | Chuỗi | Nội dung chữ (chỉ dùng khi `shell`: `"Văn bản"`). |
 | **`color`** | Chuỗi/Mảng | Màu pháo. Có thể dùng tên (`Red`, `Gold`), mã Hex (`#FF5733`), hoặc mảng màu `["Red", "Blue"]`. Dùng `"Ngẫu nhiên"` để đa sắc. |
 | **`glitterColor`**| Chuỗi/Mảng | Màu của vệt sáng rủ xuống. Thường đặt `"Ngẫu nhiên"` để khớp với màu nhánh pháo. |
-| **`x`**, **`y`** | Số | Vị trí (0.1 đến 0.9). `x: 0.5, y: 0.5` là ở chính giữa màn hình. |
+| **`x`**, **`y`** | Số | Vị trí nổ theo phần trăm màn hình (0 đến 100). `x`: 0 là mép trái; `y`: 0 là mặt đất, 100 là đỉnh. `x: 50, y: 50` là chính giữa màn hình. |
 | **`delay`** | Số | Độ trễ (ms) tính từ lúc bắt đầu đợt bắn. |
 | **`size`** | Số | Kích thước (0: 3" đến 5: 16"). |
 
@@ -53,7 +53,7 @@ Bạn có thể thêm các thuộc tính này vào bất kỳ loại pháo nào 
 | **`streamers`**| bool | `true`: Tạo các dải sáng dài vút ra ngoài. |
 | **`horsetail`**| bool | `true`: Hiệu ứng đuôi ngựa rủ xuống từ từ. |
 | **`starLife`** | số | Thời gian tồn tại của hạt pháo (ms). Mặc định khoảng 2500-3000. |
-| **`starDensity`**| số | Mật độ hạt pháo. Tăng lên (ví dụ `2`) để pháo dày hơn. |
+| **`starDensity`**| số | Hệ số mật độ hạt so với mặc định của loại pháo (`1` = giữ nguyên). Tăng lên (ví dụ `2`) để pháo dày hơn. |
 | **`spreadSize`**| số | Độ rộng của vòng nổ. |
 
 ---
@@ -83,8 +83,8 @@ Trái tim màu đỏ, có tâm màu trắng và nổ lách tách:
   "pistil": true,
   "pistilColor": "White",
   "crackle": true,
-  "x": 0.3,
-  "y": 0.4
+  "x": 30,
+  "y": 60
 }
 ```
 
@@ -97,8 +97,8 @@ Dùng `starDensity` để tạo cơn mưa sao:
   "color": "Gold",
   "starDensity": 3,
   "starLife": 5000,
-  "x": 0.5,
-  "y": 0.2
+  "x": 50,
+  "y": 80
 }
 ```
 
@@ -111,4 +111,4 @@ Dùng `starDensity` để tạo cơn mưa sao:
 - `"Trái tim"`, `"Ngôi sao"`, `"Kim cương"`, `"Bông tuyết"`
 - `"Mặt cười"`, `"Mặt mèo"`, `"Bông sen"`, `"Hành tinh"`
 - `"Vòng nhẫn"`, `"Nổ chéo"`, `"Cây cọ"`, `"Ma"`, `"Đuôi ngựa"`
-- `"Tạm dừng"` (Dùng kèm `duration`)
+- `"Tạm dừng"` (Dùng kèm `duration` tính bằng ms, mặc định `2000`)

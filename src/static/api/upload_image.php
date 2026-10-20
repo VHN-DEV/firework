@@ -39,44 +39,46 @@ if ($error !== UPLOAD_ERR_OK) {
     exit;
 }
 
-// Validate file type
-$allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-if (!in_array($file['type'], $allowedTypes)) {
-    echo json_encode(['success' => false, 'message' => 'Loại file không được hỗ trợ. Chỉ cho phép JPG, PNG, WEBP, GIF.']);
+if ($file['size'] > 10 * 1024 * 1024) {
+    echo json_encode(['success' => false, 'message' => 'Ảnh quá lớn (tối đa 10MB).']);
     exit;
 }
 
-// Detect environment based on directory structure
-// src structure: src/static/static/api/upload_image.php
-// dist structure: dist/static/api/upload_image.php
-$isDist = (strpos(__DIR__, 'dist') !== false) || (strpos(__DIR__, 'src/static/static/api') === false);
-
-if ($isDist) {
-    // Production (dist)
-    $targetDir = __DIR__ . '/../../assets/img/uploads/' . $filename . '/';
-    $baseUrl = './assets/img/uploads/';
-} else {
-    // Development (src)
-    $targetDir = __DIR__ . '/../../../assets/img/uploads/' . $filename . '/';
-    $baseUrl = './src/assets/img/uploads/';
+// Xác định loại ảnh từ NỘI DUNG file và tự đặt đuôi file theo loại ảnh.
+// Không tin tên file/MIME do trình duyệt gửi lên: nếu không, có thể tải lên file .php giả dạng ảnh rồi chạy nó trên server.
+$allowedTypes = [
+    IMAGETYPE_JPEG => 'jpg',
+    IMAGETYPE_PNG => 'png',
+    IMAGETYPE_GIF => 'gif',
+    IMAGETYPE_WEBP => 'webp',
+];
+$imageInfo = @getimagesize($file['tmp_name']);
+if ($imageInfo === false || !isset($allowedTypes[$imageInfo[2]])) {
+    echo json_encode(['success' => false, 'message' => 'Loại file không được hỗ trợ. Chỉ cho phép JPG, PNG, WEBP, GIF.']);
+    exit;
 }
+$extension = $allowedTypes[$imageInfo[2]];
 
-if (!is_dir($targetDir)) {
-    mkdir($targetDir, 0755, true);
+// Lưu cạnh thư mục configs/ (src/static/uploads/). Thư mục này là publicDir của Vite nên:
+// - khi chạy dev: được phục vụ tại ./uploads/...
+// - khi build: được copy sang dist/uploads/...
+// (Cách cũ dò môi trường bằng đường dẫn '/' nên sai trên Windows/XAMPP và ảnh không hiện khi chạy dev.)
+$targetDir = __DIR__ . '/../uploads/' . $filename . '/';
+$baseUrl = './uploads/';
+
+if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true)) {
+    echo json_encode(['success' => false, 'message' => 'Không thể tạo thư mục lưu ảnh.']);
+    exit;
 }
 
 // Generate unique filename
-$extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-if (empty($extension)) {
-    $extension = 'png';
-}
 $newFileName = uniqid('img_', true) . '.' . $extension;
 $targetPath = $targetDir . $newFileName;
 
 // Move uploaded file
 if (move_uploaded_file($file['tmp_name'], $targetPath)) {
     $relativeUrl = $baseUrl . $filename . '/' . $newFileName;
-    
+
     echo json_encode([
         'success' => true,
         'message' => 'Tải ảnh lên thành công!',
