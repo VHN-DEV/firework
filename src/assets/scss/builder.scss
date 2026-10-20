@@ -2187,6 +2187,42 @@ select.is-invalid {
     }
 }
 
+// Thanh hỏi khôi phục bản nháp chưa lưu
+.draft-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem 0.75rem;
+    margin: 0 1.25rem 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: $b-radius;
+    background: rgba($b-gold, 0.08);
+    border: 1px solid rgba($b-gold, 0.3);
+    color: $b-text;
+    font-size: 0.85rem;
+
+    > i {
+        color: $b-gold;
+    }
+
+    span {
+        flex: 1;
+        min-width: 180px;
+    }
+}
+
+.draft-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+
+// Nút hoàn tác/làm lại: mờ đi khi không còn bước nào
+.history-group .btn.icon:disabled {
+    opacity: 0.35;
+    cursor: default;
+    background: transparent;
+}
+
 // Dải "Tạo nhanh theo dịp" trên dòng thời gian (khi kịch bản còn trống)
 .template-strip {
     margin: 1rem;
@@ -2845,12 +2881,22 @@ select.is-invalid {
         border-radius: 10px;
     }
 
+    // Màn hình hẹp có thêm nút hoàn tác: chỉ giữ logo và tên kịch bản (một dòng, cắt bằng "…")
     .brand-text strong {
-        font-size: 0.95rem;
+        display: none;
     }
 
     .brand-text span {
-        max-width: 42vw;
+        max-width: 34vw;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 0.85rem;
+        color: $b-text;
+    }
+
+    .history-group .btn.icon {
+        width: 34px;
     }
 
     // Gọn một dòng: chỉ giữ các nút, ẩn đường link dài (nút "Sao chép" vẫn lấy đúng link)

@@ -50,6 +50,14 @@
             </div>
 
             <div class="topbar-actions">
+                <div class="btn-group history-group">
+                    <button id="btn-undo" class="btn icon" onclick="undo()" title="Hoàn tác (Ctrl+Z)" disabled>
+                        <i class="fas fa-rotate-left"></i>
+                    </button>
+                    <button id="btn-redo" class="btn icon" onclick="redo()" title="Làm lại (Ctrl+Y)" disabled>
+                        <i class="fas fa-rotate-right"></i>
+                    </button>
+                </div>
                 <div class="btn-group hide-mobile">
                     <button class="btn ghost" onclick="openTemplatesModal()" title="Tạo kịch bản mới (từ mẫu theo dịp hoặc trang trống)">
                         <i class="fas fa-plus"></i><span>Mới</span>
@@ -392,6 +400,14 @@
                         </button>
                     </div>
                 </div>
+                <div id="draft-bar" class="draft-bar hide" role="status">
+                    <i class="fas fa-clock-rotate-left"></i>
+                    <span id="draft-info"></span>
+                    <div class="draft-actions">
+                        <button id="btn-draft-restore" type="button" class="btn primary small">Khôi phục</button>
+                        <button id="btn-draft-discard" type="button" class="btn ghost small">Bỏ qua</button>
+                    </div>
+                </div>
                 <div id="template-strip" class="template-strip hide">
                     <div class="template-strip-head">
                         <strong><i class="fas fa-wand-magic-sparkles"></i> Tạo nhanh theo dịp</strong>
@@ -609,6 +625,8 @@
                         <li><strong>Tạo nhanh:</strong> bấm <strong>Mới</strong>, chọn dịp và nhập tên để có ngay một màn
                             trình diễn hoàn chỉnh, rồi chỉnh tiếp.</li>
                         <li><strong>Đợt:</strong> các phát bắn cùng đợt nổ cùng lúc; các đợt chạy lần lượt từ nhỏ đến lớn.</li>
+                        <li><strong>Hoàn tác:</strong> Ctrl+Z (làm lại: Ctrl+Y) hoặc hai nút mũi tên trên cùng. Kịch bản
+                            đang soạn được tự lưu nháp trong trình duyệt; lần sau mở builder sẽ hỏi khôi phục.</li>
                         <li><strong>Trễ (ms):</strong> chờ bao lâu kể từ đầu đợt rồi mới bắn, để tạo chuỗi nổ nối tiếp.</li>
                         <li><strong>Tạm dừng:</strong> kéo dài đợt đó thêm một khoảng thời gian.</li>
                         <li><strong>Thời lượng:</strong> mỗi đợt kéo dài khoảng 3 giây (cộng thêm thời gian tạm dừng).</li>
