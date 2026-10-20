@@ -73,9 +73,19 @@ const SHELL_BUILTIN_EFFECTS = {
     'Nhấp nháy': ['strobe'],
     'Đuôi ngựa': ['horsetail'],
     'Ma': ['streamers'],
-    'Xoắn ốc': ['spiralLift'],
     'Cháy lâu': ['hang']
 };
+
+// Kiểu bắn: cách quả pháo bay lên điểm nổ, dùng được cho mọi loại pháo.
+// Giá trị khớp với LAUNCH_STYLES trong trình phát (script.js); thêm kiểu mới thì thêm ở cả hai nơi.
+const LAUNCH_STYLES = [
+    { value: '', name: 'Theo loại pháo', icon: '🎆', hint: 'Bay thẳng lên; riêng pháo "Xoắn ốc" bay xoắn đôi.' },
+    { value: 'straight', name: 'Bay thẳng', icon: '⬆️', hint: 'Bay thẳng một mạch lên điểm nổ.' },
+    { value: 'spiral', name: 'Xoắn đôi', icon: '➰', hint: 'Hai vệt sáng uốn lượn quấn vào nhau như lò xo khi bay lên.' },
+    { value: 'popping', name: 'Nổ dọc đường', icon: '🎉', hint: 'Vừa bay lên vừa nổ lụp bụp từng chùm nhỏ.' },
+    { value: 'stages', name: 'Bay nhiều tầng', icon: '🚀', hint: 'Bay chậm dần, nổ một chùm rồi vọt lên tầng tiếp theo, lặp lại trước khi nổ chính. Bay lâu hơn khoảng 2 giây.' },
+    { value: 'wander', name: 'Bay lượn', icon: '〰️', hint: 'Chao qua chao lại ngẫu nhiên, không theo đường thẳng.' }
+];
 
 const FRAME_TYPES = [
     // Phát bắn chưa chọn khung (frame trống) thực tế hiển thị không khung, nên cần một lựa chọn tương ứng
@@ -430,6 +440,8 @@ function addEvent(config = null) {
             ...config,
             id: id
         };
+        if (newEvent.spiralLift && !newEvent.launchStyle) newEvent.launchStyle = 'spiral';
+        delete newEvent.spiralLift;
     } else {
         // Luôn sử dụng giá trị mặc định cố định theo yêu cầu
         newEvent = {
@@ -615,8 +627,11 @@ function updateEvent(id, field, value) {
                 }
                 event[field] = num;
             }
-        } else if (['strobe', 'pistil', 'streamers', 'crossette', 'crackle', 'horsetail', 'comet', 'floral', 'ring', 'spiralLift', 'hang'].includes(field)) {
+        } else if (['strobe', 'pistil', 'streamers', 'crossette', 'crackle', 'horsetail', 'comet', 'floral', 'ring', 'hang'].includes(field)) {
             event[field] = value === true;
+        } else if (field === 'launchStyle') {
+            // "Theo loại pháo" không lưu vào kịch bản
+            event[field] = value || undefined;
         } else {
             event[field] = value;
         }
@@ -704,7 +719,8 @@ function renderShotRow(event) {
         ? `<span><i class="fas fa-hourglass-half"></i>Nghỉ ${formatDuration(Number(event.duration) || 2000)}</span>`
         : `<span><i class="fas fa-location-dot"></i>${formatNumber(event.x)}, ${formatNumber(event.y)}</span>
            <span><i class="fas fa-clock"></i>${Number(event.delay) ? `+${formatNumber(event.delay)} ms` : 'Ngay'}</span>
-           <span><i class="fas fa-maximize"></i>Cỡ ${formatNumber(event.size ?? 1)}</span>`;
+           <span><i class="fas fa-maximize"></i>Cỡ ${formatNumber(event.size ?? 1)}</span>
+           ${event.launchStyle ? `<span><i class="fas fa-rocket"></i>${(LAUNCH_STYLES.find(s => s.value === event.launchStyle) || {}).name || ''}</span>` : ''}`;
 
     return `
         <div class="shot-row${state.activeEventId === event.id ? ' active' : ''}${isPause ? ' is-pause' : ''}"
@@ -1079,7 +1095,6 @@ function renderInspector() {
             ${effectChip('horsetail', 'Đuôi ngựa')}
             ${effectChip('floral', 'Hoa nở')}
             ${effectChip('ring', 'Vòng nhẫn')}
-            ${effectChip('spiralLift', 'Bay xoắn ốc')}
             ${effectChip('hang', 'Cháy lâu, rơi chậm')}
         </div>
         <div>
@@ -1104,7 +1119,18 @@ function renderInspector() {
             ${colorField(event, 'strobeColor', 'Màu nhấp nháy')}
         </div>`);
 
-    panel.innerHTML = header + typeSection + basicSection + positionSection + colorSection + soundSection + advancedSection;
+    const launchStyle = LAUNCH_STYLES.find(s => s.value === (event.launchStyle || '')) || LAUNCH_STYLES[0];
+    const launchSection = section('launch', 'rocket', 'Kiểu bắn', `${launchStyle.icon} ${launchStyle.name}`, `
+        <div class="shell-grid launch-grid">
+            ${LAUNCH_STYLES.map(s => `
+                <button type="button" class="shell-option${(event.launchStyle || '') === s.value ? ' selected' : ''}"
+                    onclick="updateEvent(${event.id}, 'launchStyle', '${s.value}'); renderInspector()">
+                    <span class="emoji">${s.icon}</span>${s.name}
+                </button>`).join('')}
+        </div>
+        <small class="field-hint">${launchStyle.hint}</small>`);
+
+    panel.innerHTML = header + typeSection + launchSection + basicSection + positionSection + colorSection + soundSection + advancedSection;
     panel.scrollTop = keepScroll;
     initXYPad(event);
 }

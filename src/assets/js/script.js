@@ -948,7 +948,7 @@ const spiralShell = (size = 1) => {
         glitter: 'light',
         glitterColor: whiteOrGold(),
         spin: 'galaxy',
-        spiralLift: true
+        launchStyle: 'spiral'
     };
 };
 
@@ -2446,7 +2446,7 @@ function startSequence() {
                         'transitionTime', 'floral', 'ring', 'strobeFreq',
                         'launchAngle', 'ascentSpeed', 'rotation',
                         'liftSound', 'burstSound', 'whistleSound',
-                        'spiralLift', 'hang'
+                        'launchStyle', 'spiralLift', 'hang'
                     ];
 
                     overrides.forEach(prop => {
@@ -2760,14 +2760,10 @@ function update(frameTime, lag) {
                         star.x += Math.sin(star.spinAngle) * star.spinRadius * speed;
                         star.y += Math.cos(star.spinAngle) * star.spinRadius * speed;
                     }
-
-                    if (star.helixAmp) {
-                        // Lệch ngang theo hình sin quanh đường bay: các vệt sáng quấn vào nhau như lò xo
-                        const prevOffset = Math.sin(star.helixPhase) * star.helixAmp;
-                        star.helixPhase += star.helixFreq * speed;
-                        star.x += Math.sin(star.helixPhase) * star.helixAmp - prevOffset;
-                    }
                 }
+
+                // Hành vi riêng của kiểu bắn (xoắn, lượn, nổ dọc đường, đẩy lên tầng trên...)
+                if (star.onUpdate) star.onUpdate(star, timeStep, speed);
 
                 if (star.sparkFreq) {
                     star.sparkTimer -= timeStep;
@@ -3168,6 +3164,153 @@ function crackleEffect(star) {
 
 
 
+// ---------------------------------------------------------------------------
+// KIỂU BẮN: cách quả pháo bay từ mặt đất lên điểm nổ, độc lập với loại pháo (cách nổ).
+// Mỗi kiểu có hàm setup(shell, comet, launch) chạy lúc phóng: gắn thêm hành vi cho sao chổi
+// (comet.onUpdate chạy mỗi khung hình) và có thể trả về { beforeBurst(comet) } chạy ngay trước khi nổ.
+// `launch`: { x, y } điểm phóng, { burstX, burstY } điểm nổ, { angle, velocity } hướng và vận tốc phóng.
+// Thêm kiểu mới: thêm một mục vào LAUNCH_STYLES ở đây và vào danh sách LAUNCH_STYLES của builder.
+// ---------------------------------------------------------------------------
+
+// Lệch sao ngang một đoạn `offset` so với đường bay vật lý (đường bay gốc không đổi nên vẫn tới đúng điểm nổ)
+function setLateralOffset(star, offset) {
+    star.x += offset - star.lateralOffset;
+    star.lateralOffset = offset;
+}
+
+// Màu cho các chùm nổ phụ trên đường bay: theo màu của quả pháo
+function launchPopColor(shell) {
+    const color = Array.isArray(shell.color) ? shell.color[(Math.random() * shell.color.length) | 0] : shell.color;
+    return !color || color === 'random' || color === INVISIBLE ? randomColor() : color;
+}
+
+// Chùm nổ nhỏ trên đường bay
+function launchPop(x, y, color, count, speed, life, sound) {
+    createBurst(count, (angle, speedMult) => {
+        const star = Star.add(x, y, color, angle, speedMult * speed, life + Math.random() * life * 0.3);
+        star.sparkFreq = 120 / quality;
+        star.sparkSpeed = 0.3;
+        star.sparkLife = 320;
+        star.sparkLifeVariation = 1.5;
+        star.sparkColor = COLOR.Gold;
+        star.sparkTimer = Math.random() * star.sparkFreq;
+    });
+    BurstFlash.add(x, y, 18 + count * 2);
+    if (sound) soundManager.playSound(sound);
+}
+
+// Đặt lại vận tốc để sao bay từ vị trí hiện tại tới (toX, toY) rồi chậm dần ở đó (cùng công thức với lúc phóng)
+function aimStar(star, toX, toY) {
+    const dx = toX - star.x;
+    const dy = toY - star.y;
+    const velocity = Math.pow(Math.hypot(dx, dy) * 0.04, 0.64);
+    const angle = Math.atan2(dy, dx);
+    star.speedX = Math.cos(angle) * velocity;
+    star.speedY = Math.sin(angle) * velocity;
+}
+
+const LAUNCH_STYLES = {
+    // Bay thẳng lên điểm nổ
+    straight: {},
+
+    // Xoắn đôi: sao chổi và một vệt sáng phụ cùng đường bay, lệch pha nửa vòng nên quấn vào nhau như lò xo
+    spiral: {
+        setup(shell, comet, launch) {
+            const amp = (IS_MOBILE ? 9 : 13) + Math.min(shell.shellSize || 1, 4) * 2;
+            const twist = (startPhase) => {
+                let phase = startPhase;
+                return (star, timeStep, speed) => {
+                    phase += 0.17 * speed;
+                    setLateralOffset(star, Math.sin(phase) * amp);
+                };
+            };
+            const strandColor = typeof shell.glitterColor === 'string' && shell.glitterColor !== 'random' && shell.glitterColor !== INVISIBLE
+                ? shell.glitterColor : COLOR.Gold;
+            comet.spinRadius = 0;
+            comet.onUpdate = twist(0);
+            // Sống lâu hơn sao chổi để chỉ bị tắt khi sao chổi nổ (không bao giờ chết trước rồi bị tái sử dụng)
+            const strand = Star.add(launch.x, launch.y, strandColor, launch.angle, launch.velocity, comet.life * 1.5);
+            strand.heavy = true;
+            strand.onUpdate = twist(Math.PI);
+            strand.sparkFreq = comet.sparkFreq;
+            strand.sparkSpeed = comet.sparkSpeed;
+            strand.sparkLife = comet.sparkLife;
+            strand.sparkLifeVariation = comet.sparkLifeVariation;
+            strand.sparkColor = strandColor;
+            return { beforeBurst: () => { strand.life = 0; } };
+        }
+    },
+
+    // Nổ dọc đường: vừa bay lên vừa nổ lụp bụp từng chùm nhỏ
+    popping: {
+        setup(shell, comet) {
+            let timer = 320;
+            comet.onUpdate = (star, timeStep) => {
+                timer -= timeStep;
+                if (timer <= 0) {
+                    timer += 240 + Math.random() * 120;
+                    launchPop(star.x, star.y, launchPopColor(shell), 8, 1.3, 420, 'burstSmall');
+                }
+            };
+        }
+    },
+
+    // Bay nhiều tầng: bay lên chậm dần, nổ một chùm rồi được đẩy tiếp lên tầng trên, lặp lại trước khi nổ chính
+    stages: {
+        setup(shell, comet, launch) {
+            const rise = launch.y - launch.burstY;
+            const stops = rise > 260 ? [0.42, 0.72] : [0.6];
+            const points = stops.map(f => ({
+                x: launch.x + (launch.burstX - launch.x) * f,
+                y: launch.y - rise * f
+            }));
+            let next = 0;
+            // Các tầng giữa không nổ theo độ cao đích: chỉ tầng cuối mới nổ chính
+            comet.targetY = undefined;
+            comet.life = comet.fullLife = 30000;
+            comet.secondColor = null;
+            aimStar(comet, points[0].x, points[0].y);
+            comet.onUpdate = (star) => {
+                if (next >= points.length) return;
+                // Tới tầng hoặc đã chậm gần như dừng lại
+                if (star.y <= points[next].y || star.speedY > -0.15) {
+                    launchPop(star.x, star.y, launchPopColor(shell), 22, 2.6, 700, 'burstSoft');
+                    next++;
+                    if (next < points.length) {
+                        aimStar(star, points[next].x, points[next].y);
+                    } else {
+                        aimStar(star, launch.burstX, launch.burstY);
+                        star.targetY = launch.burstY;
+                    }
+                    soundManager.playSound('liftSoft');
+                }
+            };
+        }
+    },
+
+    // Bay lượn: chao qua chao lại ngẫu nhiên, không theo một đường cố định
+    wander: {
+        setup(shell, comet) {
+            const scale = IS_MOBILE ? 0.7 : 1;
+            const waves = [0, 1, 2].map(() => ({
+                amp: MyMath.random(10, 22) * scale,
+                freq: MyMath.random(0.05, 0.2),
+                phase: Math.random() * PI_2
+            }));
+            let t = 0;
+            comet.spinRadius = 0;
+            comet.onUpdate = (star, timeStep, speed) => {
+                t += speed;
+                // Biên độ tăng dần từ lúc rời mặt đất
+                const ramp = Math.min(1, t / 30);
+                setLateralOffset(star, ramp * waves.reduce((sum, w) => sum + Math.sin(w.phase + w.freq * t) * w.amp, 0));
+            };
+        }
+    }
+};
+
+
+
 /**
  * Shell can be constructed with options:
  *
@@ -3193,6 +3336,8 @@ class Shell {
             this.launchAngle = Math.max(0, Math.min(180, this.launchAngle));
         }
         this.starLifeVariation = options.starLifeVariation ?? 0.125;
+        // Kiểu bắn; kịch bản cũ dùng "spiralLift: true" cho kiểu xoắn đôi
+        this.launchStyle = LAUNCH_STYLES[options.launchStyle] ? options.launchStyle : (options.spiralLift ? 'spiral' : 'straight');
         this.color = options.color || randomColor();
         this.glitterColor = options.glitterColor || this.color;
 
@@ -3278,48 +3423,29 @@ class Shell {
             comet.sparkColor = COLOR.Gold;
         }
 
+        // Kiểu bắn (cách bay lên), mặc định bay thẳng
+        const launchStyle = LAUNCH_STYLES[this.launchStyle] || LAUNCH_STYLES.straight;
+
         // Ngẫu nhiên làm cho sao chổi “cháy” sớm một chút.
         // Tính năng này bị vô hiệu hóa đối với vỏ đuôi ngựa do thời gian phát sóng của chúng rất ngắn.
-        // Không áp dụng cho các loại vỏ tàng hình (như lá rơi) hoặc Liễu để tránh làm biến mất vệt sáng phóng lên.
-        if (Math.random() > 0.4 && !this.horsetail && this.color !== INVISIBLE && this.glitter !== 'willow' && !this.spiralLift) {
+        // Không áp dụng cho các loại vỏ tàng hình (như lá rơi) hoặc Liễu để tránh làm biến mất vệt sáng phóng lên,
+        // và chỉ khi bay thẳng: các kiểu bắn khác cần thấy rõ vệt sáng suốt đường bay.
+        if (launchStyle === LAUNCH_STYLES.straight && Math.random() > 0.4 && !this.horsetail && this.color !== INVISIBLE && this.glitter !== 'willow') {
             comet.secondColor = INVISIBLE;
             comet.transitionTime = Math.pow(Math.random(), 1.5) * 700 + 500;
         }
 
-        // Bay lên xoắn ốc: sao chổi và một vệt sáng phụ cùng đường bay, lệch pha nửa vòng nên quấn vào nhau
-        const strands = [];
-        if (this.spiralLift) {
-            const amp = (IS_MOBILE ? 9 : 13) + Math.min(this.shellSize || 1, 4) * 2;
-            const freq = 0.17;
-            comet.spinRadius = 0;
-            comet.helixAmp = amp;
-            comet.helixFreq = freq;
-            comet.helixPhase = 0;
-            const strandColor = typeof this.glitterColor === 'string' && this.glitterColor !== 'random' && this.glitterColor !== INVISIBLE
-                ? this.glitterColor : COLOR.Gold;
-            const strand = Star.add(
-                launchX,
-                launchY,
-                strandColor,
-                computedAngle,
-                launchVelocity * (this.horsetail ? 1.2 : 1),
-                // Sống lâu hơn sao chổi để chỉ bị tắt khi sao chổi nổ (không bao giờ chết trước rồi bị tái sử dụng)
-                comet.life * 1.5
-            );
-            strand.heavy = true;
-            strand.helixAmp = amp;
-            strand.helixFreq = freq;
-            strand.helixPhase = Math.PI;
-            strand.sparkFreq = comet.sparkFreq;
-            strand.sparkSpeed = comet.sparkSpeed;
-            strand.sparkLife = comet.sparkLife;
-            strand.sparkLifeVariation = comet.sparkLifeVariation;
-            strand.sparkColor = strandColor;
-            strands.push(strand);
-        }
+        const styleHooks = (launchStyle.setup && launchStyle.setup(this, comet, {
+            x: launchX,
+            y: launchY,
+            burstX: finalBurstX,
+            burstY,
+            angle: computedAngle,
+            velocity: launchVelocity * (this.horsetail ? 1.2 : 1)
+        })) || {};
 
         comet.onDeath = comet => {
-            strands.forEach(s => { s.life = 0; });
+            if (styleHooks.beforeBurst) styleHooks.beforeBurst(comet);
             this.burst(comet.x, comet.y);
         };
 
@@ -3760,8 +3886,9 @@ const Star = {
         instance.twinkle = false;
         // Hệ số trọng lực: < 1 thì hạt lơ lửng, rơi chậm (pháo "Cháy lâu")
         instance.gravityScale = 1;
-        // Dao động ngang khi bay lên (pháo bay xoắn ốc)
-        instance.helixAmp = 0;
+        // Hành vi riêng mỗi khung hình (kiểu bắn) và độ lệch ngang khỏi đường bay vật lý
+        instance.onUpdate = null;
+        instance.lateralOffset = 0;
         // Quay quanh tâm vụ nổ (pháo "Xoay vòng", "Xoắn ốc")
         instance.orbit = null;
 
