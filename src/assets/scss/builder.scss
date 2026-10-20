@@ -1022,6 +1022,7 @@ select.is-invalid {
 
 .music-url-row {
     display: flex;
+    align-items: center;
     gap: 0.4rem;
     margin-top: 0.5rem;
 
@@ -2350,7 +2351,7 @@ select.is-invalid {
     background: transparent;
     color: $b-muted;
     font-family: inherit;
-    font-size: 0.65rem;
+    font-size: 0.50rem;
     font-weight: 700;
     line-height: 1;
     letter-spacing: 0;
@@ -2446,6 +2447,75 @@ select.is-invalid {
     from {
         opacity: 0;
         transform: translateY(-3px);
+    }
+}
+
+// Báo mở quà: khối trong hộp Chia sẻ, nhãn trong danh sách kịch bản
+.share-track {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.9rem;
+    border-radius: 14px;
+    background: $b-panel;
+    border: 1px solid $b-line;
+
+    &.hide {
+        display: none;
+    }
+
+    &.is-opened {
+        border-color: rgba($b-success, 0.45);
+        background: rgba($b-success, 0.06);
+    }
+
+    .field-hint {
+        margin-top: -0.2rem;
+    }
+
+    > .btn {
+        align-self: flex-start;
+    }
+}
+
+.share-track-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    div {
+        display: flex;
+        flex-direction: column;
+    }
+
+    strong {
+        color: $b-text;
+        font-size: 0.9rem;
+    }
+
+    span:not(.share-track-icon) {
+        color: $b-muted;
+        font-size: 0.82rem;
+    }
+}
+
+.share-track-icon {
+    font-size: 1.5rem;
+}
+
+.gift-badge {
+    display: inline-block;
+    padding: 0.05rem 0.45rem;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.07);
+    color: $b-muted;
+    font-size: 0.68rem;
+    font-weight: 600;
+    vertical-align: middle;
+
+    &.is-opened {
+        background: rgba($b-success, 0.15);
+        color: $b-success;
     }
 }
 

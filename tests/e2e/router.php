@@ -4,9 +4,14 @@
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  *
  * Bộ định tuyến cho máy chủ PHP có sẵn (php -S) khi chạy kiểm thử, làm thay .htaccess của Apache:
- * s/<tên>.html -> api/share.php?c=<tên>. Các đường dẫn khác phục vụ như bình thường.
+ * s/<tên>.html -> api/share.php?c=<tên>, chặn api/data/. Các đường dẫn khác phục vụ như bình thường.
  */
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+// Như api/data/.htaccess: dữ liệu báo mở quà không tải trực tiếp được
+if (strpos($path, '/api/data/') === 0) {
+    http_response_code(403);
+    return true;
+}
 if (preg_match('#^/s/([A-Za-z0-9_-]+)\.html$#', $path, $m)) {
     $_GET['c'] = $m[1];
     $_SERVER['SCRIPT_NAME'] = '/api/share.php';

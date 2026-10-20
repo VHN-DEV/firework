@@ -6,6 +6,8 @@
  * Script to list and delete firework configurations.
  */
 
+require __DIR__ . '/tracking.inc.php';
+
 header('Content-Type: application/json');
 
 $action = isset($_GET['action']) ? $_GET['action'] : '';
@@ -66,6 +68,8 @@ if ($action === 'delete') {
             if (is_file($imagePath)) {
                 unlink($imagePath);
             }
+            // Và mã theo dõi, lịch sử mở quà
+            track_delete($filename);
             echo json_encode(['success' => true, 'message' => 'Đã xóa kịch bản thành công!']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Không thể xóa file.']);

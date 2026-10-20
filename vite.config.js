@@ -41,6 +41,8 @@ export default defineConfig({
         builder: resolve(__dirname, 'builder.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         terms: resolve(__dirname, 'terms.html'),
+        // Trang theo dõi mở quà của người gửi (theo-doi.html?id=...&key=...)
+        track: resolve(__dirname, 'theo-doi.html'),
       },
       output: {
         // Có mã hash trong tên file JS/CSS: mỗi lần deploy trình duyệt tải ngay bản mới,

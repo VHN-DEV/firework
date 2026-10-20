@@ -9,6 +9,7 @@ import { Stage, Ticker } from './Stage@0.1.4.js';
 import MyMath from './MyMath.js';
 import { printCopyrightNotice } from './copyright.js';
 import { createVideoRecorder, canRecordVideo, pickVideoMimeType } from './recorder.js';
+import { getOwnerKeys } from './gift-tracking.js';
 import '../scss/style.scss';
 
 // Assign to window for global access (needed by HTML and other scripts)
@@ -2105,6 +2106,7 @@ let startFrameMounted = false;
 function mountStartFrame(config) {
     if (startFrameMounted) return;
     startFrameMounted = true;
+    reportGiftEvent('view', config);
     const frame = START_FRAMES[config && config.startFrame] || START_FRAMES.card;
     const { trigger, open, firstLaunchDelay } = frame.mount(appNodes.startScreen, config);
     if (config) {
@@ -2121,6 +2123,7 @@ function mountStartFrame(config) {
 }
 
 function beginShow(open, firstLaunchDelay) {
+    configRequest.then(config => reportGiftEvent('open', config));
     // Mở khóa âm thanh ngay trong lúc người xem bấm (AudioContext và phần tử phát nhạc nền)
     soundManager.resumeAll();
     musicPlayer.unlock();
@@ -2150,6 +2153,45 @@ function beginShow(open, firstLaunchDelay) {
 }
 
 // ---------------------------------------------------------------------------
+// BÁO MỞ QUÀ (kịch bản bật notifyOpen, bản có máy chủ PHP, xem api/opens.php): ghi lại lúc người nhận mở link, bấm
+// mở quà, xem hết (chỉ thời điểm và loại thiết bị) để người gửi biết. Người gửi tự mở thử trên máy mình thì không
+// tính; tải lại trang trong 30 phút cũng không tính lại. Người nhận được báo trước bằng một dòng nhỏ dưới khung mở quà.
+// ---------------------------------------------------------------------------
+
+const REPORTED_KEY = 'firework_reported';
+
+function reportGiftEvent(type, config) {
+    if (!config || config.notifyOpen !== true || !CONFIG_NAME || IS_PREVIEW || IS_RECORD || IS_HEADER) return;
+    if (type === 'view') showOpenNotice();
+    if (getOwnerKeys()[CONFIG_NAME]) return;
+    try {
+        const reported = JSON.parse(localStorage.getItem(REPORTED_KEY) || '{}');
+        const key = `${CONFIG_NAME}:${type}`;
+        if (Date.now() - (reported[key] || 0) < 30 * 60 * 1000) return;
+        reported[key] = Date.now();
+        localStorage.setItem(REPORTED_KEY, JSON.stringify(reported));
+    } catch (e) {
+        // localStorage bị chặn: vẫn báo
+    }
+    const coarse = window.matchMedia('(pointer: coarse)').matches;
+    const device = !coarse ? 'desktop' : Math.min(screen.width, screen.height) < 600 ? 'mobile' : 'tablet';
+    const body = JSON.stringify({ id: CONFIG_NAME, event: type, device });
+    const url = 'api/opens.php?action=record';
+    if (!(navigator.sendBeacon && navigator.sendBeacon(url, body))) {
+        fetch(url, { method: 'POST', body, keepalive: true }).catch(() => {});
+    }
+}
+
+function showOpenNotice() {
+    const legal = appNodes.startScreen.querySelector('.start-screen__legal');
+    if (!legal || legal.querySelector('.start-screen__notice')) return;
+    const notice = document.createElement('span');
+    notice.className = 'start-screen__notice';
+    notice.textContent = 'Người gửi sẽ biết khi bạn mở quà';
+    legal.prepend(notice);
+}
+
+// ---------------------------------------------------------------------------
 // HẸN GIỜ MỞ QUÀ: kịch bản có `openAt` (thời điểm ISO) chưa tới thì hiện màn đếm ngược.
 // openMode 'lock' (mặc định): tới giờ mới hiện khung bắt đầu để mở quà.
 // openMode 'countdown': người xem bấm "Tôi đã sẵn sàng" (trình duyệt chỉ cho phát tiếng sau một lần bấm),
@@ -2165,6 +2207,7 @@ function isLockedUntilLater(config) {
 
 function startCountdown(config) {
     countdownActive = true;
+    reportGiftEvent('view', config);
     const target = Date.parse(config.openAt);
     const auto = config.openMode === 'countdown';
     const screen = appNodes.startScreen;
@@ -2262,6 +2305,7 @@ function showEndScreen() {
         return;
     }
     if (IS_PREVIEW || IS_HEADER || !burstConfig || burstConfig.loop) return;
+    reportGiftEvent('finish', burstConfig);
     const screen = appNodes.endScreen;
     screen.querySelector('.end-screen__title').textContent = burstConfig.title || 'Cảm ơn bạn đã xem!';
     screen.querySelector('.end-screen__message').textContent =

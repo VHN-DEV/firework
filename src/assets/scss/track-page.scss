@@ -1,0 +1,139 @@
+/*!
+ * Trình diễn Pháo hoa – trang theo dõi mở quà (dùng chung khung của trang Điều khoản & Bảo mật)
+ * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+ * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+ */
+
+$line: rgba(255, 255, 255, 0.08);
+$accent: #7c6cff;
+$success: #2fd39a;
+$muted: #8f98ad;
+
+.hide {
+    display: none !important;
+}
+
+.track-page {
+    h1 {
+        overflow-wrap: anywhere;
+    }
+}
+
+.track-error {
+    padding: 1rem 1.1rem;
+    border-radius: 12px;
+    background: rgba(245, 180, 67, 0.08);
+    border: 1px solid rgba(245, 180, 67, 0.35);
+    color: #f5d08a;
+}
+
+.track-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin: 1.25rem 0 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        padding: 0.85rem 1rem;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid $line;
+        opacity: 0.6;
+        transition: opacity 0.2s, border-color 0.2s;
+
+        &.done {
+            opacity: 1;
+            border-color: rgba($success, 0.45);
+            background: rgba($success, 0.06);
+        }
+
+        div {
+            display: flex;
+            flex-direction: column;
+        }
+
+        strong {
+            color: #fff;
+        }
+    }
+}
+
+.track-step-icon {
+    font-size: 1.5rem;
+}
+
+.track-step-time {
+    color: $muted;
+    font-size: 0.9rem;
+
+    .done & {
+        color: $success;
+    }
+}
+
+.track-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1.25rem;
+}
+
+.track-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.6rem 1.1rem;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    color: #fff;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover {
+        color: #fff;
+        filter: brightness(1.1);
+    }
+
+    &.ghost {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid $line;
+    }
+}
+
+.track-note {
+    margin-top: 1rem;
+    color: $muted;
+    font-size: 0.88rem;
+}
+
+.track-history {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+        display: flex;
+        gap: 0.75rem;
+        padding: 0.45rem 0;
+        border-bottom: 1px solid $line;
+        font-size: 0.95rem;
+
+        span {
+            min-width: 9.5rem;
+            color: $muted;
+            font-variant-numeric: tabular-nums;
+        }
+
+        &.empty {
+            color: $muted;
+        }
+    }
+}

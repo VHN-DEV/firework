@@ -102,7 +102,8 @@ export async function run(browser, base, { check }) {
         await page.close();
 
         // ---- Hẹn giờ mở quà: khóa tới giờ (còn nhiều ngày), đếm ngược rồi tự bắn
-        writeConfig('zz_e2e_lock', { ...story, openAt: new Date(Date.now() + 3 * 86400000).toISOString() });
+        // Thêm 1 giờ: trang tải mất vài giây vẫn còn đủ 3 ngày
+        writeConfig('zz_e2e_lock', { ...story, openAt: new Date(Date.now() + 3 * 86400000 + 3600000).toISOString() });
         page = await openPage(browser);
         await page.goto(base + '/index.html?config=zz_e2e_lock', { waitUntil: 'networkidle0' });
         await page.waitForSelector('.start-screen.is-ready');

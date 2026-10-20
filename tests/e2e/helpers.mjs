@@ -37,7 +37,10 @@ export async function openPage(browser, { width = 1280, height = 720 } = {}) {
     await page.setViewport({ width, height, isMobile: mobile, hasTouch: mobile });
     page.errors = [];
     page.on('pageerror', e => page.errors.push(e.message));
-    page.on('console', m => { if (m.type() === 'error') page.errors.push(m.text()); });
+    // Bỏ qua lỗi kết nối của máy chủ thử php -S (xử lý từng yêu cầu một, đôi khi đóng kết nối), không phải lỗi trang
+    page.on('console', m => {
+        if (m.type() === 'error' && !/net::ERR_CONNECTION_(CLOSED|RESET)/.test(m.text())) page.errors.push(m.text());
+    });
     return page;
 }
 

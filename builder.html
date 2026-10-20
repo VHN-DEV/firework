@@ -229,6 +229,13 @@
                         </div>
                         <small id="schedule-hint" class="field-hint"></small>
                     </div>
+                    <label class="switch-row" for="notify-open">
+                        <span>
+                            <strong>Báo cho tôi khi người nhận mở quà<button type="button" class="help-tip" data-help="notifyOpen" aria-label="Giải thích">?</button></strong>
+                            <small id="notify-open-hint">Xem trong hộp Chia sẻ sau khi lưu</small>
+                        </span>
+                        <input type="checkbox" id="notify-open" class="switch" checked>
+                    </label>
 
                     <div class="field-divider"></div>
 
@@ -565,6 +572,27 @@
 
                 <div id="share-grid" class="share-grid"></div>
 
+                <!-- Báo mở quà: trạng thái và link theo dõi riêng của người gửi -->
+                <div id="share-track" class="share-track hide">
+                    <div class="share-track-head">
+                        <span id="share-track-icon" class="share-track-icon">🔔</span>
+                        <div>
+                            <strong>Theo dõi mở quà<button type="button" class="help-tip" data-help="giftTracking" aria-label="Giải thích">?</button></strong>
+                            <span id="share-track-status">Đang kiểm tra...</span>
+                        </div>
+                    </div>
+                    <div id="share-track-link" class="share-link-row">
+                        <input type="text" id="share-track-input" readonly aria-label="Link theo dõi riêng"
+                            onclick="this.select()">
+                        <button class="btn secondary" onclick="copyTrackingLink()"><i class="fas fa-copy"></i>
+                            <span>Sao chép</span></button>
+                    </div>
+                    <small id="share-track-hint" class="field-hint">Link theo dõi riêng của bạn: mở trên điện thoại để
+                        xem bất cứ lúc nào. <strong>Đừng gửi link này cho người nhận.</strong></small>
+                    <button id="btn-track-notify" type="button" class="btn ghost small hide"
+                        onclick="enableOpenNotifications()"><i class="fas fa-bell"></i> Báo cho tôi trên máy này</button>
+                </div>
+
                 <div class="share-extras">
                     <canvas id="share-qr" class="share-qr" width="160" height="160" aria-label="Mã QR"></canvas>
                     <div class="share-extras-text">
@@ -819,6 +847,9 @@
                 <div class="help-section actions-guide">
                     <h4><i class="fas fa-floppy-disk"></i> Lưu & chia sẻ</h4>
                     <p>Bấm <strong>Lưu</strong> để tạo link riêng, rồi gửi cho bạn bè qua Messenger, Zalo...</p>
+                    <p>Bật <strong>Báo cho tôi khi người nhận mở quà</strong> (mục Màn mở quà) để biết người nhận đã mở
+                        link, mở quà, xem hết chưa: xem trong hộp Chia sẻ, danh sách Kịch bản của tôi hoặc link theo dõi
+                        riêng (cần bản có máy chủ PHP).</p>
                     <p>Bấm <strong>Video</strong> để quay màn trình diễn kèm tiếng pháo và nhạc thành video (dọc cho
                         TikTok/Story, ngang hoặc vuông), xem lại rồi tải về.</p>
                 </div>

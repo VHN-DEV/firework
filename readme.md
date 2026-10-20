@@ -28,9 +28,9 @@
 ## Kiểm thử & triển khai
 
 - `npm run build`: build vào thư mục `dist` (chạy trên XAMPP tại `http://localhost/firework/dist/`).
-- `npm test`: build rồi chạy kiểm thử tự động (hơn 50 bước: trình phát, link tặng, hộp quà, hẹn giờ, nhạc nền, lời nhắn,
-  màn kết, mọi loại pháo và kiểu bắn, builder lưu/mở/chia sẻ, hoàn tác và bản nháp, xếp pháo theo nhịp nhạc với bài nhạc
-  biết trước đáp án, xuất video có hình và tiếng, trang Điều khoản/Bảo mật).
+- `npm test`: build rồi chạy kiểm thử tự động (hơn 60 bước: trình phát, link tặng, hộp quà, hẹn giờ, nhạc nền, lời nhắn,
+  màn kết, mọi loại pháo và kiểu bắn, builder lưu/mở/chia sẻ, dòng thời gian theo giây, hoàn tác và bản nháp, xếp pháo
+  theo nhịp nhạc với bài nhạc biết trước đáp án, xuất video có hình và tiếng, báo mở quà, trang Điều khoản/Bảo mật).
   Cần PHP (lệnh `php`, hoặc biến `PHP_BIN`) và Google Chrome (biến `CHROME_PATH` nếu không ở chỗ mặc định).
   `npm run test:e2e` chạy kiểm thử trên bản build sẵn có.
 - Mỗi lần push lên `main`, GitHub Actions (`.github/workflows/deploy.yml`) tự cài thư viện, build, chạy kiểm thử;
@@ -38,6 +38,10 @@
 - Thư mục `dist` và `node_modules` không còn đưa lên git. Kịch bản lưu bằng builder trên XAMPP nằm trong `dist/configs`
   (và ảnh, nhạc trong `dist/uploads`): muốn giữ lâu dài hoặc đưa lên GitHub Pages thì chép sang `src/static/configs`
   (và `src/static/uploads`) rồi commit.
+- **Báo mở quà** (cần máy chủ PHP): mã theo dõi và lịch sử mở quà nằm trong `api/data/` (file JSON, các hàm đọc/ghi gom
+  trong `api/tracking.inc.php` để sau này chuyển sang cơ sở dữ liệu). Thư mục này cần quyền ghi và phải chặn tải trực
+  tiếp: Apache dùng sẵn `api/data/.htaccess`; Nginx cần thêm `location ^~ /api/data/ { deny all; }`. Khi triển khai bản
+  mới, đừng xóa `api/data/` (và `configs/`, `uploads/`) trên máy chủ.
 
 ## Hướng dẫn sử dụng
 

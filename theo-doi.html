@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<!--
+    Trình diễn Pháo hoa – Theo dõi mở quà
+    © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+    Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+-->
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Theo dõi món quà | Trình diễn Pháo hoa</title>
+    <meta name="description" content="Xem người nhận đã mở món quà pháo hoa của bạn chưa.">
+    <meta name="author" content="Vũ Hoài Nam">
+    <meta name="copyright" content="© 2026 Vũ Hoài Nam">
+    <!-- Link riêng của người gửi (có mã theo dõi): không đưa lên công cụ tìm kiếm, không gửi kèm địa chỉ trang -->
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+    <meta name="theme-color" content="#0b0d14">
+    <link rel="icon" type="image/png" href="./src/assets/img/firework-burst-icon-v2.png">
+    <link rel="stylesheet" href="./src/assets/scss/legal.scss">
+    <link rel="stylesheet" href="./src/assets/scss/track-page.scss">
+</head>
+
+<body>
+    <header class="legal-top">
+        <a class="brand" href="./index.html"><img src="./src/assets/img/firework-burst-icon-v2.png" alt=""> Trình diễn
+            Pháo hoa</a>
+        <nav aria-label="Trang">
+            <a href="./builder.html">Tạo màn trình diễn</a>
+        </nav>
+    </header>
+
+    <main class="legal track-page">
+        <p class="eyebrow">Theo dõi món quà</p>
+        <h1 id="gift-title">Đang tải...</h1>
+        <p id="gift-recipient" class="lead"></p>
+
+        <div id="gift-error" class="track-error hide" role="alert"></div>
+
+        <section id="gift-status" class="track-status hide" aria-live="polite">
+            <ol class="track-steps">
+                <li data-step="view"><span class="track-step-icon">🔗</span>
+                    <div><strong>Mở link</strong><span class="track-step-time"></span></div>
+                </li>
+                <li data-step="open"><span class="track-step-icon">🎁</span>
+                    <div><strong>Mở quà</strong><span class="track-step-time"></span></div>
+                </li>
+                <li data-step="finish"><span class="track-step-icon">🎆</span>
+                    <div><strong>Xem hết màn trình diễn</strong><span class="track-step-time"></span></div>
+                </li>
+            </ol>
+            <div class="track-actions">
+                <a id="gift-show" class="track-btn" href="./index.html">Xem màn trình diễn</a>
+                <button id="gift-notify" type="button" class="track-btn ghost hide">🔔 Báo khi người nhận mở quà</button>
+            </div>
+            <p class="track-note">Trang tự cập nhật mỗi 30 giây. Giữ link này để xem lại bất cứ lúc nào, <strong>đừng gửi
+                    cho người nhận</strong>. Máy đã mở trang này tự xem màn trình diễn thì không tính là người nhận mở.</p>
+            <h2>Lịch sử</h2>
+            <ul id="gift-history" class="track-history"></ul>
+        </section>
+    </main>
+
+    <footer class="legal-footer">
+        © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu ·
+        <a href="./terms.html">Điều khoản sử dụng</a> ·
+        <a href="./privacy.html#bao-mo-qua">Chính sách bảo mật</a>
+    </footer>
+    <script type="module" src="./src/assets/js/track-page.js"></script>
+</body>
+
+</html>

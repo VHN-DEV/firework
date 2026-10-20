@@ -11,6 +11,9 @@ import { OCCASIONS, buildTemplate } from './templates.js';
 import { analyzeMusic, buildBeatShow, KEEP_SHELLS } from './beat-sync.js';
 import { eventTimes, layoutBursts, isPauseEvent, BURST_MS } from './timeline.js';
 import { createTimelineTrack } from './timeline-track.js';
+import {
+    getOwnerKeys, saveOwnerKey, removeOwnerKey, fetchOpenStatus, trackingUrl, formatWhen, lastEvent, describeOpenStatus
+} from './gift-tracking.js';
 import { printCopyrightNotice } from './copyright.js';
 import '../scss/builder.scss';
 import backgroundImgUrl from '../img/background.webp';
@@ -39,6 +42,8 @@ const state = {
     // Hẹn giờ mở quà: thời điểm ISO ('' = không hẹn) và cách mở khi tới giờ ('lock' | 'countdown')
     openAt: '',
     openMode: 'lock',
+    // Báo cho người gửi khi người nhận mở quà (cần máy chủ PHP)
+    notifyOpen: true,
     // Ảnh khi chia sẻ: 'auto' = thiệp pháo hoa tự vẽ, 'custom' = ảnh người dùng chọn
     seo: { mode: 'auto', image: null, imageText: true, imagePosition: 50, axis: 'y' }
 };
@@ -339,6 +344,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Nút "?" giải thích từng mục
     helpTooltip.init();
+
+    // Báo mở quà: công tắc, hỏi trạng thái các món quà của mình
+    document.getElementById('notify-open')?.addEventListener('change', (e) => {
+        state.notifyOpen = e.target.checked;
+        renderNotifyOpen();
+    });
+    renderNotifyOpen();
+    startGiftWatch();
 });
 
 // Đồng bộ chế độ xem nhanh và nút "Chạy kịch bản" với ô "Tự động lặp lại",
@@ -604,6 +617,8 @@ function createNewScript() {
         state.openAt = '';
         state.openMode = 'lock';
         renderSchedule();
+        state.notifyOpen = true;
+        renderNotifyOpen();
         document.getElementById('intro-message').value = '';
         document.getElementById('outro-message').value = '';
         document.getElementById('filename').value = '';
@@ -1035,6 +1050,12 @@ const HELP_TIPS = {
     transitionTime: 'Sau bao nhiêu ms kể từ lúc nổ thì hạt đổi sang Màu chuyển sang. Để trống thì tự chọn.',
     glitterColor: 'Màu tia lửa lấp lánh tóe ra sau mỗi hạt.',
     pistilColor: 'Màu chùm nhỏ ở tâm, dùng khi bật Nhụy ở giữa.',
+    // Báo mở quà
+    notifyOpen: 'Biết khi người nhận <strong>mở link</strong>, <strong>bấm mở quà</strong> và <strong>xem hết</strong> (chỉ thời điểm và loại thiết bị, '
+        + 'không có thông tin cá nhân). Xem trong hộp Chia sẻ, danh sách Kịch bản của tôi hoặc link theo dõi riêng. '
+        + 'Người nhận thấy một dòng nhỏ "Người gửi sẽ biết khi bạn mở quà". Cần bản có máy chủ PHP.',
+    giftTracking: 'Trạng thái món quà: đã mở link, đã mở quà, đã xem hết. Link theo dõi riêng mở được trên mọi máy, hãy giữ bí mật. '
+        + 'Bạn tự mở thử trên máy này (hoặc máy đã mở link theo dõi) thì không tính là người nhận mở.',
     // Xuất video
     videoFormat: '<strong>Dọc 9:16</strong>: TikTok, Story, Reels, xem trên điện thoại (pháo bố trí như trên điện thoại). '
         + '<strong>Ngang 16:9</strong>: YouTube, Facebook, màn hình máy tính. <strong>Vuông 1:1</strong>: bài đăng Facebook, Instagram.',
@@ -1912,6 +1933,7 @@ function getFinalConfig() {
         author: document.getElementById('author').value.trim(),
         startFrame: state.startFrame || undefined,
         openAt: state.openAt || undefined,
+        notifyOpen: state.notifyOpen,
         openMode: state.openAt && state.openMode === 'countdown' ? 'countdown' : undefined,
         recipient: document.getElementById('recipient').value.trim() || undefined,
         introMessage: document.getElementById('intro-message').value.trim() || undefined,
@@ -2086,6 +2108,7 @@ async function saveConfig(isPreview = false) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                if (data.trackKey) saveOwnerKey(data.filename, data.trackKey);
                 if (!isPreview) {
                     state.currentFilename = data.filename;
                     document.getElementById('save-status').innerText = 'Đã lưu kịch bản thành công!';
@@ -2659,6 +2682,160 @@ function afterMusicStartChange() {
         notify('Đã đổi giây bắt đầu: bấm "Xếp pháo theo nhịp nhạc" để xếp lại cho khớp nhịp.', 'warning');
     }
     renderEventList();
+}
+
+// ---------------------------------------------------------------------------
+// BÁO MỞ QUÀ (gift-tracking.js, api/opens.php): mã theo dõi của kịch bản mới được giữ trong trình duyệt này;
+// hộp Chia sẻ và danh sách kịch bản hiện trạng thái; đang mở builder thì hỏi định kỳ, có người vừa mở quà thì báo.
+// ---------------------------------------------------------------------------
+
+const OPEN_SEEN_KEY = 'firework_open_seen';
+// Trạng thái gần nhất của các món quà của mình: tên kịch bản -> trạng thái
+const giftStatuses = new Map();
+let giftCheckAt = 0;
+// Lượt hỏi đang chạy: gọi thêm thì dùng chung, không chạy song song (tránh báo một lượt mở hai lần)
+let giftCheck = null;
+
+function renderNotifyOpen() {
+    const toggle = document.getElementById('notify-open');
+    if (!toggle) return;
+    toggle.checked = state.notifyOpen;
+    toggle.disabled = isStaticEnv;
+    document.getElementById('notify-open-hint').textContent = isStaticEnv
+        ? 'Cần bản có máy chủ PHP (bản tĩnh như GitHub Pages không báo được)'
+        : state.notifyOpen ? 'Xem trong hộp Chia sẻ sau khi lưu' : 'Đang tắt: người nhận mở quà sẽ không được ghi lại';
+}
+
+function ownedItems(ids) {
+    const keys = getOwnerKeys();
+    return (ids || Object.keys(keys)).filter(id => keys[id]).slice(0, 100).map(id => ({ id, key: keys[id] }));
+}
+
+async function renderShareTracking() {
+    const box = document.getElementById('share-track');
+    const key = getOwnerKeys()[share.id];
+    const show = !isStaticEnv && state.notifyOpen;
+    box.classList.toggle('hide', !show);
+    if (!show) return;
+    const status = document.getElementById('share-track-status');
+    document.getElementById('share-track-link').classList.toggle('hide', !key);
+    document.getElementById('share-track-hint').classList.toggle('hide', !key);
+    document.getElementById('btn-track-notify').classList.toggle('hide', !key || !('Notification' in window) || Notification.permission !== 'default');
+    if (!key) {
+        status.textContent = 'Chỉ xem được trên trình duyệt đã lưu kịch bản này lần đầu (hoặc bằng link theo dõi riêng).';
+        return;
+    }
+    document.getElementById('share-track-input').value = trackingUrl(share.id, key);
+    status.textContent = 'Đang kiểm tra...';
+    try {
+        const [item] = await fetchOpenStatus([{ id: share.id, key }]);
+        if (item && item.ok) giftStatuses.set(item.id, item);
+        const { opened, text } = describeOpenStatus(item);
+        status.textContent = text;
+        document.getElementById('share-track-icon').textContent = opened ? '🎉' : '🔔';
+        box.classList.toggle('is-opened', opened);
+    } catch (e) {
+        status.textContent = 'Không kết nối được máy chủ để xem trạng thái.';
+    }
+}
+
+async function copyTrackingLink() {
+    const input = document.getElementById('share-track-input');
+    if (await copyText(input.value)) notify('Đã sao chép link theo dõi riêng. Đừng gửi link này cho người nhận!', 'success');
+    else input.select();
+}
+
+async function enableOpenNotifications() {
+    if (!('Notification' in window)) return;
+    const permission = await Notification.requestPermission();
+    document.getElementById('btn-track-notify').classList.add('hide');
+    notify(permission === 'granted'
+        ? 'Đã bật: khi người nhận mở quà, máy này sẽ báo (lúc đang mở trình soạn).'
+        : 'Trình duyệt chưa cho phép thông báo. Bạn vẫn xem được trạng thái trong hộp Chia sẻ.', permission === 'granted' ? 'success' : 'warning');
+}
+
+// Danh sách "Kịch bản của tôi": nhãn đã mở / chưa mở cho các món quà của mình
+async function showGiftBadges() {
+    if (isStaticEnv) return;
+    const ids = [...document.querySelectorAll('#scripts-list .script-item')].map(el => el.dataset.id);
+    const items = ownedItems(ids);
+    if (!items.length) return;
+    try {
+        (await fetchOpenStatus(items)).forEach(item => {
+            if (!item.ok) return;
+            giftStatuses.set(item.id, item);
+            const el = document.querySelector(`#scripts-list .script-item[data-id="${CSS.escape(item.id)}"] h4`);
+            if (!el || el.querySelector('.gift-badge')) return;
+            const { opened, text } = describeOpenStatus(item);
+            el.insertAdjacentHTML('beforeend', ` <span class="gift-badge${opened ? ' is-opened' : ''}" title="${escapeHtml(text)}">`
+                + `${opened ? '🎉 Đã mở' : item.counts.view ? '🔗 Đã xem link' : 'Chưa mở'}</span>`);
+        });
+    } catch (e) {
+        // Không có máy chủ: bỏ qua nhãn
+    }
+}
+
+// Hỏi trạng thái mọi món quà của mình; món nào có lượt mở quà mới (kể cả khi builder đang đóng) thì báo một lần
+function checkGiftOpens() {
+    if (isStaticEnv) return Promise.resolve();
+    if (!giftCheck) giftCheck = runGiftCheck().finally(() => { giftCheck = null; });
+    return giftCheck;
+}
+
+async function runGiftCheck() {
+    giftCheckAt = Date.now();
+    const items = ownedItems();
+    if (!items.length) return;
+    let statuses;
+    try {
+        statuses = await fetchOpenStatus(items);
+    } catch (e) {
+        return;
+    }
+    let seen = {};
+    try {
+        seen = JSON.parse(localStorage.getItem(OPEN_SEEN_KEY) || '{}');
+    } catch (e) {
+        // Chưa có
+    }
+    for (const status of statuses) {
+        if (!status.ok) continue;
+        giftStatuses.set(status.id, status);
+        const opens = status.counts.open || 0;
+        if (opens > (seen[status.id] || 0)) await announceGiftOpen(status);
+        seen[status.id] = opens;
+    }
+    try {
+        localStorage.setItem(OPEN_SEEN_KEY, JSON.stringify(seen));
+    } catch (e) {
+        // Lần sau có thể báo lại
+    }
+}
+
+async function announceGiftOpen(status) {
+    let config = {};
+    try {
+        config = await (await fetch(`configs/${encodeURIComponent(status.id)}.json`, { cache: 'no-store' })).json();
+    } catch (e) {
+        // Dùng tên kịch bản
+    }
+    const open = lastEvent(status, 'open');
+    const who = config.recipient || 'Người nhận';
+    const text = `${who} đã mở quà "${config.title || status.id}"${open ? ` lúc ${formatWhen(open.t)}` : ''}`;
+    notify(`🎉 ${text}`, 'success');
+    if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+        new Notification('Món quà đã được mở 🎉', { body: text, icon: document.querySelector('link[rel="icon"]')?.href });
+    }
+}
+
+function startGiftWatch() {
+    if (isStaticEnv) return;
+    setTimeout(checkGiftOpens, 3000);
+    setInterval(checkGiftOpens, 60000);
+    // Quay lại tab: hỏi ngay (không quá 10 giây một lần)
+    window.addEventListener('focus', () => {
+        if (Date.now() - giftCheckAt > 10000) checkGiftOpens();
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -3496,6 +3673,7 @@ async function openShareModal() {
     qrCanvas.width = qrCanvas.height = 320;
     drawQr(qrCanvas, url, 320);
 
+    renderShareTracking();
     share.imageCanvas = await renderShareImage(getFinalConfig());
     document.getElementById('share-preview-img').src = share.imageCanvas.toDataURL('image/jpeg', 0.88);
 }
@@ -3559,6 +3737,7 @@ function loadScriptsList() {
             data.forEach(script => {
                 const item = document.createElement('div');
                 item.className = 'script-item';
+                item.dataset.id = script.id;
                 const isPrivate = script.status === 'private';
                 const isLocal = script.status === 'local';
 
@@ -3582,6 +3761,7 @@ function loadScriptsList() {
             `;
                 list.appendChild(item);
             });
+            showGiftBadges();
         })
         .catch(err => {
             list.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--error);">Không thể tải danh sách: ${escapeHtml(err.message)}</p>`;
@@ -3692,6 +3872,7 @@ function deleteScript(filename) {
             .then(data => {
                 hideLoading();
                 if (data.success) {
+                    removeOwnerKey(filename);
                     loadScriptsList();
                     if (state.currentFilename === filename) {
                         document.getElementById('share-bar').classList.add('hide');
@@ -3770,6 +3951,9 @@ function loadConfigIntoState(config, filename) {
     state.openAt = config.openAt && Number.isFinite(Date.parse(config.openAt)) ? config.openAt : '';
     state.openMode = config.openMode === 'countdown' ? 'countdown' : 'lock';
     renderSchedule();
+    // Kịch bản cũ chưa có lựa chọn này: bật như kịch bản mới
+    state.notifyOpen = config.notifyOpen !== false;
+    renderNotifyOpen();
     document.getElementById('intro-message').value = config.introMessage || '';
     document.getElementById('outro-message').value = config.outroMessage || '';
     document.getElementById('loop').checked = config.loop !== false;
@@ -4092,7 +4276,7 @@ Object.assign(window, {
     togglePreviewMusic, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
     hideModal, setStartFrame, undo, redo, setOpenMode, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
     openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, prepareVideo, stopVideo, downloadVideo, shareVideo,
-    restartVideo, setTimelineView, zoomTrack
+    restartVideo, setTimelineView, zoomTrack, copyTrackingLink, enableOpenNotifications, checkGiftOpens
 });
 window.addEventListener('resize', resizeMiniStages);
 

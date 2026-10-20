@@ -48,7 +48,9 @@
         <div class="summary">
             <strong>Tóm tắt</strong>
             <ul>
-                <li>Không cần tài khoản. Không dùng cookie quảng cáo, không dùng công cụ phân tích hay theo dõi người dùng.</li>
+                <li>Không cần tài khoản. Không dùng cookie quảng cáo, không dùng công cụ phân tích của bên thứ ba.</li>
+                <li>Nếu người gửi bật <strong>báo mở quà</strong>, khi người nhận mở link hệ thống chỉ ghi lại thời điểm và
+                    loại thiết bị (không ghi IP hay thông tin cá nhân) để người gửi biết món quà đã được mở.</li>
                 <li>Chỉ lưu những gì bạn chủ động nhập hoặc tải lên để tạo màn trình diễn.</li>
                 <li><strong>Ai có link đều xem được màn trình diễn</strong>, nên đừng đưa thông tin nhạy cảm vào lời chúc,
                     ảnh hay nhạc.</li>
@@ -59,6 +61,7 @@
             <ol>
                 <li><a href="#luu-gi">Những gì được lưu</a></li>
                 <li><a href="#ai-xem">Ai xem được nội dung</a></li>
+                <li><a href="#bao-mo-qua">Báo mở quà</a></li>
                 <li><a href="#trinh-duyet">Dữ liệu trong trình duyệt</a></li>
                 <li><a href="#ben-thu-ba">Dịch vụ bên thứ ba</a></li>
                 <li><a href="#thoi-gian">Thời gian lưu giữ</a></li>
@@ -99,16 +102,32 @@
                 xem, chỉnh sửa hoặc xóa các kịch bản không ở trạng thái riêng tư.</li>
         </ul>
 
-        <h2 id="trinh-duyet">3. Dữ liệu trong trình duyệt</h2>
+        <h2 id="bao-mo-qua">3. Báo mở quà</h2>
+        <p>Trên bản có máy chủ (PHP), người tạo màn trình diễn có thể bật "Báo cho tôi khi người nhận mở quà". Khi đó,
+            lúc người nhận mở link, bấm mở quà và xem hết màn trình diễn, máy chủ ghi lại:</p>
+        <ul>
+            <li><strong>Thời điểm</strong> của từng lần (giữ tối đa 300 lần gần nhất) và số lần;</li>
+            <li><strong>Loại thiết bị</strong>: điện thoại, máy tính bảng hoặc máy tính.</li>
+        </ul>
+        <p>Không ghi địa chỉ IP, tên, vị trí hay thông tin trình duyệt cụ thể. Chỉ người có <strong>mã theo dõi</strong>
+            của màn trình diễn (người tạo nhận được khi lưu lần đầu, máy chủ chỉ giữ bản băm của mã) mới xem được các
+            thông tin này. Người nhận thấy dòng "Người gửi sẽ biết khi bạn mở quà" dưới khung mở quà. Người tạo tự mở
+            thử trên máy của mình thì không được tính. Dữ liệu này bị xóa cùng màn trình diễn.</p>
+
+        <h2 id="trinh-duyet">4. Dữ liệu trong trình duyệt</h2>
         <p>Trang không dùng cookie. Một số cài đặt được lưu trong bộ nhớ cục bộ (<code>localStorage</code>) của trình
             duyệt trên máy bạn và không được gửi đi đâu:</p>
         <ul>
             <li><code>cm_fireworks_data</code>: cài đặt hiển thị (chất lượng, cỡ pháo, tỉ lệ, ánh sáng bầu trời).</li>
             <li><code>my_firework_scripts</code>: kịch bản bạn lưu khi dùng bản tĩnh (GitHub Pages).</li>
+            <li><code>firework_builder_draft</code>: bản nháp đang soạn trong trình soạn, để khôi phục khi mở lại.</li>
+            <li><code>firework_owner_keys</code>, <code>firework_open_seen</code>: mã theo dõi các màn trình diễn bạn tạo
+                và số lần mở quà bạn đã được báo.</li>
+            <li><code>firework_reported</code>: đánh dấu máy này đã báo mở quà, để tải lại trang không bị tính thêm.</li>
         </ul>
         <p>Bạn có thể xóa các dữ liệu này bất cứ lúc nào bằng cách xóa dữ liệu trang web trong cài đặt trình duyệt.</p>
 
-        <h2 id="ben-thu-ba">4. Dịch vụ bên thứ ba</h2>
+        <h2 id="ben-thu-ba">5. Dịch vụ bên thứ ba</h2>
         <ul>
             <li><strong>Google Fonts</strong> (fonts.googleapis.com, fonts.gstatic.com): tải phông chữ cho trang. Google
                 nhận địa chỉ IP và thông tin trình duyệt của bạn khi tải phông chữ.</li>
@@ -121,29 +140,29 @@
         <p>Mã QR và ảnh xem trước được tạo ngay trong trình duyệt của bạn. Trang không dùng dịch vụ quảng cáo, không bán
             hay chia sẻ dữ liệu của bạn cho bên thứ ba vì mục đích thương mại.</p>
 
-        <h2 id="thoi-gian">5. Thời gian lưu giữ</h2>
-        <p>Kịch bản lưu trên máy chủ được giữ cho tới khi bị xóa. Ảnh và nhạc đã tải lên có thể vẫn còn trên máy chủ sau
+        <h2 id="thoi-gian">6. Thời gian lưu giữ</h2>
+        <p>Kịch bản lưu trên máy chủ được giữ cho tới khi bị xóa; mã theo dõi và lịch sử mở quà bị xóa cùng kịch bản. Ảnh và nhạc đã tải lên có thể vẫn còn trên máy chủ sau
             khi kịch bản bị xóa; hãy liên hệ để được xóa hẳn. Dữ liệu trong trình duyệt được giữ cho tới khi bạn xóa
             chúng.</p>
 
-        <h2 id="quyen">6. Quyền của bạn</h2>
+        <h2 id="quyen">7. Quyền của bạn</h2>
         <p>Bạn có quyền yêu cầu xem, sửa hoặc xóa kịch bản, ảnh, nhạc liên quan đến mình, kể cả khi người khác tạo màn
             trình diễn có tên hoặc hình ảnh của bạn. Gửi yêu cầu qua phần <a href="#lien-he">Liên hệ</a> kèm link màn trình
             diễn; yêu cầu sẽ được xử lý trong thời gian sớm nhất.</p>
 
-        <h2 id="tre-em">7. Trẻ em</h2>
+        <h2 id="tre-em">8. Trẻ em</h2>
         <p>Trang không dành riêng cho trẻ em. Người dưới 16 tuổi nên dùng trang cùng cha mẹ hoặc người giám hộ, nhất là
             khi tải ảnh lên.</p>
 
-        <h2 id="an-toan">8. An toàn dữ liệu</h2>
+        <h2 id="an-toan">9. An toàn dữ liệu</h2>
         <p>Tệp tải lên được kiểm tra định dạng theo nội dung tệp và lưu dưới tên do máy chủ tự đặt. Tuy vậy, không có
             biện pháp nào an toàn tuyệt đối trên Internet; vui lòng không tải lên thông tin nhạy cảm.</p>
 
-        <h2 id="thay-doi">9. Thay đổi chính sách</h2>
+        <h2 id="thay-doi">10. Thay đổi chính sách</h2>
         <p>Chính sách có thể được cập nhật khi trang có tính năng mới. Ngày cập nhật được ghi ở đầu trang; bản mới có hiệu
             lực kể từ ngày đăng.</p>
 
-        <h2 id="lien-he">10. Liên hệ</h2>
+        <h2 id="lien-he">11. Liên hệ</h2>
         <p>Mọi câu hỏi và yêu cầu về dữ liệu, vui lòng liên hệ tác giả Vũ Hoài Nam qua email
             <a href="mailto:vuhoainam18032002@gmail.com">vuhoainam18032002@gmail.com</a> hoặc GitHub
             <a href="https://github.com/VHN-DEV" rel="noopener">github.com/VHN-DEV</a>.</p>

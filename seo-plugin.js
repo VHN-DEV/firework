@@ -148,6 +148,7 @@ export default function seoPlugin({ configsDir }) {
                 source: `User-agent: *
 Allow: /
 Disallow: ${new URL(SITE_URL).pathname}api/
+Disallow: ${new URL(SITE_URL).pathname}theo-doi.html
 
 Sitemap: ${SITE_URL}sitemap.xml
 `

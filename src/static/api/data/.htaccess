@@ -1,0 +1,8 @@
+# Dữ liệu báo mở quà (mã theo dõi, lịch sử mở): chỉ các file PHP trong api/ được đọc, không cho tải trực tiếp
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

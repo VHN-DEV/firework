@@ -6,6 +6,8 @@
  * Script to save firework configuration to a JSON file.
  */
 
+require __DIR__ . '/tracking.inc.php';
+
 header('Content-Type: application/json');
 
 // Get the POST data
@@ -62,7 +64,13 @@ if (file_put_contents($filePath, $jsonContent)) {
             file_put_contents($targetDir . $filename . '.jpg', $binary);
         }
     }
-    echo json_encode(['success' => true, 'message' => 'Đã lưu kịch bản thành công!', 'filename' => $filename]);
+    $response = ['success' => true, 'message' => 'Đã lưu kịch bản thành công!', 'filename' => $filename];
+    // Kịch bản mới: tạo mã theo dõi mở quà, chỉ trả về lần này (trình soạn của người gửi giữ lại)
+    $trackKey = track_create_key($filename);
+    if ($trackKey) {
+        $response['trackKey'] = $trackKey;
+    }
+    echo json_encode($response);
 } else {
     echo json_encode(['success' => false, 'message' => 'Không thể lưu file. Vui lòng kiểm tra quyền ghi của thư mục configs.']);
 }
