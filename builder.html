@@ -358,6 +358,15 @@
                                     <input type="range" id="music-volume" min="0" max="100" step="5" value="80">
                                 </div>
                             </div>
+                            <button type="button" class="btn secondary beat-btn" onclick="openBeatModal()">
+                                <i class="fas fa-wave-square"></i><span>Xếp pháo theo nhịp nhạc</span></button>
+                            <label class="switch-row compact music-sync-row" for="music-sync">
+                                <span>
+                                    <strong>Khớp nhịp nhạc</strong>
+                                    <small id="music-sync-hint">Pháo nổ đúng lúc đã đặt, bám theo bài nhạc</small>
+                                </span>
+                                <input type="checkbox" id="music-sync" class="switch">
+                            </label>
                             <small class="field-hint">Bấm <i class="fas fa-music"></i> ở khung xem nhanh để nghe nhạc
                                 cùng pháo hoa.</small>
                         </div>
@@ -559,6 +568,54 @@
         </div>
     </div>
 
+    <div id="beat-modal" class="modal hide">
+        <div class="modal-content large beat-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-wave-square"></i> Xếp pháo theo nhịp nhạc</h3>
+                <button class="btn icon" onclick="hideModal('beat-modal')" title="Đóng">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+            <div class="templates-body beat-body">
+                <p class="templates-lead">Builder nghe bài nhạc ngay trên máy bạn, tìm nhịp và những đoạn cao trào rồi tự
+                    đặt pháo: đoạn êm bắn thưa và nhẹ, đoạn sôi động bắn dày, chỗ nhạc bùng lên nổ cả chùm.</p>
+                <div id="beat-status" class="beat-status"></div>
+                <div id="beat-result" class="beat-result hide">
+                    <canvas id="beat-chart" class="beat-chart" aria-label="Độ sôi động của bài nhạc"></canvas>
+                    <p id="beat-summary" class="beat-summary"></p>
+                    <div class="grid-2">
+                        <div>
+                            <label>Độ dày</label>
+                            <div class="segmented beat-density" role="group" aria-label="Độ dày">
+                                <button type="button" data-density="low" onclick="setBeatDensity('low')">Thưa</button>
+                                <button type="button" data-density="medium" onclick="setBeatDensity('medium')">Vừa</button>
+                                <button type="button" data-density="high" onclick="setBeatDensity('high')">Dày</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="beat-length">Bắn trong</label>
+                            <select id="beat-length" onchange="drawBeatChart()"></select>
+                        </div>
+                    </div>
+                    <label id="beat-keep-row" class="switch-row" for="beat-keep">
+                        <span>
+                            <strong>Giữ chữ, ảnh và lời nhắn đang có</strong>
+                            <small id="beat-keep-hint"></small>
+                        </span>
+                        <input type="checkbox" id="beat-keep" class="switch" checked>
+                    </label>
+                    <small class="field-hint">Dòng thời gian hiện tại sẽ được thay mới (Ctrl+Z để hoàn tác). Nhạc phát
+                        từ giây đã chọn ở mục Nhạc nền.</small>
+                </div>
+            </div>
+            <div class="modal-actions templates-actions">
+                <button class="btn secondary" onclick="hideModal('beat-modal')">Hủy</button>
+                <button id="btn-beat-apply" class="btn primary" onclick="applyBeatShow()" disabled>
+                    <i class="fas fa-wand-magic-sparkles"></i> Xếp pháo</button>
+            </div>
+        </div>
+    </div>
+
     <div id="templates-modal" class="modal hide">
         <div class="modal-content large templates-modal">
             <div class="modal-header">
@@ -631,6 +688,9 @@
                         <li><strong>Ảnh nền:</strong> bật để có cảnh thành phố, hoặc bấm vào ảnh để tải ảnh của bạn.</li>
                         <li><strong>Nhạc nền:</strong> chọn bài nhạc từ máy hoặc dán link file nhạc; chọn giây bắt đầu để
                             bỏ đoạn dạo đầu. Nhạc phát cùng đợt pháo đầu tiên.</li>
+                        <li><strong>Xếp pháo theo nhịp nhạc:</strong> builder tự nghe bài nhạc, tìm nhịp và đoạn cao trào
+                            rồi đặt pháo nổ đúng phách. Khi bật "Khớp nhịp nhạc", "Nổ sau" của mỗi phát là lúc pháo nổ
+                            (pháo tự phóng sớm cho kịp) và dòng thời gian hiện ♪ mốc giây trong bài.</li>
                         <li><strong>Màn mở quà & màn kết:</strong> chọn khung bắt đầu (thiệp chào hoặc hộp quà), nhập
                             người nhận để link mở bằng "Gửi ..."; lời chúc ở màn kết hiện khi tắt Tự động lặp lại.</li>
                         <li><strong>Hẹn giờ mở quà:</strong> trước giờ hẹn link chỉ hiện đồng hồ đếm ngược. "Khóa tới

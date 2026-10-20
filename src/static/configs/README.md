@@ -66,6 +66,8 @@ Mỗi phần tử trong mảng `events` đại diện cho một phát bắn ho�
 | `name` | Tên bài, chỉ để hiển thị trong builder. |
 | `volume` | Âm lượng nhạc từ `0` đến `1` (mặc định `0.8`). |
 | `start` | Phát từ giây thứ mấy của bài (bỏ qua đoạn dạo đầu). Mặc định `0`. |
+| `sync` | (Tùy chọn) `true`: khớp nhịp nhạc. `delay` của mỗi phát là lúc pháo **nổ** (tính từ đầu đợt) thay vì lúc phóng: trình phát tự phóng sớm hơn đúng bằng thời gian bay và bám theo vị trí đang phát của bài nhạc. Bài nhạc phát một lượt, không lặp. Builder tự bật khi dùng "Xếp pháo theo nhịp nhạc". |
+| `bpm` | (Tùy chọn) Nhịp của bài nhạc builder tìm được, chỉ để hiển thị. |
 
 - Nhạc bắt đầu **cùng lúc với đợt pháo đầu tiên** và lặp lại suốt màn trình diễn. Kịch bản không lặp (`loop: false`)
   thì nhạc nhỏ dần rồi dừng khi chạy xong.

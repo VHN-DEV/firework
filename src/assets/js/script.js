@@ -2263,6 +2263,7 @@ function replayShow() {
     pendingLaunchTimers.forEach(clearTimeout);
     pendingLaunchTimers.clear();
     burstCounter = 0;
+    syncShow.reset();
     autoLaunchTime = 800;
     musicPlayer.restart();
     clearCaptions();
@@ -2738,9 +2739,340 @@ const pendingLaunchTimers = new Set();
 // Bản xem nhanh vừa được yêu cầu chạy lại từ đầu, chưa bắn đợt 1
 let previewRestartPending = false;
 
+// Tùy chọn pháo và điểm nổ (x, y: 0-1 theo bề ngang, tính từ mép trên) của một phát trong kịch bản
+function buildEventShot(event) {
+    const size = event.size !== undefined ? event.size : shellSizeSelector();
+    let options;
+
+    if (event.shell === 'Văn bản' && event.text) {
+        options = {
+            shellSize: size,
+            color: randomColor(),
+            spreadSize: 300 + size * 100,
+            starLife: 1400 + size * 200,
+            glitter: 'light',
+            glitterColor: COLOR.Gold
+        };
+    } else if (event.shell === 'Hình ảnh' && event.imageUrl) {
+        options = {
+            shell: 'Hình ảnh',
+            imageUrl: event.imageUrl,
+            frame: event.frame,
+            shellSize: size,
+            spreadSize: 300 + size * 100,
+            // Thời gian ảnh hiện trên trời (ms)
+            duration: event.duration
+        };
+    } else {
+        const shellType = shellTypes[event.shell] || shellTypes['Văn bản'];
+        options = shellType(size);
+    }
+
+    if (event.text) {
+        const starDensity = event.starDensity !== undefined ? event.starDensity : 1;
+        // Bước lấy mẫu tối thiểu 2px để chữ dày không tạo ra hàng chục nghìn hạt làm treo máy
+        const step = Math.max(2, Math.round(3 / starDensity));
+        options.shapePoints = getTextParticles(event.text, 50, step);
+    }
+
+    const hasValue = (value) => value !== undefined && value !== null && value !== '';
+
+    if (hasValue(event.color)) {
+        const color = resolveEventColor(event.color);
+        if (options.shell === 'Hình ảnh') {
+            // Khung ảnh chỉ vẽ được một màu
+            options.color = color === 'random' ? randomColor() : color;
+        } else if (options.color === INVISIBLE && options.secondColor) {
+            // Pháo "Ma": giữ hiệu ứng hiện dần từ vô hình, màu đã chọn là màu hiện ra
+            if (color !== 'random') options.secondColor = Array.isArray(color) ? color[0] : color;
+        } else {
+            options.color = color;
+        }
+    }
+
+    if (hasValue(event.glitterColor)) {
+        options.glitterColor = resolveEventColor(event.glitterColor);
+    }
+
+    let xVal = event.x !== undefined ? event.x : 50;
+    let yVal = event.y !== undefined ? event.y : 50;
+
+    if (IS_MOBILE) {
+        // Ánh xạ x vào khoảng an toàn 15% - 85% để tránh pháo bị tràn mép màn hình bên trái/phải
+        xVal = 15 + (xVal / 100) * 70;
+        // Ánh xạ y vào khoảng an toàn 5% - 95% (rộng hơn nhiều vì màn hình dọc rất dài, tránh làm nổ quá thấp)
+        yVal = 5 + (yVal / 100) * 90;
+    }
+
+    const x = xVal / 100;
+    const y = (100 - yVal) / 100;
+
+    // Ghi đè các thuộc tính nâng cao từ event nếu có.
+    // Áp dụng TRƯỚC khi tạo Shell để số hạt, kích thước trên mobile và giới hạn góc bắn được tính đúng.
+    const overrides = [
+        'strobe', 'strobeColor', 'pistil', 'pistilColor',
+        'streamers', 'crossette', 'crackle', 'horsetail',
+        'comet', 'starLife', 'starDensity', 'spreadSize',
+        'starCount', 'starLifeVariation', 'glitter', 'secondColor',
+        'transitionTime', 'floral', 'ring', 'strobeFreq',
+        'launchAngle', 'ascentSpeed', 'rotation',
+        'liftSound', 'burstSound', 'whistleSound',
+        'launchStyle', 'spiralLift', 'hang'
+    ];
+
+    overrides.forEach(prop => {
+        const value = event[prop];
+        // Bỏ qua ô để trống và ô tích chưa bật (false): giữ mặc định của loại pháo,
+        // ví dụ pháo "Nổ lách tách" vẫn lách tách dù builder lưu sẵn crackle: false.
+        if (!hasValue(value) || value === false) return;
+
+        if (prop === 'strobeColor' || prop === 'pistilColor' || prop === 'secondColor') {
+            options[prop] = resolveSingleColor(value);
+        } else if (prop === 'starDensity') {
+            // Mật độ là hệ số so với mật độ gốc của loại pháo (1 = giữ nguyên)
+            options.starDensity = (options.starDensity || 1) * value;
+        } else {
+            options[prop] = value;
+        }
+    });
+
+    // Bật "Cháy lâu" cho loại pháo khác mà không tự đặt tuổi thọ hạt: cho hạt cháy lâu gấp 2,5 lần
+    if (event.hang === true && event.shell !== 'Cháy lâu' && !hasValue(event.starLife)) {
+        options.starLife *= 2.5;
+    }
+
+    return { options, x, y };
+}
+
+function launchEventShot(shot) {
+    const shell = new Shell(shot.options);
+    // Nổ đúng tọa độ đã đặt trong kịch bản
+    shell.launchAt(shot.x * stageW, shot.y * stageH);
+}
+
+// Thời gian bay (ms) từ lúc phóng tới lúc nổ: chạy thử đúng vật lý sao chổi của launchAt() ở 60 khung hình/giây.
+// Pháo bay lên tới độ cao điểm nổ (hoặc lên tới đỉnh, hoặc hết thời gian cháy) thì nổ.
+function estimateFlightTime(shot) {
+    const { options } = shot;
+    const rise = (1 - shot.y) * stageH;
+    const angle = options.launchAngle !== undefined ? (options.launchAngle - 90) * Math.PI / 180 : 0;
+    const burstX = Math.sin(angle) * rise;
+    const step = 1000 / 60;
+    const gAcc = step / 1000 * GRAVITY;
+    let x = 0;
+    let y = 0;
+    let speedX = 0;
+    let speedY = 0;
+    let life;
+    let targetY;
+    // Cùng công thức vận tốc với launchAt() và aimStar()
+    const aim = (toX, toY, scale = 1) => {
+        const velocity = Math.pow(Math.hypot(toX - x, toY - y) * 0.04, 0.64);
+        const direction = Math.atan2(toY - y, toX - x);
+        speedX = Math.cos(direction) * velocity * scale;
+        speedY = Math.sin(direction) * velocity * scale;
+        return velocity;
+    };
+    // "Bay nhiều tầng": tới từng tầng thì chậm dần, nổ một chùm rồi mới nhắm điểm nổ chính (xem LAUNCH_STYLES.stages)
+    const stops = options.launchStyle === 'stages'
+        ? (rise > 260 ? [0.42, 0.72] : [0.6]).map(f => ({ x: burstX * f, y: -rise * f }))
+        : [];
+    if (stops.length) {
+        life = 30000;
+        aim(stops[0].x, stops[0].y);
+    } else {
+        const velocity = aim(burstX, -rise, options.horsetail ? 1.2 : 1);
+        life = velocity * (options.horsetail ? 100 : 400);
+        targetY = -rise;
+    }
+    let next = 0;
+    for (let time = 0; time < 30000; time += step) {
+        life -= step;
+        if (targetY !== undefined && (y <= targetY || speedY >= 0)) life = 0;
+        if (life <= 0) return time;
+        x += speedX;
+        y += speedY;
+        speedX *= Star.airDragHeavy;
+        speedY = speedY * Star.airDragHeavy + gAcc;
+        if (next < stops.length && (y <= stops[next].y || speedY > -0.15)) {
+            next++;
+            if (next < stops.length) {
+                aim(stops[next].x, stops[next].y);
+            } else {
+                aim(burstX, -rise);
+                targetY = -rise;
+            }
+        }
+    }
+    return 30000;
+}
+
+// ---------------------------------------------------------------------------
+// KHỚP NHỊP NHẠC (music.sync, builder bật khi "Xếp pháo theo nhịp nhạc"): "trễ" của một phát là lúc pháo NỔ
+// (tính từ đầu đợt), không phải lúc phóng. Cả kịch bản được xếp lịch trước: mỗi phát phóng sớm hơn đúng bằng
+// thời gian bay của nó trên màn hình này, và đồng hồ bám theo vị trí đang phát của bài nhạc, nên tiếng nổ rơi
+// đúng nhịp kể cả khi máy giật khung hình. Đồng hồ = 0 là lúc nhạc bắt đầu (từ giây music.start).
+// ---------------------------------------------------------------------------
+
+function isMusicSynced(config) {
+    return !!(config && config.music && config.music.sync && Array.isArray(config.events));
+}
+
+// Thời điểm (ms) mỗi phát nổ hoặc hiện ra và lúc kết thúc; thời lượng đợt tính giống startSequence()
+function buildSyncTimeline(events) {
+    const burstValues = events.map(e => Number(e.burst)).filter(v => !isNaN(v));
+    const maxBurst = burstValues.length > 0 ? Math.max(...burstValues) : 0;
+    const items = [];
+    let start = 0;
+    for (let burst = 1; burst <= maxBurst; burst++) {
+        const list = events.filter(e => Number(e.burst) === burst);
+        let pause = 0;
+        list.forEach(event => {
+            if (event.shell === 'Tạm dừng') pause = Math.max(pause, event.duration || 2000);
+            else items.push({ time: start + (Number(event.delay) || 0), event });
+        });
+        start += (list.length > 0 ? 2500 + pause : 1000) * 1.25;
+    }
+    return { items, end: start };
+}
+
+const syncShow = {
+    // 'idle': chưa xếp lịch | 'running': đang chạy | 'done': đã chạy xong (không lặp)
+    state: 'idle',
+    queue: [],
+    next: 0,
+    end: 0,
+    clock: 0,
+    musicStarted: false,
+    // Đang bám theo nhạc / vừa tua nhạc cho khớp pháo đang bay
+    following: false,
+    seeked: false,
+    held: 0,
+    // Bản xem nhanh: vị trí nhạc builder gửi sang { position, at }
+    remote: null,
+
+    reset() {
+        this.state = 'idle';
+        this.queue = [];
+        this.next = 0;
+    },
+
+    // Xếp lịch cả kịch bản. keepClock: builder vừa sửa kịch bản giữa chừng, chạy tiếp từ vị trí hiện tại.
+    schedule(config, keepClock) {
+        const { items, end } = buildSyncTimeline(config.events);
+        this.queue = items.map(({ time, event }) => {
+            if (event.shell === 'Lời nhắn') return { launch: time, event };
+            const shot = buildEventShot(event);
+            return { launch: time - estimateFlightTime(shot), event, shot };
+        }).sort((a, b) => a.launch - b.launch);
+        this.end = end;
+        if (keepClock) {
+            this.next = this.queue.findIndex(item => item.launch > this.clock);
+            if (this.next === -1) this.next = this.queue.length;
+            return;
+        }
+        this.next = 0;
+        // Phát nổ ngay đầu bài phải được phóng trước khi nhạc bắt đầu
+        this.clock = Math.min(0, this.queue.length > 0 ? this.queue[0].launch : 0);
+        this.musicStarted = false;
+        this.following = false;
+        this.seeked = false;
+        this.state = 'running';
+        musicPlayer.cue();
+    },
+
+    startMusic() {
+        this.musicStarted = true;
+        musicPlayer.start();
+        // Bản xem nhanh: builder phát nhạc đúng lúc này
+        if (IS_PREVIEW) {
+            previewRestartPending = false;
+            window.parent.postMessage({ type: 'firework-preview-started' }, window.location.origin);
+        }
+    },
+
+    // Vị trí bài nhạc (ms tính từ giây bắt đầu): số khi đang phát, null khi nhạc chưa kịp chạy,
+    // undefined khi không có nhạc để bám
+    musicPosition() {
+        if (!IS_PREVIEW) return musicPlayer.position();
+        const remote = this.remote;
+        const age = remote ? performance.now() - remote.at : Infinity;
+        return age < 1000 ? remote.position + age : undefined;
+    },
+
+    // Nhạc đã được bảo phát nhưng chưa kêu: giữ cả bầu trời đứng yên một chút (tối đa 1 giây)
+    // để pháo đang bay không nổ trước nhạc
+    holds(frameTime) {
+        if (this.state !== 'running' || !this.musicStarted || IS_PREVIEW || !musicPlayer.isStarting()) {
+            this.held = 0;
+            return false;
+        }
+        this.held += frameTime;
+        return this.held < 1000;
+    },
+
+    // Gọi mỗi khung hình với bước thời gian của mô phỏng, để đồng hồ đi cùng pháo đang bay
+    update(timeStep) {
+        if (this.state !== 'running') return;
+        this.clock += timeStep;
+        if (!this.musicStarted) {
+            if (this.clock >= 0) this.startMusic();
+        } else {
+            const position = this.musicPosition();
+            if (typeof position !== 'number') {
+                // Nhạc chưa chạy, đang tạm dừng hoặc không có nhạc: chạy theo đồng hồ của mô phỏng
+                this.following = false;
+            } else {
+                const drift = position - this.clock;
+                if (!this.following && !this.seeked && !IS_PREVIEW && drift < -25 && drift > -1500) {
+                    // Nhạc vừa chạy (hoặc chạy lại sau tạm dừng) chậm hơn pháo đang bay: tua nhạc lên cho khớp.
+                    // Lúc này nhạc còn đang to dần lên từ 0 nên không nghe thấy chỗ nhảy.
+                    musicPlayer.seekBy(-drift);
+                    this.seeked = true;
+                } else {
+                    // Bám theo nhạc; lệch quá xa (vừa tua, nhạc quay lại đầu bài) thì bỏ qua
+                    if (Math.abs(drift) > 25 && Math.abs(drift) < 3000) this.clock = position;
+                    this.following = true;
+                    this.seeked = false;
+                }
+            }
+        }
+        // Phóng ở khung hình gần giờ phóng nhất (sớm tối đa nửa khung hình)
+        while (this.next < this.queue.length && this.queue[this.next].launch <= this.clock + 8) {
+            const item = this.queue[this.next++];
+            if (item.shot) launchEventShot(item.shot);
+            else showCaption(item.event);
+        }
+        if (this.next >= this.queue.length && this.clock >= this.end) this.finish();
+    },
+
+    finish() {
+        if (burstConfig.loop) {
+            // Lặp lại: nhạc cũng phát lại từ đầu để vẫn khớp nhịp
+            this.state = 'idle';
+            musicPlayer.restart();
+            autoLaunchTime = 2000;
+            return;
+        }
+        this.state = 'done';
+        musicPlayer.finish(3000);
+        clearTimeout(endScreenTimer);
+        endScreenTimer = setTimeout(showEndScreen, 4500);
+        if (IS_PREVIEW) {
+            window.parent.postMessage({ type: 'firework-preview-ended' }, window.location.origin);
+        }
+    }
+};
+
 function startSequence() {
     // Kiểm tra burst config nếu có
     if (burstConfig && burstConfig.events) {
+        // Kịch bản khớp nhịp nhạc: syncShow.update() bắn theo từng khung hình
+        if (isMusicSynced(burstConfig)) {
+            if (syncShow.state === 'idle') syncShow.schedule(burstConfig);
+            return 400;
+        }
+        if (syncShow.state !== 'idle') syncShow.reset();
         burstCounter++;
 
         // Tìm burst lớn nhất để biết khi nào kết thúc/lặp lại
@@ -2791,111 +3123,7 @@ function startSequence() {
                 }
 
                 // Lời nhắn: hiện chữ như phụ đề, không bắn pháo
-                const launch = event.shell === 'Lời nhắn' ? () => showCaption(event) : () => {
-                    const size = event.size !== undefined ? event.size : shellSizeSelector();
-                    let options;
-
-                    if (event.shell === 'Văn bản' && event.text) {
-                        options = {
-                            shellSize: size,
-                            color: randomColor(),
-                            spreadSize: 300 + size * 100,
-                            starLife: 1400 + size * 200,
-                            glitter: 'light',
-                            glitterColor: COLOR.Gold
-                        };
-                    } else if (event.shell === 'Hình ảnh' && event.imageUrl) {
-                        options = {
-                            shell: 'Hình ảnh',
-                            imageUrl: event.imageUrl,
-                            frame: event.frame,
-                            shellSize: size,
-                            spreadSize: 300 + size * 100,
-                            // Thời gian ảnh hiện trên trời (ms)
-                            duration: event.duration
-                        };
-                    } else {
-                        const shellType = shellTypes[event.shell] || shellTypes['Văn bản'];
-                        options = shellType(size);
-                    }
-
-                    if (event.text) {
-                        const starDensity = event.starDensity !== undefined ? event.starDensity : 1;
-                        // Bước lấy mẫu tối thiểu 2px để chữ dày không tạo ra hàng chục nghìn hạt làm treo máy
-                        const step = Math.max(2, Math.round(3 / starDensity));
-                        options.shapePoints = getTextParticles(event.text, 50, step);
-                    }
-
-                    const hasValue = (value) => value !== undefined && value !== null && value !== '';
-
-                    if (hasValue(event.color)) {
-                        const color = resolveEventColor(event.color);
-                        if (options.shell === 'Hình ảnh') {
-                            // Khung ảnh chỉ vẽ được một màu
-                            options.color = color === 'random' ? randomColor() : color;
-                        } else if (options.color === INVISIBLE && options.secondColor) {
-                            // Pháo "Ma": giữ hiệu ứng hiện dần từ vô hình, màu đã chọn là màu hiện ra
-                            if (color !== 'random') options.secondColor = Array.isArray(color) ? color[0] : color;
-                        } else {
-                            options.color = color;
-                        }
-                    }
-
-                    if (hasValue(event.glitterColor)) {
-                        options.glitterColor = resolveEventColor(event.glitterColor);
-                    }
-
-                    let xVal = event.x !== undefined ? event.x : 50;
-                    let yVal = event.y !== undefined ? event.y : 50;
-
-                    if (IS_MOBILE) {
-                        // Ánh xạ x vào khoảng an toàn 15% - 85% để tránh pháo bị tràn mép màn hình bên trái/phải
-                        xVal = 15 + (xVal / 100) * 70;
-                        // Ánh xạ y vào khoảng an toàn 5% - 95% (rộng hơn nhiều vì màn hình dọc rất dài, tránh làm nổ quá thấp)
-                        yVal = 5 + (yVal / 100) * 90;
-                    }
-
-                    const x = xVal / 100;
-                    const y = (100 - yVal) / 100;
-
-                    // Ghi đè các thuộc tính nâng cao từ event nếu có.
-                    // Áp dụng TRƯỚC khi tạo Shell để số hạt, kích thước trên mobile và giới hạn góc bắn được tính đúng.
-                    const overrides = [
-                        'strobe', 'strobeColor', 'pistil', 'pistilColor',
-                        'streamers', 'crossette', 'crackle', 'horsetail',
-                        'comet', 'starLife', 'starDensity', 'spreadSize',
-                        'starCount', 'starLifeVariation', 'glitter', 'secondColor',
-                        'transitionTime', 'floral', 'ring', 'strobeFreq',
-                        'launchAngle', 'ascentSpeed', 'rotation',
-                        'liftSound', 'burstSound', 'whistleSound',
-                        'launchStyle', 'spiralLift', 'hang'
-                    ];
-
-                    overrides.forEach(prop => {
-                        const value = event[prop];
-                        // Bỏ qua ô để trống và ô tích chưa bật (false): giữ mặc định của loại pháo,
-                        // ví dụ pháo "Nổ lách tách" vẫn lách tách dù builder lưu sẵn crackle: false.
-                        if (!hasValue(value) || value === false) return;
-
-                        if (prop === 'strobeColor' || prop === 'pistilColor' || prop === 'secondColor') {
-                            options[prop] = resolveSingleColor(value);
-                        } else if (prop === 'starDensity') {
-                            // Mật độ là hệ số so với mật độ gốc của loại pháo (1 = giữ nguyên)
-                            options.starDensity = (options.starDensity || 1) * value;
-                        } else {
-                            options[prop] = value;
-                        }
-                    });
-
-                    // Bật "Cháy lâu" cho loại pháo khác mà không tự đặt tuổi thọ hạt: cho hạt cháy lâu gấp 2,5 lần
-                    if (event.hang === true && event.shell !== 'Cháy lâu' && !hasValue(event.starLife)) {
-                        options.starLife *= 2.5;
-                    }
-
-                    const shell = new Shell(options);
-                    // Nổ đúng tọa độ đã đặt trong kịch bản
-                    shell.launchAt(x * stageW, y * stageH);
-                };
+                const launch = event.shell === 'Lời nhắn' ? () => showCaption(event) : () => launchEventShot(buildEventShot(event));
 
                 if (event.delay) {
                     const timer = setTimeout(() => {
@@ -3100,6 +3328,7 @@ function updateGlobals(timeStep, lag) {
 
     // tự động phóng đạn
     if (store.state.config.autoLaunch) {
+        syncShow.update(timeStep);
         autoLaunchTime -= timeStep;
         if (autoLaunchTime <= 0) {
             autoLaunchTime = startSequence() * 1.25;
@@ -3110,6 +3339,8 @@ function updateGlobals(timeStep, lag) {
 
 function update(frameTime, lag) {
     if (!isRunning()) return;
+    // Kịch bản khớp nhịp: chờ nhạc kêu rồi pháo mới bay tiếp
+    if (syncShow.holds(frameTime)) return;
 
     const width = stageW;
     const height = stageH;
@@ -4773,6 +5004,10 @@ const musicPlayer = {
     volume: 0,
     started: false,
     finished: false,
+    // Nhạc đang thực sự kêu: vị trí phát đã nhích lên kể từ lúc bắt đầu phát / chạy lại (resumeFrom).
+    // Sau play() và cả sau sự kiện 'playing' vẫn còn một quãng ngắn nhạc chưa kêu.
+    progressing: false,
+    resumeFrom: 0,
     fadeTimer: null,
 
     // Gọi ngay trong lúc người dùng bấm "Bắt đầu": trình duyệt (nhất là iPhone) chỉ cho phát nhạc
@@ -4792,7 +5027,14 @@ const musicPlayer = {
         if (!this.audio) this.unlock();
         const url = normalizeAssetPath(music.url);
         this.audio.pause();
-        this.audio.loop = true;
+        if (!this.audio.dataset.watched) {
+            this.audio.dataset.watched = '1';
+            ['playing', 'pause', 'waiting', 'seeking', 'ended', 'emptied'].forEach(type => {
+                this.audio.addEventListener(type, () => this.markStalled());
+            });
+        }
+        // Kịch bản khớp nhịp được xếp theo đúng bài nhạc: hết bài thì thôi, không phát lại từ đầu
+        this.audio.loop = !music.sync;
         this.audio.preload = 'auto';
         this.audio.src = url;
         this.audio.load();
@@ -4864,6 +5106,51 @@ const musicPlayer = {
         else this.audio.addEventListener('loadedmetadata', begin, { once: true });
     },
 
+    // Tua sẵn tới giây bắt đầu để lúc vào nhạc phát được ngay (kịch bản khớp nhịp)
+    cue() {
+        if (!this.config || this.started || !this.audio || this.audio.readyState < 1) return;
+        try {
+            this.audio.currentTime = Math.max(0, Number(this.config.start) || 0);
+        } catch (e) {
+            // Máy chủ không hỗ trợ tua
+        }
+    },
+
+    markStalled() {
+        this.progressing = false;
+        this.resumeFrom = this.audio.currentTime;
+    },
+
+    checkProgress() {
+        const audio = this.audio;
+        if (!this.progressing && !audio.seeking && Math.abs(audio.currentTime - this.resumeFrom) > 0.001) this.progressing = true;
+        return this.progressing;
+    },
+
+    // Đã bảo phát (vừa bắt đầu, vừa chạy lại sau tạm dừng, đang tải thêm) nhưng nhạc chưa kêu
+    isStarting() {
+        const audio = this.audio;
+        return !!(this.started && !this.finished && audio && !audio.paused && !audio.ended && !audio.error && !this.checkProgress());
+    },
+
+    seekBy(ms) {
+        try {
+            this.audio.currentTime += ms / 1000;
+            this.markStalled();
+        } catch (e) {
+            // Máy chủ không hỗ trợ tua
+        }
+    },
+
+    // Vị trí đang phát (ms tính từ giây bắt đầu) cho kịch bản khớp nhịp: null khi nhạc chưa kịp chạy,
+    // undefined khi không có nhạc để bám (không có nhạc, lỗi, hết bài, đang nhỏ dần để kết thúc)
+    position() {
+        const audio = this.audio;
+        if (!this.config || !audio || this.finished || audio.ended || audio.error) return undefined;
+        if (!this.started || audio.paused || !this.checkProgress()) return null;
+        return (audio.currentTime - Math.max(0, Number(this.config.start) || 0)) * 1000;
+    },
+
     resume() {
         if (!this.started || this.finished || document.hidden) return;
         const attempt = this.audio.play();
@@ -4915,7 +5202,13 @@ if (IS_PREVIEW) {
     let previewVersion = 0;
     window.addEventListener('message', async (e) => {
         const msg = e.data;
-        if (e.origin !== window.location.origin || !msg || msg.type !== 'firework-preview') return;
+        if (e.origin !== window.location.origin || !msg) return;
+        // Vị trí nhạc builder đang phát, để kịch bản khớp nhịp bám theo
+        if (msg.type === 'firework-preview-clock') {
+            syncShow.remote = { position: Number(msg.position) || 0, at: performance.now() };
+            return;
+        }
+        if (msg.type !== 'firework-preview') return;
 
         const version = ++previewVersion;
         const config = await prepareBurstConfig(msg.config, { showOverlay: false });
@@ -4928,9 +5221,13 @@ if (IS_PREVIEW) {
             pendingLaunchTimers.forEach(clearTimeout);
             pendingLaunchTimers.clear();
             burstCounter = 0;
+            syncShow.reset();
             autoLaunchTime = 0;
             previewRestartPending = true;
             clearCaptions();
+        } else if (syncShow.state === 'running' && isMusicSynced(config)) {
+            // Sửa kịch bản giữa chừng: xếp lại lịch, chạy tiếp từ vị trí hiện tại
+            syncShow.schedule(config, true);
         }
     });
 

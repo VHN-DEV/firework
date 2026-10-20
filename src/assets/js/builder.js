@@ -8,6 +8,7 @@ import fscreen from './fscreen@1.0.1.js';
 import qrcode from 'qrcode-generator';
 import { renderShareImage } from './share-image.js';
 import { OCCASIONS, buildTemplate } from './templates.js';
+import { analyzeMusic, buildBeatShow, KEEP_SHELLS } from './beat-sync.js';
 import { printCopyrightNotice } from './copyright.js';
 import '../scss/builder.scss';
 import backgroundImgUrl from '../img/background.webp';
@@ -265,6 +266,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!state.music) return;
         state.music.start = Math.max(0, Math.round((Number(e.target.value) || 0) * 10) / 10);
         e.target.value = state.music.start;
+        afterMusicStartChange();
+    });
+    document.getElementById('music-sync')?.addEventListener('change', (e) => {
+        if (!state.music) return;
+        state.music.sync = e.target.checked || undefined;
+        renderMusic();
+        renderEventList();
+        if (state.activeEventId) renderInspector();
     });
     document.getElementById('music-volume')?.addEventListener('input', (e) => {
         if (!state.music) return;
@@ -403,16 +412,17 @@ function validateConfig() {
         errors.push('Kịch bản phải có ít nhất một phát bắn');
     }
 
-    if (state.events.length > 200) {
+    // Đủ cho cả một bài nhạc xếp pháo theo nhịp (khoảng 10 phút)
+    if (state.events.length > 500) {
         isValid = false;
-        errors.push('Kịch bản quá lớn (tối đa 200 phát bắn)');
+        errors.push('Kịch bản quá lớn (tối đa 500 phát bắn)');
     }
 
     // Check for high burst counts
-    const highBurstEvent = state.events.find(e => e.burst > 100);
+    const highBurstEvent = state.events.find(e => e.burst > 200);
     if (highBurstEvent) {
         isValid = false;
-        errors.push(`Phát bắn #${state.events.indexOf(highBurstEvent) + 1} có số đợt quá lớn (tối đa 100)`);
+        errors.push(`Phát bắn #${state.events.indexOf(highBurstEvent) + 1} có số đợt quá lớn (tối đa 200)`);
     }
 
     if (!isValid) {
@@ -776,18 +786,33 @@ function isFireworkShot(event) {
 
 const CAPTION_POSITIONS = [['bottom', 'Dưới (như phụ đề)'], ['middle', 'Giữa'], ['top', 'Trên']];
 
-function renderShotRow(event) {
+// Kịch bản khớp nhịp nhạc: "trễ" là lúc pháo nổ, dòng thời gian hiện mốc giây trong bài nhạc
+function isSyncMode() {
+    return !!(state.music && state.music.sync);
+}
+
+// Mốc trong bài nhạc (phút:giây,phần mười) của thời điểm `ms` tính từ lúc nhạc bắt đầu
+function formatMusicTime(ms) {
+    const total = Math.max(0, (Number(state.music?.start) || 0) + ms / 1000);
+    const minutes = Math.floor(total / 60);
+    const seconds = (total - minutes * 60).toFixed(1).padStart(4, '0').replace('.', ',');
+    return `${minutes}:${seconds}`;
+}
+
+function renderShotRow(event, burstStart = 0) {
     const index = state.events.indexOf(event) + 1;
     const isPause = event.shell === 'Tạm dừng';
-    const delayText = Number(event.delay) ? `+${formatNumber(event.delay)} ms` : 'Ngay';
+    const delayText = isSyncMode()
+        ? formatMusicTime(burstStart + (Number(event.delay) || 0))
+        : Number(event.delay) ? `+${formatNumber(event.delay)} ms` : 'Ngay';
     const meta = isPause
         ? `<span><i class="fas fa-hourglass-half"></i>Nghỉ ${formatDuration(Number(event.duration) || 2000)}</span>`
         : event.shell === 'Lời nhắn'
-        ? `<span><i class="fas fa-clock"></i>${delayText}</span>
+        ? `<span><i class="fas fa-${isSyncMode() ? 'music' : 'clock'}"></i>${delayText}</span>
            <span><i class="fas fa-hourglass-half"></i>Hiện ${formatDuration(Number(event.duration) || 4000)}</span>
            <span><i class="fas fa-up-down"></i>${(CAPTION_POSITIONS.find(([v]) => v === (event.position || 'bottom')) || [, ''])[1]}</span>`
         : `<span><i class="fas fa-location-dot"></i>${formatNumber(event.x)}, ${formatNumber(event.y)}</span>
-           <span><i class="fas fa-clock"></i>${Number(event.delay) ? `+${formatNumber(event.delay)} ms` : 'Ngay'}</span>
+           <span><i class="fas fa-${isSyncMode() ? 'music' : 'clock'}"></i>${delayText}</span>
            <span><i class="fas fa-maximize"></i>Cỡ ${formatNumber(event.size ?? 1)}</span>
            ${event.launchStyle ? `<span><i class="fas fa-rocket"></i>${(LAUNCH_STYLES.find(s => s.value === event.launchStyle) || {}).name || ''}</span>` : ''}`;
 
@@ -811,7 +836,7 @@ function renderShotRow(event) {
         </div>`;
 }
 
-function renderBurstGroup(burst, events) {
+function renderBurstGroup(burst, events, burstStart = 0) {
     const duration = getBurstDuration(events);
     const shots = events.filter(isFireworkShot).length;
     const maxDelay = Math.max(0, ...events.map(e => Number(e.delay) || 0));
@@ -828,11 +853,12 @@ function renderBurstGroup(burst, events) {
             <header class="burst-header">
                 <span class="burst-badge">Đợt ${burst}</span>
                 <span class="burst-info">${info}</span>
+                ${isSyncMode() ? `<span class="burst-time" title="Mốc trong bài nhạc">♪ ${formatMusicTime(burstStart)}</span>` : ''}
                 <button class="btn ghost small burst-add" onclick="addEventFromUI(${burst})" title="Thêm phát bắn vào đợt ${burst}">
                     <i class="fas fa-plus"></i><span>Thêm</span>
                 </button>
             </header>
-            <div class="burst-shots">${events.map(renderShotRow).join('')}</div>
+            <div class="burst-shots">${events.map(e => renderShotRow(e, burstStart)).join('')}</div>
         </section>`;
 }
 
@@ -856,7 +882,12 @@ function renderEventList() {
 
     let html = '';
     const maxBurst = getMaxBurst();
-    for (let b = 1; b <= maxBurst; b++) html += renderBurstGroup(b, getBurstEvents(b));
+    let burstStart = 0;
+    for (let b = 1; b <= maxBurst; b++) {
+        const events = getBurstEvents(b);
+        html += renderBurstGroup(b, events, burstStart);
+        burstStart += getBurstDuration(events);
+    }
     container.innerHTML = html;
     // Danh sách thay đổi (thêm/xóa/nhân bản/đổi màu/loại pháo...) thì cập nhật bản xem nhanh
     refreshMiniPreview();
@@ -1105,7 +1136,7 @@ function renderInspector() {
                     <button type="button" onclick="changeBurst(${event.id}, 1)" title="Đợt sau"><i class="fas fa-plus"></i></button>
                 </div>
             </div>
-            ${isPause ? '' : numberField(event, 'delay', 'Trễ (ms)', { step: 100, min: 0, max: 60000 })}
+            ${isPause ? '' : numberField(event, 'delay', isSyncMode() ? 'Nổ sau (ms)' : 'Trễ (ms)', { step: 100, min: 0, max: 60000 })}
         </div>
         ${specific}`);
 
@@ -1448,6 +1479,10 @@ function renderMusic() {
         document.getElementById('music-volume').value = volume;
         document.getElementById('out-music-volume').textContent = volume + '%';
         audio.volume = volume / 100;
+        document.getElementById('music-sync').checked = !!music.sync;
+        document.getElementById('music-sync-hint').textContent = music.sync
+            ? `Pháo nổ đúng lúc đã đặt, bám theo bài nhạc${music.bpm ? ` · nhịp ${formatNumber(music.bpm)} BPM` : ''}`
+            : 'Pháo nổ đúng lúc đã đặt, bám theo bài nhạc';
     } else if (audio.dataset.src) {
         stopPreviewMusic();
         delete audio.dataset.src;
@@ -1477,6 +1512,7 @@ function useCurrentMusicTime() {
     state.music.start = Math.round(getMusicAudio().currentTime * 10) / 10;
     renderMusic();
     notify(`Nhạc sẽ phát từ giây ${state.music.start.toLocaleString('vi-VN')}.`, 'success');
+    afterMusicStartChange();
 }
 
 async function handleMusicUpload(input) {
@@ -1552,6 +1588,18 @@ function setMusicFromUrl() {
 let previewMusicOn = false;
 let previewMusicPlaying = false;
 let previewMusicStopTimer = null;
+let previewClockTimer = null;
+
+// Kịch bản khớp nhịp: báo cho khung xem nhanh vị trí nhạc đang phát để pháo bám theo
+function sendPreviewClock() {
+    const audio = getMusicAudio();
+    const frame = getPreviewFrame();
+    if (!state.music?.sync || !audio || audio.paused || audio.seeking || audio.readyState < 3 || !frame?.contentWindow) return;
+    frame.contentWindow.postMessage({
+        type: 'firework-preview-clock',
+        position: (audio.currentTime - (state.music.start || 0)) * 1000
+    }, window.location.origin);
+}
 
 function updateMusicPreviewButton() {
     const btn = document.getElementById('btn-music-mini');
@@ -1598,10 +1646,13 @@ function startPreviewMusic() {
         // Chưa tải xong thông tin bài nhạc: phát từ đầu
     }
     audio.play().catch(() => notify('Trình duyệt chặn phát nhạc, hãy bấm nút nhạc ở khung xem nhanh lần nữa.', 'warning'));
+    clearInterval(previewClockTimer);
+    previewClockTimer = setInterval(sendPreviewClock, 250);
 }
 
 function stopPreviewMusic() {
     previewMusicPlaying = false;
+    clearInterval(previewClockTimer);
     getMusicAudio()?.pause();
 }
 
@@ -2163,6 +2214,189 @@ function createFromTemplate() {
     hideModal('templates-modal');
     playMiniPreviewOnce();
     notify(`Đã tạo màn trình diễn "${occasion.name}". Xem thử ở khung xem nhanh, chỉnh tiếp rồi bấm Lưu.`, 'success');
+}
+
+// ---------------------------------------------------------------------------
+// XẾP PHÁO THEO NHỊP NHẠC (beat-sync.js): nghe bài nhạc, tìm nhịp rồi tự đặt pháo
+// ---------------------------------------------------------------------------
+
+// Kết quả phân tích theo link nhạc (phân tích một lần, mở lại hộp thoại là có ngay)
+const beatAnalyses = new Map();
+const MAX_BEAT_SECONDS = 480;
+let beatAnalysis = null;
+let beatDensity = 'medium';
+
+async function openBeatModal() {
+    if (!state.music) return;
+    const url = normalizeAssetPath(state.music.url);
+    beatAnalysis = null;
+    setBeatDensity(beatDensity);
+    renderBeatStatus('loading', 0);
+    showModal('beat-modal');
+    if (!beatAnalyses.has(url)) {
+        beatAnalyses.set(url, analyzeMusic(url, p => {
+            if (!beatAnalysis) renderBeatStatus('loading', p);
+        }));
+    }
+    try {
+        const analysis = await beatAnalyses.get(url);
+        // Trong lúc chờ đã đổi bài nhạc khác
+        if (!state.music || normalizeAssetPath(state.music.url) !== url) return;
+        beatAnalysis = analysis;
+        renderBeatResult();
+    } catch (e) {
+        beatAnalyses.delete(url);
+        console.warn('[Builder] Không phân tích được bài nhạc:', e);
+        renderBeatStatus('error', e.code);
+    }
+}
+
+function renderBeatStatus(status, detail) {
+    const box = document.getElementById('beat-status');
+    document.getElementById('beat-result').classList.toggle('hide', status !== 'ready');
+    document.getElementById('btn-beat-apply').disabled = status !== 'ready';
+    box.classList.toggle('hide', status === 'ready');
+    box.classList.toggle('error', status === 'error');
+    if (status === 'loading') {
+        const percent = Math.round((detail || 0) * 100);
+        box.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i><span>Đang nghe bài nhạc... ${percent}%</span>
+            <div class="beat-progress"><span style="width: ${percent}%"></span></div>`;
+    } else if (status === 'error') {
+        const messages = {
+            fetch: 'Không tải được bài nhạc từ link này (máy chủ nhạc không cho đọc). Hãy chọn file nhạc từ máy rồi thử lại.',
+            decode: 'Trình duyệt không đọc được định dạng bài nhạc này. Hãy thử file MP3.',
+            'no-beat': 'Không tìm thấy nhịp rõ ràng trong bài nhạc này (bài quá ngắn hoặc không có tiết tấu).'
+        };
+        box.innerHTML = `<i class="fas fa-triangle-exclamation"></i><span>${messages[detail]
+            || 'Không đọc được bài nhạc. Hãy thử lại hoặc chọn file nhạc từ máy.'}</span>`;
+    }
+}
+
+function getKeepEvents() {
+    return state.events.filter(e => KEEP_SHELLS.includes(e.shell));
+}
+
+function renderBeatResult() {
+    const analysis = beatAnalysis;
+    const start = Number(state.music.start) || 0;
+    const available = Math.max(0, analysis.duration - start);
+    const select = document.getElementById('beat-length');
+    // Kịch bản tối đa 200 đợt (~10 phút): bài quá dài thì bắn tối đa 8 phút
+    const options = [30, 60, 120, 180, 300].filter(s => s < Math.min(available, MAX_BEAT_SECONDS) - 10)
+        .map(s => `<option value="${s}">${formatDuration(s * 1000)}</option>`);
+    const clock = Math.floor(available / 60) + ':' + String(Math.floor(available % 60)).padStart(2, '0');
+    select.innerHTML = options.join('') + (available <= MAX_BEAT_SECONDS
+        ? `<option value="all">Hết bài (${clock})</option>`
+        : `<option value="${MAX_BEAT_SECONDS}">${formatDuration(MAX_BEAT_SECONDS * 1000)}</option>`);
+    select.value = select.options[select.options.length - 1].value;
+    const keep = getKeepEvents();
+    const texts = keep.filter(e => e.shell !== 'Lời nhắn').length;
+    const captions = keep.length - texts;
+    document.getElementById('beat-keep-row').classList.toggle('hide', !keep.length);
+    document.getElementById('beat-keep-hint').textContent = [texts && `${texts} chữ/ảnh trên trời`, captions && `${captions} lời nhắn`]
+        .filter(Boolean).join(', ') + ' · đặt vào các phách mạnh, giữ thứ tự cũ';
+    const drops = analysis.drops.filter(i => analysis.beats[i].time >= start).length;
+    document.getElementById('beat-summary').innerHTML = `Nhịp khoảng <strong>${formatNumber(analysis.bpm)} BPM</strong>`
+        + ` · bài dài ${formatDuration(analysis.duration * 1000)}`
+        + (drops ? ` · <strong>${drops}</strong> chỗ nhạc bùng lên` : '');
+    renderBeatStatus('ready');
+    drawBeatChart();
+}
+
+function setBeatDensity(density) {
+    beatDensity = density;
+    document.querySelectorAll('.beat-density button').forEach(btn => btn.classList.toggle('active', btn.dataset.density === density));
+}
+
+function getBeatLength() {
+    const value = document.getElementById('beat-length').value;
+    return value === 'all' ? Infinity : Number(value);
+}
+
+// Độ sôi động từng ô nhịp; phần sẽ bắn sáng màu, chỗ nhạc bùng lên đánh dấu vàng
+function drawBeatChart() {
+    const canvas = document.getElementById('beat-chart');
+    if (!canvas || !beatAnalysis) return;
+    const dpr = window.devicePixelRatio || 1;
+    const width = canvas.clientWidth || 560;
+    const height = canvas.clientHeight || 88;
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    const { beats, drops, duration } = beatAnalysis;
+    const start = Number(state.music?.start) || 0;
+    const end = start + getBeatLength();
+    const bars = [];
+    beats.forEach(beat => {
+        if (!bars.length || beat.downbeat) bars.push({ time: beat.time, sum: 0, n: 0 });
+        const bar = bars[bars.length - 1];
+        bar.sum += beat.level;
+        bar.n++;
+    });
+    const x = time => (time / duration) * width;
+    bars.forEach((bar, i) => {
+        const next = bars[i + 1] ? bars[i + 1].time : duration;
+        const level = bar.sum / bar.n;
+        const h = Math.max(2, level * (height - 14));
+        const inRange = bar.time >= start - 0.05 && bar.time < end;
+        ctx.fillStyle = inRange ? `hsl(${265 - level * 225}, 90%, ${55 + level * 10}%)` : 'rgba(255, 255, 255, 0.12)';
+        ctx.fillRect(x(bar.time), height - h, Math.max(1, x(next) - x(bar.time) - 1), h);
+    });
+    ctx.fillStyle = '#ffbf36';
+    drops.forEach(i => {
+        const px = x(beats[i].time);
+        ctx.beginPath();
+        ctx.moveTo(px - 4, 0);
+        ctx.lineTo(px + 4, 0);
+        ctx.lineTo(px, 7);
+        ctx.fill();
+    });
+}
+
+function applyBeatShow() {
+    if (!beatAnalysis || !state.music) return;
+    const keep = document.getElementById('beat-keep').checked
+        ? getKeepEvents().map(({ id, expanded, ...event }) => event)
+        : [];
+    let show;
+    try {
+        show = buildBeatShow(beatAnalysis, {
+            start: Number(state.music.start) || 0, length: getBeatLength(), density: beatDensity, keep
+        });
+    } catch (e) {
+        notify('Đoạn nhạc từ giây bắt đầu tới hết quá ngắn để xếp pháo.', 'error');
+        return;
+    }
+    state.events = [];
+    state.activeEventId = null;
+    show.events.forEach(event => addEvent(event));
+    state.music.sync = true;
+    state.music.bpm = beatAnalysis.bpm;
+    // Màn trình diễn theo bài nhạc: chạy một lượt rồi hiện màn kết
+    document.getElementById('loop').checked = false;
+    hideModal('beat-modal');
+    renderMusic();
+    renderEventList();
+    renderInspector();
+    syncLoopState();
+    scheduleCheckpoint();
+    // Nghe thử ngay (đang trong lúc bấm nên trình duyệt cho phát nhạc)
+    if (state.miniPreviewEnabled) {
+        if (!previewMusicOn) togglePreviewMusic();
+        else playMiniPreviewOnce();
+    }
+    notify(`Đã xếp ${show.shots} phát pháo theo nhịp ${formatNumber(beatAnalysis.bpm)} BPM. `
+        + (state.miniPreviewEnabled ? 'Đang phát thử ở khung xem nhanh.' : 'Bấm Xem thử để nghe cùng nhạc.'), 'success');
+}
+
+// Đổi giây bắt đầu của kịch bản khớp nhịp: các phát vẫn tính từ lúc nhạc bắt đầu nên sẽ lệch nhịp
+function afterMusicStartChange() {
+    if (isSyncMode() && state.events.length) {
+        notify('Đã đổi giây bắt đầu: bấm "Xếp pháo theo nhịp nhạc" để xếp lại cho khớp nhịp.', 'warning');
+    }
+    renderEventList();
 }
 
 // ---------------------------------------------------------------------------
@@ -3013,6 +3247,7 @@ function sendPreview(restart) {
         // Đang chọn một phát bắn: chỉ bắn lặp lại phát đó (nhạc không còn khớp nhịp nên dừng)
         config.loop = true;
         config.events = [{ ...config.events[index], burst: 1, delay: 0 }];
+        config.music = undefined;
         if (previewMusicPlaying) stopPreviewMusic();
     } else if (previewMode === 'idle') {
         config.events = [];
@@ -3196,7 +3431,7 @@ Object.assign(window, {
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
     togglePreviewMusic, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
-    hideModal, setStartFrame, undo, redo, setOpenMode
+    hideModal, setStartFrame, undo, redo, setOpenMode, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart
 });
 window.addEventListener('resize', resizeMiniStages);
 
