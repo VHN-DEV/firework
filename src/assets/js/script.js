@@ -8,6 +8,7 @@ import fscreen from './fscreen@1.0.1.js';
 import { Stage, Ticker } from './Stage@0.1.4.js';
 import MyMath from './MyMath.js';
 import { printCopyrightNotice } from './copyright.js';
+import { createVideoRecorder, canRecordVideo, pickVideoMimeType } from './recorder.js';
 import '../scss/style.scss';
 
 // Assign to window for global access (needed by HTML and other scripts)
@@ -29,10 +30,17 @@ const IS_DESKTOP = window.innerWidth > 800;
 const IS_HEADER = IS_DESKTOP && window.innerHeight < 300;
 // Chế độ xem nhanh nhúng trong builder (index.html?preview=1): kịch bản được builder gửi sang qua postMessage
 const IS_PREVIEW = new URLSearchParams(window.location.search).has('preview');
+// Quay video (index.html?record=1&scale=..., builder > Xuất video): khung có cỡ như màn hình thật, canvas vẽ phóng lên
+// `scale` lần để ra đúng độ phân giải video (Stage đọc devicePixelRatio khi tạo canvas)
+const IS_RECORD = !IS_PREVIEW && new URLSearchParams(window.location.search).has('record');
+if (IS_RECORD) {
+    const scale = Number(new URLSearchParams(window.location.search).get('scale'));
+    if (scale > 0) Object.defineProperty(window, 'devicePixelRatio', { value: scale, configurable: true });
+}
 
 // Màn trình diễn tặng riêng (?config=..., có tên người nhận) không đưa lên công cụ tìm kiếm.
 // Đặt ngay khi tải trang vì Google không bấm nút "Bắt đầu".
-if (IS_PREVIEW || new URLSearchParams(window.location.search).get('config')) {
+if (IS_PREVIEW || IS_RECORD || new URLSearchParams(window.location.search).get('config')) {
     document.querySelector('meta[name="robots"]')?.setAttribute('content', 'noindex, follow');
 }
 // Phát hiện các thiết bị cao cấp. Đây sẽ là một mục tiêu di động.
@@ -254,8 +262,8 @@ const store = {
     },
 
     persist() {
-        // Bản xem nhanh (có thể giả lập điện thoại) không được ghi đè cài đặt thật của người dùng
-        if (IS_PREVIEW) return;
+        // Bản xem nhanh, khung quay video (có thể giả lập điện thoại) không được ghi đè cài đặt thật của người dùng
+        if (IS_PREVIEW || IS_RECORD) return;
         const config = this.state.config;
         try {
             localStorage.setItem('cm_fireworks_data', JSON.stringify({
@@ -274,7 +282,7 @@ const store = {
 };
 
 
-if (!IS_HEADER && !IS_PREVIEW) {
+if (!IS_HEADER && !IS_PREVIEW && !IS_RECORD) {
     try {
         store.load();
     } catch (e) {
@@ -2248,6 +2256,11 @@ function startCountdown(config) {
 let endScreenTimer = null;
 
 function showEndScreen() {
+    // Khung quay video: thay màn kết bằng thiệp lời chúc trong video rồi xong
+    if (IS_RECORD) {
+        finishRecording(true);
+        return;
+    }
     if (IS_PREVIEW || IS_HEADER || !burstConfig || burstConfig.loop) return;
     const screen = appNodes.endScreen;
     screen.querySelector('.end-screen__title').textContent = burstConfig.title || 'Cảm ơn bạn đã xem!';
@@ -2268,6 +2281,129 @@ function replayShow() {
     musicPlayer.restart();
     clearCaptions();
     togglePause(false);
+}
+
+// ---------------------------------------------------------------------------
+// QUAY VIDEO (builder > Xuất video): builder gửi kịch bản và cỡ video sang; người dùng bấm "Bắt đầu quay" ngay trong
+// khung (trình duyệt chỉ cho phát tiếng sau một lần bấm); màn trình diễn chạy một lượt từ đầu, kết bằng thiệp lời chúc,
+// rồi file video được gửi về builder. Xem recorder.js.
+// ---------------------------------------------------------------------------
+
+// Chờ trước phát pháo đầu tiên, và thời gian thiệp lời chúc ở cuối video (ms)
+const RECORD_LEAD = 800;
+const RECORD_END_CARD = 4000;
+
+const recording = {
+    config: null,
+    options: null,
+    recorder: null,
+    progressTimer: null,
+    finishing: false
+};
+
+function postToBuilder(message) {
+    window.parent.postMessage(message, window.location.origin);
+}
+
+// Nhạc nền tải đủ để phát liền mạch (tối đa 15 giây)
+function waitForMusic(audio) {
+    return new Promise(resolve => {
+        if (!audio || audio.readyState >= 4) {
+            resolve();
+            return;
+        }
+        const done = () => {
+            clearTimeout(timer);
+            resolve();
+        };
+        const timer = setTimeout(done, 15000);
+        audio.addEventListener('canplaythrough', done, { once: true });
+        audio.addEventListener('error', done, { once: true });
+    });
+}
+
+async function prepareRecording({ config: source, options }) {
+    // Video chỉ quay một lượt
+    const config = await prepareBurstConfig({ ...source, loop: false }, { showOverlay: false });
+    soundManager.setEffectsVolume(config.effectsVolume ?? 1);
+    await soundManager.preload(getRequiredSoundTypes(config));
+    musicPlayer.load(config.music);
+    if (musicPlayer.config) await waitForMusic(musicPlayer.audio);
+    recording.config = config;
+    recording.options = options || {};
+    document.documentElement.classList.add('record-ready');
+    postToBuilder({
+        type: 'firework-record-prepared',
+        supported: canRecordVideo(),
+        mimeType: pickVideoMimeType(),
+        // Nhạc từ link ngoài không đưa qua Web Audio được nên không ghi vào video
+        musicCaptured: !config.music || !!musicPlayer.gain
+    });
+}
+
+function startRecording() {
+    if (!recording.config || recording.recorder) return;
+    document.documentElement.classList.remove('record-ready');
+    // Đang trong lúc bấm: mở khóa tiếng pháo và cho phép phát nhạc về sau
+    soundManager.resumeAll();
+    const audio = musicPlayer.audio;
+    if (musicPlayer.config && audio) {
+        audio.muted = true;
+        const attempt = audio.play();
+        const unmute = () => {
+            audio.pause();
+            audio.muted = false;
+        };
+        if (attempt && attempt.then) attempt.then(unmute, unmute);
+    }
+    const { width, height, fps, bitrate } = recording.options;
+    const recorder = recording.recorder = createVideoRecorder({
+        width: width || mainStage.canvas.width,
+        height: height || mainStage.canvas.height,
+        fps,
+        bitrate,
+        container: appNodes.stageContainer,
+        background: appNodes.backgroundImage,
+        layers: [trailsStage.canvas, mainStage.canvas],
+        texts: () => [...document.querySelectorAll('.config-overlay h1, .config-overlay h2, .config-overlay p, .caption-layer .caption')],
+        audioContext: soundManager.ctx,
+        audioNodes: [soundManager.effectsGain, musicPlayer.gain]
+    });
+    recorder.start();
+    // Chạy lại từ đầu, đúng như khi người nhận vừa mở quà. Bỏ hẹn giờ màn kết của kịch bản rỗng lúc chờ quay.
+    clearTimeout(endScreenTimer);
+    burstConfig = recording.config;
+    burstCounter = 0;
+    syncShow.reset();
+    clearCaptions();
+    musicPlayer.restart();
+    autoLaunchTime = RECORD_LEAD;
+    showTitleOverlay(burstConfig);
+    recording.progressTimer = setInterval(() => postToBuilder({ type: 'firework-record-progress', elapsed: recorder.elapsed() }), 500);
+    postToBuilder({ type: 'firework-record-started' });
+}
+
+// withCard: chạy hết màn trình diễn thì kết bằng thiệp lời chúc; dừng giữa chừng thì cắt luôn
+async function finishRecording(withCard) {
+    const recorder = recording.recorder;
+    if (!recorder || recording.finishing) return;
+    recording.finishing = true;
+    const config = recording.config;
+    if (withCard) {
+        await recorder.showEndCard({
+            title: config.title,
+            message: frameText(config.outroMessage) || config.subtitle,
+            from: config.author
+        }, RECORD_END_CARD);
+    }
+    clearInterval(recording.progressTimer);
+    const elapsed = recorder.elapsed();
+    const blob = await recorder.stop();
+    // Dừng pháo và nhạc
+    burstConfig = { events: [] };
+    syncShow.reset();
+    musicPlayer.finish(0);
+    postToBuilder({ type: 'firework-record-done', blob, elapsed });
 }
 
 // ---------------------------------------------------------------------------
@@ -2414,22 +2550,25 @@ async function prepareBurstConfig(burstConfig, { showOverlay }) {
     const description = replacePlaceholders(burstConfig.seoDescription) || [burstConfig.subtitle, burstConfig.author].filter(Boolean).join(' – ');
     if (description) document.querySelector('meta[name="description"]')?.setAttribute('content', description);
 
-    // Hiển thị overlay thông tin nếu có
-    if (burstConfig.title || burstConfig.author) {
-        const overlay = document.createElement('div');
-        overlay.className = 'config-overlay';
-        [['h1', burstConfig.title], ['h2', burstConfig.subtitle], ['p', burstConfig.author]].forEach(([tag, text]) => {
-            if (!text) return;
-            const el = document.createElement(tag);
-            // Dùng textContent: kịch bản do người khác soạn không thể chèn mã HTML/JS vào trang
-            el.textContent = text;
-            overlay.appendChild(el);
-        });
-        document.body.appendChild(overlay);
-        setTimeout(() => overlay.classList.add('fade-out'), 5000);
-        setTimeout(() => overlay.remove(), 7000);
-    }
+    showTitleOverlay(burstConfig);
     return burstConfig;
+}
+
+// Tiêu đề, dòng phụ, người thực hiện hiện giữa màn hình lúc bắt đầu rồi mờ dần
+function showTitleOverlay(config) {
+    if (!config.title && !config.author) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'config-overlay';
+    [['h1', config.title], ['h2', config.subtitle], ['p', config.author]].forEach(([tag, text]) => {
+        if (!text) return;
+        const el = document.createElement(tag);
+        // Dùng textContent: kịch bản do người khác soạn không thể chèn mã HTML/JS vào trang
+        el.textContent = text;
+        overlay.appendChild(el);
+    });
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.classList.add('fade-out'), 5000);
+    setTimeout(() => overlay.remove(), 7000);
 }
 
 async function init() {
@@ -5232,6 +5371,35 @@ if (IS_PREVIEW) {
     });
 
     init().then(() => window.parent.postMessage({ type: 'firework-preview-ready' }, window.location.origin));
+}
+else if (IS_RECORD) {
+    // Khung quay video trong builder: không có màn chờ, chưa nhận kịch bản thì không bắn pháo ngẫu nhiên
+    document.documentElement.classList.add('is-record-mode');
+    appNodes.startScreen.classList.add('remove');
+    burstConfig = { events: [] };
+    const startPanel = document.createElement('div');
+    startPanel.className = 'record-start';
+    startPanel.innerHTML = '<button type="button"><span class="record-dot"></span>Bắt đầu quay</button>'
+        + '<p>Màn trình diễn sẽ chạy từ đầu và được quay lại kèm âm thanh.</p>';
+    startPanel.querySelector('button').addEventListener('click', startRecording);
+    document.body.appendChild(startPanel);
+
+    window.addEventListener('message', (e) => {
+        const msg = e.data;
+        if (e.origin !== window.location.origin || !msg) return;
+        if (msg.type === 'firework-record-load') prepareRecording(msg);
+        else if (msg.type === 'firework-record-start') startRecording();
+        else if (msg.type === 'firework-record-stop') finishRecording(false);
+    });
+    // Tab bị ẩn thì pháo và nhạc đứng lại, video cũng tạm dừng theo
+    document.addEventListener('visibilitychange', () => {
+        const recorder = recording.recorder;
+        if (!recorder || recording.finishing) return;
+        if (document.hidden) recorder.pause();
+        else recorder.resume();
+    });
+
+    init().then(() => window.parent.postMessage({ type: 'firework-record-frame-ready' }, window.location.origin));
 }
 // Tiêu đề hồ sơ không cần âm thanh, chỉ cần khởi tạo.
 else if (IS_HEADER) {

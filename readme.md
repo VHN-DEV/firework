@@ -28,9 +28,9 @@
 ## Kiểm thử & triển khai
 
 - `npm run build`: build vào thư mục `dist` (chạy trên XAMPP tại `http://localhost/firework/dist/`).
-- `npm test`: build rồi chạy kiểm thử tự động (hơn 40 bước: trình phát, link tặng, hộp quà, hẹn giờ, nhạc nền, lời nhắn,
+- `npm test`: build rồi chạy kiểm thử tự động (hơn 50 bước: trình phát, link tặng, hộp quà, hẹn giờ, nhạc nền, lời nhắn,
   màn kết, mọi loại pháo và kiểu bắn, builder lưu/mở/chia sẻ, hoàn tác và bản nháp, xếp pháo theo nhịp nhạc với bài nhạc
-  biết trước đáp án, trang Điều khoản/Bảo mật).
+  biết trước đáp án, xuất video có hình và tiếng, trang Điều khoản/Bảo mật).
   Cần PHP (lệnh `php`, hoặc biến `PHP_BIN`) và Google Chrome (biến `CHROME_PATH` nếu không ở chỗ mặc định).
   `npm run test:e2e` chạy kiểm thử trên bản build sẵn có.
 - Mỗi lần push lên `main`, GitHub Actions (`.github/workflows/deploy.yml`) tự cài thư viện, build, chạy kiểm thử;

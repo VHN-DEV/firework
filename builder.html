@@ -72,6 +72,9 @@
                     <button class="btn ghost" onclick="exportConfig()" title="Xuất kịch bản ra file .json">
                         <i class="fas fa-file-export"></i><span>Xuất</span>
                     </button>
+                    <button class="btn ghost" onclick="openVideoModal()" title="Quay màn trình diễn thành video (TikTok, Zalo...)">
+                        <i class="fas fa-film"></i><span>Video</span>
+                    </button>
                 </div>
                 <button class="btn ghost show-tablet" onclick="toggleSidebar()" title="Cấu hình chung">
                     <i class="fas fa-sliders"></i><span>Cài đặt</span>
@@ -103,6 +106,7 @@
                         <button onclick="document.getElementById('import-file').click()"><i
                                 class="fas fa-file-import"></i> Nhập file .json</button>
                         <button onclick="exportConfig()"><i class="fas fa-file-export"></i> Xuất file .json</button>
+                        <button onclick="openVideoModal()"><i class="fas fa-film"></i> Xuất video</button>
                         <hr>
                         <button onclick="showModal('help-modal')"><i class="fas fa-circle-question"></i> Hướng
                             dẫn</button>
@@ -550,6 +554,8 @@
                                     class="fas fa-qrcode"></i> Tải mã QR</button>
                             <button class="btn secondary small" onclick="downloadShareImage()"><i
                                     class="fas fa-image"></i> Tải ảnh thiệp</button>
+                            <button class="btn secondary small" onclick="closeShareModal(); openVideoModal()"><i
+                                    class="fas fa-film"></i> Xuất video</button>
                         </div>
                     </div>
                 </div>
@@ -567,6 +573,48 @@
                 </button>
             </div>
             <div class="scripts-grid" id="scripts-list"></div>
+        </div>
+    </div>
+
+    <div id="video-modal" class="modal hide">
+        <div class="modal-content large video-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-film"></i> Xuất video</h3>
+                <button class="btn icon" onclick="closeVideoModal()" title="Đóng">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+            <div class="templates-body video-body">
+                <!-- Bước 1: khung hình, chất lượng -->
+                <div id="video-setup" class="video-setup">
+                    <p class="templates-lead">Quay màn trình diễn kèm tiếng pháo và nhạc nền thành video để đăng TikTok,
+                        Story, Reels hoặc gửi qua Zalo, Messenger.</p>
+                    <div>
+                        <label>Khung hình<button type="button" class="help-tip" data-help="videoFormat" aria-label="Giải thích">?</button></label>
+                        <div id="video-formats" class="shell-grid video-formats"></div>
+                    </div>
+                    <div>
+                        <label>Chất lượng<button type="button" class="help-tip" data-help="videoQuality" aria-label="Giải thích">?</button></label>
+                        <div class="segmented video-qualities" role="group" aria-label="Chất lượng video">
+                            <button type="button" data-quality="fhd" onclick="setVideoQuality('fhd')">Full HD</button>
+                            <button type="button" data-quality="hd" onclick="setVideoQuality('hd')">HD (nhẹ hơn)</button>
+                        </div>
+                    </div>
+                    <ul id="video-notes" class="video-notes"></ul>
+                </div>
+                <!-- Bước 2: quay -->
+                <div id="video-stage" class="video-stage hide">
+                    <div id="video-frame-box" class="video-frame-box"></div>
+                    <div class="beat-progress video-progress"><span id="video-progress-bar"></span></div>
+                    <p id="video-status" class="video-status"></p>
+                </div>
+                <!-- Bước 3: xem lại, tải về -->
+                <div id="video-result" class="video-result hide">
+                    <video id="video-output" controls playsinline></video>
+                    <p id="video-info" class="video-status"></p>
+                </div>
+            </div>
+            <div id="video-actions" class="modal-actions templates-actions"></div>
         </div>
     </div>
 
@@ -746,6 +794,8 @@
                 <div class="help-section actions-guide">
                     <h4><i class="fas fa-floppy-disk"></i> Lưu & chia sẻ</h4>
                     <p>Bấm <strong>Lưu</strong> để tạo link riêng, rồi gửi cho bạn bè qua Messenger, Zalo...</p>
+                    <p>Bấm <strong>Video</strong> để quay màn trình diễn kèm tiếng pháo và nhạc thành video (dọc cho
+                        TikTok/Story, ngang hoặc vuông), xem lại rồi tải về.</p>
                 </div>
             </div>
             <div class="modal-footer">

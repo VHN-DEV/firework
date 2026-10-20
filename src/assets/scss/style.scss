@@ -594,6 +594,68 @@ body {
     }
 }
 
+// Khung quay video (builder > Xuất video): chỉ còn bầu trời; nút "Bắt đầu quay" ở giữa trước khi quay
+.is-record-mode {
+    .controls,
+    .end-screen {
+        display: none !important;
+    }
+}
+
+.record-start {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3vmin;
+    padding: 0 8vmin;
+    background: rgba(0, 0, 0, 0.45);
+    text-align: center;
+
+    .record-ready & {
+        display: flex;
+    }
+
+    button {
+        display: inline-flex;
+        align-items: center;
+        gap: 2.4vmin;
+        padding: 3vmin 7vmin;
+        border: none;
+        border-radius: 99px;
+        background: linear-gradient(135deg, #ff0043 0%, #ff6a3d 100%);
+        color: #fff;
+        font-family: inherit;
+        font-size: 6vmin;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 2vmin 5vmin rgba(255, 0, 67, 0.4);
+        animation: recordPulse 1.6s ease-in-out infinite;
+    }
+
+    p {
+        max-width: 80vmin;
+        margin: 0;
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 3.6vmin;
+        line-height: 1.5;
+    }
+}
+
+.record-dot {
+    width: 4vmin;
+    height: 4vmin;
+    border-radius: 50%;
+    background: #fff;
+}
+
+@keyframes recordPulse {
+    50% { transform: scale(1.05); }
+}
+
 /* Start Screen */
 .start-screen {
     position: fixed;
