@@ -87,7 +87,8 @@ const LAUNCH_STYLES = [
     { value: 'spiral', name: 'Xoắn đôi', icon: '➰', hint: 'Hai vệt sáng uốn lượn quấn vào nhau như lò xo khi bay lên.' },
     { value: 'popping', name: 'Nổ dọc đường', icon: '🎉', hint: 'Vừa bay lên vừa nổ lụp bụp từng chùm nhỏ.' },
     { value: 'stages', name: 'Bay nhiều tầng', icon: '🚀', hint: 'Bay chậm dần, nổ một chùm rồi vọt lên tầng tiếp theo, lặp lại trước khi nổ chính. Bay lâu hơn khoảng 2 giây.' },
-    { value: 'wander', name: 'Bay lượn', icon: '〰️', hint: 'Chao qua chao lại ngẫu nhiên, không theo đường thẳng.' }
+    { value: 'wander', name: 'Bay lượn', icon: '〰️', hint: 'Chao qua chao lại ngẫu nhiên, không theo đường thẳng.' },
+    { value: 'stealth', name: 'Đạn tàng hình', icon: '👂', hint: 'Không thấy đường đạn bay lên, chỉ nghe tiếng phóng rồi pháo bất ngờ nổ giữa trời.' }
 ];
 
 // Khung bắt đầu: màn hình người xem thấy trước khi màn trình diễn bắt đầu.

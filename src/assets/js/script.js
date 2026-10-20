@@ -3556,6 +3556,16 @@ const LAUNCH_STYLES = {
                 setLateralOffset(star, ramp * waves.reduce((sum, w) => sum + Math.sin(w.phase + w.freq * t) * w.amp, 0));
             };
         }
+    },
+
+    // Đạn tàng hình: không thấy đường đạn bay, chỉ nghe tiếng phóng rồi pháo bất ngờ nổ giữa trời
+    stealth: {
+        setup(shell, comet) {
+            // Không vẽ đầu đạn và không tóe tia lửa dọc đường; vẫn bay đúng quỹ đạo tới điểm nổ
+            comet.visible = false;
+            comet.sparkFreq = 0;
+            comet.spinRadius = 0;
+        }
     }
 };
 

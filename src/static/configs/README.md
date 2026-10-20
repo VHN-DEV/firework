@@ -100,7 +100,7 @@ Bạn có thể thêm các thuộc tính này vào bất kỳ loại pháo nào 
 | **`pistilColor`**| chuỗi | Màu của tâm pháo (ví dụ: `"White"`). |
 | **`streamers`**| bool | `true`: Tạo các dải sáng dài vút ra ngoài. |
 | **`horsetail`**| bool | `true`: Hiệu ứng đuôi ngựa rủ xuống từ từ. |
-| **`launchStyle`** | chuỗi | Kiểu bắn (cách pháo bay lên), dùng được cho mọi loại pháo: `"straight"` bay thẳng, `"spiral"` xoắn đôi (hai vệt sáng quấn vào nhau), `"popping"` nổ dọc đường, `"stages"` bay nhiều tầng (chậm dần, nổ một chùm rồi vọt lên tầng tiếp), `"wander"` bay lượn. Để trống thì theo loại pháo (bay thẳng, riêng `"Xoắn ốc"` bay xoắn đôi). Kịch bản cũ dùng `spiralLift: true` vẫn chạy như `"spiral"`. |
+| **`launchStyle`** | chuỗi | Kiểu bắn (cách pháo bay lên), dùng được cho mọi loại pháo: `"straight"` bay thẳng, `"spiral"` xoắn đôi (hai vệt sáng quấn vào nhau), `"popping"` nổ dọc đường, `"stages"` bay nhiều tầng (chậm dần, nổ một chùm rồi vọt lên tầng tiếp), `"wander"` bay lượn, `"stealth"` đạn tàng hình (không thấy đường đạn, chỉ nghe tiếng phóng rồi pháo nổ). Để trống thì theo loại pháo (bay thẳng, riêng `"Xoắn ốc"` bay xoắn đôi). Kịch bản cũ dùng `spiralLift: true` vẫn chạy như `"spiral"`. |
 | **`hang`** | bool | `true`: Hạt cháy lâu gấp 2,5 lần, lơ lửng rơi chậm và lấp lánh trước khi tàn (hợp với `"Trái tim"`, `"Văn bản"` để hình giữ lâu hơn). |
 | **`starLife`** | số | Thời gian tồn tại của hạt pháo (ms). Để trống thì dùng mặc định của từng loại pháo. |
 | **`starDensity`**| số | Hệ số mật độ hạt so với mặc định của loại pháo (`1` = giữ nguyên). Tăng lên (ví dụ `2`) để pháo dày hơn. |
