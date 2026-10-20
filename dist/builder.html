@@ -28,9 +28,9 @@
     <meta name="msapplication-TileColor" content="#000000">
     <meta name="msapplication-TileImage" content="./assets/img/firework-burst-icon-v2.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <script type="module" crossorigin src="./assets/js/builder-DbANiyNA.js"></script>
+  <script type="module" crossorigin src="./assets/js/builder-Cg_Hqx94.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/js/fscreen@1.0.1-DMddFZs8.js">
-  <link rel="stylesheet" crossorigin href="./assets/css/builder-ep6w7OMr.css">
+  <link rel="stylesheet" crossorigin href="./assets/css/builder-BsmKBVyc.css">
 </head>
 
 <body>
@@ -209,6 +209,67 @@
 
                     <div class="field-divider"></div>
 
+                    <!-- Nhạc nền: phát cùng đợt pháo đầu tiên, lặp suốt màn trình diễn -->
+                    <div class="field music-field">
+                        <label>Nhạc nền</label>
+                        <div id="music-empty" class="music-empty">
+                            <button type="button" id="btn-music-upload" class="music-upload"
+                                onclick="document.getElementById('music-file').click()">
+                                <i class="fas fa-music"></i>
+                                <span><strong>Chọn bài nhạc từ máy</strong><small>MP3, M4A, OGG, WAV · tối đa
+                                        20MB</small></span>
+                            </button>
+                            <div class="music-url-row">
+                                <input type="url" id="music-url" placeholder="Hoặc dán link file nhạc (.mp3)">
+                                <button type="button" class="btn secondary small"
+                                    onclick="setMusicFromUrl()">Dùng</button>
+                            </div>
+                            <small id="music-hint" class="field-hint">Nhạc bắt đầu cùng đợt pháo đầu tiên và lặp lại
+                                suốt màn trình diễn.</small>
+                        </div>
+                        <div id="music-card" class="music-card hide">
+                            <div class="music-head">
+                                <span class="music-disc"><i class="fas fa-compact-disc"></i></span>
+                                <span id="music-name" class="music-name"></span>
+                                <button type="button" class="icon-btn danger" onclick="removeMusic()"
+                                    title="Bỏ nhạc nền"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <audio id="music-audio" controls preload="metadata"></audio>
+                            <div class="music-controls">
+                                <div>
+                                    <label for="music-start">Phát từ giây</label>
+                                    <div class="music-start-row">
+                                        <input type="number" id="music-start" min="0" step="0.5" value="0">
+                                        <button type="button" class="icon-btn" onclick="useCurrentMusicTime()"
+                                            title="Lấy đúng chỗ đang nghe làm điểm bắt đầu"><i
+                                                class="fas fa-location-crosshairs"></i></button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="field-label-row">
+                                        <label for="music-volume">Âm lượng nhạc</label>
+                                        <output id="out-music-volume">80%</output>
+                                    </div>
+                                    <input type="range" id="music-volume" min="0" max="100" step="5" value="80">
+                                </div>
+                            </div>
+                            <small class="field-hint">Bấm <i class="fas fa-music"></i> ở khung xem nhanh để nghe nhạc
+                                cùng pháo hoa.</small>
+                        </div>
+                        <input type="file" id="music-file" class="hide"
+                            accept="audio/*,.mp3,.m4a,.ogg,.wav">
+                    </div>
+                    <div class="field">
+                        <div class="field-label-row">
+                            <label for="effects-volume">Âm lượng tiếng pháo</label>
+                            <output id="out-effects-volume">100%</output>
+                        </div>
+                        <input type="range" id="effects-volume" min="0" max="100" step="5" value="100">
+                        <small class="field-hint">Giảm xuống để nghe rõ nhạc hơn, 0% là tắt hẳn tiếng nổ.</small>
+                    </div>
+
+                    <div class="field-divider"></div>
+
                     <div class="field">
                         <label for="filename">Tên file kịch bản</label>
                         <div class="input-with-ext">
@@ -260,6 +321,8 @@
                                 title="Chạy kịch bản một lượt"><i class="fas fa-play"></i></button>
                             <button class="icon-btn" onclick="restartMiniPreview()" title="Chạy lại từ đầu"><i
                                     class="fas fa-rotate-right"></i></button>
+                            <button id="btn-music-mini" class="icon-btn hide" onclick="togglePreviewMusic()"
+                                title="Nghe nhạc nền khi xem nhanh"><i class="fas fa-music"></i></button>
                             <button id="btn-device-mini" class="icon-btn" onclick="togglePreviewDevice()"
                                 title="Đang xem như trên máy tính - bấm để xem như trên điện thoại"><i
                                     class="fas fa-desktop"></i></button>
@@ -409,6 +472,8 @@
                     <ul>
                         <li><strong>Tiêu đề & dòng phụ:</strong> hiện lên khi màn trình diễn bắt đầu.</li>
                         <li><strong>Ảnh nền:</strong> bật để có cảnh thành phố, hoặc bấm vào ảnh để tải ảnh của bạn.</li>
+                        <li><strong>Nhạc nền:</strong> chọn bài nhạc từ máy hoặc dán link file nhạc; chọn giây bắt đầu để
+                            bỏ đoạn dạo đầu. Nhạc phát cùng đợt pháo đầu tiên.</li>
                         <li><strong>Tên file:</strong> dùng để lưu và tạo link chia sẻ. Trùng tên sẽ tự thêm số.</li>
                     </ul>
                 </div>
@@ -429,7 +494,9 @@
                         <li><strong>Chọn phát bắn</strong> trong dòng thời gian để mở bảng chỉnh sửa.</li>
                         <li><strong>Vị trí:</strong> bấm hoặc kéo trên khung để chọn điểm nổ (X: trái → phải, Y: đất → trời).</li>
                         <li><strong>Màu sắc:</strong> chọn nhiều màu để pháo đa sắc, hoặc "Ngẫu nhiên".</li>
-                        <li><strong>Nâng cao:</strong> mật độ hạt, màu chuyển, lấp lánh, nổ chéo, đuôi ngựa...</li>
+                        <li><strong>Hình ảnh:</strong> tải ảnh lên, chọn khung trái tim/ngôi sao/tròn...; pháo nổ thành viền
+                            khung, ảnh lớn dần và rõ dần bên trong.</li>
+                        <li><strong>Nâng cao:</strong> mật độ hạt, màu chuyển, lấp lánh, bay xoắn ốc, cháy lâu, nổ chéo...</li>
                     </ul>
                 </div>
 
@@ -438,6 +505,7 @@
                     <ul>
                         <li>Chạy chính trình diễn thật nên hiển thị giống hệt khi gửi cho bạn bè.</li>
                         <li>Khi đang chọn một phát bắn, khung xem nhanh chỉ bắn lặp lại phát đó.</li>
+                        <li>Nút <i class="fas fa-music"></i> phát nhạc nền khớp nhịp với cả kịch bản.</li>
                         <li>Nút <i class="fas fa-desktop"></i> / <i class="fas fa-mobile-screen"></i> chuyển giữa màn hình
                             máy tính và điện thoại.</li>
                     </ul>

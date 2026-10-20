@@ -258,6 +258,12 @@ button {
         color: $b-danger;
         background: rgba($b-danger, 0.12);
     }
+
+    // Nút đang bật (vd: nghe nhạc khi xem nhanh)
+    &.active {
+        color: #fff;
+        background: rgba($b-accent, 0.35);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -273,6 +279,7 @@ label {
 
 input[type="text"],
 input[type="number"],
+input[type="url"],
 select {
     width: 100%;
     height: 38px;
@@ -814,6 +821,150 @@ select.is-invalid {
 
     &:hover .upload-overlay {
         opacity: 1;
+    }
+}
+
+// Nhạc nền
+.music-upload {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px dashed $b-line-strong;
+    border-radius: $b-radius-sm;
+    background: rgba($b-accent, 0.06);
+    color: $b-text;
+    text-align: left;
+    transition: border-color 0.15s, background-color 0.15s;
+
+    > i {
+        width: 34px;
+        height: 34px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: $b-gradient;
+        color: #fff;
+        font-size: 0.9rem;
+    }
+
+    strong {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    small {
+        color: $b-faint;
+        font-size: 0.72rem;
+    }
+
+    &:hover {
+        border-color: $b-accent;
+        background: rgba($b-accent, 0.12);
+    }
+}
+
+.music-url-row {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+
+    input {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .btn {
+        flex-shrink: 0;
+    }
+}
+
+.music-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.75rem;
+    border-radius: $b-radius-sm;
+    background: $b-panel-2;
+    border: 1px solid $b-line-strong;
+
+    audio {
+        width: 100%;
+        height: 36px;
+        color-scheme: dark;
+    }
+}
+
+.music-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.music-disc {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: $b-gradient;
+    color: #fff;
+    // Đĩa nhạc chỉ quay khi đang phát
+    animation: music-spin 4s linear infinite paused;
+
+    .music-card.playing & {
+        animation-play-state: running;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+
+@keyframes music-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.music-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: $b-text;
+}
+
+.music-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    align-items: end;
+}
+
+.music-start-row {
+    display: flex;
+    gap: 0.25rem;
+
+    input {
+        min-width: 0;
+    }
+
+    .icon-btn {
+        width: 36px;
+        height: auto;
+        flex-shrink: 0;
+        border: 1px solid $b-line-strong;
     }
 }
 
@@ -1474,6 +1625,11 @@ select.is-invalid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
     gap: 0.4rem;
+
+    // Lưới chọn khung ảnh: ô nhỏ hơn
+    &.frame-grid {
+        grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    }
 }
 
 .shell-option {

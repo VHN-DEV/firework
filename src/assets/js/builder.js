@@ -18,7 +18,10 @@ const state = {
     activeEventId: null,
     miniPreviewEnabled: false,
     showBackground: false,
-    background: null
+    background: null,
+    // Nhạc nền { url, name, volume (0-1), start (giây) } và âm lượng tiếng pháo (0-1)
+    music: null,
+    effectsVolume: 1
 };
 
 const isStaticEnv = window.location.hostname.includes('github.io') ||
@@ -39,17 +42,17 @@ const COLOR = {
 // Thứ tự hiển thị trong lưới chọn loại pháo. Gồm cả các loại trình phát hỗ trợ nhưng trước đây builder thiếu
 // (Con bướm, Cỏ 3 lá, Cỏ 4 lá): kịch bản dùng chúng sẽ không còn bị hiện nhầm thành "Hoa cúc".
 const SHELL_TYPES = [
-    "Hoa cúc", "Liễu", "Cây cọ", "Vòng nhẫn", "Nổ chéo", "Nổ lách tách", "Nhấp nháy", "Đuôi ngựa",
-    "Ma", "Nổ nhiều lần", "Trái tim", "Ngôi sao", "Kim cương", "Bông tuyết", "Bông sen", "Hành tinh",
-    "Con bướm", "Cỏ 3 lá", "Cỏ 4 lá", "Mặt cười", "Mặt mèo", "Văn bản", "Hình ảnh", "Tạm dừng"
+    "Hoa cúc", "Liễu", "Cây cọ", "Xoay vòng", "Xoắn ốc", "Cháy lâu", "Vòng nhẫn", "Nổ chéo", "Nổ lách tách",
+    "Nhấp nháy", "Đuôi ngựa", "Ma", "Nổ nhiều lần", "Trái tim", "Ngôi sao", "Kim cương", "Bông tuyết", "Bông sen",
+    "Hành tinh", "Con bướm", "Cỏ 3 lá", "Cỏ 4 lá", "Mặt cười", "Mặt mèo", "Văn bản", "Hình ảnh", "Tạm dừng"
 ];
 
 const SHELL_ICONS = {
-    'Hoa cúc': '🌼', 'Liễu': '🌿', 'Cây cọ': '🌴', 'Vòng nhẫn': '⭕', 'Nổ chéo': '✖️', 'Nổ lách tách': '🎇',
-    'Nhấp nháy': '✨', 'Đuôi ngựa': '🐎', 'Ma': '👻', 'Nổ nhiều lần': '💥', 'Trái tim': '❤️', 'Ngôi sao': '⭐',
-    'Kim cương': '💎', 'Bông tuyết': '❄️', 'Bông sen': '🌸', 'Hành tinh': '🪐', 'Con bướm': '🦋',
-    'Cỏ 3 lá': '☘️', 'Cỏ 4 lá': '🍀', 'Mặt cười': '😊', 'Mặt mèo': '🐱', 'Văn bản': '🔤', 'Hình ảnh': '🖼️',
-    'Tạm dừng': '⏸️'
+    'Hoa cúc': '🌼', 'Liễu': '🌿', 'Cây cọ': '🌴', 'Xoay vòng': '🎡', 'Xoắn ốc': '🌀', 'Cháy lâu': '🕯️',
+    'Vòng nhẫn': '⭕', 'Nổ chéo': '✖️', 'Nổ lách tách': '🎇', 'Nhấp nháy': '✨', 'Đuôi ngựa': '🐎', 'Ma': '👻',
+    'Nổ nhiều lần': '💥', 'Trái tim': '❤️', 'Ngôi sao': '⭐', 'Kim cương': '💎', 'Bông tuyết': '❄️',
+    'Bông sen': '🌸', 'Hành tinh': '🪐', 'Con bướm': '🦋', 'Cỏ 3 lá': '☘️', 'Cỏ 4 lá': '🍀', 'Mặt cười': '😊',
+    'Mặt mèo': '🐱', 'Văn bản': '🔤', 'Hình ảnh': '🖼️', 'Tạm dừng': '⏸️'
 };
 
 // Hiệu ứng luôn có sẵn trong loại pháo (trình phát tự bật), hiển thị dạng đã tích và khóa trong mục Nâng cao
@@ -59,16 +62,20 @@ const SHELL_BUILTIN_EFFECTS = {
     'Vòng nhẫn': ['ring'],
     'Nhấp nháy': ['strobe'],
     'Đuôi ngựa': ['horsetail'],
-    'Ma': ['streamers']
+    'Ma': ['streamers'],
+    'Xoắn ốc': ['spiralLift'],
+    'Cháy lâu': ['hang']
 };
 
 const FRAME_TYPES = [
     // Phát bắn chưa chọn khung (frame trống) thực tế hiển thị không khung, nên cần một lựa chọn tương ứng
-    { name: 'Không khung', value: '' },
-    { name: 'Vuông', value: 'square' },
-    { name: 'Tròn', value: 'circle' },
-    { name: 'Tam giác', value: 'triangle' },
-    { name: 'Trái tim', value: 'heart' }
+    { name: 'Không khung', value: '', icon: '🖼️' },
+    { name: 'Trái tim', value: 'heart', icon: '❤️' },
+    { name: 'Ngôi sao', value: 'star', icon: '⭐' },
+    { name: 'Tròn', value: 'circle', icon: '⚪' },
+    { name: 'Bo góc', value: 'rounded', icon: '🔲' },
+    { name: 'Vuông', value: 'square', icon: '⬜' },
+    { name: 'Tam giác', value: 'triangle', icon: '🔺' }
 ];
 
 // Thoát ký tự HTML trước khi chèn dữ liệu người dùng (chữ, màu, tên kịch bản...) vào innerHTML.
@@ -173,6 +180,35 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('loop')?.addEventListener('change', syncLoopState);
+
+    // Nhạc nền
+    document.getElementById('music-file')?.addEventListener('change', (e) => handleMusicUpload(e.target));
+    document.getElementById('music-url')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') setMusicFromUrl();
+    });
+    document.getElementById('music-start')?.addEventListener('change', (e) => {
+        if (!state.music) return;
+        state.music.start = Math.max(0, Math.round((Number(e.target.value) || 0) * 10) / 10);
+        e.target.value = state.music.start;
+    });
+    document.getElementById('music-volume')?.addEventListener('input', (e) => {
+        if (!state.music) return;
+        state.music.volume = Number(e.target.value) / 100;
+        document.getElementById('out-music-volume').textContent = e.target.value + '%';
+        getMusicAudio().volume = state.music.volume;
+    });
+    const musicAudio = getMusicAudio();
+    musicAudio?.addEventListener('play', () => document.getElementById('music-card').classList.add('playing'));
+    musicAudio?.addEventListener('pause', () => document.getElementById('music-card').classList.remove('playing'));
+    document.getElementById('effects-volume')?.addEventListener('input', (e) => {
+        state.effectsVolume = Number(e.target.value) / 100;
+        document.getElementById('out-effects-volume').textContent = e.target.value + '%';
+    });
+    if (isStaticEnv) {
+        document.getElementById('music-hint').textContent = 'Trang tĩnh (GitHub Pages) không tải file lên được: hãy dán link trực tiếp tới file nhạc, '
+            + 'hoặc chép file vào src/static/uploads/music/ rồi dán đường dẫn ./uploads/music/ten-file.mp3.';
+    }
+    renderMusic();
 
     // File Import
     document.getElementById('import-file')?.addEventListener('change', importConfig);
@@ -357,8 +393,6 @@ function addEvent(config = null) {
             floral: false,
             ring: false,
             starDensity: 1,
-            starLife: 2500,
-            spreadSize: 350,
             strobeFreq: 50,
             launchAngle: 90,
             ascentSpeed: 1,
@@ -391,9 +425,11 @@ function addEvent(config = null) {
             comet: false,
             starDensity: 1,
             starCount: undefined,
-            starLife: 2500,
-            starLifeVariation: 0.125,
-            spreadSize: 350,
+            // Tuổi thọ hạt, độ lệch tuổi thọ, độ rộng vụ nổ để trống: mỗi loại pháo dùng thông số riêng của nó
+            // (ví dụ "Cháy lâu" cháy ~6 giây, "Liễu" ~3 giây). Đặt sẵn một số sẽ ghi đè và làm mọi loại giống nhau.
+            starLife: undefined,
+            starLifeVariation: undefined,
+            spreadSize: undefined,
             glitterColor: "",
             secondColor: "",
             transitionTime: undefined,
@@ -470,6 +506,12 @@ function createNewScript() {
         document.getElementById('background-preview').src = backgroundImgUrl;
         refreshMiniPreview();
 
+        // Bỏ nhạc nền
+        state.music = null;
+        state.effectsVolume = 1;
+        previewMusicOn = false;
+        renderMusic();
+
         // Add one default event
         addEvent();
         renderInspector();
@@ -543,7 +585,7 @@ function updateEvent(id, field, value) {
                 }
                 event[field] = num;
             }
-        } else if (['strobe', 'pistil', 'streamers', 'crossette', 'crackle', 'horsetail', 'comet', 'floral', 'ring'].includes(field)) {
+        } else if (['strobe', 'pistil', 'streamers', 'crossette', 'crackle', 'horsetail', 'comet', 'floral', 'ring', 'spiralLift', 'hang'].includes(field)) {
             event[field] = value === true;
         } else {
             event[field] = value;
@@ -876,10 +918,21 @@ function renderInspector() {
                 <input type="file" id="image-file-${event.id}" class="hide" accept="image/*" onchange="handleImageUpload(${event.id}, this)">
             </div>
             <div>
-                <label for="f-frame">Khung ảnh</label>
-                <select id="f-frame" onchange="updateEvent(${event.id}, 'frame', this.value)">
-                    ${FRAME_TYPES.map(f => `<option value="${f.value}" ${(event.frame || '') === f.value ? 'selected' : ''}>${f.name}</option>`).join('')}
-                </select>
+                <label>Khung ảnh</label>
+                <div class="shell-grid frame-grid">
+                    ${FRAME_TYPES.map(f => `
+                        <button type="button" class="shell-option${(event.frame || '') === f.value ? ' selected' : ''}"
+                            onclick="updateEvent(${event.id}, 'frame', '${f.value}'); renderInspector()">
+                            <span class="emoji">${f.icon}</span>${f.name}
+                        </button>`).join('')}
+                </div>
+                <small class="field-hint">Pháo nổ thành viền theo hình khung, ảnh lớn dần và rõ dần bên trong.</small>
+            </div>
+            <div>
+                <label for="f-duration">Thời gian hiện ảnh (ms)</label>
+                <input type="number" id="f-duration" step="500" min="1500" max="20000" value="${event.duration ?? ''}" placeholder="4500"
+                    onchange="updateEvent(${event.id}, 'duration', this.value)">
+                <small class="field-hint">Ảnh hiện dần ~1,8 giây, giữ lại, rồi tan thành tia lửa. Muốn đợt sau chờ ảnh tan hết thì thêm phát "Tạm dừng".</small>
             </div>`;
     } else if (isPause) {
         specific = `
@@ -994,6 +1047,8 @@ function renderInspector() {
             ${effectChip('horsetail', 'Đuôi ngựa')}
             ${effectChip('floral', 'Hoa nở')}
             ${effectChip('ring', 'Vòng nhẫn')}
+            ${effectChip('spiralLift', 'Bay xoắn ốc')}
+            ${effectChip('hang', 'Cháy lâu, rơi chậm')}
         </div>
         <div>
             <label for="f-glitter">Kiểu lấp lánh</label>
@@ -1004,9 +1059,9 @@ function renderInspector() {
         <div class="grid-2">
             ${numberField(event, 'starDensity', 'Mật độ hạt (×)', { step: 0.1, min: 0.1, placeholder: '1' })}
             ${numberField(event, 'starCount', 'Số hạt cố định', { step: 10, min: 1, placeholder: 'Tự động' })}
-            ${numberField(event, 'starLife', 'Tuổi thọ hạt (ms)', { step: 100, min: 100, placeholder: '2500' })}
-            ${numberField(event, 'starLifeVariation', 'Độ lệch tuổi thọ', { step: 0.05, min: 0, max: 1, placeholder: '0.125' })}
-            ${numberField(event, 'spreadSize', 'Độ rộng vụ nổ', { step: 10, min: 50, placeholder: '350' })}
+            ${numberField(event, 'starLife', 'Tuổi thọ hạt (ms)', { step: 100, min: 100, placeholder: 'Theo loại pháo' })}
+            ${numberField(event, 'starLifeVariation', 'Độ lệch tuổi thọ', { step: 0.05, min: 0, max: 1, placeholder: 'Theo loại pháo' })}
+            ${numberField(event, 'spreadSize', 'Độ rộng vụ nổ', { step: 10, min: 50, placeholder: 'Theo loại pháo' })}
             ${numberField(event, 'strobeFreq', 'Nhịp nháy (ms)', { step: 10, min: 10, placeholder: '50' })}
         </div>
         <div class="grid-2">
@@ -1182,6 +1237,194 @@ async function handleImageUpload(id, input) {
 
 window.handleImageUpload = handleImageUpload;
 
+// ---------------------------------------------------------------------------
+// NHẠC NỀN
+// ---------------------------------------------------------------------------
+
+function getMusicAudio() {
+    return document.getElementById('music-audio');
+}
+
+// Đồng bộ mục "Nhạc nền" và "Âm lượng tiếng pháo" theo state
+function renderMusic() {
+    const music = state.music;
+    const audio = getMusicAudio();
+    if (!audio) return;
+    document.getElementById('music-empty').classList.toggle('hide', !!music);
+    document.getElementById('music-card').classList.toggle('hide', !music);
+    if (music) {
+        document.getElementById('music-name').textContent = music.name || decodeURIComponent(music.url.split('/').pop().split('?')[0]) || 'Nhạc nền';
+        const src = normalizeAssetPath(music.url);
+        if (audio.dataset.src !== src) {
+            audio.dataset.src = src;
+            audio.src = src;
+        }
+        const volume = Math.round((music.volume ?? 0.8) * 100);
+        document.getElementById('music-start').value = music.start || 0;
+        document.getElementById('music-volume').value = volume;
+        document.getElementById('out-music-volume').textContent = volume + '%';
+        audio.volume = volume / 100;
+    } else if (audio.dataset.src) {
+        stopPreviewMusic();
+        delete audio.dataset.src;
+        audio.removeAttribute('src');
+        audio.load();
+    }
+    const effects = Math.round(state.effectsVolume * 100);
+    document.getElementById('effects-volume').value = effects;
+    document.getElementById('out-effects-volume').textContent = effects + '%';
+    updateMusicPreviewButton();
+}
+
+function setMusic(music) {
+    state.music = { volume: state.music?.volume ?? 0.8, start: 0, ...music };
+    renderMusic();
+}
+
+function removeMusic() {
+    state.music = null;
+    previewMusicOn = false;
+    renderMusic();
+}
+
+// Điểm bắt đầu = chỗ đang nghe trên thanh phát nhạc
+function useCurrentMusicTime() {
+    if (!state.music) return;
+    state.music.start = Math.round(getMusicAudio().currentTime * 10) / 10;
+    renderMusic();
+    notify(`Nhạc sẽ phát từ giây ${state.music.start.toLocaleString('vi-VN')}.`, 'success');
+}
+
+async function handleMusicUpload(input) {
+    const file = input.files[0];
+    input.value = '';
+    if (!file) return;
+
+    if (isStaticEnv) {
+        notify('Trang tĩnh (GitHub Pages) không lưu được file nhạc. Hãy dán link trực tiếp tới file nhạc.', 'warning');
+        return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+        notify('File nhạc quá lớn (tối đa 20MB).', 'error');
+        return;
+    }
+    const scenarioName = document.getElementById('filename').value.trim();
+    if (!scenarioName) {
+        notify('Vui lòng nhập tên kịch bản trước khi tải nhạc!', 'warning');
+        return;
+    }
+
+    showLoading('Đang tải nhạc lên...');
+    const formData = new FormData();
+    formData.append('audio', file);
+    formData.append('filename', scenarioName);
+    try {
+        const response = await fetch('api/upload_audio.php', { method: 'POST', body: formData });
+        const data = await response.json();
+        hideLoading();
+        if (data.success) {
+            setMusic({ url: data.url, name: data.name || file.name });
+            notify('Đã thêm nhạc nền!', 'success');
+        } else {
+            notify('Lỗi: ' + data.message, 'error');
+        }
+    } catch (e) {
+        hideLoading();
+        notify('Lỗi kết nối khi tải nhạc.', 'error');
+    }
+}
+
+// Dùng link nhạc có sẵn: thử tải trước để báo lỗi ngay (link trang YouTube, link hỏng...)
+function setMusicFromUrl() {
+    const input = document.getElementById('music-url');
+    const url = input.value.trim();
+    if (!url) return;
+    if (!/^(https?:\/\/|\.?\/)/i.test(url)) {
+        notify('Link nhạc phải bắt đầu bằng https:// hoặc ./', 'warning');
+        return;
+    }
+
+    showLoading('Đang kiểm tra link nhạc...');
+    const probe = new Audio();
+    let settled = false;
+    const finish = (ok) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        probe.removeAttribute('src');
+        hideLoading();
+        if (ok) {
+            setMusic({ url, name: decodeURIComponent(url.split('/').pop().split('?')[0]) || 'Nhạc nền' });
+            input.value = '';
+            notify('Đã thêm nhạc nền!', 'success');
+        } else {
+            notify('Không phát được link này. Hãy dùng link trực tiếp tới file .mp3 (link trang YouTube, Zing... không dùng được).', 'error');
+        }
+    };
+    const timer = setTimeout(() => finish(false), 15000);
+    probe.preload = 'metadata';
+    probe.addEventListener('loadedmetadata', () => finish(true), { once: true });
+    probe.addEventListener('error', () => finish(false), { once: true });
+    probe.src = normalizeAssetPath(url);
+}
+
+// Nghe nhạc cùng khung xem nhanh: nhạc bắt đầu đúng lúc trình phát bắn đợt 1 (giống màn trình diễn thật)
+let previewMusicOn = false;
+let previewMusicPlaying = false;
+let previewMusicStopTimer = null;
+
+function updateMusicPreviewButton() {
+    const btn = document.getElementById('btn-music-mini');
+    if (!btn) return;
+    btn.classList.toggle('hide', !state.music);
+    btn.classList.toggle('active', previewMusicOn);
+    btn.title = previewMusicOn ? 'Tắt nhạc khi xem nhanh' : 'Nghe nhạc nền khi xem nhanh (chạy lại kịch bản từ đầu)';
+}
+
+function togglePreviewMusic() {
+    if (!state.music) return;
+    previewMusicOn = !previewMusicOn;
+    updateMusicPreviewButton();
+    if (!previewMusicOn) {
+        stopPreviewMusic();
+        return;
+    }
+    // Safari chỉ cho phát nhạc về sau nếu đã play() ngay trong lúc người dùng bấm
+    const audio = getMusicAudio();
+    if (audio.paused) {
+        audio.muted = true;
+        audio.play()
+            .then(() => { if (!previewMusicPlaying) audio.pause(); })
+            .catch(() => {})
+            .finally(() => { audio.muted = false; });
+    }
+    // Chạy cả kịch bản từ đầu để nhạc khớp nhịp
+    if (state.activeEventId) closeInspector();
+    if (previewMode === 'idle') previewMode = 'once';
+    updateMiniInfo();
+    sendPreview(true);
+}
+
+function startPreviewMusic() {
+    const audio = getMusicAudio();
+    if (!state.music || !audio) return;
+    clearTimeout(previewMusicStopTimer);
+    previewMusicPlaying = true;
+    audio.muted = false;
+    audio.volume = state.music.volume ?? 0.8;
+    try {
+        audio.currentTime = state.music.start || 0;
+    } catch (e) {
+        // Chưa tải xong thông tin bài nhạc: phát từ đầu
+    }
+    audio.play().catch(() => notify('Trình duyệt chặn phát nhạc, hãy bấm nút nhạc ở khung xem nhanh lần nữa.', 'warning'));
+}
+
+function stopPreviewMusic() {
+    previewMusicPlaying = false;
+    getMusicAudio()?.pause();
+}
+
 
 function getFinalConfig() {
     return {
@@ -1192,6 +1435,8 @@ function getFinalConfig() {
         loop: document.getElementById('loop').checked,
         showBackground: state.showBackground,
         background: state.background,
+        music: state.music ? { ...state.music } : undefined,
+        effectsVolume: state.effectsVolume < 1 ? state.effectsVolume : undefined,
         status: state.status || "public",
         events: state.events.map(e => {
             const { id, expanded, ...cleanEvent } = e;
@@ -1941,6 +2186,11 @@ function loadConfigIntoState(config, filename) {
     state.status = config.status || 'public';
     state.showBackground = !!config.showBackground;
     state.background = config.background || null;
+    state.music = config.music && typeof config.music.url === 'string' ? { ...config.music } : null;
+    const effectsVolume = Number(config.effectsVolume);
+    state.effectsVolume = config.effectsVolume !== undefined && Number.isFinite(effectsVolume) ? Math.max(0, Math.min(1, effectsVolume)) : 1;
+    previewMusicOn = false;
+    renderMusic();
 
     document.getElementById('show-background').checked = state.showBackground;
     document.getElementById('background-upload-container').classList.toggle('hide', !state.showBackground);
@@ -2056,9 +2306,10 @@ function sendPreview(restart) {
     const config = getFinalConfig();
     const index = state.activeEventId ? state.events.findIndex(e => e.id === state.activeEventId) : -1;
     if (index !== -1) {
-        // Đang chọn một phát bắn: chỉ bắn lặp lại phát đó
+        // Đang chọn một phát bắn: chỉ bắn lặp lại phát đó (nhạc không còn khớp nhịp nên dừng)
         config.loop = true;
         config.events = [{ ...config.events[index], burst: 1, delay: 0 }];
+        if (previewMusicPlaying) stopPreviewMusic();
     } else if (previewMode === 'idle') {
         config.events = [];
     } else {
@@ -2089,10 +2340,13 @@ window.addEventListener('message', (e) => {
     if (e.data.type === 'firework-preview-ready' && e.source === getPreviewFrame()?.contentWindow) {
         previewReady = true;
         sendPreview(true);
+    } else if (e.data.type === 'firework-preview-started' && previewMusicOn && !state.activeEventId) {
+        startPreviewMusic();
     } else if (e.data.type === 'firework-preview-ended' && previewMode === 'once' && !state.activeEventId) {
         previewMode = 'idle';
         const info = document.getElementById('mini-preview-info');
         if (info) info.innerText = 'Đã chạy xong';
+        if (previewMusicPlaying) previewMusicStopTimer = setTimeout(stopPreviewMusic, 3000);
     }
 });
 
@@ -2236,7 +2490,8 @@ Object.assign(window, {
     rememberSection, editScript, duplicateScript, deleteScript, previewScript, copyShareLink, copyScriptLink,
     openScriptsModal, exportConfig, previewConfig, saveConfig, toggleSidebar, toggleMoreMenu, showModal,
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
-    downloadShareImage, renderShareImage
+    downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
+    togglePreviewMusic
 });
 window.addEventListener('resize', resizeMiniStages);
 

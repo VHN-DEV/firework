@@ -24,6 +24,8 @@ Thư mục này chứa các file JSON để **tùy biến lời chúc và hiệu
 | `author` | Tên người đạo diễn/người gửi. |
 | `seoTitle` | (Tùy chọn) Tiêu đề hiện trên Facebook, Zalo, Messenger... khi gửi link. Để trống sẽ dùng `title`. |
 | `loop` | `true`: Tự động lặp lại show; `false`: Chạy hết một lần rồi dừng. |
+| `music` | (Tùy chọn) Nhạc nền, xem mục **🎵 Nhạc nền** bên dưới. |
+| `effectsVolume` | (Tùy chọn) Âm lượng tiếng pháo từ `0` (tắt hẳn) đến `1` (mặc định). Giảm xuống để nghe rõ nhạc nền. |
 
 ### 2. Cấu trúc Event (Mỗi phát bắn)
 Mỗi phần tử trong mảng `events` đại diện cho một phát bắn hoặc một dòng chữ.
@@ -38,6 +40,28 @@ Mỗi phần tử trong mảng `events` đại diện cho một phát bắn ho�
 | **`x`**, **`y`** | Số | Vị trí nổ theo phần trăm màn hình (0 đến 100). `x`: 0 là mép trái; `y`: 0 là mặt đất, 100 là đỉnh. `x: 50, y: 50` là chính giữa màn hình. |
 | **`delay`** | Số | Độ trễ (ms) tính từ lúc bắt đầu đợt bắn. |
 | **`size`** | Số | Kích thước (0: 3" đến 5: 16"). |
+
+---
+
+## 🎵 Nhạc nền
+
+```json
+"music": { "url": "./uploads/music/sinh_nhat_me/bai-hat.mp3", "name": "Bài hát.mp3", "volume": 0.8, "start": 12.5 },
+"effectsVolume": 0.5
+```
+
+| Trường | Mô tả |
+|--------|-------|
+| `url` | Đường dẫn file nhạc (MP3, M4A, OGG, WAV): file tải lên bằng builder (`./uploads/music/...`) hoặc link trực tiếp tới file nhạc. Link trang YouTube/Zing không dùng được. |
+| `name` | Tên bài, chỉ để hiển thị trong builder. |
+| `volume` | Âm lượng nhạc từ `0` đến `1` (mặc định `0.8`). |
+| `start` | Phát từ giây thứ mấy của bài (bỏ qua đoạn dạo đầu). Mặc định `0`. |
+
+- Nhạc bắt đầu **cùng lúc với đợt pháo đầu tiên** và lặp lại suốt màn trình diễn. Kịch bản không lặp (`loop: false`)
+  thì nhạc nhỏ dần rồi dừng khi chạy xong.
+- Nhạc dừng theo nút tạm dừng / tắt âm thanh và khi người xem chuyển sang ứng dụng khác.
+- Trên GitHub Pages builder không tải file lên được: chép file vào `src/static/uploads/music/` rồi dán đường dẫn
+  `./uploads/music/ten-file.mp3`, hoặc dán link trực tiếp tới file nhạc ở nơi khác.
 
 ---
 
@@ -68,7 +92,9 @@ Bạn có thể thêm các thuộc tính này vào bất kỳ loại pháo nào 
 | **`pistilColor`**| chuỗi | Màu của tâm pháo (ví dụ: `"White"`). |
 | **`streamers`**| bool | `true`: Tạo các dải sáng dài vút ra ngoài. |
 | **`horsetail`**| bool | `true`: Hiệu ứng đuôi ngựa rủ xuống từ từ. |
-| **`starLife`** | số | Thời gian tồn tại của hạt pháo (ms). Mặc định khoảng 2500-3000. |
+| **`spiralLift`** | bool | `true`: Pháo bay lên theo hai vệt sáng xoắn vào nhau như lò xo. |
+| **`hang`** | bool | `true`: Hạt cháy lâu gấp 2,5 lần, lơ lửng rơi chậm và lấp lánh trước khi tàn (hợp với `"Trái tim"`, `"Văn bản"` để hình giữ lâu hơn). |
+| **`starLife`** | số | Thời gian tồn tại của hạt pháo (ms). Để trống thì dùng mặc định của từng loại pháo. |
 | **`starDensity`**| số | Hệ số mật độ hạt so với mặc định của loại pháo (`1` = giữ nguyên). Tăng lên (ví dụ `2`) để pháo dày hơn. |
 | **`spreadSize`**| số | Độ rộng của vòng nổ. |
 
@@ -104,7 +130,28 @@ Trái tim màu đỏ, có tâm màu trắng và nổ lách tách:
 }
 ```
 
-### 3. Cơn Mưa Ngôi Sao (Dày đặc)
+### 3. Ảnh trong khung trái tim
+Pháo nổ thành viền trái tim, ảnh lớn dần và rõ dần bên trong, giữ 6 giây rồi tan thành tia lửa:
+```json
+{
+  "burst": 4,
+  "shell": "Hình ảnh",
+  "imageUrl": "./uploads/sinh_nhat_me/anh-me.jpg",
+  "frame": "heart",
+  "color": "Red",
+  "duration": 6000,
+  "size": 1,
+  "x": 50,
+  "y": 60
+}
+```
+- `frame`: `""` (không khung, giữ nguyên tỉ lệ ảnh), `"heart"` (trái tim), `"star"` (ngôi sao), `"circle"` (tròn),
+  `"rounded"` (vuông bo góc), `"square"` (vuông), `"triangle"` (tam giác). Ảnh dọc/ngang được cắt giữa cho vừa khung, không bị méo.
+- `color`: màu viền phát sáng của khung.
+- `duration`: thời gian ảnh hiện trên trời (ms, mặc định `4500`). Muốn đợt sau chờ ảnh tan hết thì thêm phát `"Tạm dừng"`.
+- `size`: `1` ≈ 500px, tự thu nhỏ cho vừa màn hình điện thoại.
+
+### 4. Cơn Mưa Ngôi Sao (Dày đặc)
 Dùng `starDensity` để tạo cơn mưa sao:
 ```json
 {
@@ -127,4 +174,8 @@ Dùng `starDensity` để tạo cơn mưa sao:
 - `"Trái tim"`, `"Ngôi sao"`, `"Kim cương"`, `"Bông tuyết"`
 - `"Mặt cười"`, `"Mặt mèo"`, `"Bông sen"`, `"Hành tinh"`
 - `"Vòng nhẫn"`, `"Nổ chéo"`, `"Cây cọ"`, `"Ma"`, `"Đuôi ngựa"`
+- `"Xoay vòng"` (Bánh xe lửa nhiều nan xoay tít quanh tâm)
+- `"Xoắn ốc"` (Bay lên bằng hai vệt xoắn, nổ thành thiên hà nhiều nhánh xoáy)
+- `"Cháy lâu"` (Hạt cháy ~6 giây, lơ lửng rơi chậm, lấp lánh trước khi tàn)
+- `"Hình ảnh"` (Cần có `imageUrl`, xem ví dụ 3)
 - `"Tạm dừng"` (Dùng kèm `duration` tính bằng ms, mặc định `2000`)
