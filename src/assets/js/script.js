@@ -1879,39 +1879,54 @@ function normalizeAssetPath(path) {
     return './' + cleanPath.replace(/^dist\//, '');
 }
 
-async function loadBurstConfig() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const configName = urlParams.get('config');
-    if (!configName || configName === 'undefined') return;
+// Đọc kịch bản trong link (?config=<tên>): bản lưu trong trình duyệt (trang tĩnh) hoặc file configs/<tên>.json
+async function fetchBurstConfig(configName) {
+    const isStaticEnv = window.location.hostname.includes('github.io') ||
+                        window.location.hostname.includes('vercel.app') ||
+                        window.location.hostname.includes('netlify.app') ||
+                        window.location.protocol === 'file:';
 
-    try {
-        const isStaticEnv = window.location.hostname.includes('github.io') || 
-                            window.location.hostname.includes('vercel.app') || 
-                            window.location.hostname.includes('netlify.app') || 
-                            window.location.protocol === 'file:';
-
-        let config;
-        if (isStaticEnv) {
-            try {
-                const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
-                if (localScripts[configName]) {
-                    config = localScripts[configName];
-                }
-            } catch (e) {
-                // localStorage hỏng hoặc bị chặn: thử tải file kịch bản bên dưới
+    let config;
+    if (isStaticEnv) {
+        try {
+            const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
+            if (localScripts[configName]) {
+                config = localScripts[configName];
             }
+        } catch (e) {
+            // localStorage hỏng hoặc bị chặn: thử tải file kịch bản bên dưới
         }
+    }
 
-        if (!config) {
-            const response = await fetch(`./configs/${encodeURIComponent(configName)}.json`);
-            if (!response.ok) throw new Error('Config not found');
-            config = await response.json();
-        }
+    if (!config) {
+        const response = await fetch(`./configs/${encodeURIComponent(configName)}.json`);
+        if (!response.ok) throw new Error('Config not found');
+        config = await response.json();
+    }
 
-        if (!config || !Array.isArray(config.events)) {
-            throw new Error('Invalid config: missing events');
-        }
+    if (!config || !Array.isArray(config.events)) {
+        throw new Error('Invalid config: missing events');
+    }
+    return config;
+}
 
+// Tải kịch bản ngay khi mở trang (không đợi bấm nút): kịp cá nhân hóa màn mở quà
+// và chỉ tải những âm thanh kịch bản thật sự dùng.
+const CONFIG_NAME = (() => {
+    const name = new URLSearchParams(window.location.search).get('config');
+    return name && name !== 'undefined' ? name : null;
+})();
+const configRequest = !IS_PREVIEW && CONFIG_NAME
+    ? fetchBurstConfig(CONFIG_NAME).catch(e => {
+        console.error('Error loading burst config:', e);
+        return null;
+    })
+    : Promise.resolve(null);
+
+async function loadBurstConfig() {
+    const config = await configRequest;
+    if (!config) return;
+    try {
         burstConfig = await prepareBurstConfig(config, { showOverlay: true });
         soundManager.setEffectsVolume(burstConfig.effectsVolume ?? 1);
         musicPlayer.load(burstConfig.music);
@@ -4118,57 +4133,41 @@ const soundManager = {
         }
     },
 
-    preload() {
-        const allFilePromises = [];
+    // Bộ nhớ đệm theo file: nhiều loại âm thanh dùng chung file (vd. lift1.mp3) chỉ tải và giải mã một lần
+    _fileBuffers: new Map(),
 
-        function checkStatus(response) {
-            if (response.status >= 200 && response.status < 300) {
-                return response;
-            }
-            const customError = new Error(response.statusText);
-            customError.response = response;
-            throw customError;
+    _loadFile(fileName) {
+        if (!this._fileBuffers.has(fileName)) {
+            const filePath = AUDIO_URLS[this.baseURL + fileName];
+            const promise = fetch(filePath)
+                .then(response => {
+                    if (response.status < 200 || response.status >= 300) throw new Error(response.statusText);
+                    return response.arrayBuffer();
+                })
+                .then(data => new Promise(resolve => {
+                    const decodePromise = this.ctx.decodeAudioData(data, resolve, () => resolve(null));
+                    // Chặn lỗi "Uncaught (in promise)" trên trình duyệt mới
+                    if (decodePromise && typeof decodePromise.catch === 'function') decodePromise.catch(() => {});
+                }))
+                .catch(() => null);
+            this._fileBuffers.set(fileName, promise);
         }
+        return this._fileBuffers.get(fileName);
+    },
 
-        const types = Object.keys(this.sources);
-        types.forEach(type => {
+    // Tải các loại âm thanh `types` (mặc định: tất cả). Trả về promise xong khi mọi loại đã sẵn sàng.
+    preload(types = Object.keys(this.sources)) {
+        return Promise.all(types.map(type => {
             const source = this.sources[type];
-            const { fileNames } = source;
-            const filePromises = [];
-            fileNames.forEach(fileName => {
-                const filePath = AUDIO_URLS[this.baseURL + fileName];
-                const promise = fetch(filePath)
-                    .then(checkStatus)
-                    .then(response => response.arrayBuffer())
-                    .then(data => new Promise(resolve => {
-                        const decodePromise = this.ctx.decodeAudioData(
-                            data,
-                            resolve,
-                            err => {
-                                resolve(null);
-                            }
-                        );
-                        if (decodePromise && typeof decodePromise.catch === 'function') {
-                            decodePromise.catch(err => {
-                                // Silent catch to prevent "Uncaught (in promise)" in modern browsers
-                            });
-                        }
-                    }))
-                    .catch(err => {
-                        return null;
+            if (!source) return null;
+            if (!source.loading) {
+                source.loading = Promise.all(source.fileNames.map(fileName => this._loadFile(fileName)))
+                    .then(buffers => {
+                        source.buffers = buffers.filter(b => b !== null);
                     });
-
-                filePromises.push(promise);
-                allFilePromises.push(promise);
-            });
-
-            Promise.all(filePromises)
-                .then(buffers => {
-                    source.buffers = buffers.filter(b => b !== null);
-                });
-        });
-
-        return Promise.all(allFilePromises);
+            }
+            return source.loading;
+        }));
     },
 
     pauseAll() {
@@ -4224,8 +4223,11 @@ const soundManager = {
 
         const source = this.sources[type];
 
-        // Tên âm thanh lạ trong kịch bản, hoặc file chưa tải xong/tải lỗi: bỏ qua thay vì làm hỏng khung hình
-        if (!source || !source.buffers || source.buffers.length === 0) {
+        // Tên âm thanh lạ trong kịch bản, hoặc file chưa tải xong/tải lỗi: bỏ qua thay vì làm hỏng khung hình.
+        // Loại chưa tải (không có trong kịch bản lúc mở) thì tải ngay để lần sau phát được.
+        if (!source) return;
+        if (!source.loading) this.preload([type]);
+        if (!source.buffers || source.buffers.length === 0) {
             return;
         }
 
@@ -4263,6 +4265,22 @@ const soundManager = {
 soundManager.effectsGain = soundManager.ctx.createGain();
 soundManager.effectsGain.connect(soundManager.ctx.destination);
 
+
+// Các loại âm thanh một kịch bản cần: bộ cơ bản của trình mô phỏng + âm thanh riêng các phát bắn chọn
+function getRequiredSoundTypes(config) {
+    // Phóng, nổ, nổ nhỏ (hoa, lá rơi, nổ dọc đường), lách tách (pháo lách tách, nổ chéo, ảnh tan)
+    const types = new Set(['lift', 'burst', 'burstSmall', 'crackle', 'crackleSmall']);
+    ((config && config.events) || []).forEach(event => {
+        ['liftSound', 'whistleSound', 'burstSound'].forEach(key => {
+            if (event[key] && event[key] !== 'none') types.add(event[key]);
+        });
+        if (event.launchStyle === 'stages') {
+            types.add('burstSoft');
+            types.add('liftSoft');
+        }
+    });
+    return [...types].filter(type => soundManager.sources[type]);
+}
 
 // Một đoạn WAV im lặng 0,1 giây, dùng để "mở khóa" phần tử audio lúc người dùng bấm nút
 function createSilentWavUrl() {
@@ -4472,10 +4490,11 @@ else if (IS_HEADER) {
         // để không bị chồng lấp với hành động nhấn nút
         autoLaunchTime = 2500;
 
-        // Bắt đầu tải dữ liệu
+        // Bắt đầu tải dữ liệu: chỉ các âm thanh kịch bản dùng tới
         setLoadingStatus('Đang châm ngòi');
         setTimeout(() => {
-            soundManager.preload()
+            configRequest
+                .then(config => soundManager.preload(getRequiredSoundTypes(config)))
                 .then(
                     init,
                     reason => {
