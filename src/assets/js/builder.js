@@ -540,6 +540,9 @@ function createNewScript() {
         state.seo = { mode: 'auto', image: null, imageText: true, imagePosition: 50, axis: 'y' };
         renderSeoControls();
         document.getElementById('author').value = '';
+        document.getElementById('recipient').value = '';
+        document.getElementById('intro-message').value = '';
+        document.getElementById('outro-message').value = '';
         document.getElementById('filename').value = '';
         document.getElementById('loop').checked = true;
         syncLoopState();
@@ -1505,6 +1508,9 @@ function getFinalConfig() {
         seoDescription: document.getElementById('seo-description').value.trim() || undefined,
         ...getSeoImageConfig(),
         author: document.getElementById('author').value.trim(),
+        recipient: document.getElementById('recipient').value.trim() || undefined,
+        introMessage: document.getElementById('intro-message').value.trim() || undefined,
+        outroMessage: document.getElementById('outro-message').value.trim() || undefined,
         loop: document.getElementById('loop').checked,
         showBackground: state.showBackground,
         background: state.background,
@@ -2411,6 +2417,9 @@ function loadConfigIntoState(config, filename) {
     renderSeoControls();
     scheduleSeoPreview();
     document.getElementById('author').value = config.author || '';
+    document.getElementById('recipient').value = config.recipient || '';
+    document.getElementById('intro-message').value = config.introMessage || '';
+    document.getElementById('outro-message').value = config.outroMessage || '';
     document.getElementById('loop').checked = config.loop !== false;
     syncLoopState();
     document.getElementById('filename').value = filename;

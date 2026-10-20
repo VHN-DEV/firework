@@ -65,6 +65,10 @@
     <meta name="msapplication-TileColor" content="#000000">
     <meta name="msapplication-TileImage" content="./src/assets/img/firework-burst-icon-v2.png">
     
+    <script>
+        // Link quà tặng (?config=...): ẩn lời chào chung cho tới khi có lời mời riêng của kịch bản
+        if (/[?&]config=/.test(location.search)) document.documentElement.classList.add('has-config');
+    </script>
 </head>
 
 <body>
@@ -100,14 +104,30 @@
     <div class="container">
         <div class="start-screen">
             <div class="start-screen__content">
+                <div class="start-screen__gift" aria-hidden="true">🎁</div>
                 <h1 class="start-screen__title">Xin chào!</h1>
                 <p class="start-screen__subtitle">Chào mừng bạn đến với màn trình diễn pháo hoa của Mr. Nam</p>
+                <p class="start-screen__from"></p>
                 <button class="btn-start">Bắt đầu</button>
+                <p class="start-screen__hint"></p>
             </div>
             <p class="start-screen__legal">© 2026 Vũ Hoài Nam ·
                 Mô phỏng gốc: <a href="https://codepen.io/MillerTime/pen/XgpNwb" target="_blank" rel="noopener">Caleb Miller</a> ·
                 <a href="./terms.html">Điều khoản</a> ·
                 <a href="./privacy.html">Bảo mật</a></p>
+        </div>
+        <!-- Màn kết: hiện khi kịch bản không lặp đã chạy xong -->
+        <div class="end-screen hide" aria-live="polite">
+            <div class="end-screen__content">
+                <div class="end-screen__icon" aria-hidden="true">💌</div>
+                <h2 class="end-screen__title"></h2>
+                <p class="end-screen__message"></p>
+                <p class="end-screen__from"></p>
+                <div class="end-screen__actions">
+                    <button type="button" class="end-screen__replay">↻ Xem lại</button>
+                    <a class="end-screen__create" href="./builder.html">✨ Tạo màn pháo hoa của bạn</a>
+                </div>
+            </div>
         </div>
         <div class="loading-init remove">
             <div class="loading-init__header">Đang tải</div>

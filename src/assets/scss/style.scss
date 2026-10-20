@@ -679,3 +679,191 @@ body {
 
     &:active { transform: scale(0.98); }
 }
+
+// ---------------------------------------------------------------------------
+// Màn mở quà (link có kịch bản) và màn kết
+// ---------------------------------------------------------------------------
+
+// Đang tải lời mời riêng của kịch bản: ẩn lời chào chung, hiện dần khi xong
+.has-config .start-screen:not(.is-ready) .start-screen__content {
+    opacity: 0;
+    animation: none;
+}
+
+.start-screen__gift {
+    display: none;
+    font-size: 4.5rem;
+    line-height: 1;
+    margin-bottom: 1.25rem;
+    filter: drop-shadow(0 10px 25px rgba(255, 0, 67, 0.45));
+    animation: giftWiggle 2.4s ease-in-out infinite;
+
+    .start-screen.is-gift & {
+        display: block;
+    }
+
+    // Bấm "Mở quà": hộp quà phóng to rồi tan
+    .start-screen.hide & {
+        animation: giftOpen 0.7s ease-out forwards;
+    }
+}
+
+// Lời mời có tên người nhận: chữ co theo màn hình để vừa một dòng trên điện thoại
+.start-screen.is-gift .start-screen__title {
+    font-size: clamp(2rem, 9vw, 3.2rem);
+    letter-spacing: -0.5px;
+}
+
+.start-screen__from {
+    margin: -1.5rem 0 2rem;
+    color: #ffbf36;
+    font-style: italic;
+    font-size: 1rem;
+
+    &:empty {
+        display: none;
+    }
+}
+
+.start-screen__hint {
+    margin: 1.25rem 0 0;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+
+    &:empty {
+        display: none;
+    }
+}
+
+@keyframes giftWiggle {
+    0%, 60%, 100% { transform: rotate(0) scale(1); }
+    68% { transform: rotate(-10deg) scale(1.06); }
+    76% { transform: rotate(9deg) scale(1.06); }
+    84% { transform: rotate(-6deg) scale(1.03); }
+    92% { transform: rotate(4deg) scale(1.02); }
+}
+
+@keyframes giftOpen {
+    to { transform: scale(2.2); opacity: 0; }
+}
+
+.end-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 400;
+    @include flex-center;
+    padding: 1rem;
+    // Người xem vẫn chạm được vào bầu trời phía sau để tự bắn pháo
+    pointer-events: none;
+    transition: opacity 0.8s ease, visibility 0.8s;
+
+    &.hide {
+        opacity: 0;
+        visibility: hidden;
+    }
+
+    &__content {
+        pointer-events: auto;
+        width: 460px;
+        max-width: 100%;
+        padding: 2.25rem 2rem;
+        text-align: center;
+        border-radius: 1.75rem;
+        background: rgba(10, 10, 16, 0.72);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+        animation: fadeInScale 0.8s ease-out;
+    }
+
+    &.hide &__content {
+        animation: none;
+    }
+
+    &__icon {
+        font-size: 3rem;
+        line-height: 1;
+        margin-bottom: 1rem;
+    }
+
+    &__title {
+        margin: 0 0 0.75rem;
+        color: #fff;
+        font-size: clamp(1.5rem, 6vw, 2.1rem);
+        font-weight: 700;
+        line-height: 1.25;
+        text-shadow: 0 0 20px rgba(255, 191, 54, 0.35);
+    }
+
+    &__message {
+        margin: 0 0 0.75rem;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.05rem;
+        line-height: 1.6;
+
+        &:empty {
+            display: none;
+        }
+    }
+
+    &__from {
+        margin: 0 0 1.5rem;
+        color: #ffbf36;
+        font-style: italic;
+
+        &:empty {
+            display: none;
+        }
+    }
+
+    &__actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+    }
+
+    &__replay,
+    &__create {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        padding: 0 1.4rem;
+        border-radius: 999px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+
+        &:hover {
+            transform: translateY(-1px);
+        }
+    }
+
+    &__replay {
+        border: none;
+        color: #fff;
+        background: linear-gradient(135deg, #ff0043 0%, #ffbf36 100%);
+        box-shadow: 0 10px 20px rgba(255, 0, 67, 0.3);
+    }
+
+    &__create {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.14);
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .start-screen__gift {
+        animation: none;
+    }
+}

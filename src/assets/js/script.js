@@ -474,9 +474,10 @@ const appNodes = {
     helpModalBody: '.help-modal__body',
     helpModalCloseBtn: '.help-modal__close-btn',
 
-    // Màn hình bắt đầu
+    // Màn hình bắt đầu và màn kết
     startScreen: '.start-screen',
-    btnStart: '.btn-start'
+    btnStart: '.btn-start',
+    endScreen: '.end-screen'
 };
 
 // Chuyển đổi bộ chọn appNodes thành nút dom
@@ -1935,6 +1936,62 @@ async function loadBurstConfig() {
     }
 }
 
+// ---------------------------------------------------------------------------
+// MÀN MỞ QUÀ VÀ MÀN KẾT
+// ---------------------------------------------------------------------------
+
+// Link quà tặng: thay lời chào chung bằng lời mời riêng "Gửi <người nhận>", lời nhắn, người gửi, nút "Mở quà"
+function personalizeStartScreen(config) {
+    const screen = appNodes.startScreen;
+    if (config) {
+        const text = (value) => String(replacePlaceholders(value || '')).trim();
+        const recipient = text(config.recipient);
+        screen.classList.add('is-gift');
+        screen.querySelector('.start-screen__title').textContent = recipient ? `Gửi ${recipient}` : 'Bạn có một món quà!';
+        screen.querySelector('.start-screen__subtitle').textContent = text(config.introMessage) || 'Một màn pháo hoa được làm riêng để dành tặng bạn.';
+        screen.querySelector('.start-screen__from').textContent = text(config.author);
+        screen.querySelector('.start-screen__hint').textContent = config.music && config.music.url
+            ? '🔊 Bật loa để nghe nhạc nhé'
+            : '🔊 Bật âm thanh để trọn vẹn hơn';
+        appNodes.btnStart.textContent = 'Mở quà';
+        const title = text(config.seoTitle) || text(config.title);
+        if (title) document.title = title;
+    }
+    screen.classList.add('is-ready');
+}
+
+if (!IS_PREVIEW && !IS_HEADER) {
+    configRequest.then(personalizeStartScreen);
+    // Mạng chậm: không bắt người xem chờ mãi lời mời riêng
+    setTimeout(() => appNodes.startScreen.classList.add('is-ready'), 2500);
+}
+
+// Kịch bản không lặp chạy xong: thiệp lời chúc cuối, nút xem lại và nút tạo màn pháo hoa mới
+let endScreenTimer = null;
+
+function showEndScreen() {
+    if (IS_PREVIEW || IS_HEADER || !burstConfig || burstConfig.loop) return;
+    const screen = appNodes.endScreen;
+    screen.querySelector('.end-screen__title').textContent = burstConfig.title || 'Cảm ơn bạn đã xem!';
+    screen.querySelector('.end-screen__message').textContent =
+        String(replacePlaceholders(burstConfig.outroMessage || '')).trim() || burstConfig.subtitle || '';
+    screen.querySelector('.end-screen__from').textContent = burstConfig.author || '';
+    screen.classList.remove('hide');
+}
+
+function replayShow() {
+    clearTimeout(endScreenTimer);
+    appNodes.endScreen.classList.add('hide');
+    pendingLaunchTimers.forEach(clearTimeout);
+    pendingLaunchTimers.clear();
+    burstCounter = 0;
+    autoLaunchTime = 800;
+    musicPlayer.restart();
+    togglePause(false);
+}
+
+appNodes.endScreen.querySelector('.end-screen__replay').addEventListener('click', replayShow);
+
 // Kịch bản tạo bởi builder phiên bản cũ dùng tọa độ 0-1 thay vì 0-100 (mọi phát bắn dồn vào góc dưới trái).
 // Phát bắn nào có cả x và y trong khoảng 0-1 được đổi sang thang 0-100.
 function migrateLegacyCoordinates(events) {
@@ -2352,8 +2409,10 @@ function startSequence() {
                 return 2000; // Nghỉ 2 giây trước khi lặp lại
             } else {
                 if (burstCounter === maxBurst + 1) {
-                    // Chờ những phát cuối tàn hẳn rồi cho nhạc nhỏ dần
+                    // Chờ những phát cuối tàn hẳn rồi cho nhạc nhỏ dần và hiện màn kết
                     musicPlayer.finish(3000);
+                    clearTimeout(endScreenTimer);
+                    endScreenTimer = setTimeout(showEndScreen, 4500);
                     // Báo cho builder biết bản xem nhanh đã chạy xong một lượt
                     if (IS_PREVIEW) {
                         window.parent.postMessage({ type: 'firework-preview-ended' }, window.location.origin);
@@ -4426,7 +4485,18 @@ const musicPlayer = {
     finish(delay) {
         if (!this.started || this.finished) return;
         this.finished = true;
-        setTimeout(() => this.fadeTo(0, 4000, () => this.audio.pause()), delay);
+        this.finishTimer = setTimeout(() => this.fadeTo(0, 4000, () => this.audio.pause()), delay);
+    },
+
+    // Xem lại từ đầu: nhạc phát lại từ giây đã chọn cùng đợt pháo đầu tiên
+    restart() {
+        if (!this.config || !this.audio) return;
+        clearTimeout(this.finishTimer);
+        clearInterval(this.fadeTimer);
+        this.audio.pause();
+        this.setVolume(0);
+        this.started = false;
+        this.finished = false;
     }
 };
 
