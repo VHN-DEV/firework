@@ -2189,7 +2189,7 @@ select.is-invalid {
 
 // Dải "Tạo nhanh theo dịp" trên dòng thời gian (khi kịch bản còn trống)
 .template-strip {
-    margin: 0 1.25rem 1rem;
+    margin: 1rem;
     padding: 0.9rem 1rem;
     border-radius: $b-radius;
     background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(168, 85, 247, 0.12));
