@@ -143,6 +143,13 @@
                 <button type="button" class="countdown-stage__ready">🔔 Tôi đã sẵn sàng</button>
                 <p class="countdown-stage__hint"></p>
             </div>
+            <!-- Cho người nhạy cảm với ánh sáng nhấp nháy: bật trước khi pháo bắt đầu -->
+            <button type="button" class="start-screen__a11y" aria-pressed="false"
+                title="Tắt hiệu ứng nhấp nháy, chớp sáng mạnh (cho người nhạy cảm với ánh sáng)"><svg viewBox="0 0 24 24"
+                    width="16" height="16" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+                    <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" />
+                </svg><span>Giảm chớp sáng</span></button>
             <p class="start-screen__legal">© 2026 Vũ Hoài Nam ·
                 <a href="./terms.html">Điều khoản</a> ·
                 <a href="./privacy.html">Bảo mật</a></p>
@@ -245,6 +252,10 @@
                         <div class="form-option form-option--checkbox">
                             <label class="long-exposure-label">Mở màn trập</label>
                             <input class="long-exposure" type="checkbox" />
+                        </div>
+                        <div class="form-option form-option--checkbox">
+                            <label class="reduce-flashing-label">Giảm chớp sáng</label>
+                            <input class="reduce-flashing" type="checkbox" />
                         </div>
                     </form>
                     <div class="menu__builder-link">

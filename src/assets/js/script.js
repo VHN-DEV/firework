@@ -197,6 +197,8 @@ const store = {
             hideControls: true,
             showBackground: false,
             longExposure: false,
+            // Giảm chớp sáng (người nhạy cảm với ánh sáng nhấp nháy): mặc định theo cài đặt "giảm chuyển động" của máy
+            reduceFlashing: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
             scaleFactor: getDefaultScaleFactor()
         }
     },
@@ -235,6 +237,7 @@ const store = {
                     config.size = data.size;
                     config.skyLighting = data.skyLighting;
                     config.scaleFactor = data.scaleFactor || getDefaultScaleFactor();
+                    if (typeof data.reduceFlashing === 'boolean') config.reduceFlashing = data.reduceFlashing;
                     break;
                 default:
                     throw new Error('version switch should be exhaustive');
@@ -273,7 +276,8 @@ const store = {
                     quality: config.quality,
                     size: config.size,
                     skyLighting: config.skyLighting,
-                    scaleFactor: config.scaleFactor
+                    scaleFactor: config.scaleFactor,
+                    reduceFlashing: config.reduceFlashing
                 }
             }));
         } catch (e) {
@@ -360,6 +364,8 @@ const soundEnabledSelector = (state = store.state) => state.soundEnabled;
 const canPlaySoundSelector = (state = store.state) => isRunning(state) && soundEnabledSelector(state);
 // Chuyển đổi chất lượng thành số.
 const qualitySelector = () => +store.state.config.quality;
+// Người xem tự bật, hoặc người tạo bật sẵn cho cả màn trình diễn (kịch bản có reduceFlashing)
+const reduceFlashingSelector = () => !!(store.state.config.reduceFlashing || (burstConfig && burstConfig.reduceFlashing));
 const shellNameSelector = () => {
     const shells = store.state.config.shell;
     if (Array.isArray(shells) && shells.length > 0) {
@@ -416,6 +422,10 @@ const helpContent = {
     longExposure: {
         header: 'Mở màn trập',
         body: 'Hiệu ứng thử nghiệm giữ lại những vệt sáng dài, tương tự như việc mở màn trập máy ảnh.'
+    },
+    reduceFlashing: {
+        header: 'Giảm chớp sáng',
+        body: 'Dành cho người nhạy cảm với ánh sáng nhấp nháy: hạt pháo không chớp tắt hay lấp lánh, không có quầng chớp lúc nổ, bầu trời không đổi màu theo pháo. Pháo hoa vẫn nổ đầy đủ.'
     }
 };
 
@@ -429,7 +439,8 @@ const nodeKeyToHelpKey = {
     finaleModeLabel: 'finaleMode',
     hideControlsLabel: 'hideControls',
     fullscreenLabel: 'fullscreen',
-    longExposureLabel: 'longExposure'
+    longExposureLabel: 'longExposure',
+    reduceFlashingLabel: 'reduceFlashing'
 };
 
 
@@ -472,6 +483,9 @@ const appNodes = {
     showBackgroundLabel: '.show-background-label',
     longExposure: '.long-exposure',
     longExposureLabel: '.long-exposure-label',
+    reduceFlashing: '.reduce-flashing',
+    reduceFlashingLabel: '.reduce-flashing-label',
+    reduceFlashingToggle: '.start-screen__a11y',
 
     // Giao diện trợ giúp
     helpModal: '.help-modal',
@@ -528,6 +542,8 @@ function renderApp(state) {
     // Hiển thị/ẩn nền
     appNodes.backgroundImage.classList.toggle('show', state.config.showBackground);
     appNodes.longExposure.checked = state.config.longExposure;
+    appNodes.reduceFlashing.checked = state.config.reduceFlashing;
+    renderReduceFlashingToggle();
     appNodes.scaleFactor.value = (state.config.scaleFactor || 1).toFixed(2);
 
     appNodes.menuInnerWrap.style.opacity = state.openHelpTopic ? 0.12 : 1;
@@ -576,6 +592,7 @@ function getConfigFromDOM() {
         finale: appNodes.finaleMode.checked,
         skyLighting: appNodes.skyLighting.value,
         longExposure: appNodes.longExposure.checked,
+        reduceFlashing: appNodes.reduceFlashing.checked,
         hideControls: appNodes.hideControls.checked,
         showBackground: appNodes.showBackground.checked,
         // Lưu trữ giá trị dưới dạng số.
@@ -619,6 +636,23 @@ appNodes.autoLaunch.addEventListener('click', () => setTimeout(updateConfig, 0))
 appNodes.finaleMode.addEventListener('click', () => setTimeout(updateConfig, 0));
 appNodes.skyLighting.addEventListener('input', updateConfigNoEvent);
 appNodes.longExposure.addEventListener('click', () => setTimeout(updateConfig, 0));
+appNodes.reduceFlashing.addEventListener('click', () => setTimeout(updateConfig, 0));
+// Nút "Giảm chớp sáng" trên màn mở quà: bật trước khi pháo bắt đầu
+appNodes.reduceFlashingToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    updateConfig({ reduceFlashing: !store.state.config.reduceFlashing });
+});
+
+// config: kịch bản đang mở quà (lúc đó trình phát chưa nạp kịch bản)
+function renderReduceFlashingToggle(config = burstConfig) {
+    const toggle = appNodes.reduceFlashingToggle;
+    if (!toggle) return;
+    const forced = !!(config && config.reduceFlashing);
+    const on = forced || store.state.config.reduceFlashing;
+    toggle.setAttribute('aria-pressed', String(on));
+    toggle.disabled = forced;
+    toggle.querySelector('span').textContent = forced ? 'Đã giảm chớp sáng' : on ? 'Giảm chớp sáng: bật' : 'Giảm chớp sáng';
+}
 appNodes.hideControls.addEventListener('click', () => setTimeout(updateConfig, 0));
 appNodes.showBackground.addEventListener('click', () => setTimeout(updateConfig, 0));
 const stopAndRun = (fn) => (e) => {
@@ -2136,6 +2170,7 @@ function mountStartFrame(config) {
     if (startFrameMounted) return;
     startFrameMounted = true;
     reportGiftEvent('view', config);
+    renderReduceFlashingToggle(config);
     const frame = START_FRAMES[config && config.startFrame] || START_FRAMES.card;
     const { trigger, open, firstLaunchDelay } = frame.mount(appNodes.startScreen, config);
     if (config) {
@@ -3560,6 +3595,7 @@ function update(frameTime, lag) {
     const height = stageH;
     const timeStep = frameTime * simSpeed;
     const speed = simSpeed * lag;
+    const reduceFlashing = reduceFlashingSelector();
 
     updateGlobals(timeStep, lag);
     ImageBurst.updateAll(timeStep);
@@ -3659,7 +3695,9 @@ function update(frameTime, lag) {
                         }
                     }
 
-                    if (star.strobe) {
+                    if (reduceFlashing) {
+                        // Giảm chớp sáng: hạt nhấp nháy, lấp lánh giữ sáng đều
+                    } else if (star.strobe) {
                         star.visible = Math.floor(star.life / star.strobeFreq) % 3 === 0;
                     } else if (star.twinkle) {
                         // Lấp lánh ngẫu nhiên lúc sắp tàn
@@ -3704,7 +3742,13 @@ function render(speed) {
     const trailsCtx = trailsStage.ctx;
     const mainCtx = mainStage.ctx;
 
-    if (skyLightingSelector() !== SKY_LIGHT_NONE) {
+    if (reduceFlashingSelector()) {
+        // Giảm chớp sáng: bầu trời giữ màu đen, không lóe sáng theo pháo
+        if (currentSkyColor.r || currentSkyColor.g || currentSkyColor.b) {
+            currentSkyColor.r = currentSkyColor.g = currentSkyColor.b = 0;
+            appNodes.stageContainer.style.backgroundColor = '#000';
+        }
+    } else if (skyLightingSelector() !== SKY_LIGHT_NONE) {
         colorSky(speed);
     }
 
@@ -4682,6 +4726,8 @@ const BurstFlash = {
     },
 
     add(x, y, radius) {
+        // Giảm chớp sáng: không vẽ quầng chớp lúc nổ
+        if (reduceFlashingSelector()) return;
         const instance = this._pool.pop() || this._new();
 
         instance.x = x;

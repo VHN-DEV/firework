@@ -721,6 +721,45 @@ body {
     }
 }
 
+// Nút "Giảm chớp sáng" ở góc màn mở quà
+.start-screen__a11y {
+    position: absolute;
+    top: max(1rem, env(safe-area-inset-top));
+    right: 1rem;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.7);
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+
+    &:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.35);
+    }
+
+    &[aria-pressed="true"] {
+        color: #fff;
+        border-color: rgba(255, 191, 54, 0.6);
+        background: rgba(255, 191, 54, 0.15);
+    }
+
+    &:disabled {
+        cursor: default;
+    }
+
+    .start-screen.frame-countdown & {
+        display: none;
+    }
+}
+
 // Kịch bản bật báo mở quà: người nhận được báo trước
 .start-screen__notice {
     display: block;

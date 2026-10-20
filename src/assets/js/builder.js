@@ -44,6 +44,8 @@ const state = {
     openMode: 'lock',
     // Báo cho người gửi khi người nhận mở quà (cần máy chủ PHP)
     notifyOpen: true,
+    // Giảm chớp sáng cho cả màn trình diễn
+    reduceFlashing: false,
     // Ảnh khi chia sẻ: 'auto' = thiệp pháo hoa tự vẽ, 'custom' = ảnh người dùng chọn
     seo: { mode: 'auto', image: null, imageText: true, imagePosition: 50, axis: 'y' }
 };
@@ -350,6 +352,10 @@ document.addEventListener('DOMContentLoaded', () => {
         state.notifyOpen = e.target.checked;
         renderNotifyOpen();
     });
+    document.getElementById('reduce-flashing')?.addEventListener('change', (e) => {
+        state.reduceFlashing = e.target.checked;
+        refreshMiniPreview();
+    });
     renderNotifyOpen();
     startGiftWatch();
 });
@@ -619,6 +625,8 @@ function createNewScript() {
         renderSchedule();
         state.notifyOpen = true;
         renderNotifyOpen();
+        state.reduceFlashing = false;
+        document.getElementById('reduce-flashing').checked = false;
         document.getElementById('intro-message').value = '';
         document.getElementById('outro-message').value = '';
         document.getElementById('filename').value = '';
@@ -990,6 +998,8 @@ const HELP_TIPS = {
     seoImage: 'Ảnh 1200×630 hiện khi gửi link. <strong>Thiệp tự động</strong>: vẽ từ tiêu đề và màu pháo. '
         + '<strong>Ảnh của bạn</strong>: tải ảnh lên, chọn có chèn chữ và chỗ cắt ảnh. Ảnh được tạo lại mỗi lần bấm Lưu.',
     background: 'Cảnh thành phố về đêm phía dưới bầu trời. Bật lên rồi bấm vào ảnh để thay bằng ảnh của bạn.',
+    reduceFlashing: 'Bật khi người nhận nhạy cảm với ánh sáng nhấp nháy (người lớn tuổi, người dễ bị co giật do ánh sáng...): hạt pháo không chớp tắt hay lấp lánh, '
+        + 'không có quầng chớp lúc nổ, bầu trời không đổi màu theo pháo. Người xem cũng tự bật được bằng nút "Giảm chớp sáng" trên màn mở quà.',
     loop: 'Bật: chạy hết đợt cuối thì quay lại đợt đầu, bắn mãi. Tắt: chạy một lượt rồi hiện màn kết với lời chúc và nút Xem lại.',
     music: 'Nhạc phát cùng đợt pháo đầu tiên. Chọn file từ máy (tối đa 20MB) hoặc dán link trực tiếp tới file .mp3; link trang YouTube, Zing không dùng được.',
     musicStart: 'Bỏ đoạn dạo đầu: nhạc phát từ giây này. Nghe trên thanh phát rồi bấm nút <i class="fas fa-location-crosshairs"></i> để lấy đúng chỗ đang nghe.',
@@ -1936,6 +1946,7 @@ function getFinalConfig() {
         startFrame: state.startFrame || undefined,
         openAt: state.openAt || undefined,
         notifyOpen: state.notifyOpen,
+        reduceFlashing: state.reduceFlashing || undefined,
         openMode: state.openAt && state.openMode === 'countdown' ? 'countdown' : undefined,
         recipient: document.getElementById('recipient').value.trim() || undefined,
         introMessage: document.getElementById('intro-message').value.trim() || undefined,
@@ -3956,6 +3967,8 @@ function loadConfigIntoState(config, filename) {
     // Kịch bản cũ chưa có lựa chọn này: bật như kịch bản mới
     state.notifyOpen = config.notifyOpen !== false;
     renderNotifyOpen();
+    state.reduceFlashing = config.reduceFlashing === true;
+    document.getElementById('reduce-flashing').checked = state.reduceFlashing;
     document.getElementById('intro-message').value = config.introMessage || '';
     document.getElementById('outro-message').value = config.outroMessage || '';
     document.getElementById('loop').checked = config.loop !== false;

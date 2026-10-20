@@ -101,6 +101,22 @@ export async function run(browser, base, { check }) {
         check('hộp quà không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
         await page.close();
 
+        // ---- Giảm chớp sáng: bật ngay trên màn mở quà (chưa bắt đầu màn trình diễn), lần sau vẫn nhớ
+        page = await openPage(browser);
+        await page.goto(base + '/index.html?config=zz_e2e_card', { waitUntil: 'networkidle0' });
+        await page.waitForSelector('.start-screen.is-ready');
+        await page.click('.start-screen__a11y');
+        await sleep(200);
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('.start-screen.is-ready');
+        const a11y = await page.evaluate(() => ({
+            pressed: document.querySelector('.start-screen__a11y').getAttribute('aria-pressed'),
+            waiting: !document.querySelector('.start-screen').classList.contains('hide')
+        }));
+        check('giảm chớp sáng: bật trên màn mở quà và được nhớ', a11y.pressed === 'true' && a11y.waiting, JSON.stringify(a11y));
+        await page.click('.start-screen__a11y');
+        await page.close();
+
         // ---- Hẹn giờ mở quà: khóa tới giờ (còn nhiều ngày), đếm ngược rồi tự bắn
         // Thêm 1 giờ: trang tải mất vài giây vẫn còn đủ 3 ngày
         writeConfig('zz_e2e_lock', { ...story, openAt: new Date(Date.now() + 3 * 86400000 + 3600000).toISOString() });

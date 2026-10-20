@@ -30,6 +30,7 @@ Thư mục này chứa các file JSON để **tùy biến lời chúc và hiệu
 | `loop` | `true`: Tự động lặp lại show; `false`: Chạy hết một lần rồi dừng. |
 | `startFrame` | (Tùy chọn) Khung bắt đầu người xem thấy trước màn trình diễn: để trống là thiệp chào (lời mời + nút "Mở quà"), `"gift"` là hộp quà rung rinh, chạm vào thì bung nắp, nổ ruy băng và pháo giấy rồi mới bắt đầu. |
 | `openAt` | (Tùy chọn) Hẹn giờ mở quà, dạng ISO (vd. `"2026-12-31T17:00:00.000Z"` là 0 giờ ngày 01/01/2027 giờ Việt Nam). Trước giờ này link hiện đồng hồ đếm ngược. |
+| `reduceFlashing` | (Tùy chọn) `true`: giảm chớp sáng cho cả màn trình diễn (hạt không chớp tắt hay lấp lánh, không có quầng chớp lúc nổ, bầu trời không đổi màu theo pháo). Người xem cũng tự bật được bằng nút trên màn mở quà hoặc trong menu cài đặt. |
 | `notifyOpen` | (Tùy chọn) `true`: báo cho người gửi khi người nhận mở link, bấm mở quà, xem hết (chỉ thời điểm và loại thiết bị; cần máy chủ PHP, xem `api/opens.php`). Người nhận thấy dòng "Người gửi sẽ biết khi bạn mở quà". |
 | `openMode` | (Tùy chọn, đi cùng `openAt`) Để trống là khóa tới giờ rồi mới mở quà; `"countdown"` là đếm ngược rồi tự bắn: người xem bấm "Tôi đã sẵn sàng", 10 giây cuối hiện số lớn, đúng giờ pháo hoa tự bắn. |
 | `recipient` | (Tùy chọn) Người nhận. Màn mở đầu hiện "Gửi <người nhận>" cùng hộp quà và nút "Mở quà" thay cho lời chào chung. |
