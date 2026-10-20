@@ -1230,6 +1230,7 @@ select {
 .btn-close-mini,
 .btn-play-mini,
 .btn-reset-mini,
+.btn-device-mini,
 .btn-fullscreen-mini {
     &.hide {
         display: none !important;
@@ -1258,7 +1259,8 @@ select {
     color: $accent !important;
 }
 
-.btn-reset-mini:hover {
+.btn-reset-mini:hover,
+.btn-device-mini:hover {
     color: $accent !important;
 }
 
@@ -1267,14 +1269,27 @@ select {
     flex: 1 !important;
     position: relative !important;
     background-color: #000;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-    canvas {
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        display: block !important;
+    // Vùng trình diễn giữ đúng tỉ lệ màn hình đang giả lập (máy tính/điện thoại), thước đo bám theo vùng này
+    .mini-preview-stage {
+        position: relative;
+        flex-shrink: 0;
+        overflow: hidden;
+    }
+
+    // Trình phát thật được vẽ ở kích thước màn hình giả lập rồi thu nhỏ bằng transform
+    .mini-preview-frame {
+        position: absolute;
+        top: 0;
+        left: 0;
+        border: 0;
+        transform-origin: 0 0;
+        pointer-events: none;
+        background: #000;
     }
 
     .mini-preview-ruler-x,

@@ -19,6 +19,8 @@ console.clear();
 const IS_MOBILE = window.innerWidth <= 640;
 const IS_DESKTOP = window.innerWidth > 800;
 const IS_HEADER = IS_DESKTOP && window.innerHeight < 300;
+// Chế độ xem nhanh nhúng trong builder (index.html?preview=1): kịch bản được builder gửi sang qua postMessage
+const IS_PREVIEW = new URLSearchParams(window.location.search).has('preview');
 // Phát hiện các thiết bị cao cấp. Đây sẽ là một mục tiêu di động.
 const IS_HIGH_END_DEVICE = (() => {
     const hwConcurrency = navigator.hardwareConcurrency;
@@ -134,7 +136,8 @@ const store = {
     state: {
         // sẽ được bỏ tạm dừng trong init()
         paused: true,
-        soundEnabled: true,
+        // Xem nhanh trong builder thì tắt tiếng (iframe không có thao tác người dùng để mở âm thanh)
+        soundEnabled: !IS_PREVIEW,
         menuOpen: false,
         openHelpTopic: null,
         fullscreen: isFullscreen(),
@@ -234,6 +237,8 @@ const store = {
     },
 
     persist() {
+        // Bản xem nhanh (có thể giả lập điện thoại) không được ghi đè cài đặt thật của người dùng
+        if (IS_PREVIEW) return;
         const config = this.state.config;
         try {
             localStorage.setItem('cm_fireworks_data', JSON.stringify({
@@ -252,7 +257,7 @@ const store = {
 };
 
 
-if (!IS_HEADER) {
+if (!IS_HEADER && !IS_PREVIEW) {
     try {
         store.load();
     } catch (e) {
@@ -1644,82 +1649,99 @@ async function loadBurstConfig() {
             throw new Error('Invalid config: missing events');
         }
 
-        burstConfig = config;
-
-
-        // Background support
-        if (burstConfig.background) {
-            appNodes.backgroundImage.style.backgroundImage = `url(${JSON.stringify(normalizeAssetPath(burstConfig.background))})`;
-        } else {
-            appNodes.backgroundImage.style.backgroundImage = ''; // Use default from CSS
-        }
-        
-        if (burstConfig.showBackground !== undefined) {
-            store.setState({ config: { ...store.state.config, showBackground: !!burstConfig.showBackground } });
-        }
-
-        // Xử lý các placeholder trong text
-        if (burstConfig.title) burstConfig.title = replacePlaceholders(burstConfig.title);
-        if (burstConfig.subtitle) burstConfig.subtitle = replacePlaceholders(burstConfig.subtitle);
-        if (burstConfig.events) {
-            const imagePromises = [];
-            burstConfig.events.forEach(event => {
-                if (event.text) event.text = replacePlaceholders(event.text);
-                
-                if (event.shell === 'Hình ảnh' && event.imageUrl) {
-                    const normalizedUrl = normalizeAssetPath(event.imageUrl);
-                    const cacheKey = `${normalizedUrl}_${event.frame || ''}`;
-                    if (!imageParticleCache.has(cacheKey)) {
-                        const p = new Promise(resolve => {
-                            const img = new Image();
-                            img.onload = () => {
-                                const processed = getProcessedImage(img, event.frame);
-                                imageParticleCache.set(cacheKey, processed);
-                                resolve();
-                            };
-                            img.onerror = () => {
-                                console.error('Failed to load firework image:', normalizedUrl);
-                                resolve();
-                            };
-                            img.src = normalizedUrl;
-                        });
-                        imagePromises.push(p);
-                    }
-                }
-            });
-            if (imagePromises.length > 0) {
-                setLoadingStatus('Đang chuẩn bị hình ảnh...');
-                await Promise.all(imagePromises);
-            }
-        }
-
-
-
-        // Cập nhật tiêu đề trang (SEO) nếu có
-        if (burstConfig.seoTitle) {
-            document.title = burstConfig.seoTitle;
-        } else if (burstConfig.title) {
-            document.title = `${burstConfig.title} | Trình mô phỏng Pháo hoa`;
-        }
-
-        // Hiển thị overlay thông tin nếu có
-        if (burstConfig.title || burstConfig.author) {
-            const overlay = document.createElement('div');
-            overlay.className = 'config-overlay';
-            [['h1', burstConfig.title], ['h2', burstConfig.subtitle], ['p', burstConfig.author]].forEach(([tag, text]) => {
-                if (!text) return;
-                const el = document.createElement(tag);
-                // Dùng textContent: kịch bản do người khác soạn không thể chèn mã HTML/JS vào trang
-                el.textContent = text;
-                overlay.appendChild(el);
-            });
-            document.body.appendChild(overlay);
-            setTimeout(() => overlay.classList.add('fade-out'), 5000);
-            setTimeout(() => overlay.remove(), 7000);
-        }
+        burstConfig = await prepareBurstConfig(config, { showOverlay: true });
     } catch (e) {
         console.error('Error loading burst config:', e);
     }
+}
+
+// Kịch bản tạo bởi builder phiên bản cũ dùng tọa độ 0-1 thay vì 0-100 (mọi phát bắn dồn vào góc dưới trái).
+// Phát bắn nào có cả x và y trong khoảng 0-1 được đổi sang thang 0-100.
+function migrateLegacyCoordinates(events) {
+    events.forEach(e => {
+        if (typeof e.x === 'number' && typeof e.y === 'number' && e.x <= 1 && e.y <= 1) {
+            e.x *= 100;
+            e.y *= 100;
+        }
+    });
+}
+
+// Chuẩn bị kịch bản để trình diễn: nền, chữ giữ chỗ, tải trước ảnh, tiêu đề.
+// Dùng chung cho trình phát thường và bản xem nhanh trong builder.
+async function prepareBurstConfig(burstConfig, { showOverlay }) {
+    migrateLegacyCoordinates(burstConfig.events);
+
+    // Background support
+    if (burstConfig.background) {
+        appNodes.backgroundImage.style.backgroundImage = `url(${JSON.stringify(normalizeAssetPath(burstConfig.background))})`;
+    } else {
+        appNodes.backgroundImage.style.backgroundImage = ''; // Use default from CSS
+    }
+    
+    if (burstConfig.showBackground !== undefined) {
+        store.setState({ config: { ...store.state.config, showBackground: !!burstConfig.showBackground } });
+    }
+
+    // Xử lý các placeholder trong text
+    if (burstConfig.title) burstConfig.title = replacePlaceholders(burstConfig.title);
+    if (burstConfig.subtitle) burstConfig.subtitle = replacePlaceholders(burstConfig.subtitle);
+    if (burstConfig.events) {
+        const imagePromises = [];
+        burstConfig.events.forEach(event => {
+            if (event.text) event.text = replacePlaceholders(event.text);
+            
+            if (event.shell === 'Hình ảnh' && event.imageUrl) {
+                const normalizedUrl = normalizeAssetPath(event.imageUrl);
+                const cacheKey = `${normalizedUrl}_${event.frame || ''}`;
+                if (!imageParticleCache.has(cacheKey)) {
+                    const p = new Promise(resolve => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const processed = getProcessedImage(img, event.frame);
+                            imageParticleCache.set(cacheKey, processed);
+                            resolve();
+                        };
+                        img.onerror = () => {
+                            console.error('Failed to load firework image:', normalizedUrl);
+                            resolve();
+                        };
+                        img.src = normalizedUrl;
+                    });
+                    imagePromises.push(p);
+                }
+            }
+        });
+        if (imagePromises.length > 0) {
+            setLoadingStatus('Đang chuẩn bị hình ảnh...');
+            await Promise.all(imagePromises);
+        }
+    }
+
+    if (!showOverlay) return burstConfig;
+
+    // Cập nhật tiêu đề trang (SEO) nếu có
+    if (burstConfig.seoTitle) {
+        document.title = burstConfig.seoTitle;
+    } else if (burstConfig.title) {
+        document.title = `${burstConfig.title} | Trình mô phỏng Pháo hoa`;
+    }
+
+    // Hiển thị overlay thông tin nếu có
+    if (burstConfig.title || burstConfig.author) {
+        const overlay = document.createElement('div');
+        overlay.className = 'config-overlay';
+        [['h1', burstConfig.title], ['h2', burstConfig.subtitle], ['p', burstConfig.author]].forEach(([tag, text]) => {
+            if (!text) return;
+            const el = document.createElement(tag);
+            // Dùng textContent: kịch bản do người khác soạn không thể chèn mã HTML/JS vào trang
+            el.textContent = text;
+            overlay.appendChild(el);
+        });
+        document.body.appendChild(overlay);
+        setTimeout(() => overlay.classList.add('fade-out'), 5000);
+        setTimeout(() => overlay.remove(), 7000);
+    }
+    return burstConfig;
 }
 
 async function init() {
@@ -2023,6 +2045,9 @@ const sequences = [
 let isFirstSeq = true;
 const finaleCount = 32;
 let currentFinaleCount = 0;
+// Các phát bắn đang chờ hết thời gian trễ (delay), để hủy khi bản xem nhanh nhận kịch bản mới
+const pendingLaunchTimers = new Set();
+
 function startSequence() {
     // Kiểm tra burst config nếu có
     if (burstConfig && burstConfig.events) {
@@ -2040,6 +2065,10 @@ function startSequence() {
                 burstCounter = 0; // Reset về 0
                 return 2000; // Nghỉ 2 giây trước khi lặp lại
             } else {
+                // Báo cho builder biết bản xem nhanh đã chạy xong một lượt
+                if (IS_PREVIEW && burstCounter === maxBurst + 1) {
+                    window.parent.postMessage({ type: 'firework-preview-ended' }, window.location.origin);
+                }
                 return 5000;
             }
         }
@@ -2154,7 +2183,11 @@ function startSequence() {
                 };
 
                 if (event.delay) {
-                    setTimeout(launch, event.delay);
+                    const timer = setTimeout(() => {
+                        pendingLaunchTimers.delete(timer);
+                        launch();
+                    }, event.delay);
+                    pendingLaunchTimers.add(timer);
                 } else {
                     launch();
                 }
@@ -3735,8 +3768,35 @@ function setLoadingStatus(status) {
     appNodes.loadingStatus.textContent = status;
 }
 
+if (IS_PREVIEW) {
+    // Bản xem nhanh trong builder: không có màn hình chờ, và chưa nhận kịch bản thì không bắn pháo ngẫu nhiên
+    appNodes.startScreen.classList.add('remove');
+    burstConfig = { events: [] };
+
+    let previewVersion = 0;
+    window.addEventListener('message', async (e) => {
+        const msg = e.data;
+        if (e.origin !== window.location.origin || !msg || msg.type !== 'firework-preview') return;
+
+        const version = ++previewVersion;
+        const config = await prepareBurstConfig(msg.config, { showOverlay: false });
+        // Trong lúc đang tải ảnh, builder đã gửi một kịch bản mới hơn
+        if (version !== previewVersion) return;
+
+        burstConfig = config;
+        if (msg.restart) {
+            // Chạy lại từ đợt 1 ngay lập tức, bỏ các phát bắn còn đang chờ của kịch bản trước
+            pendingLaunchTimers.forEach(clearTimeout);
+            pendingLaunchTimers.clear();
+            burstCounter = 0;
+            autoLaunchTime = 0;
+        }
+    });
+
+    init().then(() => window.parent.postMessage({ type: 'firework-preview-ready' }, window.location.origin));
+}
 // Tiêu đề hồ sơ không cần âm thanh, chỉ cần khởi tạo.
-if (IS_HEADER) {
+else if (IS_HEADER) {
     appNodes.startScreen.classList.add('hide');
     init();
 } else {

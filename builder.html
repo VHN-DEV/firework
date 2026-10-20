@@ -408,6 +408,8 @@
                 <button id="btn-play-mini" class="btn-play-mini hide" onclick="playMiniPreviewOnce()" title="Chạy kịch bản">
                     <i class="fas fa-play"></i>
                 </button>
+                <button id="btn-device-mini" class="btn-device-mini" onclick="togglePreviewDevice()"
+                    title="Đang xem như trên máy tính - bấm để xem như trên điện thoại"><i class="fas fa-desktop"></i></button>
                 <button class="btn-reset-mini" onclick="resetMiniPreviewSize()"
                     title="Khôi phục tỉ lệ màn hình"><i class="fas fa-sync-alt"></i></button>
                 <button class="btn-fullscreen-mini" onclick="toggleFullscreenMiniPreview()"
@@ -419,10 +421,12 @@
         <div id="mini-preview-resize-h" class="mini-preview-resize-h" title="Kéo để thay đổi chiều ngang"></div>
         <div id="mini-preview-resize-both" class="mini-preview-resize-both" title="Kéo để thay đổi cả hai"></div>
         <div class="mini-preview-canvas-container">
-            <div id="mini-ruler-x" class="mini-preview-ruler-x"></div>
-            <div id="mini-ruler-y" class="mini-preview-ruler-y"></div>
-            <canvas id="mini-trails-canvas"></canvas>
-            <canvas id="mini-main-canvas"></canvas>
+            <!-- Chạy chính trình phát thật (index.html?preview=1) để xem nhanh giống hệt khi trình diễn -->
+            <div id="mini-preview-stage" class="mini-preview-stage">
+                <iframe id="mini-preview-frame" class="mini-preview-frame" title="Xem nhanh màn trình diễn"></iframe>
+                <div id="mini-ruler-x" class="mini-preview-ruler-x"></div>
+                <div id="mini-ruler-y" class="mini-preview-ruler-y"></div>
+            </div>
         </div>
         <div id="mini-preview-info" class="mini-preview-info">Đang hiển thị toàn bộ</div>
     </div>

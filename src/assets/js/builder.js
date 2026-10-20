@@ -1,14 +1,9 @@
 import fscreen from './fscreen@1.0.1.js';
-import { Stage, Ticker } from './Stage@0.1.4.js';
-import MyMath from './MyMath.js';
 import '../scss/builder.scss';
 import backgroundImgUrl from '../img/background.png';
 
 // Assign to window for global access
 window.fscreen = fscreen;
-window.Stage = Stage;
-window.Ticker = Ticker;
-window.MyMath = MyMath;
 
 /**
  * Firework Script Builder Logic - Enhanced
@@ -40,9 +35,6 @@ const COLOR = {
     Gold: '#ffbf36',
     White: '#ffffff'
 };
-const INVISIBLE = '_INVISIBLE_';
-const PI_2 = Math.PI * 2;
-const GRAVITY = 0.9;
 
 const SHELL_TYPES = [
     "Hoa cúc", "Nổ nhiều lần", "Văn bản", "Hình ảnh", "Liễu", "Trái tim", "Ngôi sao",
@@ -59,8 +51,6 @@ const FRAME_TYPES = [
     { name: 'Tam giác', value: 'triangle' },
     { name: 'Trái tim', value: 'heart' }
 ];
-
-const imageParticleCache = new Map();
 
 // Thoát ký tự HTML trước khi chèn dữ liệu người dùng (chữ, màu, tên kịch bản...) vào innerHTML.
 // Tránh vỡ giao diện khi chữ có dấu nháy và tránh chạy mã độc từ kịch bản do người khác lưu.
@@ -101,130 +91,6 @@ function getShowUrl(filename) {
     url.searchParams.set('config', filename);
     return url.href;
 }
-
-function getProcessedImage(img, frame = '') {
-    const size = 500;
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-
-    if (frame) {
-        ctx.save();
-        ctx.beginPath();
-        if (frame === 'circle') {
-            ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-        } else if (frame === 'square') {
-            ctx.rect(0, 0, size, size);
-        } else if (frame === 'triangle') {
-            ctx.moveTo(size / 2, 0);
-            ctx.lineTo(size, size);
-            ctx.lineTo(0, size);
-            ctx.closePath();
-        } else if (frame === 'heart') {
-            ctx.translate(size / 2, size / 2);
-            ctx.beginPath();
-            for (let t = 0; t <= Math.PI * 2; t += 0.01) {
-                const x = 16 * Math.pow(Math.sin(t), 3);
-                const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
-                const scale = size / 35;
-                if (t === 0) ctx.moveTo(x * scale, y * scale);
-                else ctx.lineTo(x * scale, y * scale);
-            }
-            ctx.closePath();
-            ctx.translate(-size / 2, -size / 2);
-        }
-        ctx.clip();
-    }
-
-    ctx.drawImage(img, 0, 0, size, size);
-    if (frame) ctx.restore();
-    return canvas;
-}
-
-function drawFramePath(ctx, x, y, size, frame) {
-    ctx.beginPath();
-    const r = size / 2;
-    if (frame === 'circle') {
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-    } else if (frame === 'square') {
-        ctx.rect(x - r, y - r, size, size);
-    } else if (frame === 'triangle') {
-        ctx.moveTo(x, y - r);
-        ctx.lineTo(x + r, y + r);
-        ctx.lineTo(x - r, y + r);
-        ctx.closePath();
-    } else if (frame === 'heart') {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.beginPath();
-        for (let t = 0; t <= Math.PI * 2; t += 0.1) {
-            const hx = 16 * Math.pow(Math.sin(t), 3);
-            const hy = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
-            const scale = size / 35;
-            if (t === 0) ctx.moveTo(hx * scale, hy * scale);
-            else ctx.lineTo(hx * scale, hy * scale);
-        }
-        ctx.closePath();
-        ctx.restore();
-    }
-}
-
-class ImageBurst {
-    constructor(x, y, img, size, frame, color) {
-        this.x = x;
-        this.y = y;
-        this.img = img;
-        this.frame = frame;
-        this.color = color;
-        this.maxSize = size * 300;
-        this.totalLife = 1500;
-        this.life = this.totalLife;
-    }
-    static active = [];
-    static updateAll(timeStep) {
-        for (let i = this.active.length - 1; i >= 0; i--) {
-            const b = this.active[i];
-            b.life -= timeStep;
-            if (b.life <= 0) this.active.splice(i, 1);
-        }
-    }
-    static drawAll(ctx) {
-        this.active.forEach(b => {
-            const progress = 1 - (b.life / b.totalLife);
-            const easeProgress = 1 - Math.pow(1 - progress, 3);
-            const scale = (0.1 + easeProgress * 0.9) * b.maxSize;
-            const opacity = 1 - Math.pow(progress, 2);
-            ctx.save();
-            ctx.globalAlpha = opacity;
-            if (b.color && b.color !== 'invisible') {
-                ctx.strokeStyle = b.color;
-                ctx.lineWidth = Math.max(2, scale * 0.02);
-                drawFramePath(ctx, b.x, b.y, scale, b.frame);
-                ctx.stroke();
-            }
-            ctx.drawImage(b.img, b.x - scale / 2, b.y - scale / 2, scale, scale);
-            ctx.restore();
-        });
-    }
-}
-
-window.preloadFireworkImage = (url, frame) => {
-    if (!url) return;
-    const normalizedUrl = normalizeAssetPath(url);
-    const cacheKey = `${normalizedUrl}_${frame || ''}`;
-    if (!imageParticleCache.has(cacheKey)) {
-        const img = new Image();
-        img.onload = () => {
-            const processed = getProcessedImage(img, frame);
-            imageParticleCache.set(cacheKey, processed);
-        };
-        img.onerror = (e) => {
-            console.error('[Builder] Failed to load image:', normalizedUrl, e);
-        };
-        img.src = normalizedUrl;
-    }
-};
 
 const GLITTER_TYPES = [
     { name: "Mặc định", value: "" },
@@ -269,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bgToggle?.addEventListener('change', (e) => {
         state.showBackground = e.target.checked;
         bgContainer?.classList.toggle('hide', !state.showBackground);
-        updateMiniPreviewBackground();
+        refreshMiniPreview();
     });
 
     bgFile?.addEventListener('change', (e) => {
@@ -279,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.onload = (event) => {
             state.background = event.target.result;
             if (bgPreview) bgPreview.src = state.background;
-            updateMiniPreviewBackground();
+            refreshMiniPreview();
         };
         reader.readAsDataURL(file);
     });
@@ -306,16 +172,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Đồng bộ vòng lặp xem nhanh và nút "Chạy kịch bản" với ô "Tự động lặp lại",
+// Đồng bộ chế độ xem nhanh và nút "Chạy kịch bản" với ô "Tự động lặp lại",
 // kể cả khi ô này được đổi bằng code (tạo mới, mở/nhập kịch bản) vì khi đó không có sự kiện 'change'.
 function syncLoopState() {
     const isLoop = document.getElementById('loop').checked;
-    if (isLoop && state.miniPreviewEnabled) {
-        startMiniLoop();
-    } else {
-        stopMiniLoop();
-    }
+    previewMode = isLoop ? 'loop' : 'idle';
     document.getElementById('btn-play-mini')?.classList.toggle('hide', isLoop);
+    updateMiniInfo();
+    sendPreview(true);
 }
 
 function notify(message, type = 'info') {
@@ -574,7 +438,7 @@ function createNewScript() {
         document.getElementById('show-background').checked = false;
         document.getElementById('background-upload-container').classList.add('hide');
         document.getElementById('background-preview').src = backgroundImgUrl;
-        updateMiniPreviewBackground();
+        refreshMiniPreview();
 
         // Add one default event
         addEvent();
@@ -650,10 +514,8 @@ function updateEvent(id, field, value) {
         // Hiện lại giá trị mặc định trong ô vừa bị xóa trống
         if (needsRender) renderEventList();
 
-        // Trigger preview if active
-        if (state.miniPreviewEnabled && state.activeEventId === id) {
-            launchEvent(event);
-        }
+        // Cập nhật bản xem nhanh theo thay đổi
+        refreshMiniPreview();
     }
 }
 
@@ -667,6 +529,7 @@ function renderEventList() {
                 <p>Chưa có phát bắn nào. Hãy nhấn "Thêm phát bắn" để bắt đầu.</p>
             </div>
         `;
+        refreshMiniPreview();
         return;
     }
 
@@ -675,6 +538,8 @@ function renderEventList() {
         const card = createEventCard(event, index);
         container.appendChild(card);
     });
+    // Danh sách thay đổi (thêm/xóa/nhân bản/đổi màu/loại pháo...) thì cập nhật bản xem nhanh
+    refreshMiniPreview();
 }
 
 function createEventCard(event, index) {
@@ -963,6 +828,9 @@ function closeAdvancedDrawer() {
     drawer.classList.remove('open');
     document.querySelector('.event-list-container').classList.remove('has-drawer-open');
     document.querySelectorAll('.event-card').forEach(c => c.classList.remove('active'));
+    // Bỏ chọn phát bắn: xem nhanh quay lại chạy cả kịch bản
+    updateMiniInfo();
+    sendPreview(true);
 
     setTimeout(() => {
         if (state.activeAdvancedId === null) {
@@ -1587,9 +1455,17 @@ function loadConfigIntoState(config, filename) {
     } else {
         document.getElementById('background-preview').src = backgroundImgUrl;
     }
-    updateMiniPreviewBackground();
+    refreshMiniPreview();
 
     if (config.events && Array.isArray(config.events)) {
+        // Kịch bản lưu bởi builder phiên bản cũ dùng tọa độ 0-1: đổi sang 0-100 (phát nào có cả x, y trong khoảng 0-1)
+        config.events.forEach(ev => {
+            if (typeof ev.x === 'number' && typeof ev.y === 'number' && ev.x <= 1 && ev.y <= 1) {
+                // Làm tròn 1 chữ số thập phân (0.3 * 100 = 30.000000000000004)
+                ev.x = Math.round(ev.x * 1000) / 10;
+                ev.y = Math.round(ev.y * 1000) / 10;
+            }
+        });
         config.events.forEach(ev => addEvent(ev));
     } else {
         addEvent();
@@ -1662,649 +1538,94 @@ window.previewScript = previewScript;
 window.toggleFullscreenMiniPreview = toggleFullscreenMiniPreview;
 
 /**
- * MINI PREVIEW ENGINE
+ * XEM NHANH
+ * Chạy chính trình phát thật (index.html?preview=1) trong iframe, builder gửi kịch bản sang qua postMessage.
+ * Nhờ vậy những gì thấy khi soạn giống hệt khi trình diễn: vật lý, hình dạng, ảnh, nền, cách xử lý riêng cho điện thoại.
  */
-const miniTrailsStage = new Stage('mini-trails-canvas');
-const miniMainStage = new Stage('mini-main-canvas');
 
-const Star = {
-    drawWidth: 3,
-    airDrag: 0.98,
-    airDragHeavy: 0.992,
-    active: {},
-    _pool: [],
-    _new() { return {}; },
-    add(x, y, color, angle, speed, life, speedOffX, speedOffY) {
-        const instance = this._pool.pop() || this._new();
-        let finalColor = Array.isArray(color) ? color[Math.floor(Math.random() * color.length)] : (color || COLOR.White);
-        if (finalColor === 'Ngẫu nhiên') finalColor = Object.values(COLOR)[Math.floor(Math.random() * 6)];
-        // Convert color name to hex if available
-        if (COLOR[finalColor]) finalColor = COLOR[finalColor];
-        instance.visible = true;
-        instance.heavy = false;
-        instance.targetY = undefined;
-        instance.x = x;
-        instance.y = y;
-        instance.prevX = x;
-        instance.prevY = y;
-        instance.color = finalColor;
-        instance.speedX = Math.cos(angle) * speed + (speedOffX || 0);
-        instance.speedY = Math.sin(angle) * speed + (speedOffY || 0);
-        instance.life = life;
-        instance.fullLife = life;
-        instance.spinAngle = Math.random() * PI_2;
-        instance.spinSpeed = 0.8;
-        instance.spinRadius = 0;
-        instance.sparkFreq = 0;
-        instance.sparkSpeed = 1;
-        instance.sparkTimer = 0;
-        instance.sparkColor = finalColor;
-        instance.sparkLife = 750;
-        instance.sparkLifeVariation = 0.25;
-        instance.strobe = false;
-        if (!this.active[finalColor]) this.active[finalColor] = [];
-        this.active[finalColor].push(instance);
-        return instance;
-    },
-    returnInstance(instance) {
-        if (instance.onDeath) {
-            instance.onDeath(instance);
-            instance.onDeath = null;
-        }
-        instance.secondColor = null;
-        instance.transitionTime = 0;
-        instance.colorChanged = false;
-        instance.visible = true;
-        instance.targetY = undefined;
-        this._pool.push(instance);
-    },
-    reset() {
-        Object.keys(this.active).forEach(c => this.active[c] = []);
-    }
+// Kích thước màn hình được giả lập. Trình phát xử lý điện thoại khác máy tính (thu hẹp vùng bắn, pháo nhỏ hơn).
+const PREVIEW_DEVICES = {
+    desktop: () => ({ width: Math.max(1024, window.innerWidth), height: Math.max(600, window.innerHeight) }),
+    mobile: () => ({ width: 390, height: 844 })
 };
+let previewDevice = 'desktop';
+let previewReady = false;
+// 'loop': lặp cả kịch bản, 'once': đang chạy một lượt, 'idle': không lặp và chưa bấm chạy
+let previewMode = 'loop';
+let previewRefreshTimer = null;
 
-const Spark = {
-    drawWidth: 1,
-    airDrag: 0.9,
-    active: {},
-    _pool: [],
-    _new() { return {}; },
-    add(x, y, color, angle, speed, life) {
-        const instance = this._pool.pop() || this._new();
-        instance.x = x;
-        instance.y = y;
-        instance.prevX = x;
-        instance.prevY = y;
-        instance.color = color;
-        instance.speedX = Math.cos(angle) * speed;
-        instance.speedY = Math.sin(angle) * speed;
-        instance.life = life;
-        if (!this.active[color]) this.active[color] = [];
-        this.active[color].push(instance);
-        return instance;
-    },
-    returnInstance(instance) { this._pool.push(instance); },
-    reset() {
-        Object.keys(this.active).forEach(c => this.active[c] = []);
-    }
-};
-
-const BurstFlash = {
-    active: [],
-    _pool: [],
-    _new() { return {}; },
-    add(x, y, radius) {
-        const instance = this._pool.pop() || this._new();
-        instance.x = x; instance.y = y; instance.radius = radius;
-        this.active.push(instance);
-        return instance;
-    },
-    returnInstance(instance) { this._pool.push(instance); },
-    reset() { this.active = []; }
-};
-
-function crackleEffect(star) {
-    const count = 3 + Math.random() * 4;
-    for (let i = 0; i < count; i++) {
-        const angle = Math.random() * PI_2;
-        const speed = Math.random() * 2;
-        Spark.add(star.x, star.y, COLOR.Gold, angle, speed, 300 + Math.random() * 200);
-    }
+function getPreviewFrame() {
+    return document.getElementById('mini-preview-frame');
 }
 
-function crossetteEffect(star) {
-    for (let i = 0; i < 4; i++) {
-        const angle = (i / 4) * PI_2;
-        const speed = 1.5;
-        const s = Star.add(star.x, star.y, star.color, angle, speed, 600);
-        s.sparkFreq = 40;
-        s.sparkSpeed = 0.4;
-        s.sparkLife = 400;
-        s.sparkColor = COLOR.Gold;
-    }
-}
+// Gửi kịch bản hiện tại sang trình phát. restart = true: chạy lại ngay từ đợt đầu.
+function sendPreview(restart) {
+    clearTimeout(previewRefreshTimer);
+    const frame = getPreviewFrame();
+    if (!state.miniPreviewEnabled || !previewReady || !frame || !frame.contentWindow) return;
 
-function floralEffect(star) {
-    const count = 24;
-    for (let i = 0; i < count; i++) {
-        const angle = (i / count) * PI_2;
-        const speed = Math.random() * 2 + 1;
-        const s = Star.add(star.x, star.y, star.color, angle, speed, 800 + Math.random() * 400);
-        s.sparkFreq = 80;
-        s.sparkSpeed = 0.3;
-        s.sparkLife = 500;
-        s.sparkColor = COLOR.White;
-    }
-    BurstFlash.add(star.x, star.y, 40);
-}
-
-function createBurst(count, starFactory) {
-    for (let i = 0; i < count; i++) {
-        const angle = Math.random() * PI_2;
-        const speedMult = Math.random() * 0.5 + 0.5;
-        starFactory(angle, speedMult);
-    }
-}
-
-function resolveColor(c) {
-    if (!c) return '';
-    if (c === 'Ngẫu nhiên') return 'Ngẫu nhiên';
-    return COLOR[c] || c;
-}
-
-const randomColorHex = () => Object.values(COLOR)[Math.floor(Math.random() * Object.keys(COLOR).length)];
-
-// Màu đơn (màu chuyển, màu nhấp nháy): "Ngẫu nhiên" được chọn sẵn một màu cụ thể vì bộ vẽ không hiểu chữ "Ngẫu nhiên"
-function resolveSingleColor(c) {
-    const color = resolveColor(Array.isArray(c) ? c[0] : c);
-    return color === 'Ngẫu nhiên' ? randomColorHex() : color;
-}
-
-// Màu tia lấp lánh: trống hoặc "Ngẫu nhiên" thì theo màu hạt, mảng màu thì chọn ngẫu nhiên một màu
-function pickSparkColor(glitterColor, starColor) {
-    const c = Array.isArray(glitterColor) ? glitterColor[Math.floor(Math.random() * glitterColor.length)] : glitterColor;
-    if (!c || c === 'Ngẫu nhiên') return starColor;
-    return COLOR[c] || c;
-}
-
-class Shell {
-    constructor(options) {
-        Object.assign(this, options);
-        this.starLifeVariation = options.starLifeVariation !== undefined ? options.starLifeVariation : 0.125;
-        this.color = options.color || COLOR.White;
-        if (!this.starCount) {
-            const density = options.starDensity || 1;
-            const scaledSize = this.spreadSize / 54;
-            this.starCount = Math.max(6, scaledSize * scaledSize * density);
-        }
-    }
-    launch(x, y) {
-        const width = miniMainStage.width;
-        const height = miniMainStage.height;
-
-        const targetX = (x / 100) * width;
-        const targetY = ((100 - y) / 100) * height;
-        const startY = height;
-
-        // Tính góc bắn và điểm nổ cuối dựa trên launchAngle
-        // 90 độ là thẳng đứng, 0 độ là trái, 180 độ là phải
-        const angleRad = ((this.launchAngle !== undefined ? this.launchAngle : 90) - 90) * (Math.PI / 180);
-        const verticalDist = startY - targetY;
-        const finalTargetX = targetX + Math.sin(angleRad) * verticalDist;
-        const startX = targetX;
-
-        const dx = finalTargetX - startX;
-        const dy = targetY - startY;
-        const launchDist = Math.sqrt(dx * dx + dy * dy);
-        const launchAngle = Math.atan2(dy, dx);
-
-        const launchVelocity = Math.pow(launchDist * 0.04, 0.64);
-        const speed = launchVelocity * (this.horsetail ? 1.2 : 1);
-        const launchLife = launchVelocity * (this.horsetail ? 100 : 400);
-
-        let cometColor = this.color;
-        if (Array.isArray(cometColor)) cometColor = cometColor[0];
-        if (cometColor === 'Ngẫu nhiên') cometColor = randomColorHex();
-
-        const comet = Star.add(startX, startY, cometColor, launchAngle, speed, launchLife);
-        comet.targetY = targetY; // Ghi nhớ độ cao cần nổ
-        comet.heavy = true;
-        comet.sparkFreq = 30;
-        comet.sparkSpeed = 0.5;
-        comet.sparkLife = 500;
-        // Pháo vô hình (Ma) vẫn có vệt tia vàng khi bay lên như trình phát chính
-        comet.sparkColor = cometColor === INVISIBLE ? COLOR.Gold : cometColor;
-        comet.onDeath = (c) => {
-            this.burst(c.x, c.y);
-        };
-    }
-    burst(x, y) {
-        if (this.shell === 'Hình ảnh' && this.imageUrl) {
-            const normalizedUrl = normalizeAssetPath(this.imageUrl);
-            const cacheKey = `${normalizedUrl}_${this.frame || ''}`;
-            const img = imageParticleCache.get(cacheKey);
-            if (img) {
-                const burstColor = Array.isArray(this.color) ? this.color[0] : (this.color || '#ffffff');
-                ImageBurst.active.push(new ImageBurst(x, y, img, this.shellSize || 1, this.frame, burstColor));
-                BurstFlash.add(x, y, this.spreadSize / 5);
-                return;
-            } else {
-                window.preloadFireworkImage(this.imageUrl, this.frame);
-            }
-        }
-
-        const speed = (this.spreadSize / 96) * 0.75;
-        let sparkFreq, sparkSpeed, sparkLife;
-
-        let onDeath = null;
-        if (this.crackle) onDeath = crackleEffect;
-        if (this.crossette) onDeath = crossetteEffect;
-        if (this.floral) onDeath = floralEffect;
-
-        if (this.glitter === 'willow') { sparkFreq = 100; sparkSpeed = 0.4; sparkLife = 1200; }
-        else if (this.glitter === 'light') { sparkFreq = 400; sparkSpeed = 0.2; sparkLife = 300; }
-        else if (this.glitter === 'streamer') { sparkFreq = 32; sparkSpeed = 1.05; sparkLife = 620; }
-        else { sparkFreq = 250; sparkSpeed = 0.3; sparkLife = 600; }
-
-        const starFactory = (angle, speedMult) => {
-            const star = Star.add(x, y, this.color, angle, speedMult * speed, this.starLife + Math.random() * this.starLife * this.starLifeVariation, 0, 0);
-            star.onDeath = onDeath;
-
-            if (this.secondColor) {
-                star.transitionTime = this.starLife * (Math.random() * 0.05 + 0.32);
-                if (this.transitionTime) star.transitionTime = this.transitionTime;
-                star.secondColor = this.secondColor;
-            }
-
-            if (this.glitter) {
-                star.sparkFreq = sparkFreq;
-                star.sparkSpeed = sparkSpeed;
-                star.sparkLife = sparkLife;
-                star.sparkColor = pickSparkColor(this.glitterColor, star.color);
-                star.sparkTimer = Math.random() * star.sparkFreq;
-            }
-            if (this.strobe) {
-                star.strobe = true;
-                star.strobeFreq = this.strobeFreq || (40 + Math.random() * 40);
-                if (this.strobeColor) star.secondColor = this.strobeColor;
-            }
-        };
-
-        if (this.shapePoints) {
-            const isText = this.shapePoints.isText;
-            const rotationRad = (this.rotation || 0) * (Math.PI / 180);
-            const shapeAngle = isText ? 0 : (this.rotation !== undefined ? rotationRad : (Math.random() - 0.5) * 0.4);
-            const cosA = Math.cos(shapeAngle);
-            const sinA = Math.sin(shapeAngle);
-
-            this.shapePoints.forEach(p => {
-                const rx = p.x * cosA - p.y * sinA;
-                const ry = p.x * sinA + p.y * cosA;
-                const star = Star.add(x, y, this.color, 0, 0, this.starLife + Math.random() * this.starLife * this.starLifeVariation);
-                star.speedX = rx * speed * 1.2;
-                star.speedY = ry * speed * 1.2;
-                star.onDeath = onDeath;
-                if (this.glitter) {
-                    star.sparkFreq = sparkFreq;
-                    star.sparkSpeed = sparkSpeed;
-                    star.sparkLife = sparkLife;
-                    star.sparkColor = pickSparkColor(this.glitterColor, star.color);
-                    star.sparkTimer = Math.random() * star.sparkFreq;
-                }
-            });
-        } else {
-            createBurst(this.starCount, starFactory);
-        }
-
-        if (this.ring) {
-            const ringCount = Math.floor(Math.max(10, this.starCount * 0.5));
-            for (let i = 0; i < ringCount; i++) {
-                const angle = (i / ringCount) * PI_2;
-                starFactory(angle, 1.1);
-            }
-        }
-
-        if (this.pistil) {
-            const innerShell = new Shell({
-                spreadSize: this.spreadSize * 0.5,
-                starLife: this.starLife * 0.6,
-                color: this.pistilColor || COLOR.Gold,
-                glitter: 'light'
-            });
-            innerShell.burst(x, y);
-        }
-
-        if (this.streamers) {
-            const innerShell = new Shell({
-                spreadSize: this.spreadSize * 0.9,
-                starLife: this.starLife * 0.8,
-                starCount: Math.floor(Math.max(6, this.spreadSize / 45)),
-                color: COLOR.White,
-                glitter: 'streamer'
-            });
-            innerShell.burst(x, y);
-        }
-
-        BurstFlash.add(x, y, this.spreadSize / 5);
-    }
-}
-
-function getMiniShellType(event, size) {
-    const s = size ?? 1;
-    const type = event.shell;
-    const base = {
-        shellSize: s,
-        spreadSize: 300 + s * 100,
-        starLife: 900 + s * 200,
-        color: resolveColor(event.color),
-        strobe: event.strobe,
-        strobeColor: resolveSingleColor(event.strobeColor),
-        pistil: event.pistil,
-        pistilColor: resolveColor(event.pistilColor),
-        streamers: event.streamers,
-        crossette: event.crossette,
-        crackle: event.crackle,
-        horsetail: event.horsetail,
-        comet: event.comet,
-        starDensity: event.starDensity || 1,
-        starCount: event.starCount,
-        starLifeVariation: event.starLifeVariation,
-        glitter: event.glitter,
-        glitterColor: event.glitterColor,
-        secondColor: resolveSingleColor(event.secondColor),
-        transitionTime: event.transitionTime,
-        floral: event.floral,
-        ring: event.ring,
-        strobeFreq: event.strobeFreq,
-        launchAngle: event.launchAngle,
-        ascentSpeed: event.ascentSpeed,
-        rotation: event.rotation,
-        liftSound: event.liftSound,
-        burstSound: event.burstSound,
-        whistleSound: event.whistleSound
-    };
-
-    if (event.starLife) base.starLife = event.starLife;
-    if (event.spreadSize) base.spreadSize = event.spreadSize;
-
-    // Hiệu ứng đặc trưng của từng loại pháo luôn bật (giống trình phát chính),
-    // vì builder lưu sẵn crackle/strobe/ring... = false cho mọi phát bắn.
-    switch (type) {
-        case 'Liễu':
-            base.glitter = event.glitter || 'willow';
-            base.glitterColor = base.glitterColor || COLOR.Gold;
-            if (!event.starLife) base.starLife = 3000 + s * 500;
-            break;
-        case 'Nổ lách tách':
-            base.crackle = true;
-            break;
-        case 'Nổ chéo':
-            base.crossette = true;
-            break;
-        case 'Vòng nhẫn':
-            base.ring = true;
-            break;
-        case 'Nhấp nháy':
-            base.strobe = true;
-            break;
-        case 'Đuôi ngựa':
-            base.horsetail = true;
-            break;
-        case 'Cây cọ':
-            base.glitter = event.glitter || 'heavy';
-            break;
-        case 'Ma':
-            // Hiện dần từ vô hình sang màu đã chọn
-            base.secondColor = base.secondColor || resolveSingleColor(event.color || 'Ngẫu nhiên');
-            base.color = INVISIBLE;
-            base.streamers = true;
-            break;
-        case 'Trái tim':
-            base.shapePoints = getHeartPoints(50);
-            break;
-        case 'Ngôi sao':
-            base.shapePoints = getStarPoints(50);
-            break;
-        case 'Kim cương':
-            base.shapePoints = getDiamondPoints(50);
-            break;
-        case 'Bông tuyết':
-            base.shapePoints = getSnowflakePoints(50);
-            break;
-        case 'Mặt cười':
-            base.shapePoints = getSmileyPoints(50);
-            break;
-        case 'Hình ảnh':
-            base.shell = 'Hình ảnh';
-            base.imageUrl = event.imageUrl;
-            base.frame = event.frame;
-            // Khung ảnh chỉ vẽ được một màu
-            base.color = resolveSingleColor(event.color);
-            break;
-        case 'Văn bản':
-            if (event.text) {
-                const starDensity = event.starDensity !== undefined ? event.starDensity : 1;
-                // Bước lấy mẫu tối thiểu 2px để chữ dày không tạo quá nhiều hạt
-                const step = Math.max(2, Math.round(4 / starDensity));
-                base.shapePoints = getTextParticles(event.text, 50, step);
-            }
-            break;
-        default:
-            // Hoa cúc hoặc mặc định (vẫn tôn trọng "Loại lấp lánh" người dùng chọn)
-            base.glitter = event.glitter || 'light';
-            break;
-    }
-    return base;
-}
-
-// Hình dạng đơn giản cho mini preview
-function getHeartPoints(count) {
-    const pts = [];
-    for (let i = 0; i < count; i++) {
-        const t = (i / count) * PI_2;
-        pts.push({
-            x: 16 * Math.pow(Math.sin(t), 3) / 16,
-            y: -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) / 16
-        });
-    }
-    return pts;
-}
-function getStarPoints(count) {
-    const pts = [];
-    for (let i = 0; i < count; i++) {
-        const t = (i / count) * PI_2;
-        const r = (i % 2 === 0) ? 1 : 0.5;
-        pts.push({ x: Math.cos(t) * r, y: Math.sin(t) * r });
-    }
-    return pts;
-}
-function getDiamondPoints(count) {
-    const pts = [];
-    for (let i = 0; i < count; i++) {
-        const t = (i / count) * PI_2;
-        pts.push({ x: Math.pow(Math.cos(t), 3), y: Math.pow(Math.sin(t), 3) });
-    }
-    return pts;
-}
-function getSnowflakePoints(count) {
-    const pts = [];
-    for (let i = 0; i < 6; i++) {
-        const angle = (i / 6) * PI_2;
-        for (let j = 0; j < 10; j++) {
-            const r = j / 10;
-            pts.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
-        }
-    }
-    return pts;
-}
-function getSmileyPoints(count) {
-    const pts = [];
-    for (let i = 0; i < count * 0.7; i++) {
-        const t = (i / (count * 0.7)) * PI_2;
-        pts.push({ x: Math.cos(t), y: Math.sin(t) });
-    }
-    pts.push({ x: -0.3, y: -0.3 }, { x: 0.3, y: -0.3 });
-    for (let i = 0; i < 10; i++) {
-        const t = Math.PI * (0.2 + 0.6 * (i / 10));
-        pts.push({ x: Math.cos(t) * 0.5, y: Math.sin(t) * 0.5 });
-    }
-    return pts;
-}
-
-let miniPreviewLoop = null;
-let miniBurstCounter = 0;
-
-function updateGlobals(timeStep, lag) {
-    Object.keys(Star.active).forEach(color => {
-        const stars = Star.active[color];
-        for (let i = stars.length - 1; i >= 0; i--) {
-            const star = stars[i];
-            star.life -= timeStep;
-            if (star.targetY !== undefined && (star.y <= star.targetY || star.speedY >= 0)) {
-                star.life = 0; // Buộc nổ khi đạt tới độ cao mục tiêu hoặc bắt đầu rơi xuống
-            }
-            if (star.life <= 0) {
-                stars.splice(i, 1);
-                Star.returnInstance(star);
-            } else {
-                star.prevX = star.x; star.prevY = star.y;
-                star.x += star.speedX * lag; star.y += star.speedY * lag;
-                star.speedX *= Star.airDrag; star.speedY *= Star.airDrag;
-                star.speedY += (timeStep / 1000 * GRAVITY);
-
-                // Color transition logic
-                if (star.secondColor && !star.colorChanged && star.life < (star.transitionTime || star.fullLife * 0.4)) {
-                    star.colorChanged = true;
-                    stars.splice(i, 1);
-                    const newColor = star.secondColor;
-                    star.color = newColor;
-                    if (!Star.active[newColor]) Star.active[newColor] = [];
-                    Star.active[newColor].push(star);
-                }
-
-                if (star.strobe) {
-                    star.visible = Math.floor(star.life / (star.strobeFreq || 50)) % 3 === 0;
-                }
-
-                if (star.sparkFreq) {
-                    star.sparkTimer -= timeStep;
-                    while (star.sparkTimer < 0) {
-                        star.sparkTimer += star.sparkFreq;
-                        Spark.add(star.x, star.y, star.sparkColor, Math.random() * PI_2, Math.random() * star.sparkSpeed, star.sparkLife);
-                    }
-                }
-            }
-        }
-    });
-
-    Object.keys(Spark.active).forEach(color => {
-        const sparks = Spark.active[color];
-        for (let i = sparks.length - 1; i >= 0; i--) {
-            const spark = sparks[i];
-            spark.life -= timeStep;
-            if (spark.life <= 0) {
-                sparks.splice(i, 1);
-                Spark.returnInstance(spark);
-            } else {
-                spark.prevX = spark.x; spark.prevY = spark.y;
-                spark.x += spark.speedX * lag; spark.y += spark.speedY * lag;
-                spark.speedX *= Spark.airDrag; spark.speedY *= Spark.airDrag;
-                spark.speedY += (timeStep / 1000 * GRAVITY);
-            }
-        }
-    });
-
-    renderMiniPreview();
-}
-
-let miniBgImage = null;
-function updateMiniPreviewBackground() {
-    const container = document.querySelector('.mini-preview-canvas-container');
-    if (!container) return;
-    if (state.showBackground) {
-        const bg = state.background || backgroundImgUrl;
-        container.style.backgroundImage = `url(${bg})`;
-        container.style.backgroundSize = 'cover';
-        container.style.backgroundPosition = 'center';
-
-        if (!miniBgImage) miniBgImage = new Image();
-        if (miniBgImage.src !== bg) miniBgImage.src = bg;
+    const config = getFinalConfig();
+    const index = state.activeEventId ? state.events.findIndex(e => e.id === state.activeEventId) : -1;
+    if (index !== -1) {
+        // Đang chọn một phát bắn: chỉ bắn lặp lại phát đó
+        config.loop = true;
+        config.events = [{ ...config.events[index], burst: 1, delay: 0 }];
+    } else if (previewMode === 'idle') {
+        config.events = [];
     } else {
-        container.style.backgroundImage = 'none';
-        miniBgImage = null;
+        config.loop = previewMode === 'loop';
     }
+    frame.contentWindow.postMessage({ type: 'firework-preview', config, restart }, window.location.origin);
 }
 
-function renderMiniPreview() {
-    const { dpr } = miniMainStage;
-    const trailsCtx = miniTrailsStage.ctx;
-    const mainCtx = miniMainStage.ctx;
-    const width = miniMainStage.width;
-    const height = miniMainStage.height;
-
-    trailsCtx.scale(dpr, dpr);
-    mainCtx.scale(dpr, dpr);
-
-    if (state.showBackground) {
-        // When background is enabled, use destination-out to fade trails while keeping the canvas transparent.
-        // This allows the div's background-image to be visible through the firework trails.
-        trailsCtx.globalCompositeOperation = 'destination-out';
-        trailsCtx.fillStyle = 'rgba(0, 0, 0, 0.175)';
-        trailsCtx.fillRect(0, 0, width, height);
-        trailsCtx.globalCompositeOperation = 'source-over';
-    } else {
-        // Default: clear with semi-transparent black
-        trailsCtx.globalCompositeOperation = 'source-over';
-        trailsCtx.fillStyle = 'rgba(0, 0, 0, 0.175)';
-        trailsCtx.fillRect(0, 0, width, height);
-    }
-
-    mainCtx.clearRect(0, 0, width, height);
-
-    trailsCtx.globalCompositeOperation = 'lighten';
-    trailsCtx.lineWidth = Star.drawWidth;
-    Object.keys(Star.active).forEach(color => {
-        // Hạt vô hình (pháo "Ma" trước khi hiện màu) không được vẽ
-        if (color === INVISIBLE) return;
-        const stars = Star.active[color];
-        trailsCtx.strokeStyle = color;
-        trailsCtx.beginPath();
-        stars.forEach(star => {
-            if (star.visible) {
-                trailsCtx.moveTo(star.x, star.y);
-                trailsCtx.lineTo(star.prevX, star.prevY);
-            }
-        });
-        trailsCtx.stroke();
-    });
-
-    trailsCtx.lineWidth = Spark.drawWidth;
-    Object.keys(Spark.active).forEach(color => {
-        if (color === INVISIBLE) return;
-        const sparks = Spark.active[color];
-        trailsCtx.strokeStyle = color;
-        trailsCtx.beginPath();
-        sparks.forEach(spark => {
-            trailsCtx.moveTo(spark.x, spark.y);
-            trailsCtx.lineTo(spark.prevX, spark.prevY);
-        });
-        trailsCtx.stroke();
-    });
-
-    ImageBurst.drawAll(miniMainStage.ctx);
-
-    trailsCtx.setTransform(1, 0, 0, 1, 0, 0);
-    mainCtx.setTransform(1, 0, 0, 1, 0, 0);
+// Gom các thay đổi liên tiếp rồi mới gửi một lần. Đang xem riêng một phát bắn thì bắn lại ngay để thấy thay đổi,
+// còn khi xem cả kịch bản thì chỉ cập nhật cho các đợt tiếp theo.
+function refreshMiniPreview() {
+    clearTimeout(previewRefreshTimer);
+    previewRefreshTimer = setTimeout(() => sendPreview(!!state.activeEventId), 300);
 }
 
+function updateMiniInfo() {
+    const info = document.getElementById('mini-preview-info');
+    if (!info) return;
+    const index = state.activeEventId ? state.events.findIndex(e => e.id === state.activeEventId) : -1;
+    if (index !== -1) info.innerText = 'Đang hiển thị phát bắn #' + (index + 1);
+    else if (previewMode === 'once') info.innerText = 'Đang chạy kịch bản...';
+    else if (previewMode === 'idle') info.innerText = 'Bấm ▶ để chạy kịch bản';
+    else info.innerText = 'Đang hiển thị toàn bộ';
+}
+
+window.addEventListener('message', (e) => {
+    if (e.origin !== window.location.origin || !e.data) return;
+    if (e.data.type === 'firework-preview-ready' && e.source === getPreviewFrame()?.contentWindow) {
+        previewReady = true;
+        sendPreview(true);
+    } else if (e.data.type === 'firework-preview-ended' && previewMode === 'once' && !state.activeEventId) {
+        previewMode = 'idle';
+        const info = document.getElementById('mini-preview-info');
+        if (info) info.innerText = 'Đã chạy xong';
+    }
+});
+
+function loadPreviewFrame() {
+    previewReady = false;
+    resizeMiniStages();
+    getPreviewFrame().src = 'index.html?preview=1';
+}
+
+// Đặt iframe ở kích thước màn hình giả lập rồi thu nhỏ cho vừa khung xem nhanh (giữ đúng tỉ lệ)
 function resizeMiniStages() {
     const container = document.querySelector('.mini-preview-canvas-container');
-    if (!container) return;
-    const w = container.clientWidth || 300;
-    const h = container.clientHeight || 200;
-    miniTrailsStage.resize(w, h);
-    miniMainStage.resize(w, h);
-    updateMiniRulers();
+    const stage = document.getElementById('mini-preview-stage');
+    const frame = getPreviewFrame();
+    if (!container || !stage || !frame) return;
+    const { width, height } = PREVIEW_DEVICES[previewDevice]();
+    const scale = Math.min(container.clientWidth / width, container.clientHeight / height) || 0.01;
+    frame.style.width = width + 'px';
+    frame.style.height = height + 'px';
+    frame.style.transform = `scale(${scale})`;
+    stage.style.width = width * scale + 'px';
+    stage.style.height = height * scale + 'px';
 }
 
 function updateMiniRulers() {
@@ -2316,7 +1637,7 @@ function updateMiniRulers() {
     rulerY.innerHTML = '';
 
     const steps = [0, 20, 40, 60, 80, 100];
-    
+
     steps.forEach(s => {
         const spanX = document.createElement('span');
         spanX.innerText = s;
@@ -2329,24 +1650,30 @@ function updateMiniRulers() {
     });
 }
 
-let miniTickerAdded = false;
-
-function updateMiniPreview(frameTime, lag) {
-    if (!state.miniPreviewEnabled) return;
-    const timeStep = frameTime;
-
-    updateGlobals(timeStep, lag);
-    ImageBurst.updateAll(timeStep);
-}
-
-
-
 function getNonCanvasHeight() {
     const el = document.getElementById('mini-preview');
     if (!el) return 0;
     const header = el.querySelector('.mini-preview-header');
     const info = el.querySelector('.mini-preview-info');
     return (header ? header.offsetHeight : 0) + (info ? info.offsetHeight : 0);
+}
+
+// Đặt kích thước khung xem nhanh theo tỉ lệ màn hình đang giả lập (không cao quá 80% cửa sổ)
+function fitMiniPreviewToDevice() {
+    const el = document.getElementById('mini-preview');
+    if (!el) return;
+    const { width, height } = PREVIEW_DEVICES[previewDevice]();
+    const nonCanvasH = getNonCanvasHeight();
+    let w = el.offsetWidth;
+    let canvasH = w * height / width;
+    const maxCanvasH = window.innerHeight * 0.8 - nonCanvasH;
+    if (canvasH > maxCanvasH) {
+        canvasH = maxCanvasH;
+        w = canvasH * width / height;
+    }
+    el.style.width = w + 'px';
+    el.style.height = canvasH + nonCanvasH + 'px';
+    resizeMiniStages();
 }
 
 function toggleMiniPreview(force) {
@@ -2358,27 +1685,37 @@ function toggleMiniPreview(force) {
         btn.classList.add('primary');
         btn.classList.remove('secondary');
 
-        // Cập nhật tỉ lệ theo thiết bị hiện tại (Chỉ tính riêng phần Canvas)
-        const deviceRatio = window.innerWidth / window.innerHeight;
-        const currentW = el.offsetWidth;
-        const nonCanvasH = getNonCanvasHeight();
-        el.style.height = (currentW / deviceRatio + nonCanvasH) + 'px';
-
-        resizeMiniStages();
-        updateMiniPreviewBackground();
-        if (!miniTickerAdded) {
-            miniMainStage.addEventListener('ticker', updateMiniPreview);
-            miniTickerAdded = true;
-        }
-        if (document.getElementById('loop').checked) {
-            startMiniLoop();
-        }
+        previewMode = document.getElementById('loop').checked ? 'loop' : 'idle';
+        fitMiniPreviewToDevice();
+        updateMiniRulers();
+        updateMiniInfo();
+        loadPreviewFrame();
     } else {
         el.classList.add('hide');
         btn.classList.remove('primary');
         btn.classList.add('secondary');
-        stopMiniLoop();
+        // Dừng hẳn trình phát để không tốn CPU khi đóng xem nhanh
+        previewReady = false;
+        getPreviewFrame().src = 'about:blank';
     }
+}
+
+function togglePreviewDevice() {
+    previewDevice = previewDevice === 'desktop' ? 'mobile' : 'desktop';
+    const isMobile = previewDevice === 'mobile';
+    const btn = document.getElementById('btn-device-mini');
+    if (btn) {
+        btn.innerHTML = `<i class="fas fa-${isMobile ? 'mobile-alt' : 'desktop'}"></i>`;
+        btn.title = isMobile
+            ? 'Đang xem như trên điện thoại - bấm để xem như trên máy tính'
+            : 'Đang xem như trên máy tính - bấm để xem như trên điện thoại';
+    }
+    // Bỏ chiều rộng đã kéo để khung co giãn lại theo tỉ lệ mới
+    const el = document.getElementById('mini-preview');
+    if (el) el.style.width = '';
+    fitMiniPreviewToDevice();
+    // Trình phát xác định máy tính/điện thoại lúc tải trang nên phải tải lại
+    if (state.miniPreviewEnabled) loadPreviewFrame();
 }
 
 function toggleFullscreenMiniPreview() {
@@ -2396,13 +1733,7 @@ function toggleFullscreenMiniPreview() {
 }
 
 function resetMiniPreviewSize() {
-    const el = document.getElementById('mini-preview');
-    if (!el) return;
-    const deviceRatio = window.innerWidth / window.innerHeight;
-    const currentW = el.offsetWidth;
-    const nonCanvasH = getNonCanvasHeight();
-    el.style.height = (currentW / deviceRatio + nonCanvasH) + 'px';
-    resizeMiniStages();
+    fitMiniPreviewToDevice();
     notify('Đã khôi phục tỉ lệ màn hình', 'info');
 }
 
@@ -2419,91 +1750,11 @@ fscreen.onfullscreenchange = () => {
     setTimeout(resizeMiniStages, 100);
 };
 
-// Thời lượng một đợt giống hệt trình phát chính (startSequence × 1.25):
-// đợt có pháo = 2500ms + "Tạm dừng" dài nhất, đợt trống = 1000ms.
-function getBurstDuration(events) {
-    if (events.length === 0) return 1000 * 1.25;
-    const pauses = events.filter(e => e.shell === 'Tạm dừng').map(e => Number(e.duration) || 2000);
-    return (2500 + Math.max(0, ...pauses)) * 1.25;
-}
-
-function getMaxBurst() {
-    return state.events.length > 0 ? Math.max(...state.events.map(e => Number(e.burst) || 1)) : 0;
-}
-
-function startMiniLoop() {
-    if (miniPreviewLoop) clearTimeout(miniPreviewLoop);
-    miniBurstCounter = 0;
-    const tick = () => {
-        let wait = 2000;
-        if (state.miniPreviewEnabled) {
-            if (state.activeEventId) {
-                const event = state.events.find(e => e.id === state.activeEventId);
-                if (event) launchEvent(event);
-            } else {
-                const maxBurst = getMaxBurst();
-                if (maxBurst > 0) {
-                    miniBurstCounter++;
-                    if (miniBurstCounter > maxBurst) {
-                        // Nghỉ trước khi lặp lại như trình phát chính
-                        miniBurstCounter = 0;
-                        wait = 2000 * 1.25;
-                    } else {
-                        const events = state.events.filter(e => Number(e.burst || 1) === miniBurstCounter);
-                        events.forEach(e => setTimeout(() => launchEvent(e), Number(e.delay) || 0));
-                        wait = getBurstDuration(events);
-                    }
-                }
-            }
-        }
-        miniPreviewLoop = setTimeout(tick, wait);
-    };
-    miniPreviewLoop = setTimeout(tick, 2000);
-}
-
 function playMiniPreviewOnce() {
-    if (miniPreviewLoop) clearTimeout(miniPreviewLoop);
     if (state.events.length === 0) return;
-
-    // Đặt lại counter và thông báo trạng thái
-    const info = document.getElementById('mini-preview-info');
-    if (info) info.innerText = 'Đang chạy kịch bản...';
-
-    const maxBurst = getMaxBurst();
-    let startTime = 0;
-    for (let b = 1; b <= maxBurst; b++) {
-        const duration = getBurstDuration(state.events.filter(e => Number(e.burst || 1) === b));
-        setTimeout(() => {
-            if (!state.miniPreviewEnabled || document.getElementById('loop').checked) return;
-            const events = state.events.filter(e => Number(e.burst || 1) === b);
-            events.forEach(e => setTimeout(() => launchEvent(e), Number(e.delay) || 0));
-
-            if (b === maxBurst) {
-                setTimeout(() => {
-                    if (info && !state.activeEventId) info.innerText = 'Đã chạy xong';
-                }, duration);
-            }
-        }, startTime);
-        startTime += duration;
-    }
-}
-
-function stopMiniLoop() {
-    if (miniPreviewLoop) clearTimeout(miniPreviewLoop);
-    miniPreviewLoop = null;
-    Star.reset();
-    Spark.reset();
-    BurstFlash.reset();
-}
-
-function launchEvent(event) {
-    if (event.shell === 'Tạm dừng') return;
-    const config = getMiniShellType(event, event.size);
-    const shell = new Shell(config);
-    // Fix logic: check for undefined to allow 0 value
-    const x = event.x !== undefined ? event.x : 50;
-    const y = event.y !== undefined ? event.y : 50;
-    shell.launch(x, y);
+    previewMode = 'once';
+    updateMiniInfo();
+    sendPreview(true);
 }
 
 /**
@@ -2650,77 +1901,16 @@ document.addEventListener('DOMContentLoaded', () => {
     initMiniMove();
 });
 
-const textCanvas = document.createElement('canvas');
-const textCtx = textCanvas.getContext('2d', { willReadFrequently: true });
-
-function getTextParticles(text, fontSize = 80, step = 4) {
-    textCanvas.width = 1000;
-    textCanvas.height = 200;
-    textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
-    textCtx.font = `bold ${fontSize}px Outfit, Inter, sans-serif`;
-    // Chữ quá dài so với khung vẽ thì thu nhỏ cỡ chữ, tránh bị cắt mất hai đầu
-    const maxTextWidth = textCanvas.width - 20;
-    const textWidth = textCtx.measureText(text).width;
-    if (textWidth > maxTextWidth) {
-        textCtx.font = `bold ${Math.floor(fontSize * maxTextWidth / textWidth)}px Outfit, Inter, sans-serif`;
-    }
-    textCtx.fillStyle = 'white';
-    textCtx.textAlign = 'center';
-    textCtx.textBaseline = 'middle';
-    textCtx.fillText(text, textCanvas.width / 2, textCanvas.height / 2);
-
-    const imgData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height).data;
-    const points = [];
-
-    let minX = textCanvas.width, maxX = 0, minY = textCanvas.height, maxY = 0;
-    for (let y = 0; y < textCanvas.height; y += step) {
-        for (let x = 0; x < textCanvas.width; x += step) {
-            const index = (y * textCanvas.width + x) * 4;
-            const alpha = imgData[index + 3];
-            if (alpha > 128) {
-                points.push({ x, y });
-                if (x < minX) minX = x;
-                if (x > maxX) maxX = x;
-                if (y < minY) minY = y;
-                if (y > maxY) maxY = y;
-            }
-        }
-    }
-
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
-    const maxDist = Math.max(maxX - minX, maxY - minY) / 2 || 1;
-
-    const result = points.map(p => ({
-        x: (p.x - centerX) / maxDist,
-        y: (p.y - centerY) / maxDist
-    }));
-    // Đánh dấu là chữ để không bị xoay ngẫu nhiên khi nổ (giống trình phát chính)
-    result.isText = true;
-    return result;
-}
-
 function selectEvent(id) {
-    if (state.activeEventId === id) {
-        state.activeEventId = null;
-    } else {
-        state.activeEventId = id;
-    }
+    state.activeEventId = state.activeEventId === id ? null : id;
     renderEventList();
-    const info = document.getElementById('mini-preview-info');
-    if (state.activeEventId) {
-        const event = state.events.find(e => e.id === id);
-        const idx = state.events.findIndex(e => e.id === id) + 1;
-        info.innerText = 'Đang hiển thị phát bắn #' + idx;
-
-        // Bắn ngay lập tức khi chọn (chỉ khi màn hình xem nhanh đang mở)
-        if (event && state.miniPreviewEnabled) launchEvent(event);
-    } else {
-        info.innerText = 'Đang hiển thị toàn bộ';
-    }
+    updateMiniInfo();
+    // Bắn ngay phát vừa chọn, hoặc chạy lại cả kịch bản khi bỏ chọn
+    sendPreview(true);
 }
 
 window.toggleMiniPreview = toggleMiniPreview;
+window.togglePreviewDevice = togglePreviewDevice;
 window.toggleFullscreenMiniPreview = toggleFullscreenMiniPreview;
 window.resetMiniPreviewSize = resetMiniPreviewSize;
 window.playMiniPreviewOnce = playMiniPreviewOnce;
