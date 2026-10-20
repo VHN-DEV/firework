@@ -1,5 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /firework/api/
-
-Sitemap: https://vhn-dev.github.io/firework/sitemap.xml

@@ -25,6 +25,19 @@
    - **Cách 1**: Mở trực tiếp tệp `index.html` bằng bất kỳ trình duyệt web nào (Chrome, Firefox, Edge, Safari...).
    - **Cách 2**: Sử dụng các công cụ Live Server (như tiện ích Live Server của VS Code) để khởi chạy máy chủ web cục bộ và trải nghiệm mượt mà hơn.
 
+## Kiểm thử & triển khai
+
+- `npm run build`: build vào thư mục `dist` (chạy trên XAMPP tại `http://localhost/firework/dist/`).
+- `npm test`: build rồi chạy kiểm thử tự động (32 bước: trình phát, link tặng, hộp quà, nhạc nền, màn kết,
+  mọi loại pháo và kiểu bắn, builder lưu/mở/chia sẻ, hoàn tác và bản nháp, trang Điều khoản/Bảo mật).
+  Cần PHP (lệnh `php`, hoặc biến `PHP_BIN`) và Google Chrome (biến `CHROME_PATH` nếu không ở chỗ mặc định).
+  `npm run test:e2e` chạy kiểm thử trên bản build sẵn có.
+- Mỗi lần push lên `main`, GitHub Actions (`.github/workflows/deploy.yml`) tự cài thư viện, build, chạy kiểm thử;
+  đạt hết mới triển khai lên GitHub Pages. Pull request chỉ được kiểm thử, không triển khai.
+- Thư mục `dist` và `node_modules` không còn đưa lên git. Kịch bản lưu bằng builder trên XAMPP nằm trong `dist/configs`
+  (và ảnh, nhạc trong `dist/uploads`): muốn giữ lâu dài hoặc đưa lên GitHub Pages thì chép sang `src/static/configs`
+  (và `src/static/uploads`) rồi commit.
+
 ## Hướng dẫn sử dụng
 
 Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và tính năng chính:

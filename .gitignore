@@ -1,0 +1,6 @@
+# Thư viện: cài lại bằng "npm ci" (CI) hoặc "npm install"
+node_modules/
+
+# Bản build: GitHub Actions tự build và triển khai mỗi lần push lên main.
+# Chạy trên XAMPP thì build tại máy bằng "npm run build" (thư mục vẫn có ở máy, chỉ không đưa lên git).
+dist/

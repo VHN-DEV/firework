@@ -1,8 +1,12 @@
-name: Deploy static content to Pages
+name: Kiểm thử và triển khai lên GitHub Pages
 
+# Mỗi lần push lên main: cài thư viện, build, chạy kiểm thử tự động; đạt hết mới triển khai.
+# Pull request: chỉ build và kiểm thử, không triển khai.
 on:
   push:
     branches: ['main']
+  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -10,17 +14,12 @@ permissions:
   id-token: write
 
 concurrency:
-  group: 'pages'
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
+  test:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -29,15 +28,37 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci   # tốt hơn npm install
+      - run: npm ci
 
-      - run: npm run build
+      - name: Build
+        run: npm run build
+
+      # Máy chạy ubuntu-latest có sẵn Google Chrome và PHP
+      - name: Kiểm thử tự động
+        run: npm run test:e2e
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+
+      # Build lại để bản triển khai chắc chắn không lẫn dữ liệu kiểm thử
+      - name: Build bản triển khai
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: npm run build
 
       - uses: actions/configure-pages@v4
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
 
       - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         with:
           path: dist
 
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4
