@@ -207,6 +207,24 @@
                             placeholder="Để trống sẽ dùng Dòng phụ"></textarea>
                         <small class="field-hint">Màn kết hiện khi tắt "Tự động lặp lại", kèm nút Xem lại.</small>
                     </div>
+                    <label class="switch-row" for="schedule-toggle">
+                        <span>
+                            <strong>Hẹn giờ mở quà</strong>
+                            <small>Trước giờ hẹn, link hiện đồng hồ đếm ngược</small>
+                        </span>
+                        <input type="checkbox" id="schedule-toggle" class="switch">
+                    </label>
+                    <div id="schedule-options" class="field hide">
+                        <label for="open-at">Mở lúc</label>
+                        <input type="datetime-local" id="open-at">
+                        <div class="segmented schedule-modes" role="group" aria-label="Cách mở khi tới giờ">
+                            <button type="button" id="open-mode-lock" onclick="setOpenMode('lock')">
+                                <i class="fas fa-lock"></i> Khóa tới giờ</button>
+                            <button type="button" id="open-mode-countdown" onclick="setOpenMode('countdown')">
+                                <i class="fas fa-stopwatch"></i> Bắn đúng giờ</button>
+                        </div>
+                        <small id="schedule-hint" class="field-hint"></small>
+                    </div>
 
                     <div class="field-divider"></div>
 
@@ -615,6 +633,9 @@
                             bỏ đoạn dạo đầu. Nhạc phát cùng đợt pháo đầu tiên.</li>
                         <li><strong>Màn mở quà & màn kết:</strong> chọn khung bắt đầu (thiệp chào hoặc hộp quà), nhập
                             người nhận để link mở bằng "Gửi ..."; lời chúc ở màn kết hiện khi tắt Tự động lặp lại.</li>
+                        <li><strong>Hẹn giờ mở quà:</strong> trước giờ hẹn link chỉ hiện đồng hồ đếm ngược. "Khóa tới
+                            giờ" để người nhận tự mở quà khi tới giờ; "Bắn đúng giờ" để pháo hoa tự bắn đúng khoảnh
+                            khắc (giao thừa, 0 giờ sinh nhật) cho ai đã bấm "Tôi đã sẵn sàng".</li>
                         <li><strong>Tên file:</strong> dùng để lưu và tạo link chia sẻ. Trùng tên sẽ tự thêm số.</li>
                     </ul>
                 </div>

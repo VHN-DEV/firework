@@ -2142,6 +2142,109 @@ function beginShow(open, firstLaunchDelay) {
     });
 }
 
+// ---------------------------------------------------------------------------
+// HẸN GIỜ MỞ QUÀ: kịch bản có `openAt` (thời điểm ISO) chưa tới thì hiện màn đếm ngược.
+// openMode 'lock' (mặc định): tới giờ mới hiện khung bắt đầu để mở quà.
+// openMode 'countdown': người xem bấm "Tôi đã sẵn sàng" (trình duyệt chỉ cho phát tiếng sau một lần bấm),
+// 10 giây cuối hiện số đếm lớn, đúng giờ pháo hoa tự bắn (vd. giao thừa). Không bấm thì tới giờ hiện khung bắt đầu.
+// ---------------------------------------------------------------------------
+
+let countdownActive = false;
+
+function isLockedUntilLater(config) {
+    const target = config && config.openAt ? Date.parse(config.openAt) : NaN;
+    return Number.isFinite(target) && target - Date.now() > 1000;
+}
+
+function startCountdown(config) {
+    countdownActive = true;
+    const target = Date.parse(config.openAt);
+    const auto = config.openMode === 'countdown';
+    const screen = appNodes.startScreen;
+    const stage = screen.querySelector('.countdown-stage');
+    const recipient = frameText(config.recipient);
+    stage.querySelector('.countdown-stage__eyebrow').textContent = recipient ? `Gửi ${recipient}` : 'Bạn có một món quà';
+    stage.querySelector('.countdown-stage__title').textContent = auto ? 'Pháo hoa sẽ bắn sau' : 'Món quà sẽ mở sau';
+    stage.querySelector('.countdown-stage__date').textContent = 'vào lúc ' + new Date(target).toLocaleString('vi-VN', {
+        hour: '2-digit', minute: '2-digit', weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'
+    });
+    stage.querySelector('.countdown-stage__message').textContent = frameText(config.introMessage);
+    const readyBtn = stage.querySelector('.countdown-stage__ready');
+    const hint = stage.querySelector('.countdown-stage__hint');
+    readyBtn.hidden = !auto;
+    hint.textContent = auto
+        ? 'Bấm "Tôi đã sẵn sàng" và giữ trang này mở, pháo hoa sẽ tự bắn khi đếm ngược kết thúc.'
+        : 'Hãy quay lại đúng giờ để mở quà nhé!';
+    screen.classList.add('frame-countdown', 'is-ready');
+    const title = frameText(config.seoTitle) || frameText(config.title);
+    if (title) document.title = title;
+
+    let armed = false;
+    readyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        armed = true;
+        // Mở khóa âm thanh ngay trong lúc bấm và tải sẵn để tới giờ là bắn ngay
+        soundManager.resumeAll();
+        musicPlayer.unlock();
+        configRequest.then(cfg => soundManager.preload(getRequiredSoundTypes(cfg)));
+        readyBtn.textContent = '✓ Đã sẵn sàng';
+        readyBtn.disabled = true;
+        hint.textContent = 'Giữ trang này mở và bật loa nhé, pháo hoa sẽ tự bắn khi đếm ngược kết thúc.';
+    }, { once: true });
+
+    const units = {};
+    stage.querySelectorAll('[data-unit]').forEach(el => { units[el.dataset.unit] = el; });
+    const finalEl = stage.querySelector('.countdown-stage__final');
+    const pad = n => String(n).padStart(2, '0');
+    let lastFinal = null;
+    let timer = null;
+
+    const finish = () => {
+        clearInterval(timer);
+        countdownActive = false;
+        screen.classList.remove('frame-countdown', 'is-final');
+        if (auto && armed) {
+            // Đúng giờ: vào thẳng màn trình diễn, phát pháo đầu tiên bắn ngay
+            beginShow(() => Promise.resolve(), 300);
+        } else {
+            mountStartFrame(config);
+        }
+    };
+
+    const tick = () => {
+        const left = target - Date.now();
+        if (left <= 0) {
+            finish();
+            return;
+        }
+        const seconds = Math.ceil(left / 1000);
+        units.days.textContent = Math.floor(seconds / 86400);
+        units.hours.textContent = pad(Math.floor(seconds / 3600) % 24);
+        units.minutes.textContent = pad(Math.floor(seconds / 60) % 60);
+        units.seconds.textContent = pad(seconds % 60);
+        screen.classList.toggle('has-days', seconds >= 86400);
+        // 10 giây cuối: số đếm lớn, mỗi giây một nhịp
+        if (seconds <= 10) {
+            screen.classList.add('is-final');
+            if (seconds !== lastFinal) {
+                lastFinal = seconds;
+                finalEl.textContent = seconds;
+                finalEl.classList.remove('is-beat');
+                void finalEl.offsetWidth;
+                finalEl.classList.add('is-beat');
+            }
+        }
+        // Gần tới giờ: hẹn đúng thời điểm thay vì chờ nhịp đồng hồ kế tiếp
+        if (left < 300) {
+            clearInterval(timer);
+            setTimeout(finish, left);
+        }
+    };
+    timer = setInterval(tick, 200);
+    tick();
+}
+
 // Kịch bản không lặp chạy xong: thiệp lời chúc cuối, nút xem lại và nút tạo màn pháo hoa mới
 let endScreenTimer = null;
 
@@ -4839,8 +4942,11 @@ else if (IS_HEADER) {
     appNodes.startScreen.classList.add('hide');
     init();
 } else {
-    // Đợi người xem mở khung bắt đầu của kịch bản (thiệp chào, hộp quà...), xem START_FRAMES
-    configRequest.then(mountStartFrame);
+    // Đợi người xem mở khung bắt đầu của kịch bản (thiệp chào, hộp quà...), xem START_FRAMES.
+    // Hẹn giờ mở quà chưa tới thì đếm ngược trước.
+    configRequest.then(config => (isLockedUntilLater(config) ? startCountdown(config) : mountStartFrame(config)));
     // Mạng chậm: không bắt người xem chờ mãi, dùng thiệp chào chung
-    setTimeout(() => mountStartFrame(null), 2500);
+    setTimeout(() => {
+        if (!countdownActive) mountStartFrame(null);
+    }, 2500);
 }

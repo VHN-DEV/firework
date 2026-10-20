@@ -286,6 +286,7 @@ label {
 input[type="text"],
 input[type="number"],
 input[type="url"],
+input[type="datetime-local"],
 textarea,
 select {
     width: 100%;
@@ -311,6 +312,14 @@ select {
         border-color: $b-accent;
         box-shadow: 0 0 0 3px rgba($b-accent, 0.22);
     }
+}
+
+input[type="datetime-local"] {
+    color-scheme: dark;
+}
+
+.schedule-modes {
+    margin-top: 0.6rem;
 }
 
 textarea {

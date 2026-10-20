@@ -4,7 +4,7 @@
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
 
-// Trình phát: trang chủ, link tặng (thiệp chào, hộp quà), nhạc nền, màn kết, âm thanh, mọi loại pháo và kiểu bắn.
+// Trình phát: trang chủ, link tặng (thiệp chào, hộp quà, hẹn giờ), nhạc nền, màn kết, âm thanh, mọi loại pháo và kiểu bắn.
 import fs from 'fs';
 import path from 'path';
 import { DIST, sleep, openPage, writeConfig, removeConfig, writeMelody, litPixels } from './helpers.mjs';
@@ -101,6 +101,29 @@ export async function run(browser, base, { check }) {
         check('hộp quà không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
         await page.close();
 
+        // ---- Hẹn giờ mở quà: khóa tới giờ (còn nhiều ngày), đếm ngược rồi tự bắn
+        writeConfig('zz_e2e_lock', { ...story, openAt: new Date(Date.now() + 3 * 86400000).toISOString() });
+        page = await openPage(browser);
+        await page.goto(base + '/index.html?config=zz_e2e_lock', { waitUntil: 'networkidle0' });
+        await page.waitForSelector('.start-screen.is-ready');
+        const locked = await page.evaluate(() => ({
+            countdown: document.querySelector('.start-screen').className,
+            days: document.querySelector('[data-unit="days"]').textContent,
+            ready: document.querySelector('.countdown-stage__ready').hidden
+        }));
+        check('hẹn giờ: chưa tới giờ thì hiện đếm ngược thay cho thiệp', /frame-countdown/.test(locked.countdown) && /has-days/.test(locked.countdown) && locked.days === '3' && locked.ready, JSON.stringify(locked));
+        await page.close();
+
+        writeConfig('zz_e2e_auto', { ...story, openAt: new Date(Date.now() + 4000).toISOString(), openMode: 'countdown' });
+        page = await openPage(browser);
+        await page.goto(base + '/index.html?config=zz_e2e_auto', { waitUntil: 'networkidle0' });
+        await page.waitForSelector('.start-screen.frame-countdown');
+        await page.click('.countdown-stage__ready');
+        await waitForShow(page).catch(() => {});
+        check('hẹn giờ: bấm sẵn sàng thì đúng giờ pháo hoa tự bắn', await page.evaluate(() => !document.querySelector('.stage-container').classList.contains('remove')));
+        check('hẹn giờ không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
+        await page.close();
+
         // ---- Mọi loại pháo × kiểu bắn trong chế độ xem nhanh: không được có lỗi JS
         page = await openPage(browser);
         await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
@@ -117,6 +140,8 @@ export async function run(browser, base, { check }) {
     } finally {
         removeConfig('zz_e2e_card');
         removeConfig('zz_e2e_gift');
+        removeConfig('zz_e2e_lock');
+        removeConfig('zz_e2e_auto');
         fs.rmSync(path.join(DIST, 'uploads/music/zz_e2e'), { recursive: true, force: true });
     }
 }

@@ -1081,6 +1081,177 @@ body {
     50% { opacity: 0; }
 }
 
+// ---------------------------------------------------------------------------
+// Hẹn giờ mở quà: màn đếm ngược (openAt)
+// ---------------------------------------------------------------------------
+.start-screen.frame-countdown {
+    .start-screen__content,
+    .gift-stage {
+        display: none;
+    }
+}
+
+.countdown-stage {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 640px;
+    padding: 1.5rem;
+    text-align: center;
+
+    .start-screen.frame-countdown & {
+        display: flex;
+        animation: fadeInScale 0.8s ease-out;
+    }
+
+    &__eyebrow {
+        margin: 0 0 0.5rem;
+        color: #ffbf36;
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+    }
+
+    &__title {
+        margin: 0 0 1.5rem;
+        color: #fff;
+        font-size: clamp(1.6rem, 6vw, 2.4rem);
+        font-weight: 700;
+    }
+
+    &__timer {
+        display: flex;
+        justify-content: center;
+        gap: clamp(0.5rem, 3vw, 1.25rem);
+
+        > div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: clamp(64px, 18vw, 110px);
+            padding: 0.9rem 0.5rem 0.7rem;
+            border-radius: 1.1rem;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        // Còn dưới 1 ngày: ẩn ô "ngày"
+        > div:first-child {
+            display: none;
+
+            .start-screen.has-days & {
+                display: flex;
+            }
+        }
+
+        span {
+            color: #fff;
+            font-size: clamp(2rem, 10vw, 3.6rem);
+            font-weight: 700;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 0 22px rgba(255, 191, 54, 0.45);
+        }
+
+        small {
+            margin-top: 0.45rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .start-screen.is-final & {
+            display: none;
+        }
+    }
+
+    // 10 giây cuối: một con số thật lớn, đập theo từng giây
+    &__final {
+        display: none;
+        color: #fff;
+        font-size: clamp(7rem, 38vw, 15rem);
+        font-weight: 800;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 0 40px rgba(255, 191, 54, 0.7), 0 0 90px rgba(255, 0, 67, 0.45);
+
+        .start-screen.is-final & {
+            display: block;
+        }
+
+        &.is-beat {
+            animation: countdownBeat 1s ease-out;
+        }
+    }
+
+    &__date {
+        margin: 1.25rem 0 0;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.95rem;
+
+        &::first-letter {
+            text-transform: uppercase;
+        }
+    }
+
+    &__message {
+        max-width: 30em;
+        margin: 1rem 0 0;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.05rem;
+        line-height: 1.6;
+
+        &:empty {
+            display: none;
+        }
+    }
+
+    &__ready {
+        margin-top: 1.75rem;
+        padding: 0.95rem 2.2rem;
+        border: none;
+        border-radius: 3rem;
+        background: linear-gradient(135deg, #ff0043 0%, #ffbf36 100%);
+        color: #fff;
+        font-size: 1.05rem;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 10px 20px rgba(255, 0, 67, 0.3);
+        transition: transform 0.2s, opacity 0.2s;
+
+        &:hover:not(:disabled) {
+            transform: scale(1.04);
+        }
+
+        &:disabled {
+            cursor: default;
+            background: rgba(20, 252, 86, 0.18);
+            box-shadow: none;
+            color: #8dffb0;
+        }
+
+        &[hidden] {
+            display: none;
+        }
+    }
+
+    &__hint {
+        margin: 0.9rem 0 0;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.85rem;
+    }
+}
+
+@keyframes countdownBeat {
+    0% { transform: scale(1.35); opacity: 0.3; }
+    25% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.92); opacity: 0.85; }
+}
+
 .end-screen {
     position: fixed;
     inset: 0;

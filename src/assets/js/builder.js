@@ -33,6 +33,9 @@ const state = {
     effectsVolume: 1,
     // Khung bắt đầu ('' = thiệp chào), xem START_FRAMES
     startFrame: '',
+    // Hẹn giờ mở quà: thời điểm ISO ('' = không hẹn) và cách mở khi tới giờ ('lock' | 'countdown')
+    openAt: '',
+    openMode: 'lock',
     // Ảnh khi chia sẻ: 'auto' = thiệp pháo hoa tự vẽ, 'custom' = ảnh người dùng chọn
     seo: { mode: 'auto', image: null, imageText: true, imagePosition: 50, axis: 'y' }
 };
@@ -187,6 +190,26 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('filename')?.addEventListener('input', updateScriptNameLabel);
 
     renderStartFrames();
+
+    // Hẹn giờ mở quà
+    document.getElementById('schedule-toggle')?.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            // Mặc định: 0 giờ ngày mai
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(0, 0, 0, 0);
+            state.openAt = tomorrow.toISOString();
+        } else {
+            state.openAt = '';
+        }
+        renderSchedule();
+    });
+    document.getElementById('open-at')?.addEventListener('change', (e) => {
+        const time = Date.parse(e.target.value);
+        if (Number.isFinite(time)) state.openAt = new Date(time).toISOString();
+        renderSchedule();
+    });
+    renderSchedule();
 
     // Dải mẫu theo dịp ẩn khi bắt đầu tự soạn
     document.getElementById('title')?.addEventListener('input', updateTemplateStrip);
@@ -563,6 +586,9 @@ function createNewScript() {
         document.getElementById('recipient').value = '';
         state.startFrame = '';
         renderStartFrames();
+        state.openAt = '';
+        state.openMode = 'lock';
+        renderSchedule();
         document.getElementById('intro-message').value = '';
         document.getElementById('outro-message').value = '';
         document.getElementById('filename').value = '';
@@ -1589,6 +1615,8 @@ function getFinalConfig() {
         ...getSeoImageConfig(),
         author: document.getElementById('author').value.trim(),
         startFrame: state.startFrame || undefined,
+        openAt: state.openAt || undefined,
+        openMode: state.openAt && state.openMode === 'countdown' ? 'countdown' : undefined,
         recipient: document.getElementById('recipient').value.trim() || undefined,
         introMessage: document.getElementById('intro-message').value.trim() || undefined,
         outroMessage: document.getElementById('outro-message').value.trim() || undefined,
@@ -2038,6 +2066,38 @@ function renderStartFrames() {
 function setStartFrame(value) {
     state.startFrame = value;
     renderStartFrames();
+}
+
+// Giá trị cho ô datetime-local (giờ trên máy người soạn)
+function toLocalInputValue(iso) {
+    const d = new Date(iso);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// Mục "Hẹn giờ mở quà": công tắc, giờ hẹn, cách mở, giải thích theo lựa chọn
+function renderSchedule() {
+    const toggle = document.getElementById('schedule-toggle');
+    if (!toggle) return;
+    const on = !!state.openAt;
+    toggle.checked = on;
+    document.getElementById('schedule-options').classList.toggle('hide', !on);
+    if (!on) return;
+    document.getElementById('open-at').value = toLocalInputValue(state.openAt);
+    document.getElementById('open-mode-lock').classList.toggle('active', state.openMode !== 'countdown');
+    document.getElementById('open-mode-countdown').classList.toggle('active', state.openMode === 'countdown');
+    const offset = -new Date().getTimezoneOffset() / 60;
+    const zone = `GMT${offset >= 0 ? '+' : ''}${offset}`;
+    const hint = state.openMode === 'countdown'
+        ? 'Người xem bấm "Tôi đã sẵn sàng" trước giờ hẹn; 10 giây cuối hiện số đếm lớn, đúng giờ pháo hoa tự bắn (hợp cho giao thừa).'
+        : 'Trước giờ hẹn người nhận thấy đồng hồ đếm ngược; tới giờ mới mở được quà.';
+    const past = Date.parse(state.openAt) <= Date.now() ? ' Giờ hẹn đã qua: link sẽ mở như bình thường.' : '';
+    document.getElementById('schedule-hint').textContent = `${hint} Giờ theo máy của bạn (${zone}).${past}`;
+}
+
+function setOpenMode(mode) {
+    state.openMode = mode;
+    renderSchedule();
 }
 
 // ---------------------------------------------------------------------------
@@ -2814,6 +2874,9 @@ function loadConfigIntoState(config, filename) {
     document.getElementById('recipient').value = config.recipient || '';
     state.startFrame = START_FRAMES.some(f => f.value === config.startFrame) ? config.startFrame : '';
     renderStartFrames();
+    state.openAt = config.openAt && Number.isFinite(Date.parse(config.openAt)) ? config.openAt : '';
+    state.openMode = config.openMode === 'countdown' ? 'countdown' : 'lock';
+    renderSchedule();
     document.getElementById('intro-message').value = config.introMessage || '';
     document.getElementById('outro-message').value = config.outroMessage || '';
     document.getElementById('loop').checked = config.loop !== false;
@@ -3133,7 +3196,7 @@ Object.assign(window, {
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
     togglePreviewMusic, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
-    hideModal, setStartFrame, undo, redo
+    hideModal, setStartFrame, undo, redo, setOpenMode
 });
 window.addEventListener('resize', resizeMiniStages);
 

@@ -127,6 +127,22 @@
                 </button>
                 <p class="gift-stage__hint">Chạm vào hộp quà để mở</p>
             </div>
+            <!-- Hẹn giờ mở quà: đếm ngược tới giờ hẹn (openAt) rồi mới mở hoặc tự bắn -->
+            <div class="countdown-stage">
+                <p class="countdown-stage__eyebrow"></p>
+                <h1 class="countdown-stage__title">Món quà sẽ mở sau</h1>
+                <div class="countdown-stage__timer" aria-live="off">
+                    <div><span data-unit="days">0</span><small>ngày</small></div>
+                    <div><span data-unit="hours">00</span><small>giờ</small></div>
+                    <div><span data-unit="minutes">00</span><small>phút</small></div>
+                    <div><span data-unit="seconds">00</span><small>giây</small></div>
+                </div>
+                <div class="countdown-stage__final" aria-live="assertive"></div>
+                <p class="countdown-stage__date"></p>
+                <p class="countdown-stage__message"></p>
+                <button type="button" class="countdown-stage__ready">🔔 Tôi đã sẵn sàng</button>
+                <p class="countdown-stage__hint"></p>
+            </div>
             <p class="start-screen__legal">© 2026 Vũ Hoài Nam ·
                 Mô phỏng gốc: <a href="https://codepen.io/MillerTime/pen/XgpNwb" target="_blank" rel="noopener">Caleb Miller</a> ·
                 <a href="./terms.html">Điều khoản</a> ·
