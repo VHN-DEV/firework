@@ -2335,6 +2335,120 @@ select.is-invalid {
     padding: 1rem 1.5rem 1.25rem;
 }
 
+// Giải thích nhanh: nút "?" cạnh tên mục và khung giải thích
+.help-tip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin: 0 0 0 0.35rem;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 50%;
+    background: transparent;
+    color: $b-muted;
+    font-family: inherit;
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0;
+    text-transform: none;
+    vertical-align: 0.1em;
+    cursor: help;
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+
+    // Vùng chạm rộng hơn trên điện thoại
+    position: relative;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: -8px;
+    }
+
+    &:hover,
+    &:focus-visible,
+    &.active {
+        border-color: $b-accent;
+        background: $b-accent;
+        color: #fff;
+        outline: none;
+    }
+
+    // Trong đoạn hướng dẫn: chỉ là hình minh họa
+    &.is-static {
+        cursor: default;
+        vertical-align: 0;
+
+        &::after {
+            content: none;
+        }
+    }
+}
+
+.help-tooltip {
+    position: fixed;
+    z-index: 9000;
+    max-width: min(300px, calc(100vw - 16px));
+    padding: 0.7rem 0.85rem;
+    border-radius: $b-radius-sm;
+    background: #1f2140;
+    border: 1px solid rgba($b-accent, 0.45);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    color: $b-text;
+    font-size: 0.78rem;
+    font-weight: 400;
+    line-height: 1.55;
+    text-align: left;
+    animation: helpTooltipIn 0.15s ease-out;
+
+    &[hidden] {
+        display: none;
+    }
+
+    strong {
+        color: #fff;
+        font-weight: 600;
+    }
+
+    ul {
+        margin: 0 0 0.4rem;
+        padding-left: 1.1rem;
+    }
+
+    li + li {
+        margin-top: 0.15rem;
+    }
+
+    &__arrow {
+        position: absolute;
+        top: -6px;
+        left: var(--arrow-x, 50%);
+        width: 10px;
+        height: 10px;
+        margin-left: -5px;
+        background: #1f2140;
+        border-left: 1px solid rgba($b-accent, 0.45);
+        border-top: 1px solid rgba($b-accent, 0.45);
+        transform: rotate(45deg);
+    }
+
+    &.is-above &__arrow {
+        top: auto;
+        bottom: -6px;
+        transform: rotate(225deg);
+    }
+}
+
+@keyframes helpTooltipIn {
+    from {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+}
+
 // Xếp pháo theo nhịp nhạc
 .beat-btn {
     width: 100%;

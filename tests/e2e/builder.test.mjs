@@ -4,7 +4,7 @@
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
 
-// Builder: mẫu theo dịp, lưu qua API PHP, trang chia sẻ, mở lại, kiểu bắn, khung bắt đầu, hoàn tác và bản nháp.
+// Builder: nút "?" giải thích, mẫu theo dịp, lưu qua API PHP, trang chia sẻ, mở lại, kiểu bắn, khung bắt đầu, hoàn tác và bản nháp.
 import fs from 'fs';
 import path from 'path';
 import { DIST, sleep, openPage, removeConfig } from './helpers.mjs';
@@ -18,6 +18,20 @@ export async function run(browser, base, { check }) {
     try {
         await page.goto(base + '/builder.html', { waitUntil: 'networkidle0' });
         check('builder mới mở: có dải "Tạo nhanh theo dịp"', await page.$eval('#template-strip', e => !e.classList.contains('hide')));
+
+        // Nút "?" giải thích: bấm thì hiện, không bật/tắt công tắc chứa nó, Esc để đóng
+        const loopBefore = await page.$eval('#loop', i => i.checked);
+        await page.click('.help-tip[data-help="loop"]');
+        await sleep(200);
+        const tip = await page.evaluate(() => {
+            const el = document.getElementById('help-tooltip');
+            return { shown: !el.hidden, text: el.textContent, loop: document.getElementById('loop').checked };
+        });
+        await page.keyboard.press('Escape');
+        await sleep(100);
+        const closed = await page.$eval('#help-tooltip', el => el.hidden);
+        check('nút "?" hiện giải thích, không bật/tắt công tắc, Esc để đóng',
+            tip.shown && tip.text.includes('màn kết') && tip.loop === loopBefore && closed, JSON.stringify(tip));
 
         // Tạo từ mẫu 20/10
         await page.evaluate(() => openTemplatesModal('phu_nu_20_10'));

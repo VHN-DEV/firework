@@ -334,6 +334,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Lưu nháp tự động, hoàn tác/làm lại
     initEditHistory();
+
+    // Nút "?" giải thích từng mục
+    helpTooltip.init();
 });
 
 // Đồng bộ chế độ xem nhanh và nút "Chạy kịch bản" với ô "Tự động lặp lại",
@@ -934,6 +937,224 @@ function closeInspector() {
 }
 
 // ---------------------------------------------------------------------------
+// GIẢI THÍCH NHANH: nút "?" cạnh tên mục (helpTip(key) trong JS, <button class="help-tip" data-help="key"> trong HTML).
+// Rê chuột, bấm/chạm hoặc Tab tới để xem giải thích; thêm mục mới chỉ cần thêm một dòng vào HELP_TIPS.
+// ---------------------------------------------------------------------------
+
+const HELP_TIPS = {
+    // Cấu hình chung
+    title: 'Dòng chữ lớn hiện khi màn trình diễn bắt đầu. Cũng là tiêu đề khi gửi link nếu mục <strong>Chia sẻ & SEO</strong> để trống.',
+    subtitle: 'Câu ngắn hiện dưới tiêu đề. Ô <strong>Lời chúc ở màn kết</strong> và mô tả khi chia sẻ để trống thì dùng câu này.',
+    author: 'Tên người tặng, hiện dưới tiêu đề và trên màn kết. VD: <em>Từ: Con gái</em>.',
+    startFrame: 'Màn hình đầu tiên khi mở link. Trình duyệt chỉ cho phát âm thanh sau một lần chạm nên người xem luôn mở quà trước. '
+        + '<strong>Thiệp chào</strong>: lời mời và nút Mở quà. <strong>Hộp quà</strong>: hộp rung rinh, chạm vào thì bung ruy băng.',
+    recipient: 'Tên người nhận. Có tên thì link mở bằng "Gửi [tên]" và nút "Mở quà"; để trống thì hiện lời chào chung.',
+    introMessage: 'Một hai câu trên thiệp hoặc hộp quà trước khi mở. VD: <em>Bật loa lên và mở quà nhé!</em>',
+    outroMessage: 'Lời chúc trên màn kết, hiện khi chạy hết một lượt (chỉ khi tắt <strong>Tự động lặp lại</strong>). Để trống thì dùng Dòng phụ.',
+    schedule: 'Trước giờ hẹn, link chỉ hiện đồng hồ đếm ngược. <strong>Khóa tới giờ</strong>: tới giờ người nhận tự mở quà. '
+        + '<strong>Bắn đúng giờ</strong>: ai bấm "Tôi đã sẵn sàng" và để trang mở sẽ thấy pháo tự bắn đúng khoảnh khắc, hợp cho giao thừa. '
+        + 'Người ở múi giờ khác vẫn mở đúng lúc.',
+    seoTitle: 'Tiêu đề in đậm trong khung xem trước khi gửi link qua Messenger, Zalo, Facebook. Để trống thì dùng Tiêu đề.',
+    seoDescription: 'Dòng mô tả dưới tiêu đề trong khung xem trước khi gửi link. Để trống thì ghép từ Dòng phụ và Người thực hiện.',
+    seoImage: 'Ảnh 1200×630 hiện khi gửi link. <strong>Thiệp tự động</strong>: vẽ từ tiêu đề và màu pháo. '
+        + '<strong>Ảnh của bạn</strong>: tải ảnh lên, chọn có chèn chữ và chỗ cắt ảnh. Ảnh được tạo lại mỗi lần bấm Lưu.',
+    background: 'Cảnh thành phố về đêm phía dưới bầu trời. Bật lên rồi bấm vào ảnh để thay bằng ảnh của bạn.',
+    loop: 'Bật: chạy hết đợt cuối thì quay lại đợt đầu, bắn mãi. Tắt: chạy một lượt rồi hiện màn kết với lời chúc và nút Xem lại.',
+    music: 'Nhạc phát cùng đợt pháo đầu tiên. Chọn file từ máy (tối đa 20MB) hoặc dán link trực tiếp tới file .mp3; link trang YouTube, Zing không dùng được.',
+    musicStart: 'Bỏ đoạn dạo đầu: nhạc phát từ giây này. Nghe trên thanh phát rồi bấm nút <i class="fas fa-location-crosshairs"></i> để lấy đúng chỗ đang nghe.',
+    musicVolume: 'Độ to của nhạc nền so với tiếng pháo.',
+    musicSync: 'Bật: "Nổ sau" của mỗi phát là lúc pháo <strong>nổ</strong> (pháo tự phóng sớm cho kịp) và pháo bám theo bài nhạc nên nổ đúng phách; '
+        + 'dòng thời gian hiện mốc ♪ trong bài. Nút <strong>Xếp pháo theo nhịp nhạc</strong> tự bật mục này.',
+    effectsVolume: 'Độ to của tiếng phóng và tiếng nổ. Có nhạc nền thì nên giảm để nghe rõ nhạc; 0% là tắt hẳn.',
+    filename: 'Tên dùng để lưu và làm link chia sẻ (…/s/ten-file.html). Chỉ chữ không dấu, số, gạch nối, gạch dưới. Trùng tên kịch bản khác thì tự thêm số.',
+    timeline: 'Kịch bản gồm các <strong>đợt</strong> chạy lần lượt, mỗi đợt khoảng 3 giây. Các phát cùng đợt bắn cùng lúc, trừ khi đặt <strong>Trễ</strong>. '
+        + 'Thêm phát <strong>Tạm dừng</strong> để kéo dài một đợt. Bấm vào một phát để chỉnh.',
+    preview: 'Chạy chính trình phát thật nên giống hệt khi gửi đi. Đang chọn một phát thì chỉ bắn lặp phát đó. '
+        + 'Khung này không có tiếng pháo: bấm <i class="fas fa-music"></i> để nghe nhạc nền, hoặc <strong>Xem thử</strong> để nghe đầy đủ.',
+    // Xếp pháo theo nhịp nhạc
+    beatDensity: '<strong>Thưa</strong>: chủ yếu phách đầu mỗi ô nhịp. <strong>Vừa</strong>: thêm các phách khác ở đoạn sôi động. '
+        + '<strong>Dày</strong>: thêm phát nhỏ giữa các phách ở đoạn cao trào; máy yếu có thể giật.',
+    beatLength: 'Bắn tới đâu trong bài, tính từ giây bắt đầu ở mục Nhạc nền. Bài rất dài thì tối đa 8 phút.',
+    beatKeep: 'Chữ trên trời, hình ảnh và lời nhắn đang có được đặt vào các phách mạnh trải đều suốt bài, giữ thứ tự cũ. '
+        + 'Quanh chữ và ảnh không bắn pháo khác cho dễ nhìn.',
+    // Bảng chỉnh sửa phát bắn
+    shellType: 'Hình dạng khi nổ. <strong>Văn bản</strong>: chữ trên trời. <strong>Hình ảnh</strong>: ảnh lớn dần trong khung. '
+        + '<strong>Lời nhắn</strong>: dòng chữ như phụ đề, không bắn pháo. <strong>Tạm dừng</strong>: kéo dài đợt.',
+    launchStyle: 'Cách pháo bay lên trước khi nổ (xoắn đôi, nổ dọc đường, bay nhiều tầng, đạn tàng hình...). Dùng được với mọi loại pháo.',
+    burst: 'Các phát cùng đợt bắn cùng lúc; các đợt chạy lần lượt từ nhỏ đến lớn. Đổi số đợt để chuyển phát này sang đợt khác.',
+    delay: () => (isSyncMode()
+        ? 'Kịch bản đang <strong>khớp nhịp nhạc</strong>: đây là lúc pháo <strong>nổ</strong>, tính từ đầu đợt (1000 ms = 1 giây). Pháo tự phóng sớm hơn cho kịp.'
+        : 'Chờ bao lâu kể từ đầu đợt rồi mới phóng (1000 ms = 1 giây). Dùng để các phát nổ nối tiếp nhau thay vì cùng lúc.'),
+    text: 'Chữ hiện trên trời bằng hạt pháo, tối đa 60 ký tự. Mã tự thay: <strong>[YEAR]</strong> năm hiện tại, '
+        + '<strong>[LUNAR_YEAR]</strong> tên năm âm lịch, <strong>[SINCE:2000]</strong> số năm kể từ năm 2000.',
+    captionDuration: 'Lời nhắn hiện trên màn hình bao lâu rồi mờ dần (1000 ms = 1 giây).',
+    position: 'Bấm hoặc kéo trên khung để chọn điểm nổ. Số nhỏ trên khung là các phát khác cùng đợt, giúp tránh nổ chồng lên nhau.',
+    x: 'Vị trí ngang của điểm nổ: 0 là mép trái, 100 là mép phải. Trên điện thoại được thu vào giữa cho khỏi tràn màn hình.',
+    y: 'Độ cao của điểm nổ: 0 là mặt đất, 100 là đỉnh trời. Cao hơn thì pháo bay lâu hơn.',
+    size: 'Cỡ chùm nổ, 1 là cỡ chuẩn. Lớn hơn thì chùm to và nhiều hạt hơn, máy yếu có thể giật.',
+    rotation: 'Xoay các pháo hình (trái tim, ngôi sao, bướm...) theo độ. Để trống thì mỗi lần nổ nghiêng ngẫu nhiên một chút. Chữ không bị xoay.',
+    sounds: 'Âm thanh lúc phóng, lúc bay (tiếng huýt) và lúc nổ; "Mặc định" là âm của loại pháo. Khung xem nhanh không phát tiếng, bấm <strong>Xem thử</strong> để nghe.',
+    effects: '<ul>'
+        + '<li><strong>Nhấp nháy</strong>: hạt chớp tắt liên tục.</li>'
+        + '<li><strong>Lách tách</strong>: hạt tàn thì nổ lép bép.</li>'
+        + '<li><strong>Nổ chéo</strong>: mỗi hạt tách thành 4 tia.</li>'
+        + '<li><strong>Nhụy ở giữa</strong>: thêm một chùm nhỏ ở tâm.</li>'
+        + '<li><strong>Dải sáng</strong>: vài vệt sáng dài bay xa.</li>'
+        + '<li><strong>Đuôi ngựa</strong>: hạt rủ xuống như bờm ngựa.</li>'
+        + '<li><strong>Hoa nở</strong>: mỗi hạt tàn lại nở thành một chùm nhỏ.</li>'
+        + '<li><strong>Vòng nhẫn</strong>: hạt xếp thành vòng tròn.</li>'
+        + '<li><strong>Cháy lâu, rơi chậm</strong>: hạt sáng lâu và lơ lửng.</li>'
+        + '</ul>Ô đã tích sẵn và không bỏ được là hiệu ứng có sẵn của loại pháo.',
+    glitter: 'Tia lửa nhỏ tóe ra sau mỗi hạt khi bay: Nhẹ, Vừa, Dày, Đặc là nhiều dần; Dải sáng là vệt dài; Liễu là tia rủ xuống.',
+    starDensity: 'Nhân số hạt so với mặc định của loại pháo: 2 là gấp đôi (dày hơn, nặng máy hơn), 0,5 là một nửa.',
+    starCount: 'Đặt đúng số hạt, bỏ qua Mật độ hạt. Để trống thì tự tính theo cỡ pháo.',
+    starLife: 'Mỗi hạt sáng bao lâu rồi tắt (1000 ms = 1 giây). Để trống thì theo loại pháo, VD Liễu khoảng 3 giây, Cháy lâu khoảng 6 giây.',
+    starLifeVariation: 'Độ chênh tuổi thọ giữa các hạt, từ 0 đến 1. 0: mọi hạt tắt cùng lúc. Lớn hơn: tắt lác đác, trông tự nhiên hơn.',
+    spreadSize: 'Độ rộng chùm nổ: lớn hơn thì hạt bay xa tâm hơn. Để trống thì theo loại pháo và cỡ pháo.',
+    strobeFreq: 'Dùng khi bật Nhấp nháy: mỗi lần chớp cách nhau bao nhiêu ms. Nhỏ hơn thì nháy nhanh hơn.',
+    secondColor: 'Hạt đổi sang màu này sau một lúc; chọn thời điểm ở ô Lúc chuyển màu.',
+    transitionTime: 'Sau bao nhiêu ms kể từ lúc nổ thì hạt đổi sang Màu chuyển sang. Để trống thì tự chọn.',
+    glitterColor: 'Màu tia lửa lấp lánh tóe ra sau mỗi hạt.',
+    pistilColor: 'Màu chùm nhỏ ở tâm, dùng khi bật Nhụy ở giữa.',
+    strobeColor: 'Màu lúc hạt chớp sáng, dùng khi bật Nhấp nháy.'
+};
+
+function helpTip(key) {
+    return `<button type="button" class="help-tip" data-help="${key}" aria-label="Giải thích">?</button>`;
+}
+
+// Một khung giải thích dùng chung, đặt ngay dưới (hoặc trên) nút "?" và không tràn khỏi màn hình
+const helpTooltip = {
+    el: null,
+    anchor: null,
+    // Bấm/chạm để ghim: chỉ đóng khi bấm ra ngoài, bấm lại nút hoặc nhấn Esc
+    pinned: false,
+    timer: null,
+    frame: null,
+
+    init() {
+        const el = document.createElement('div');
+        el.id = 'help-tooltip';
+        el.className = 'help-tooltip';
+        el.setAttribute('role', 'tooltip');
+        el.hidden = true;
+        el.innerHTML = '<div class="help-tooltip__body"></div><span class="help-tooltip__arrow"></span>';
+        document.body.appendChild(el);
+        this.el = el;
+
+        // Pha bắt: nút "?" nằm trong nhãn, tiêu đề mục thu gọn, dòng phát bắn... không để các phần đó nhận cú bấm
+        document.addEventListener('click', (e) => {
+            const tip = e.target.closest('.help-tip[data-help]');
+            if (tip) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (this.anchor === tip && this.pinned) this.hide();
+                else this.show(tip, true);
+            } else if (this.anchor && !el.contains(e.target)) {
+                this.hide();
+            }
+        }, true);
+
+        if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+            document.addEventListener('mouseover', (e) => {
+                const tip = e.target.closest && e.target.closest('.help-tip[data-help]');
+                if (!tip) return;
+                clearTimeout(this.timer);
+                if (tip !== this.anchor) this.timer = setTimeout(() => this.show(tip, false), 120);
+            });
+            document.addEventListener('mouseout', (e) => {
+                const tip = e.target.closest && e.target.closest('.help-tip[data-help]');
+                if (!tip || tip.contains(e.relatedTarget)) return;
+                clearTimeout(this.timer);
+                if (tip === this.anchor && !this.pinned) this.timer = setTimeout(() => this.hide(), 120);
+            });
+        }
+
+        // Bàn phím: Tab tới nút thì hiện, rời đi thì ẩn, Esc để đóng
+        document.addEventListener('focusin', (e) => {
+            if (e.target.matches('.help-tip[data-help]') && e.target.matches(':focus-visible')) this.show(e.target, false);
+        });
+        document.addEventListener('focusout', (e) => {
+            if (e.target === this.anchor && !this.pinned) this.hide();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.anchor) {
+                // Chỉ đóng khung giải thích, chưa đóng hộp thoại phía sau
+                e.stopPropagation();
+                this.hide();
+            }
+        }, true);
+    },
+
+    show(anchor, pinned) {
+        const tip = HELP_TIPS[anchor.dataset.help];
+        if (!tip) return;
+        clearTimeout(this.timer);
+        if (this.anchor && this.anchor !== anchor) this.release();
+        this.anchor = anchor;
+        this.pinned = pinned;
+        anchor.classList.add('active');
+        anchor.setAttribute('aria-describedby', 'help-tooltip');
+        this.el.querySelector('.help-tooltip__body').innerHTML = typeof tip === 'function' ? tip() : tip;
+        this.el.hidden = false;
+        this.place();
+        // Bám theo nút khi cuộn hoặc bảng được dựng lại
+        if (!this.frame) this.follow();
+    },
+
+    hide() {
+        clearTimeout(this.timer);
+        cancelAnimationFrame(this.frame);
+        this.frame = null;
+        this.release();
+        this.anchor = null;
+        this.pinned = false;
+        this.el.hidden = true;
+    },
+
+    release() {
+        if (!this.anchor) return;
+        this.anchor.classList.remove('active');
+        this.anchor.removeAttribute('aria-describedby');
+    },
+
+    follow() {
+        this.frame = requestAnimationFrame(() => {
+            this.frame = null;
+            if (!this.anchor) return;
+            if (!this.anchor.isConnected || !this.anchor.offsetParent) {
+                this.hide();
+                return;
+            }
+            this.place();
+            this.follow();
+        });
+    },
+
+    place() {
+        const margin = 8;
+        const gap = 10;
+        const rect = this.anchor.getBoundingClientRect();
+        // Nút đã cuộn ra khỏi màn hình
+        if (rect.bottom < 0 || rect.top > window.innerHeight) {
+            this.hide();
+            return;
+        }
+        const el = this.el;
+        const width = el.offsetWidth;
+        const height = el.offsetHeight;
+        const center = rect.left + rect.width / 2;
+        const left = Math.max(margin, Math.min(center - width / 2, window.innerWidth - width - margin));
+        // Ưu tiên hiện bên dưới; không đủ chỗ thì lật lên trên
+        const below = rect.bottom + gap + height <= window.innerHeight - margin || rect.top - gap - height < margin;
+        el.style.left = `${Math.round(left)}px`;
+        el.style.top = `${Math.round(below ? rect.bottom + gap : rect.top - gap - height)}px`;
+        el.classList.toggle('is-above', !below);
+        el.style.setProperty('--arrow-x', `${Math.round(center - left)}px`);
+    }
+};
+
+// ---------------------------------------------------------------------------
 // BẢNG CHỈNH SỬA phát bắn đang chọn
 // ---------------------------------------------------------------------------
 
@@ -944,29 +1165,29 @@ function rememberSection(el) {
     openSections[el.dataset.section] = el.open;
 }
 
-function section(key, icon, title, hint, body) {
+function section(key, icon, title, hint, body, help) {
     return `
         <details class="insp-section" data-section="${key}" ${openSections[key] ? 'open' : ''} ontoggle="rememberSection(this)">
-            <summary><i class="fas fa-${icon}"></i><span class="summary-title">${title}</span><span class="summary-hint" id="hint-${key}">${hint}</span></summary>
+            <summary><i class="fas fa-${icon}"></i><span class="summary-title">${title}${help ? helpTip(help) : ''}</span><span class="summary-hint" id="hint-${key}">${hint}</span></summary>
             <div class="insp-body">${body}</div>
         </details>`;
 }
 
-function numberField(event, field, label, { step = 1, min, max, placeholder = '', value } = {}) {
+function numberField(event, field, label, { step = 1, min, max, placeholder = '', value, help } = {}) {
     const v = value !== undefined ? value : (event[field] ?? '');
     return `
         <div>
-            <label for="f-${field}">${label}</label>
+            <label for="f-${field}">${label}${help ? helpTip(help) : ''}</label>
             <input type="number" id="f-${field}" step="${step}" ${min !== undefined ? `min="${min}"` : ''} ${max !== undefined ? `max="${max}"` : ''}
                 value="${escapeHtml(v)}" placeholder="${placeholder}" onchange="updateEvent(${event.id}, '${field}', this.value)">
         </div>`;
 }
 
 // Ô màu đơn (màu chuyển, nhụy, lấp lánh, nhấp nháy): ô chọn màu + ô gõ tên/mã
-function colorField(event, field, label) {
+function colorField(event, field, label, help) {
     return `
         <div>
-            <label>${label}</label>
+            <label>${label}${help ? helpTip(help) : ''}</label>
             <div class="color-field">
                 <input type="color" class="${event[field] ? '' : 'is-empty'}" value="${colorInputValue(event[field])}" title="Chọn màu"
                     onchange="updateEvent(${event.id}, '${field}', this.value); this.nextElementSibling.value = this.value; this.classList.remove('is-empty')">
@@ -1045,13 +1266,13 @@ function renderInspector() {
                 <button type="button" class="shell-option${event.shell === type ? ' selected' : ''}" onclick="handleShellChange(${event.id}, '${type}')">
                     <span class="emoji">${SHELL_ICONS[type]}</span>${type}
                 </button>`).join('')}
-        </div>`);
+        </div>`, 'shellType');
 
     let specific = '';
     if (event.shell === 'Văn bản') {
         specific = `
             <div>
-                <label for="f-text">Nội dung chữ</label>
+                <label for="f-text">Nội dung chữ${helpTip('text')}</label>
                 <input type="text" id="f-text" value="${escapeHtml(event.text)}" placeholder="VD: HAPPY BIRTHDAY" maxlength="60"
                     oninput="updateEvent(${event.id}, 'text', this.value)">
                 <small class="field-hint">Có thể dùng [YEAR], [LUNAR_YEAR], [SINCE:2000].</small>
@@ -1094,7 +1315,7 @@ function renderInspector() {
             </div>
             <div class="grid-2">
                 <div>
-                    <label for="f-duration">Hiện trong (ms)</label>
+                    <label for="f-duration">Hiện trong (ms)${helpTip('captionDuration')}</label>
                     <input type="number" id="f-duration" step="500" min="1000" max="30000" value="${event.duration ?? ''}" placeholder="4000"
                         onchange="updateEvent(${event.id}, 'duration', this.value)">
                 </div>
@@ -1129,14 +1350,14 @@ function renderInspector() {
     const basicSection = section('basic', 'clock', 'Thời điểm', '', `
         <div class="grid-2">
             <div>
-                <label for="f-burst">Đợt</label>
+                <label for="f-burst">Đợt${helpTip('burst')}</label>
                 <div class="stepper">
                     <button type="button" onclick="changeBurst(${event.id}, -1)" title="Đợt trước"><i class="fas fa-minus"></i></button>
                     <input type="number" id="f-burst" min="1" step="1" value="${escapeHtml(event.burst)}" onchange="updateEvent(${event.id}, 'burst', this.value)">
                     <button type="button" onclick="changeBurst(${event.id}, 1)" title="Đợt sau"><i class="fas fa-plus"></i></button>
                 </div>
             </div>
-            ${isPause ? '' : numberField(event, 'delay', isSyncMode() ? 'Nổ sau (ms)' : 'Trễ (ms)', { step: 100, min: 0, max: 60000 })}
+            ${isPause ? '' : numberField(event, 'delay', isSyncMode() ? 'Nổ sau (ms)' : 'Trễ (ms)', { step: 100, min: 0, max: 60000, help: 'delay' })}
         </div>
         ${specific}`);
 
@@ -1154,9 +1375,9 @@ function renderInspector() {
             <span class="xy-dot"></span>
         </div>
         <div class="grid-3">
-            ${numberField(event, 'x', 'X (trái → phải)', { step: 1, min: 0, max: 100 })}
-            ${numberField(event, 'y', 'Y (đất → trời)', { step: 1, min: 0, max: 100 })}
-            ${numberField(event, 'size', 'Cỡ pháo', { step: 0.5, min: 0, max: 10 })}
+            ${numberField(event, 'x', 'X (trái → phải)', { step: 1, min: 0, max: 100, help: 'x' })}
+            ${numberField(event, 'y', 'Y (đất → trời)', { step: 1, min: 0, max: 100, help: 'y' })}
+            ${numberField(event, 'size', 'Cỡ pháo', { step: 0.5, min: 0, max: 10, help: 'size' })}
         </div>
         <div>
             <div class="field-label-row">
@@ -1167,7 +1388,7 @@ function renderInspector() {
                 oninput="document.getElementById('out-launchAngle').textContent = this.value + '°'; updateEvent(${event.id}, 'launchAngle', this.value)">
             <small class="field-hint">90° là bắn thẳng lên; nhỏ hơn nghiêng sang trái, lớn hơn nghiêng sang phải.</small>
         </div>
-        ${numberField(event, 'rotation', 'Xoay hình (°)', { step: 15, min: -180, max: 180, placeholder: 'Ngẫu nhiên' })}`);
+        ${numberField(event, 'rotation', 'Xoay hình (°)', { step: 15, min: -180, max: 180, placeholder: 'Ngẫu nhiên', help: 'rotation' })}`, 'position');
 
     const colors = Array.isArray(event.color) ? event.color : [event.color || 'Ngẫu nhiên'];
     const presetValues = COLORS.map(c => c.value);
@@ -1218,7 +1439,7 @@ function renderInspector() {
             ['', 'Mặc định (mạnh)'], ['burstDeep', 'Trầm vang'], ['burstSoft', 'Nhẹ nhàng'], ['burstSmall', 'Nhỏ'], ['burstWhoosh', 'Vút'],
             ['crackleBang', 'Tiếng bụp thật'], ['crackle', 'Lách tách to'], ['crackleHeavy', 'Lách tách dồn dập'],
             ['crackleFirecracker', 'Pháo thật'], ['crackleSmall', 'Lách tách nhỏ'], ['burstOut', 'Tỏa rộng'], ['none', 'Im lặng']])}
-        <small class="note">Âm thanh chỉ nghe được khi bấm "Xem thử" (khung xem nhanh không phát tiếng).</small>`);
+        <small class="note">Âm thanh chỉ nghe được khi bấm "Xem thử" (khung xem nhanh không phát tiếng).</small>`, 'sounds');
 
     const builtin = SHELL_BUILTIN_EFFECTS[event.shell] || [];
     const effectChip = (field, label) => {
@@ -1243,26 +1464,26 @@ function renderInspector() {
             ${effectChip('hang', 'Cháy lâu, rơi chậm')}
         </div>
         <div>
-            <label for="f-glitter">Kiểu lấp lánh</label>
+            <label for="f-glitter">Kiểu lấp lánh${helpTip('glitter')}</label>
             <select id="f-glitter" onchange="updateEvent(${event.id}, 'glitter', this.value)">
                 ${GLITTER_TYPES.map(g => `<option value="${g.value}" ${(event.glitter || '') === g.value ? 'selected' : ''}>${g.name}</option>`).join('')}
             </select>
         </div>
         <div class="grid-2">
-            ${numberField(event, 'starDensity', 'Mật độ hạt (×)', { step: 0.1, min: 0.1, placeholder: '1' })}
-            ${numberField(event, 'starCount', 'Số hạt cố định', { step: 10, min: 1, placeholder: 'Tự động' })}
-            ${numberField(event, 'starLife', 'Tuổi thọ hạt (ms)', { step: 100, min: 100, placeholder: 'Theo loại pháo' })}
-            ${numberField(event, 'starLifeVariation', 'Độ lệch tuổi thọ', { step: 0.05, min: 0, max: 1, placeholder: 'Theo loại pháo' })}
-            ${numberField(event, 'spreadSize', 'Độ rộng vụ nổ', { step: 10, min: 50, placeholder: 'Theo loại pháo' })}
-            ${numberField(event, 'strobeFreq', 'Nhịp nháy (ms)', { step: 10, min: 10, placeholder: '50' })}
+            ${numberField(event, 'starDensity', 'Mật độ hạt (×)', { step: 0.1, min: 0.1, placeholder: '1', help: 'starDensity' })}
+            ${numberField(event, 'starCount', 'Số hạt cố định', { step: 10, min: 1, placeholder: 'Tự động', help: 'starCount' })}
+            ${numberField(event, 'starLife', 'Tuổi thọ hạt (ms)', { step: 100, min: 100, placeholder: 'Theo loại pháo', help: 'starLife' })}
+            ${numberField(event, 'starLifeVariation', 'Độ lệch tuổi thọ', { step: 0.05, min: 0, max: 1, placeholder: 'Theo loại pháo', help: 'starLifeVariation' })}
+            ${numberField(event, 'spreadSize', 'Độ rộng vụ nổ', { step: 10, min: 50, placeholder: 'Theo loại pháo', help: 'spreadSize' })}
+            ${numberField(event, 'strobeFreq', 'Nhịp nháy (ms)', { step: 10, min: 10, placeholder: '50', help: 'strobeFreq' })}
         </div>
         <div class="grid-2">
-            ${colorField(event, 'secondColor', 'Màu chuyển sang')}
-            ${numberField(event, 'transitionTime', 'Lúc chuyển màu (ms)', { step: 100, min: 0, placeholder: 'Tự động' })}
-            ${colorField(event, 'glitterColor', 'Màu lấp lánh')}
-            ${colorField(event, 'pistilColor', 'Màu nhụy')}
-            ${colorField(event, 'strobeColor', 'Màu nhấp nháy')}
-        </div>`);
+            ${colorField(event, 'secondColor', 'Màu chuyển sang', 'secondColor')}
+            ${numberField(event, 'transitionTime', 'Lúc chuyển màu (ms)', { step: 100, min: 0, placeholder: 'Tự động', help: 'transitionTime' })}
+            ${colorField(event, 'glitterColor', 'Màu lấp lánh', 'glitterColor')}
+            ${colorField(event, 'pistilColor', 'Màu nhụy', 'pistilColor')}
+            ${colorField(event, 'strobeColor', 'Màu nhấp nháy', 'strobeColor')}
+        </div>`, 'effects');
 
     const launchStyle = LAUNCH_STYLES.find(s => s.value === (event.launchStyle || '')) || LAUNCH_STYLES[0];
     const launchSection = section('launch', 'rocket', 'Kiểu bắn', `${launchStyle.icon} ${launchStyle.name}`, `
@@ -1273,7 +1494,7 @@ function renderInspector() {
                     <span class="emoji">${s.icon}</span>${s.name}
                 </button>`).join('')}
         </div>
-        <small class="field-hint">${launchStyle.hint}</small>`);
+        <small class="field-hint">${launchStyle.hint}</small>`, 'launchStyle');
 
     panel.innerHTML = header + typeSection + launchSection + basicSection + positionSection + colorSection + soundSection + advancedSection;
     panel.scrollTop = keepScroll;

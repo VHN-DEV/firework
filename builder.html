@@ -171,15 +171,15 @@
                 </div>
                 <div class="panel-body">
                     <div class="field">
-                        <label for="title">Tiêu đề</label>
+                        <label for="title">Tiêu đề<button type="button" class="help-tip" data-help="title" aria-label="Giải thích">?</button></label>
                         <input type="text" id="title" placeholder="VD: CHÚC MỪNG SINH NHẬT">
                     </div>
                     <div class="field">
-                        <label for="subtitle">Dòng phụ</label>
+                        <label for="subtitle">Dòng phụ<button type="button" class="help-tip" data-help="subtitle" aria-label="Giải thích">?</button></label>
                         <input type="text" id="subtitle" placeholder="Lời nhắn ngắn gọn...">
                     </div>
                     <div class="field">
-                        <label for="author">Người thực hiện</label>
+                        <label for="author">Người thực hiện<button type="button" class="help-tip" data-help="author" aria-label="Giải thích">?</button></label>
                         <input type="text" id="author" placeholder="Tên của bạn">
                     </div>
 
@@ -187,29 +187,29 @@
 
                     <h3 class="group-title"><i class="fas fa-gift"></i> Màn mở quà & màn kết</h3>
                     <div class="field">
-                        <label>Khung bắt đầu</label>
+                        <label>Khung bắt đầu<button type="button" class="help-tip" data-help="startFrame" aria-label="Giải thích">?</button></label>
                         <div id="start-frame-grid" class="shell-grid frame-grid"></div>
                         <small id="start-frame-hint" class="field-hint"></small>
                     </div>
                     <div class="field">
-                        <label for="recipient">Gửi tới (người nhận)</label>
+                        <label for="recipient">Gửi tới (người nhận)<button type="button" class="help-tip" data-help="recipient" aria-label="Giải thích">?</button></label>
                         <input type="text" id="recipient" placeholder="VD: Mẹ yêu" maxlength="40">
                         <small class="field-hint">Người xem thấy "Gửi Mẹ yêu" cùng hộp quà và nút "Mở quà".</small>
                     </div>
                     <div class="field">
-                        <label for="intro-message">Lời mời mở quà</label>
+                        <label for="intro-message">Lời mời mở quà<button type="button" class="help-tip" data-help="introMessage" aria-label="Giải thích">?</button></label>
                         <textarea id="intro-message" rows="2" maxlength="160"
                             placeholder="Một màn pháo hoa được làm riêng để dành tặng bạn."></textarea>
                     </div>
                     <div class="field">
-                        <label for="outro-message">Lời chúc ở màn kết</label>
+                        <label for="outro-message">Lời chúc ở màn kết<button type="button" class="help-tip" data-help="outroMessage" aria-label="Giải thích">?</button></label>
                         <textarea id="outro-message" rows="2" maxlength="200"
                             placeholder="Để trống sẽ dùng Dòng phụ"></textarea>
                         <small class="field-hint">Màn kết hiện khi tắt "Tự động lặp lại", kèm nút Xem lại.</small>
                     </div>
                     <label class="switch-row" for="schedule-toggle">
                         <span>
-                            <strong>Hẹn giờ mở quà</strong>
+                            <strong>Hẹn giờ mở quà<button type="button" class="help-tip" data-help="schedule" aria-label="Giải thích">?</button></strong>
                             <small>Trước giờ hẹn, link hiện đồng hồ đếm ngược</small>
                         </span>
                         <input type="checkbox" id="schedule-toggle" class="switch">
@@ -241,21 +241,21 @@
                         </div>
                         <div class="field">
                             <div class="field-label-row">
-                                <label for="seo-title">Tiêu đề khi chia sẻ</label>
+                                <label for="seo-title">Tiêu đề khi chia sẻ<button type="button" class="help-tip" data-help="seoTitle" aria-label="Giải thích">?</button></label>
                                 <output id="count-seo-title">0/90</output>
                             </div>
                             <input type="text" id="seo-title" placeholder="Để trống sẽ dùng Tiêu đề" maxlength="90">
                         </div>
                         <div class="field">
                             <div class="field-label-row">
-                                <label for="seo-description">Mô tả khi chia sẻ</label>
+                                <label for="seo-description">Mô tả khi chia sẻ<button type="button" class="help-tip" data-help="seoDescription" aria-label="Giải thích">?</button></label>
                                 <output id="count-seo-description">0/200</output>
                             </div>
                             <textarea id="seo-description" rows="3" maxlength="200"
                                 placeholder="Để trống sẽ dùng Dòng phụ và Người thực hiện"></textarea>
                         </div>
                         <div class="field">
-                            <label>Ảnh khi chia sẻ</label>
+                            <label>Ảnh khi chia sẻ<button type="button" class="help-tip" data-help="seoImage" aria-label="Giải thích">?</button></label>
                             <div class="segmented" role="group" aria-label="Loại ảnh khi chia sẻ">
                                 <button type="button" id="seo-mode-auto" class="active" onclick="setSeoImageMode('auto')">
                                     <i class="fas fa-wand-magic-sparkles"></i> Thiệp tự động</button>
@@ -287,7 +287,7 @@
 
                     <label class="switch-row" for="show-background">
                         <span>
-                            <strong>Hiển thị ảnh nền</strong>
+                            <strong>Hiển thị ảnh nền<button type="button" class="help-tip" data-help="background" aria-label="Giải thích">?</button></strong>
                             <small>Ảnh phong cảnh phía sau pháo hoa</small>
                         </span>
                         <input type="checkbox" id="show-background" class="switch">
@@ -306,7 +306,7 @@
 
                     <label class="switch-row" for="loop">
                         <span>
-                            <strong>Tự động lặp lại</strong>
+                            <strong>Tự động lặp lại<button type="button" class="help-tip" data-help="loop" aria-label="Giải thích">?</button></strong>
                             <small>Chạy hết thì quay lại đợt đầu</small>
                         </span>
                         <input type="checkbox" id="loop" class="switch" checked>
@@ -316,7 +316,7 @@
 
                     <!-- Nhạc nền: phát cùng đợt pháo đầu tiên, lặp suốt màn trình diễn -->
                     <div class="field music-field">
-                        <label>Nhạc nền</label>
+                        <label>Nhạc nền<button type="button" class="help-tip" data-help="music" aria-label="Giải thích">?</button></label>
                         <div id="music-empty" class="music-empty">
                             <button type="button" id="btn-music-upload" class="music-upload"
                                 onclick="document.getElementById('music-file').click()">
@@ -342,7 +342,7 @@
                             <audio id="music-audio" controls preload="metadata"></audio>
                             <div class="music-controls">
                                 <div>
-                                    <label for="music-start">Phát từ giây</label>
+                                    <label for="music-start">Phát từ giây<button type="button" class="help-tip" data-help="musicStart" aria-label="Giải thích">?</button></label>
                                     <div class="music-start-row">
                                         <input type="number" id="music-start" min="0" step="0.5" value="0">
                                         <button type="button" class="icon-btn" onclick="useCurrentMusicTime()"
@@ -352,7 +352,7 @@
                                 </div>
                                 <div>
                                     <div class="field-label-row">
-                                        <label for="music-volume">Âm lượng nhạc</label>
+                                        <label for="music-volume">Âm lượng nhạc<button type="button" class="help-tip" data-help="musicVolume" aria-label="Giải thích">?</button></label>
                                         <output id="out-music-volume">80%</output>
                                     </div>
                                     <input type="range" id="music-volume" min="0" max="100" step="5" value="80">
@@ -362,7 +362,7 @@
                                 <i class="fas fa-wave-square"></i><span>Xếp pháo theo nhịp nhạc</span></button>
                             <label class="switch-row compact music-sync-row" for="music-sync">
                                 <span>
-                                    <strong>Khớp nhịp nhạc</strong>
+                                    <strong>Khớp nhịp nhạc<button type="button" class="help-tip" data-help="musicSync" aria-label="Giải thích">?</button></strong>
                                     <small id="music-sync-hint">Pháo nổ đúng lúc đã đặt, bám theo bài nhạc</small>
                                 </span>
                                 <input type="checkbox" id="music-sync" class="switch">
@@ -375,7 +375,7 @@
                     </div>
                     <div class="field">
                         <div class="field-label-row">
-                            <label for="effects-volume">Âm lượng tiếng pháo</label>
+                            <label for="effects-volume">Âm lượng tiếng pháo<button type="button" class="help-tip" data-help="effectsVolume" aria-label="Giải thích">?</button></label>
                             <output id="out-effects-volume">100%</output>
                         </div>
                         <input type="range" id="effects-volume" min="0" max="100" step="5" value="100">
@@ -385,7 +385,7 @@
                     <div class="field-divider"></div>
 
                     <div class="field">
-                        <label for="filename">Tên file kịch bản</label>
+                        <label for="filename">Tên file kịch bản<button type="button" class="help-tip" data-help="filename" aria-label="Giải thích">?</button></label>
                         <div class="input-with-ext">
                             <input type="text" id="filename" placeholder="vd: sinh_nhat_me">
                             <span>.json</span>
@@ -400,6 +400,8 @@
                                 tiếp.</li>
                             <li>Bấm <strong>Mới</strong> để tạo nhanh màn trình diễn theo dịp (sinh nhật, 20/10, Tết...).</li>
                             <li>Thêm phát <strong>Tạm dừng</strong> để kéo dài một đợt.</li>
+                            <li>Rê chuột hoặc chạm vào <span class="help-tip is-static">?</span> cạnh mỗi mục để xem giải
+                                thích.</li>
                             <li>Bấm nút <i class="fas fa-mobile-screen"></i> ở khung xem nhanh để xem như trên điện
                                 thoại.</li>
                         </ul>
@@ -415,7 +417,7 @@
             <section class="timeline-panel">
                 <div class="timeline-toolbar">
                     <div class="timeline-heading">
-                        <h1>Dòng thời gian</h1>
+                        <h1>Dòng thời gian<button type="button" class="help-tip" data-help="timeline" aria-label="Giải thích">?</button></h1>
                         <p id="timeline-summary"></p>
                     </div>
                     <div class="toolbar-actions">
@@ -449,7 +451,7 @@
             <aside class="studio-panel">
                 <section id="mini-preview" class="preview-card">
                     <div class="preview-header">
-                        <span class="preview-title"><i class="fas fa-eye"></i> Xem nhanh</span>
+                        <span class="preview-title"><i class="fas fa-eye"></i> Xem nhanh<button type="button" class="help-tip" data-help="preview" aria-label="Giải thích">?</button></span>
                         <div class="preview-actions">
                             <button id="btn-play-mini" class="icon-btn hide" onclick="playMiniPreviewOnce()"
                                 title="Chạy kịch bản một lượt"><i class="fas fa-play"></i></button>
@@ -585,7 +587,7 @@
                     <p id="beat-summary" class="beat-summary"></p>
                     <div class="grid-2">
                         <div>
-                            <label>Độ dày</label>
+                            <label>Độ dày<button type="button" class="help-tip" data-help="beatDensity" aria-label="Giải thích">?</button></label>
                             <div class="segmented beat-density" role="group" aria-label="Độ dày">
                                 <button type="button" data-density="low" onclick="setBeatDensity('low')">Thưa</button>
                                 <button type="button" data-density="medium" onclick="setBeatDensity('medium')">Vừa</button>
@@ -593,13 +595,13 @@
                             </div>
                         </div>
                         <div>
-                            <label for="beat-length">Bắn trong</label>
+                            <label for="beat-length">Bắn trong<button type="button" class="help-tip" data-help="beatLength" aria-label="Giải thích">?</button></label>
                             <select id="beat-length" onchange="drawBeatChart()"></select>
                         </div>
                     </div>
                     <label id="beat-keep-row" class="switch-row" for="beat-keep">
                         <span>
-                            <strong>Giữ chữ, ảnh và lời nhắn đang có</strong>
+                            <strong>Giữ chữ, ảnh và lời nhắn đang có<button type="button" class="help-tip" data-help="beatKeep" aria-label="Giải thích">?</button></strong>
                             <small id="beat-keep-hint"></small>
                         </span>
                         <input type="checkbox" id="beat-keep" class="switch" checked>
@@ -718,6 +720,8 @@
                     <h4><i class="fas fa-pen-to-square"></i> Chỉnh một phát bắn</h4>
                     <ul>
                         <li><strong>Chọn phát bắn</strong> trong dòng thời gian để mở bảng chỉnh sửa.</li>
+                        <li><strong>Giải thích nhanh:</strong> rê chuột hoặc chạm vào <span class="help-tip is-static">?</span>
+                            cạnh mỗi mục để xem mục đó dùng làm gì.</li>
                         <li><strong>Vị trí:</strong> bấm hoặc kéo trên khung để chọn điểm nổ (X: trái → phải, Y: đất → trời).</li>
                         <li><strong>Màu sắc:</strong> chọn nhiều màu để pháo đa sắc, hoặc "Ngẫu nhiên".</li>
                         <li><strong>Hình ảnh:</strong> tải ảnh lên, chọn khung trái tim/ngôi sao/tròn...; pháo nổ thành viền
