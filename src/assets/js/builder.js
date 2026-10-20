@@ -244,6 +244,11 @@ document.addEventListener('DOMContentLoaded', () => {
             + 'hoặc chép file vào src/static/uploads/music/ rồi dán đường dẫn ./uploads/music/ten-file.mp3.';
     }
     renderMusic();
+    if (isStaticEnv) {
+        document.getElementById('seo-image-hint').innerHTML = 'Trang tĩnh (GitHub Pages) không tự đăng được ảnh này. Để link gửi đi hiện ảnh mới: '
+            + 'bấm <strong>Lưu</strong>, trong hộp Chia sẻ bấm <strong>Tải ảnh thiệp</strong>, rồi chép file <code>.jpg</code> đó '
+            + '(cùng file <code>.json</code> bấm <strong>Xuất</strong>) vào <code>src/static/configs/</code> và đăng lại trang.';
+    }
     renderSeoControls();
     scheduleSeoPreview();
 
@@ -1237,16 +1242,28 @@ function syncXYPad(id) {
     if (hint) hint.textContent = `${formatNumber(x)}, ${formatNumber(y)}`;
 }
 
+// Chữ có dấu -> chữ thường không dấu, nối bằng gạch dưới ("Chúc mừng Đạt" -> "chuc_mung_dat")
+function toSlug(text) {
+    return String(text || '')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+        .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+        .slice(0, 40);
+}
+
+// Thư mục trên máy chủ chứa ảnh/nhạc tải lên: theo tên file kịch bản. Chưa đặt tên thì lấy theo tiêu đề
+// (không bắt người dùng điền tên trước, rồi bỏ mất file vừa chọn).
+function getUploadFolder() {
+    const filename = document.getElementById('filename').value.trim();
+    if (/^[a-zA-Z0-9_-]+$/.test(filename)) return filename;
+    return toSlug(document.getElementById('title').value) || 'chua_dat_ten';
+}
+
 async function handleImageUpload(id, input) {
     const file = input.files[0];
     if (!file) return;
 
-    let scenarioName = document.getElementById('filename').value.trim();
-    if (!scenarioName) {
-        notify('Vui lòng nhập tên kịch bản trước khi tải ảnh!', 'warning');
-        input.value = '';
-        return;
-    }
+    const scenarioName = getUploadFolder();
 
     showLoading('Đang xử lý hình ảnh...');
 
@@ -1366,11 +1383,7 @@ async function handleMusicUpload(input) {
         notify('File nhạc quá lớn (tối đa 20MB).', 'error');
         return;
     }
-    const scenarioName = document.getElementById('filename').value.trim();
-    if (!scenarioName) {
-        notify('Vui lòng nhập tên kịch bản trước khi tải nhạc!', 'warning');
-        return;
-    }
+    const scenarioName = getUploadFolder();
 
     showLoading('Đang tải nhạc lên...');
     const formData = new FormData();
@@ -1817,11 +1830,7 @@ async function handleSeoImageUpload(input) {
             return;
         }
     } else {
-        const scenarioName = document.getElementById('filename').value.trim();
-        if (!scenarioName) {
-            notify('Vui lòng nhập tên kịch bản trước khi tải ảnh!', 'warning');
-            return;
-        }
+        const scenarioName = getUploadFolder();
         showLoading('Đang tải ảnh lên...');
         const formData = new FormData();
         formData.append('image', file);
@@ -2128,8 +2137,8 @@ async function openShareModal() {
     warning.classList.toggle('hide', !isStaticEnv);
     if (isStaticEnv) {
         warning.innerHTML = published
-            ? '<i class="fas fa-circle-info"></i><span>Người nhận sẽ thấy <strong>bản đã đăng</strong> của kịch bản này. Những thay đổi bạn vừa lưu chỉ nằm trong trình duyệt của bạn cho tới khi đăng lại trang.</span>'
-            : '<i class="fas fa-triangle-exclamation"></i><span>Kịch bản này mới chỉ lưu trong trình duyệt của bạn nên <strong>người khác mở link sẽ không xem được</strong>. Để gửi tặng: bấm <strong>Xuất</strong>, đưa file .json vào thư mục <code>src/static/configs/</code> của dự án rồi đăng lại trang (hoặc chạy trên máy chủ có PHP).</span>';
+            ? '<i class="fas fa-circle-info"></i><span>Người nhận sẽ thấy <strong>bản đã đăng</strong> của kịch bản này. Những thay đổi bạn vừa lưu (kể cả tiêu đề, mô tả, ảnh khi chia sẻ) chỉ nằm trong trình duyệt của bạn. Để cập nhật: bấm <strong>Xuất</strong> và <strong>Tải ảnh thiệp</strong> bên dưới, chép file <code>.json</code> và <code>.jpg</code> vào <code>src/static/configs/</code> rồi đăng lại trang.</span>'
+            : '<i class="fas fa-triangle-exclamation"></i><span>Kịch bản này mới chỉ lưu trong trình duyệt của bạn nên <strong>người khác mở link sẽ không xem được</strong>. Để gửi tặng: bấm <strong>Xuất</strong> và <strong>Tải ảnh thiệp</strong> bên dưới, đưa file <code>.json</code> và <code>.jpg</code> vào thư mục <code>src/static/configs/</code> của dự án rồi đăng lại trang (hoặc chạy trên máy chủ có PHP).</span>';
     }
 
     const qrCanvas = document.getElementById('share-qr');

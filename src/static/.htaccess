@@ -1,8 +1,9 @@
-# Trang chia sẻ của kịch bản lưu trên host PHP: s/<tên>.html -> api/share.php?c=<tên>
-# (kịch bản có sẵn lúc build đã có file tĩnh s/<tên>.html nên không bị chuyển)
+# Trang chia sẻ trên host PHP: s/<tên>.html -> api/share.php?c=<tên>
+# Luôn dùng trang động, kể cả kịch bản đã có file tĩnh s/<tên>.html từ lúc build: trang động đọc kịch bản hiện tại,
+# nên tiêu đề, mô tả, ảnh khi chia sẻ vừa sửa trong builder có hiệu lực ngay và ảnh trỏ đúng tên miền đang chạy.
+# (Trang tĩnh chỉ dùng trên host không có PHP như GitHub Pages, nơi file .htaccess không có tác dụng.)
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^s/([A-Za-z0-9_-]+)\.html$ api/share.php?c=$1 [L,QSA]
 </IfModule>
 
