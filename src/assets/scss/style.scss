@@ -134,8 +134,8 @@ body {
     pointer-events: none;
 
     &.show {
-        // Chỉ tải ảnh nền (~7.6MB) khi thật sự bật nền
-        background-image: url('../img/background.png');
+        // Chỉ tải ảnh nền (WebP ~320KB) khi thật sự bật nền
+        background-image: url('../img/background.webp');
         opacity: 0.6;
     }
 }

@@ -9,7 +9,7 @@ import qrcode from 'qrcode-generator';
 import { renderShareImage } from './share-image.js';
 import { printCopyrightNotice } from './copyright.js';
 import '../scss/builder.scss';
-import backgroundImgUrl from '../img/background.png';
+import backgroundImgUrl from '../img/background.webp';
 
 // Assign to window for global access
 window.fscreen = fscreen;
