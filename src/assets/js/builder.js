@@ -14,9 +14,7 @@ const state = {
     nextId: 1,
     currentFilename: '',
     activeEventId: null,
-    activeAdvancedId: null,
     miniPreviewEnabled: false,
-    previewLoopId: null,
     showBackground: false,
     background: null
 };
@@ -36,12 +34,31 @@ const COLOR = {
     White: '#ffffff'
 };
 
+// Thứ tự hiển thị trong lưới chọn loại pháo. Gồm cả các loại trình phát hỗ trợ nhưng trước đây builder thiếu
+// (Con bướm, Cỏ 3 lá, Cỏ 4 lá): kịch bản dùng chúng sẽ không còn bị hiện nhầm thành "Hoa cúc".
 const SHELL_TYPES = [
-    "Hoa cúc", "Nổ nhiều lần", "Văn bản", "Hình ảnh", "Liễu", "Trái tim", "Ngôi sao",
-    "Kim cương", "Bông tuyết", "Bông sen", "Hành tinh",
-    "Mặt cười", "Mặt mèo", "Vòng nhẫn", "Nổ chéo",
-    "Cây cọ", "Ma", "Đuôi ngựa", "Nhấp nháy", "Nổ lách tách", "Tạm dừng"
+    "Hoa cúc", "Liễu", "Cây cọ", "Vòng nhẫn", "Nổ chéo", "Nổ lách tách", "Nhấp nháy", "Đuôi ngựa",
+    "Ma", "Nổ nhiều lần", "Trái tim", "Ngôi sao", "Kim cương", "Bông tuyết", "Bông sen", "Hành tinh",
+    "Con bướm", "Cỏ 3 lá", "Cỏ 4 lá", "Mặt cười", "Mặt mèo", "Văn bản", "Hình ảnh", "Tạm dừng"
 ];
+
+const SHELL_ICONS = {
+    'Hoa cúc': '🌼', 'Liễu': '🌿', 'Cây cọ': '🌴', 'Vòng nhẫn': '⭕', 'Nổ chéo': '✖️', 'Nổ lách tách': '🎇',
+    'Nhấp nháy': '✨', 'Đuôi ngựa': '🐎', 'Ma': '👻', 'Nổ nhiều lần': '💥', 'Trái tim': '❤️', 'Ngôi sao': '⭐',
+    'Kim cương': '💎', 'Bông tuyết': '❄️', 'Bông sen': '🌸', 'Hành tinh': '🪐', 'Con bướm': '🦋',
+    'Cỏ 3 lá': '☘️', 'Cỏ 4 lá': '🍀', 'Mặt cười': '😊', 'Mặt mèo': '🐱', 'Văn bản': '🔤', 'Hình ảnh': '🖼️',
+    'Tạm dừng': '⏸️'
+};
+
+// Hiệu ứng luôn có sẵn trong loại pháo (trình phát tự bật), hiển thị dạng đã tích và khóa trong mục Nâng cao
+const SHELL_BUILTIN_EFFECTS = {
+    'Nổ lách tách': ['crackle'],
+    'Nổ chéo': ['crossette'],
+    'Vòng nhẫn': ['ring'],
+    'Nhấp nháy': ['strobe'],
+    'Đuôi ngựa': ['horsetail'],
+    'Ma': ['streamers']
+};
 
 const FRAME_TYPES = [
     // Phát bắn chưa chọn khung (frame trống) thực tế hiển thị không khung, nên cần một lựa chọn tương ứng
@@ -115,16 +132,19 @@ const COLORS = [
 // Initialize UI
 document.addEventListener('DOMContentLoaded', () => {
     // Buttons
-    // Bọc trong arrow function: nếu truyền thẳng addEvent, đối tượng MouseEvent sẽ bị coi là cấu hình phát bắn
-    document.getElementById('btn-add-event')?.addEventListener('click', () => addEvent());
+    // Bọc trong arrow function: nếu truyền thẳng hàm, đối tượng MouseEvent sẽ bị coi là tham số
+    document.getElementById('btn-add-event')?.addEventListener('click', () => addEventFromUI());
+    document.getElementById('btn-fab-add')?.addEventListener('click', () => addEventFromUI());
     document.getElementById('btn-save')?.addEventListener('click', saveConfig);
     document.getElementById('btn-preview')?.addEventListener('click', previewConfig);
-    document.getElementById('btn-export')?.addEventListener('click', exportConfig);
-    document.getElementById('btn-import')?.addEventListener('click', () => document.getElementById('import-file')?.click());
-    document.getElementById('btn-my-scripts')?.addEventListener('click', openScriptsModal);
     document.getElementById('btn-copy-link')?.addEventListener('click', copyShareLink);
     document.getElementById('btn-toggle-mini-preview')?.addEventListener('click', () => toggleMiniPreview());
     document.getElementById('btn-help')?.addEventListener('click', () => showModal('help-modal'));
+    document.getElementById('sidebar-overlay')?.addEventListener('click', toggleSidebar);
+
+    // Tên kịch bản trên thanh trên cùng
+    document.getElementById('title')?.addEventListener('input', updateScriptNameLabel);
+    document.getElementById('filename')?.addEventListener('input', updateScriptNameLabel);
 
     // Background logic
     const bgToggle = document.getElementById('show-background');
@@ -155,21 +175,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // File Import
     document.getElementById('import-file')?.addEventListener('change', importConfig);
 
-    // Mobile specific
-    const btnToggleSettings = document.getElementById('btn-toggle-settings');
-    const btnToggleSettingsHeader = document.getElementById('btn-toggle-settings-header');
-    const btnFabAdd = document.getElementById('btn-fab-add');
-    const overlay = document.getElementById('sidebar-overlay');
+    document.getElementById('more-menu')?.addEventListener('click', (e) => {
+        if (e.target.closest('button, a')) closeMoreMenu();
+    });
 
-    if (btnToggleSettings) btnToggleSettings.addEventListener('click', toggleSidebar);
-    if (btnToggleSettingsHeader) btnToggleSettingsHeader.addEventListener('click', toggleSidebar);
-    if (btnFabAdd) btnFabAdd.addEventListener('click', () => addEvent());
-    if (overlay) overlay.addEventListener('click', toggleSidebar);
+    // Đóng menu "⋯" khi bấm ra ngoài
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.more-menu')) closeMoreMenu();
+    });
+
+    // Esc: đóng menu, ngăn cấu hình, bảng chỉnh sửa (trên điện thoại)
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape' || document.querySelector('.modal:not(.hide)')) return;
+        if (!document.getElementById('more-menu').classList.contains('hide')) return closeMoreMenu();
+        if (document.getElementById('settings-panel').classList.contains('open')) return toggleSidebar();
+        if (state.activeEventId) closeInspector();
+    });
 
     // Initial event if empty
     if (state.events.length === 0) {
         addEvent();
     }
+    renderInspector();
+    updateScriptNameLabel();
+
+    // Điện thoại mặc định xem như trên điện thoại
+    if (window.innerWidth < 768) setPreviewDevice('mobile');
+    toggleMiniPreview(true);
 });
 
 // Đồng bộ chế độ xem nhanh và nút "Chạy kịch bản" với ô "Tự động lặp lại",
@@ -262,6 +294,10 @@ function validateConfig() {
 
     if (!isValid) {
         errors.forEach(err => notify(err, 'error'));
+        const panel = document.getElementById('settings-panel');
+        if (filenameInput.classList.contains('is-invalid') && window.innerWidth < 1200 && !panel.classList.contains('open')) {
+            toggleSidebar();
+        }
     }
 
     return isValid;
@@ -388,6 +424,7 @@ function addColorToEvent(id, color) {
         event.color = [...current, color];
     }
     renderEventList();
+    renderInspector();
 }
 
 function removeColorFromEvent(id, index) {
@@ -402,17 +439,7 @@ function removeColorFromEvent(id, index) {
         if (event.color.length === 0) event.color = "Ngẫu nhiên";
     }
     renderEventList();
-}
-
-function renderColorTags(event) {
-    const colors = Array.isArray(event.color) ? event.color : [event.color];
-    return colors.map((c, index) => `
-        <div class="color-tag" style="--tag-color: ${escapeHtml(COLOR[c] || c)}">
-            <span class="dot"></span>
-            <span class="label">${escapeHtml(c)}</span>
-            <i class="fas fa-times" onclick="removeColorFromEvent(${event.id}, ${index})"></i>
-        </div>
-    `).join('');
+    renderInspector();
 }
 
 function createNewScript() {
@@ -442,6 +469,8 @@ function createNewScript() {
 
         // Add one default event
         addEvent();
+        renderInspector();
+        updateScriptNameLabel();
 
         notify('Đã tạo kịch bản mới!', 'success');
     });
@@ -449,6 +478,11 @@ function createNewScript() {
 
 function removeEvent(id) {
     state.events = state.events.filter(e => e.id !== id);
+    if (state.activeEventId === id) {
+        state.activeEventId = null;
+        renderInspector();
+        updateMiniInfo();
+    }
     renderEventList();
 }
 
@@ -470,7 +504,8 @@ function duplicateEvent(id) {
     // Insert after the original event
     state.events.splice(index + 1, 0, newEvent);
 
-    renderEventList();
+    // Mở luôn bản sao để chỉnh tiếp
+    selectEvent(newId);
     notify('Đã nhân bản phát bắn!', 'success');
 }
 
@@ -511,223 +546,579 @@ function updateEvent(id, field, value) {
             event[field] = value;
         }
 
-        // Hiện lại giá trị mặc định trong ô vừa bị xóa trống
-        if (needsRender) renderEventList();
-
-        // Cập nhật bản xem nhanh theo thay đổi
-        refreshMiniPreview();
+        // Cập nhật dòng thời gian (kèm bản xem nhanh). Bảng chỉnh sửa chỉ dựng lại khi cần hiện lại
+        // giá trị mặc định của ô vừa bị xóa trống, để không làm mất con trỏ trong ô đang gõ.
+        renderEventList();
+        if (needsRender) {
+            renderInspector();
+        } else if (state.activeEventId === id) {
+            refreshInspectorHeader();
+            if (field === 'x' || field === 'y') syncXYPad(id);
+        }
     }
+}
+
+// ---------------------------------------------------------------------------
+// DÒNG THỜI GIAN: các phát bắn gom theo đợt
+// ---------------------------------------------------------------------------
+
+// Thời lượng một đợt (ms), giống trình phát (startSequence × 1.25):
+// đợt có pháo = 2500ms + "Tạm dừng" dài nhất, đợt trống = 1000ms.
+function getBurstDuration(events) {
+    if (events.length === 0) return 1000 * 1.25;
+    const pauses = events.filter(e => e.shell === 'Tạm dừng').map(e => Number(e.duration) || 2000);
+    return (2500 + Math.max(0, ...pauses)) * 1.25;
+}
+
+function getMaxBurst() {
+    return state.events.length > 0 ? Math.max(...state.events.map(e => Number(e.burst) || 1)) : 0;
+}
+
+function getBurstEvents(burst) {
+    return state.events.filter(e => (Number(e.burst) || 1) === burst);
+}
+
+function formatDuration(ms) {
+    const seconds = Math.round(ms / 100) / 10;
+    if (seconds < 60) return `${seconds.toLocaleString('vi-VN')} giây`;
+    const minutes = Math.floor(seconds / 60);
+    const rest = Math.round(seconds - minutes * 60);
+    return rest ? `${minutes} phút ${rest} giây` : `${minutes} phút`;
+}
+
+function formatNumber(value) {
+    return Number(value ?? 0).toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+}
+
+function updateTimelineSummary() {
+    const el = document.getElementById('timeline-summary');
+    if (!el) return;
+    const maxBurst = getMaxBurst();
+    let total = 0;
+    for (let b = 1; b <= maxBurst; b++) total += getBurstDuration(getBurstEvents(b));
+    const shots = state.events.filter(e => e.shell !== 'Tạm dừng').length;
+    el.textContent = state.events.length
+        ? `${maxBurst} đợt · ${shots} phát bắn · khoảng ${formatDuration(total)}`
+        : 'Chưa có phát bắn nào';
+}
+
+function updateScriptNameLabel() {
+    const label = document.getElementById('script-name-label');
+    if (!label) return;
+    const title = document.getElementById('title').value.trim();
+    const filename = document.getElementById('filename').value.trim();
+    label.textContent = (title || 'Kịch bản mới') + (filename ? ` · ${filename}.json` : '');
+}
+
+// Các chấm màu (hoặc ảnh thu nhỏ) của một phát bắn
+function renderColorDots(event) {
+    if (event.shell === 'Hình ảnh' && event.imageUrl) {
+        return `<img class="thumb" src="${escapeHtml(normalizeAssetPath(event.imageUrl))}" alt="">`;
+    }
+    const colors = Array.isArray(event.color) ? event.color : [event.color || 'Ngẫu nhiên'];
+    return colors.slice(0, 5).map(c => (c === 'Ngẫu nhiên' || c === 'random')
+        ? '<span class="dot random" title="Ngẫu nhiên"></span>'
+        : `<span class="dot" style="--c: ${escapeHtml(COLOR[c] || c)}" title="${escapeHtml(c)}"></span>`
+    ).join('');
+}
+
+function renderShotRow(event) {
+    const index = state.events.indexOf(event) + 1;
+    const isPause = event.shell === 'Tạm dừng';
+    const meta = isPause
+        ? `<span><i class="fas fa-hourglass-half"></i>Nghỉ ${formatDuration(Number(event.duration) || 2000)}</span>`
+        : `<span><i class="fas fa-location-dot"></i>${formatNumber(event.x)}, ${formatNumber(event.y)}</span>
+           <span><i class="fas fa-clock"></i>${Number(event.delay) ? `+${formatNumber(event.delay)} ms` : 'Ngay'}</span>
+           <span><i class="fas fa-maximize"></i>Cỡ ${formatNumber(event.size ?? 1)}</span>`;
+
+    return `
+        <div class="shot-row${state.activeEventId === event.id ? ' active' : ''}${isPause ? ' is-pause' : ''}"
+            data-id="${event.id}" role="button" tabindex="0"
+            onclick="selectEvent(${event.id})" onkeydown="if (event.key === 'Enter') selectEvent(${event.id})">
+            <span class="shot-icon">${SHELL_ICONS[event.shell] || '🎆'}</span>
+            <div class="shot-main">
+                <div class="shot-title">
+                    <span class="shot-index">#${index}</span>${escapeHtml(event.shell)}
+                    ${event.text ? `<span class="shot-text">“${escapeHtml(event.text)}”</span>` : ''}
+                </div>
+                <div class="shot-meta">${meta}</div>
+            </div>
+            <div class="shot-colors">${isPause ? '' : renderColorDots(event)}</div>
+            <div class="shot-actions">
+                <button class="icon-btn" onclick="event.stopPropagation(); duplicateEvent(${event.id})" title="Nhân bản"><i class="fas fa-copy"></i></button>
+                <button class="icon-btn danger" onclick="event.stopPropagation(); removeEvent(${event.id})" title="Xóa"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>`;
+}
+
+function renderBurstGroup(burst, events) {
+    const duration = getBurstDuration(events);
+    const shots = events.filter(e => e.shell !== 'Tạm dừng').length;
+    const maxDelay = Math.max(0, ...events.map(e => Number(e.delay) || 0));
+    // Phát bắn có thời gian trễ dài hơn cả đợt sẽ nổ chồng sang đợt sau
+    const warn = maxDelay > duration
+        ? `<span class="warn" title="Thêm phát Tạm dừng để kéo dài đợt này"><i class="fas fa-triangle-exclamation"></i> Có phát trễ quá thời lượng đợt</span>`
+        : '';
+    const info = !events.length
+        ? `Trống · ${formatDuration(duration)}`
+        : `${shots ? `${shots} phát` : 'Nghỉ'} · ${formatDuration(duration)} ${warn}`;
+
+    return `
+        <section class="burst-group${events.length ? '' : ' is-empty'}">
+            <header class="burst-header">
+                <span class="burst-badge">Đợt ${burst}</span>
+                <span class="burst-info">${info}</span>
+                <button class="btn ghost small burst-add" onclick="addEventFromUI(${burst})" title="Thêm phát bắn vào đợt ${burst}">
+                    <i class="fas fa-plus"></i><span>Thêm</span>
+                </button>
+            </header>
+            <div class="burst-shots">${events.map(renderShotRow).join('')}</div>
+        </section>`;
 }
 
 function renderEventList() {
     const container = document.getElementById('event-list');
+    updateTimelineSummary();
 
     if (state.events.length === 0) {
         container.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-sparkles"></i>
-                <p>Chưa có phát bắn nào. Hãy nhấn "Thêm phát bắn" để bắt đầu.</p>
-            </div>
-        `;
+            <div class="timeline-empty">
+                <i class="fas fa-wand-magic-sparkles"></i>
+                <p>Chưa có phát bắn nào. Thêm phát đầu tiên để bắt đầu màn trình diễn.</p>
+                <button class="btn primary" onclick="addEventFromUI()"><i class="fas fa-plus"></i> Thêm phát bắn</button>
+            </div>`;
         refreshMiniPreview();
         return;
     }
 
-    container.innerHTML = '';
-    state.events.forEach((event, index) => {
-        const card = createEventCard(event, index);
-        container.appendChild(card);
-    });
+    let html = '';
+    const maxBurst = getMaxBurst();
+    for (let b = 1; b <= maxBurst; b++) html += renderBurstGroup(b, getBurstEvents(b));
+    container.innerHTML = html;
     // Danh sách thay đổi (thêm/xóa/nhân bản/đổi màu/loại pháo...) thì cập nhật bản xem nhanh
     refreshMiniPreview();
 }
 
-function createEventCard(event, index) {
-    const div = document.createElement('div');
-    div.className = 'event-card' + (state.activeEventId === event.id ? ' active' : '');
-    div.dataset.id = event.id;
-    div.onclick = (e) => {
-        // Tránh kích hoạt khi nhấn vào các input/button bên trong
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.closest('.color-tag') || e.target.closest('.advanced-toggle')) {
-            return;
-        }
-        selectEvent(event.id);
+// Thêm phát bắn từ giao diện rồi mở luôn bảng chỉnh sửa.
+// Mặc định vào cùng đợt với phát đang chọn (không chọn thì vào đợt cuối).
+function addEventFromUI(burst) {
+    const active = state.events.find(e => e.id === state.activeEventId);
+    const targetBurst = burst ?? (active ? Number(active.burst) || 1 : Math.max(1, getMaxBurst()));
+    addEvent({ burst: targetBurst });
+
+    // Đặt ngay sau phát cuối cùng của đợt đó để số thứ tự (#) liền mạch
+    const added = state.events.pop();
+    let insertAt = 0;
+    state.events.forEach((e, i) => { if ((Number(e.burst) || 1) <= targetBurst) insertAt = i + 1; });
+    state.events.splice(insertAt, 0, added);
+
+    selectEvent(added.id);
+    document.querySelector(`.shot-row[data-id="${added.id}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+// Thêm một phát bắn ở đợt mới (sau đợt cuối)
+function addBurst() {
+    addEventFromUI(getMaxBurst() + 1);
+}
+
+function selectEvent(id) {
+    state.activeEventId = id;
+    renderEventList();
+    renderInspector();
+    updateMiniInfo();
+    // Bắn ngay phát vừa chọn trong khung xem nhanh
+    sendPreview(true);
+}
+
+function closeInspector() {
+    state.activeEventId = null;
+    renderEventList();
+    renderInspector();
+    updateMiniInfo();
+    // Xem nhanh quay lại chạy cả kịch bản
+    sendPreview(true);
+}
+
+// ---------------------------------------------------------------------------
+// BẢNG CHỈNH SỬA phát bắn đang chọn
+// ---------------------------------------------------------------------------
+
+// Mục nào đang mở/thu gọn (giữ nguyên khi chuyển sang phát bắn khác)
+const openSections = { type: false, basic: true, position: true, color: true, sound: false, advanced: false };
+
+function rememberSection(el) {
+    openSections[el.dataset.section] = el.open;
+}
+
+function section(key, icon, title, hint, body) {
+    return `
+        <details class="insp-section" data-section="${key}" ${openSections[key] ? 'open' : ''} ontoggle="rememberSection(this)">
+            <summary><i class="fas fa-${icon}"></i><span class="summary-title">${title}</span><span class="summary-hint" id="hint-${key}">${hint}</span></summary>
+            <div class="insp-body">${body}</div>
+        </details>`;
+}
+
+function numberField(event, field, label, { step = 1, min, max, placeholder = '', value } = {}) {
+    const v = value !== undefined ? value : (event[field] ?? '');
+    return `
+        <div>
+            <label for="f-${field}">${label}</label>
+            <input type="number" id="f-${field}" step="${step}" ${min !== undefined ? `min="${min}"` : ''} ${max !== undefined ? `max="${max}"` : ''}
+                value="${escapeHtml(v)}" placeholder="${placeholder}" onchange="updateEvent(${event.id}, '${field}', this.value)">
+        </div>`;
+}
+
+// Ô màu đơn (màu chuyển, nhụy, lấp lánh, nhấp nháy): ô chọn màu + ô gõ tên/mã
+function colorField(event, field, label) {
+    return `
+        <div>
+            <label>${label}</label>
+            <div class="color-field">
+                <input type="color" class="${event[field] ? '' : 'is-empty'}" value="${colorInputValue(event[field])}" title="Chọn màu"
+                    onchange="updateEvent(${event.id}, '${field}', this.value); this.nextElementSibling.value = this.value; this.classList.remove('is-empty')">
+                <input type="text" value="${escapeHtml(event[field])}" placeholder="Mặc định" onchange="updateEvent(${event.id}, '${field}', this.value.trim())">
+            </div>
+        </div>`;
+}
+
+// Giá trị cho <input type="color">: chỉ nhận dạng #rrggbb, tên màu (Gold...) được đổi sang mã tương ứng
+function colorInputValue(color) {
+    const hex = COLOR[color] || color;
+    return typeof hex === 'string' && /^#[0-9a-f]{6}$/i.test(hex) ? hex : '#ffffff';
+}
+
+function renderInspectorHeaderText(event) {
+    const index = state.events.indexOf(event) + 1;
+    const delay = Number(event.delay) ? `trễ ${formatNumber(event.delay)} ms` : 'bắn ngay';
+    return {
+        title: `#${index} · ${escapeHtml(event.shell)}`,
+        sub: event.shell === 'Tạm dừng' ? `Đợt ${event.burst}` : `Đợt ${event.burst} · ${delay}`
     };
+}
 
-    const shellOptions = SHELL_TYPES.map(type =>
-        `<option value="${type}" ${event.shell === type ? 'selected' : ''}>${type}</option>`
-    ).join('');
+// Cập nhật tiêu đề bảng chỉnh sửa mà không dựng lại cả bảng (giữ con trỏ trong ô đang gõ)
+function refreshInspectorHeader() {
+    const event = state.events.find(e => e.id === state.activeEventId);
+    if (!event) return;
+    const { title, sub } = renderInspectorHeaderText(event);
+    const titleEl = document.getElementById('insp-title');
+    const subEl = document.getElementById('insp-sub');
+    if (titleEl) titleEl.innerHTML = title;
+    if (subEl) subEl.textContent = sub;
+}
 
-    const colorOptions = COLORS.map(color =>
-        `<option value="${color.value}" ${event.color === color.value ? 'selected' : ''}>${color.name}</option>`
-    ).join('');
+function renderInspector() {
+    const panel = document.getElementById('inspector');
+    if (!panel) return;
+    const event = state.events.find(e => e.id === state.activeEventId);
+    panel.classList.toggle('open', !!event);
+    positionMobileSheet();
 
-    div.innerHTML = `
-        <div class="event-card-header">
-            <span class="event-id">#${index + 1}</span>
-            <div class="event-controls">
-                <button class="btn text small btn-advanced" onclick="toggleAdvanced(${event.id})" title="Tùy chỉnh nâng cao">
-                    <i class="fas fa-magic"></i>
-                </button>
-                <button class="btn text small btn-duplicate" onclick="duplicateEvent(${event.id})" title="Nhân bản phát bắn">
-                    <i class="fas fa-copy"></i>
-                </button>
-                <button class="btn text small btn-remove" onclick="removeEvent(${event.id})" title="Xóa phát bắn">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        </div>
+    if (!event) {
+        panel.innerHTML = `
+            <div class="inspector-empty">
+                <div class="empty-icon"><i class="fas fa-hand-pointer"></i></div>
+                <h3>Chọn một phát bắn để chỉnh sửa</h3>
+                <p>Bấm vào phát bắn bất kỳ trong dòng thời gian, hoặc thêm phát mới.</p>
+                <button class="btn primary small" onclick="addEventFromUI()"><i class="fas fa-plus"></i> Thêm phát bắn</button>
+            </div>`;
+        delete panel.dataset.eventId;
+        return;
+    }
 
-        <div class="event-grid-3">
-            <div class="form-group">
-                <label>Đợt (Burst)</label>
-                <input type="number" value="${event.burst}" onchange="updateEvent(${event.id}, 'burst', this.value)">
-            </div>
-            <div class="form-group">
-                <label>Loại pháo (Shell)</label>
-                <select onchange="handleShellChange(${event.id}, this)">
-                    ${shellOptions}
-                </select>
-            </div>
-            <div id="shell-specific-${event.id}">
-                ${event.shell === 'Văn bản' ? `
-                    <div class="form-group">
-                        <label>Nội dung chữ (Text)</label>
-                        <input type="text" value="${escapeHtml(event.text)}" onchange="updateEvent(${event.id}, 'text', this.value)">
-                    </div>
-                ` : ''}
-                ${event.shell === 'Hình ảnh' ? `
-                    <div class="form-group">
-                        <label>Khung hình (Frame)</label>
-                        <select onchange="updateEvent(${event.id}, 'frame', this.value)">
-                            ${FRAME_TYPES.map(f => `<option value="${f.value}" ${event.frame === f.value ? 'selected' : ''}>${f.name}</option>`).join('')}
-                        </select>
-                    </div>
-                ` : ''}
-                ${event.shell === 'Tạm dừng' ? `
-                    <div class="form-group">
-                        <label>Thời gian nghỉ (ms)</label>
-                        <input type="number" value="${event.duration || 2000}" onchange="updateEvent(${event.id}, 'duration', this.value)">
-                    </div>
-                ` : ''}
-            </div>
-        </div>
+    // Dựng lại cùng một phát bắn thì giữ vị trí cuộn
+    const keepScroll = panel.dataset.eventId === String(event.id) ? panel.scrollTop : 0;
+    panel.dataset.eventId = event.id;
 
-        <div class="event-grid-4">
-            <div class="form-group">
-                <label>X (0-100)</label>
-                <input type="number" step="0.1" min="0" max="100" value="${event.x}" onchange="updateEvent(${event.id}, 'x', this.value)">
-            </div>
-            <div class="form-group">
-                <label>Y (0-100)</label>
-                <input type="number" step="0.1" min="0" max="100" value="${event.y}" onchange="updateEvent(${event.id}, 'y', this.value)">
-            </div>
-            <div class="form-group">
-                <label>Size</label>
-                <input type="number" step="0.1" min="0" max="10" value="${event.size}" onchange="updateEvent(${event.id}, 'size', this.value)">
-            </div>
-            <div class="form-group">
-                <label>Trễ (ms)</label>
-                <input type="number" step="100" min="0" max="60000" value="${event.delay}" onchange="updateEvent(${event.id}, 'delay', this.value)">
-            </div>
-        </div>
+    const isPause = event.shell === 'Tạm dừng';
+    const { title, sub } = renderInspectorHeaderText(event);
 
-        <div class="event-grid-physics">
-            <div class="form-group">
-                <label title="Góc bắn tính bằng độ. 90 = thẳng đứng, 0 = nằm ngang trái, 180 = nằm ngang phải">Góc bắn (0-180°)</label>
-                <input type="number" step="1" min="0" max="180" value="${event.launchAngle ?? 90}" onchange="updateEvent(${event.id}, 'launchAngle', this.value)">
+    const header = `
+        <div class="inspector-header">
+            <span class="shot-icon">${SHELL_ICONS[event.shell] || '🎆'}</span>
+            <div class="inspector-title">
+                <h3 id="insp-title">${title}</h3>
+                <span id="insp-sub">${sub}</span>
             </div>
-            <div class="form-group">
-                <label title="Tốc độ bay lên. 1 = bình thường, >1 = nhanh hơn">Tốc độ bay (x)</label>
-                <input type="number" step="0.1" min="0.1" max="5" value="${event.ascentSpeed || 1}" onchange="updateEvent(${event.id}, 'ascentSpeed', this.value)">
-            </div>
-            <div class="form-group">
-                <label title="Góc xoay hình nổ tính bằng độ (dành cho pháo có hình dạng)">Xoay hình (°)</label>
-                <input type="number" step="15" min="-180" max="180" value="${event.rotation !== undefined ? event.rotation : ''}" placeholder="Ngẫu nhiên" onchange="updateEvent(${event.id}, 'rotation', this.value === '' ? undefined : this.value)">
-            </div>
-        </div>
+            <button class="icon-btn" onclick="duplicateEvent(${event.id})" title="Nhân bản"><i class="fas fa-copy"></i></button>
+            <button class="icon-btn danger" onclick="removeEvent(${event.id})" title="Xóa phát bắn"><i class="fas fa-trash"></i></button>
+            <button class="icon-btn" onclick="closeInspector()" title="Đóng"><i class="fas fa-xmark"></i></button>
+        </div>`;
 
-        <div class="event-grid-physics">
-            <div class="form-group">
-                <label>Âm thanh phóng</label>
-                <select onchange="updateEvent(${event.id}, 'liftSound', this.value)">
-                    <option value="" ${!event.liftSound ? 'selected' : ''}>Mặc định</option>
-                    <option value="liftWick" ${event.liftSound === 'liftWick' ? 'selected' : ''}>Phóng – Ngòi pháo thật</option>
-                    <option value="liftDeep" ${event.liftSound === 'liftDeep' ? 'selected' : ''}>Phóng – Trầm</option>
-                    <option value="liftSharp" ${event.liftSound === 'liftSharp' ? 'selected' : ''}>Phóng – Sắc</option>
-                    <option value="liftSoft" ${event.liftSound === 'liftSoft' ? 'selected' : ''}>Phóng – Mềm</option>
-                    <option value="burstSmall" ${event.liftSound === 'burstSmall' ? 'selected' : ''}>Phóng – Nhỏ</option>
-                    <option value="crackleSmall" ${event.liftSound === 'crackleSmall' ? 'selected' : ''}>Phóng – Lách tách</option>
-                    <option value="liftWhoosh" ${event.liftSound === 'liftWhoosh' ? 'selected' : ''}>Phóng – Vút mạnh (Mới)</option>
-                    <option value="none" ${event.liftSound === 'none' ? 'selected' : ''}>Im lặng</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Âm thanh bay</label>
-                <select onchange="updateEvent(${event.id}, 'whistleSound', this.value)">
-                    <option value="" ${!event.whistleSound ? 'selected' : ''}>Không có</option>
-                    <option value="whistle" ${event.whistleSound === 'whistle' ? 'selected' : ''}>🚀 Bay – Víuuuu classic</option>
-                    <option value="whistleHigh" ${event.whistleSound === 'whistleHigh' ? 'selected' : ''}>🚀 Bay – Víuuuu cao</option>
-                    <option value="whistleSwish" ${event.whistleSound === 'whistleSwish' ? 'selected' : ''}>🚀 Bay – Víuuuu rơi</option>
-                    <option value="whistleRocket" ${event.whistleSound === 'whistleRocket' ? 'selected' : ''}>🚀 Bay – Tên lửa vút (Mới)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Âm thanh nổ</label>
-                <select onchange="updateEvent(${event.id}, 'burstSound', this.value)">
-                    <option value="" ${!event.burstSound ? 'selected' : ''}>Mặc định (Mạnh)</option>
-                    <option value="burstDeep" ${event.burstSound === 'burstDeep' ? 'selected' : ''}>Nổ – Trầm vũ</option>
-                    <option value="burstSoft" ${event.burstSound === 'burstSoft' ? 'selected' : ''}>Nổ – Nhẹ nhàng</option>
-                    <option value="burstSmall" ${event.burstSound === 'burstSmall' ? 'selected' : ''}>Nổ – Nhỏ</option>
-                    <option value="burstWhoosh" ${event.burstSound === 'burstWhoosh' ? 'selected' : ''}>Nổ – Vút</option>
-                    <option value="crackleBang" ${event.burstSound === 'crackleBang' ? 'selected' : ''}>Nổ – Tiếng bụp thật</option>
-                    <option value="crackle" ${event.burstSound === 'crackle' ? 'selected' : ''}>Lách tách – To</option>
-                    <option value="crackleHeavy" ${event.burstSound === 'crackleHeavy' ? 'selected' : ''}>Lách tách – Dồn dập</option>
-                    <option value="crackleFirecracker" ${event.burstSound === 'crackleFirecracker' ? 'selected' : ''}>Lách tách – Pháo thật</option>
-                    <option value="crackleSmall" ${event.burstSound === 'crackleSmall' ? 'selected' : ''}>Lách tách – Nhỏ</option>
-                    <option value="burstOut" ${event.burstSound === 'burstOut' ? 'selected' : ''}>Nổ – Tỏa rộng (Mới)</option>
-                    <option value="none" ${event.burstSound === 'none' ? 'selected' : ''}>Im lặng</option>
-                </select>
-            </div>
-        </div>
+    const typeSection = section('type', 'shapes', 'Loại pháo', `${SHELL_ICONS[event.shell] || ''} ${escapeHtml(event.shell)}`, `
+        <div class="shell-grid">
+            ${SHELL_TYPES.map(type => `
+                <button type="button" class="shell-option${event.shell === type ? ' selected' : ''}" onclick="handleShellChange(${event.id}, '${type}')">
+                    <span class="emoji">${SHELL_ICONS[type]}</span>${type}
+                </button>`).join('')}
+        </div>`);
 
-
-        ${event.shell === 'Hình ảnh' ? `
-            <div class="image-upload-section">
+    let specific = '';
+    if (event.shell === 'Văn bản') {
+        specific = `
+            <div>
+                <label for="f-text">Nội dung chữ</label>
+                <input type="text" id="f-text" value="${escapeHtml(event.text)}" placeholder="VD: HAPPY BIRTHDAY" maxlength="60"
+                    oninput="updateEvent(${event.id}, 'text', this.value)">
+                <small class="field-hint">Có thể dùng [YEAR], [LUNAR_YEAR], [SINCE:2000].</small>
+            </div>`;
+    } else if (event.shell === 'Hình ảnh') {
+        specific = `
+            <div>
                 <label>Ảnh nổ pháo hoa</label>
                 <div class="image-upload-btn-large" onclick="document.getElementById('image-file-${event.id}').click()">
-                    ${event.imageUrl ? `<img src="${escapeHtml(normalizeAssetPath(event.imageUrl))}" class="full-thumb">` : '<i class="fas fa-cloud-upload-alt"></i>'}
-                    <span>${event.imageUrl ? 'Thay đổi hình ảnh' : 'Chọn hình ảnh từ thiết bị'}</span>
+                    ${event.imageUrl ? `<img src="${escapeHtml(normalizeAssetPath(event.imageUrl))}" class="full-thumb" alt="">` : '<i class="fas fa-cloud-arrow-up"></i>'}
+                    <span>${event.imageUrl ? 'Đổi ảnh khác' : 'Chọn ảnh từ thiết bị'}</span>
                 </div>
                 <input type="file" id="image-file-${event.id}" class="hide" accept="image/*" onchange="handleImageUpload(${event.id}, this)">
             </div>
-        ` : `
-            <div class="form-group color-group">
-                <label>Màu sắc (Colors)</label>
-                <div class="color-tags" id="color-tags-${event.id}">
-                    ${renderColorTags(event)}
-                </div>
-                <div class="color-input-group compact">
-                    <select id="preset-color-${event.id}" onchange="if(this.value) { addColorToEvent(${event.id}, this.value); this.value=''; }">
-                        ${colorOptions}
-                    </select>
-                    <input type="color" id="picker-color-${event.id}" onchange="addColorToEvent(${event.id}, this.value)">
-                    <div class="input-with-btn">
-                        <input type="text" id="custom-color-${event.id}" placeholder="Hex/Tên" onkeydown="if(event.key==='Enter') { addColorToEvent(${event.id}, this.value); this.value=''; }">
-                        <button class="btn secondary small" onclick="const input=document.getElementById('custom-color-${event.id}'); addColorToEvent(${event.id}, input.value); input.value='';">Thêm</button>
-                    </div>
+            <div>
+                <label for="f-frame">Khung ảnh</label>
+                <select id="f-frame" onchange="updateEvent(${event.id}, 'frame', this.value)">
+                    ${FRAME_TYPES.map(f => `<option value="${f.value}" ${(event.frame || '') === f.value ? 'selected' : ''}>${f.name}</option>`).join('')}
+                </select>
+            </div>`;
+    } else if (isPause) {
+        specific = `
+            <div>
+                <label for="f-duration">Thời gian nghỉ (ms)</label>
+                <input type="number" id="f-duration" step="500" min="0" value="${event.duration || 2000}" onchange="updateEvent(${event.id}, 'duration', this.value)">
+                <small class="field-hint">Kéo dài đợt này thêm một khoảng, các đợt sau sẽ chờ.</small>
+            </div>`;
+    }
+
+    const basicSection = section('basic', 'clock', 'Thời điểm', '', `
+        <div class="grid-2">
+            <div>
+                <label for="f-burst">Đợt</label>
+                <div class="stepper">
+                    <button type="button" onclick="changeBurst(${event.id}, -1)" title="Đợt trước"><i class="fas fa-minus"></i></button>
+                    <input type="number" id="f-burst" min="1" step="1" value="${escapeHtml(event.burst)}" onchange="updateEvent(${event.id}, 'burst', this.value)">
+                    <button type="button" onclick="changeBurst(${event.id}, 1)" title="Đợt sau"><i class="fas fa-plus"></i></button>
                 </div>
             </div>
-        `}
-    `;
+            ${isPause ? '' : numberField(event, 'delay', 'Trễ (ms)', { step: 100, min: 0, max: 60000 })}
+        </div>
+        ${specific}`);
 
-    return div;
+    if (isPause) {
+        panel.innerHTML = header + basicSection;
+        panel.scrollTop = keepScroll;
+        return;
+    }
+
+    const others = getBurstEvents(Number(event.burst) || 1).filter(e => e !== event && e.shell !== 'Tạm dừng');
+    const positionSection = section('position', 'location-crosshairs', 'Vị trí & kích thước', `${formatNumber(event.x)}, ${formatNumber(event.y)}`, `
+        <div id="xy-pad" class="xy-pad${previewDevice === 'mobile' ? ' is-mobile' : ''}" title="Bấm hoặc kéo để chọn điểm nổ">
+            ${others.map(o => `<span class="xy-other" style="left:${Number(o.x) || 0}%; top:${100 - (Number(o.y) || 0)}%">${state.events.indexOf(o) + 1}</span>`).join('')}
+            <span class="xy-trail"></span>
+            <span class="xy-dot"></span>
+        </div>
+        <div class="grid-3">
+            ${numberField(event, 'x', 'X (trái → phải)', { step: 1, min: 0, max: 100 })}
+            ${numberField(event, 'y', 'Y (đất → trời)', { step: 1, min: 0, max: 100 })}
+            ${numberField(event, 'size', 'Cỡ pháo', { step: 0.5, min: 0, max: 10 })}
+        </div>
+        <div>
+            <div class="field-label-row">
+                <label for="f-launchAngle">Góc bắn</label>
+                <output id="out-launchAngle">${event.launchAngle ?? 90}°</output>
+            </div>
+            <input type="range" id="f-launchAngle" min="0" max="180" step="5" value="${event.launchAngle ?? 90}"
+                oninput="document.getElementById('out-launchAngle').textContent = this.value + '°'; updateEvent(${event.id}, 'launchAngle', this.value)">
+            <small class="field-hint">90° là bắn thẳng lên; nhỏ hơn nghiêng sang trái, lớn hơn nghiêng sang phải.</small>
+        </div>
+        ${numberField(event, 'rotation', 'Xoay hình (°)', { step: 15, min: -180, max: 180, placeholder: 'Ngẫu nhiên' })}`);
+
+    const colors = Array.isArray(event.color) ? event.color : [event.color || 'Ngẫu nhiên'];
+    const presetValues = COLORS.map(c => c.value);
+    const customColors = colors.filter(c => !presetValues.includes(c));
+    const colorSection = section('color', 'palette', event.shell === 'Hình ảnh' ? 'Màu khung ảnh' : 'Màu sắc', '', `
+        <div class="swatches">
+            ${COLORS.map(c => `
+                <button type="button" class="swatch${c.value === 'Ngẫu nhiên' ? ' random' : ''}${colors.includes(c.value) ? ' selected' : ''}"
+                    style="--c: ${COLOR[c.value] || 'transparent'}" title="${c.name}" onclick="toggleEventColor(${event.id}, '${c.value}')"></button>`).join('')}
+        </div>
+        ${customColors.length ? `<div class="color-chips">${customColors.map(c => `
+            <span class="color-tag" style="--tag-color: ${escapeHtml(c)}">
+                <span class="dot"></span>${escapeHtml(c)}
+                <i class="fas fa-xmark" onclick="removeColorFromEvent(${event.id}, ${colors.indexOf(c)})" title="Bỏ màu này"></i>
+            </span>`).join('')}</div>` : ''}
+        <div class="color-custom">
+            <input type="color" id="picker-color-${event.id}" value="#ff6ad5" title="Chọn màu bất kỳ">
+            <input type="text" id="custom-color-${event.id}" placeholder="Mã màu (#ff6ad5) hoặc tên"
+                onkeydown="if (event.key === 'Enter') { addColorToEvent(${event.id}, this.value); }">
+            <button type="button" class="btn secondary small" onclick="addCustomColor(${event.id})">Thêm</button>
+        </div>
+        <small class="note">Chọn nhiều màu để pháo đa sắc. "Ngẫu nhiên" (ô cầu vồng) cho mỗi hạt một màu.</small>`);
+
+    const soundSelect = (field, label, options) => `
+        <div>
+            <label for="f-${field}">${label}</label>
+            <select id="f-${field}" onchange="updateEvent(${event.id}, '${field}', this.value)">
+                ${options.map(([value, name]) => `<option value="${value}" ${(event[field] || '') === value ? 'selected' : ''}>${name}</option>`).join('')}
+            </select>
+        </div>`;
+    const soundSection = section('sound', 'volume-high', 'Âm thanh', '', `
+        ${soundSelect('liftSound', 'Khi phóng lên', [
+            ['', 'Mặc định'], ['liftWick', 'Ngòi pháo thật'], ['liftDeep', 'Trầm'], ['liftSharp', 'Sắc'], ['liftSoft', 'Mềm'],
+            ['burstSmall', 'Nhỏ'], ['crackleSmall', 'Lách tách'], ['liftWhoosh', 'Vút mạnh'], ['none', 'Im lặng']])}
+        ${soundSelect('whistleSound', 'Khi bay', [
+            ['', 'Không có'], ['whistle', 'Víuuuu cổ điển'], ['whistleHigh', 'Víuuuu cao'], ['whistleSwish', 'Víuuuu rơi'], ['whistleRocket', 'Tên lửa vút']])}
+        ${soundSelect('burstSound', 'Khi nổ', [
+            ['', 'Mặc định (mạnh)'], ['burstDeep', 'Trầm vang'], ['burstSoft', 'Nhẹ nhàng'], ['burstSmall', 'Nhỏ'], ['burstWhoosh', 'Vút'],
+            ['crackleBang', 'Tiếng bụp thật'], ['crackle', 'Lách tách to'], ['crackleHeavy', 'Lách tách dồn dập'],
+            ['crackleFirecracker', 'Pháo thật'], ['crackleSmall', 'Lách tách nhỏ'], ['burstOut', 'Tỏa rộng'], ['none', 'Im lặng']])}
+        <small class="note">Âm thanh chỉ nghe được khi bấm "Xem thử" (khung xem nhanh không phát tiếng).</small>`);
+
+    const builtin = SHELL_BUILTIN_EFFECTS[event.shell] || [];
+    const effectChip = (field, label) => {
+        const isBuiltin = builtin.includes(field);
+        return `
+            <label class="toggle-chip" ${isBuiltin ? 'title="Có sẵn trong loại pháo này"' : ''}>
+                <input type="checkbox" ${event[field] || isBuiltin ? 'checked' : ''} ${isBuiltin ? 'disabled' : ''}
+                    onchange="updateEvent(${event.id}, '${field}', this.checked)">
+                <span>${label}</span>
+            </label>`;
+    };
+    const advancedSection = section('advanced', 'wand-magic-sparkles', 'Hiệu ứng nâng cao', '', `
+        <div class="toggle-chips">
+            ${effectChip('strobe', 'Nhấp nháy')}
+            ${effectChip('crackle', 'Lách tách')}
+            ${effectChip('crossette', 'Nổ chéo')}
+            ${effectChip('pistil', 'Nhụy ở giữa')}
+            ${effectChip('streamers', 'Dải sáng')}
+            ${effectChip('horsetail', 'Đuôi ngựa')}
+            ${effectChip('floral', 'Hoa nở')}
+            ${effectChip('ring', 'Vòng nhẫn')}
+        </div>
+        <div>
+            <label for="f-glitter">Kiểu lấp lánh</label>
+            <select id="f-glitter" onchange="updateEvent(${event.id}, 'glitter', this.value)">
+                ${GLITTER_TYPES.map(g => `<option value="${g.value}" ${(event.glitter || '') === g.value ? 'selected' : ''}>${g.name}</option>`).join('')}
+            </select>
+        </div>
+        <div class="grid-2">
+            ${numberField(event, 'starDensity', 'Mật độ hạt (×)', { step: 0.1, min: 0.1, placeholder: '1' })}
+            ${numberField(event, 'starCount', 'Số hạt cố định', { step: 10, min: 1, placeholder: 'Tự động' })}
+            ${numberField(event, 'starLife', 'Tuổi thọ hạt (ms)', { step: 100, min: 100, placeholder: '2500' })}
+            ${numberField(event, 'starLifeVariation', 'Độ lệch tuổi thọ', { step: 0.05, min: 0, max: 1, placeholder: '0.125' })}
+            ${numberField(event, 'spreadSize', 'Độ rộng vụ nổ', { step: 10, min: 50, placeholder: '350' })}
+            ${numberField(event, 'strobeFreq', 'Nhịp nháy (ms)', { step: 10, min: 10, placeholder: '50' })}
+        </div>
+        <div class="grid-2">
+            ${colorField(event, 'secondColor', 'Màu chuyển sang')}
+            ${numberField(event, 'transitionTime', 'Lúc chuyển màu (ms)', { step: 100, min: 0, placeholder: 'Tự động' })}
+            ${colorField(event, 'glitterColor', 'Màu lấp lánh')}
+            ${colorField(event, 'pistilColor', 'Màu nhụy')}
+            ${colorField(event, 'strobeColor', 'Màu nhấp nháy')}
+        </div>`);
+
+    panel.innerHTML = header + typeSection + basicSection + positionSection + colorSection + soundSection + advancedSection;
+    panel.scrollTop = keepScroll;
+    initXYPad(event);
 }
 
-function handleShellChange(id, select) {
-    const value = select.value;
+// Điện thoại: ngăn chỉnh sửa bắt đầu ngay dưới khung xem nhanh để vừa chỉnh vừa thấy pháo
+// (luôn chừa ít nhất 45% chiều cao màn hình cho ngăn chỉnh sửa)
+function positionMobileSheet() {
+    const panel = document.getElementById('inspector');
+    const preview = document.getElementById('mini-preview');
+    if (!panel || !preview) return;
+    if (window.innerWidth >= 768) {
+        panel.style.top = '';
+        return;
+    }
+    const previewBottom = preview.getBoundingClientRect().bottom;
+    panel.style.top = Math.min(Math.max(previewBottom, 0), window.innerHeight * 0.55) + 'px';
+}
+
+function handleShellChange(id, value) {
     updateEvent(id, 'shell', value);
-    renderEventList(); // Re-render to show/hide specific fields
+    renderEventList();
+    renderInspector();
+}
+
+function changeBurst(id, delta) {
+    const event = state.events.find(e => e.id === id);
+    if (!event) return;
+    updateEvent(id, 'burst', (Number(event.burst) || 1) + delta);
+    renderEventList();
+    renderInspector();
+}
+
+// Bật/tắt một màu có sẵn: "Ngẫu nhiên" là lựa chọn riêng, các màu khác cộng dồn
+function toggleEventColor(id, color) {
+    const event = state.events.find(e => e.id === id);
+    if (!event) return;
+    const current = Array.isArray(event.color) ? event.color : [event.color];
+    if (color !== 'Ngẫu nhiên' && current.includes(color)) {
+        const rest = current.filter(c => c !== color);
+        event.color = rest.length === 0 ? 'Ngẫu nhiên' : (rest.length === 1 ? rest[0] : rest);
+        renderEventList();
+        renderInspector();
+    } else {
+        addColorToEvent(id, color);
+    }
+}
+
+function addCustomColor(id) {
+    const text = document.getElementById(`custom-color-${id}`);
+    const picker = document.getElementById(`picker-color-${id}`);
+    addColorToEvent(id, (text && text.value.trim()) || (picker && picker.value));
+}
+
+// Khung chọn vị trí nổ: bấm/kéo để đặt X, Y (0-100, Y tính từ mặt đất)
+function initXYPad(event) {
+    const pad = document.getElementById('xy-pad');
+    if (!pad) return;
+    syncXYPad(event.id);
+
+    let dragging = false;
+    const setFromPointer = (e) => {
+        const rect = pad.getBoundingClientRect();
+        const clamp = v => Math.max(0, Math.min(100, Math.round(v)));
+        event.x = clamp((e.clientX - rect.left) / rect.width * 100);
+        event.y = clamp(100 - (e.clientY - rect.top) / rect.height * 100);
+        syncXYPad(event.id);
+    };
+    pad.onpointerdown = (e) => {
+        dragging = true;
+        pad.setPointerCapture(e.pointerId);
+        setFromPointer(e);
+    };
+    pad.onpointermove = (e) => {
+        if (dragging) setFromPointer(e);
+    };
+    pad.onpointerup = pad.onpointercancel = () => {
+        if (!dragging) return;
+        dragging = false;
+        // Ghi nhận vị trí mới: cập nhật dòng thời gian và bắn lại trong khung xem nhanh
+        updateEvent(event.id, 'x', event.x);
+        updateEvent(event.id, 'y', event.y);
+        renderEventList();
+    };
+}
+
+// Đồng bộ chấm vị trí, ô X/Y và gợi ý của mục "Vị trí" theo dữ liệu
+function syncXYPad(id) {
+    const event = state.events.find(e => e.id === id);
+    const pad = document.getElementById('xy-pad');
+    if (!event || !pad) return;
+    const x = Number(event.x) || 0;
+    const y = Number(event.y) || 0;
+    const dot = pad.querySelector('.xy-dot');
+    const trail = pad.querySelector('.xy-trail');
+    dot.style.left = x + '%';
+    dot.style.top = (100 - y) + '%';
+    trail.style.left = x + '%';
+    trail.style.height = y + '%';
+    const xInput = document.getElementById('f-x');
+    const yInput = document.getElementById('f-y');
+    if (xInput && document.activeElement !== xInput) xInput.value = x;
+    if (yInput && document.activeElement !== yInput) yInput.value = y;
+    const hint = document.getElementById('hint-position');
+    if (hint) hint.textContent = `${formatNumber(x)}, ${formatNumber(y)}`;
 }
 
 async function handleImageUpload(id, input) {
@@ -749,7 +1140,7 @@ async function handleImageUpload(id, input) {
         reader.onload = (e) => {
             const dataUrl = e.target.result;
             updateEvent(id, 'imageUrl', dataUrl);
-            renderEventList();
+            renderInspector();
             hideLoading();
             notify('Đã tải ảnh lên (Lưu cục bộ dưới dạng DataURL)!', 'success');
         };
@@ -775,7 +1166,7 @@ async function handleImageUpload(id, input) {
         hideLoading();
         if (data.success) {
             updateEvent(id, 'imageUrl', data.url);
-            renderEventList();
+            renderInspector();
             notify('Tải ảnh lên thành công!', 'success');
         } else {
             notify('Lỗi: ' + data.message, 'error');
@@ -788,183 +1179,6 @@ async function handleImageUpload(id, input) {
 
 window.handleImageUpload = handleImageUpload;
 
-function toggleAdvanced(id) {
-    if (state.activeAdvancedId === id) {
-        closeAdvancedDrawer();
-    } else {
-        state.activeEventId = id; // Also select the event when opening advanced
-        openAdvancedDrawer(id);
-        renderEventList();
-    }
-}
-
-function openAdvancedDrawer(id) {
-    const event = state.events.find(e => e.id === id);
-    if (!event) return;
-
-    state.activeAdvancedId = id;
-
-    // Render content
-    renderAdvancedSettings(id);
-
-    // Show drawer
-    const drawer = document.getElementById('advanced-drawer');
-    drawer.classList.add('open');
-    drawer.classList.remove('hide');
-
-    // Shrink list
-    document.querySelector('.event-list-container').classList.add('has-drawer-open');
-
-    // Highlight card
-    document.querySelectorAll('.event-card').forEach(c => c.classList.remove('active'));
-    const card = document.querySelector(`.event-card[data-id="${id}"]`);
-    if (card) card.classList.add('active');
-}
-
-function closeAdvancedDrawer() {
-    state.activeAdvancedId = null;
-    state.activeEventId = null;
-    const drawer = document.getElementById('advanced-drawer');
-    drawer.classList.remove('open');
-    document.querySelector('.event-list-container').classList.remove('has-drawer-open');
-    document.querySelectorAll('.event-card').forEach(c => c.classList.remove('active'));
-    // Bỏ chọn phát bắn: xem nhanh quay lại chạy cả kịch bản
-    updateMiniInfo();
-    sendPreview(true);
-
-    setTimeout(() => {
-        if (state.activeAdvancedId === null) {
-            drawer.classList.add('hide');
-        }
-    }, 400);
-}
-
-// Giá trị cho <input type="color">: chỉ nhận dạng #rrggbb, tên màu (Gold...) được đổi sang mã tương ứng
-function colorInputValue(color) {
-    const hex = COLOR[color] || color;
-    return typeof hex === 'string' && /^#[0-9a-f]{6}$/i.test(hex) ? hex : '#ffffff';
-}
-
-function renderAdvancedSettings(id) {
-    const event = state.events.find(e => e.id === id);
-    if (!event) return;
-
-    const container = document.getElementById('drawer-content');
-    container.innerHTML = `
-        <div class="advanced-settings">
-            <!-- Hạt và Tuổi thọ -->
-            <div class="form-group">
-                <label>Mật độ hạt</label>
-                <input type="number" step="0.1" value="${event.starDensity || ''}" placeholder="Mặc định: 1" onchange="updateEvent(${event.id}, 'starDensity', this.value)">
-            </div>
-            <div class="form-group">
-                <label>Số lượng hạt (starCount)</label>
-                <input type="number" value="${event.starCount || ''}" placeholder="Tự động" onchange="updateEvent(${event.id}, 'starCount', this.value)">
-            </div>
-            <div class="form-group">
-                <label>Tuổi thọ sao (ms)</label>
-                <input type="number" step="100" value="${event.starLife || ''}" placeholder="VD: 2500" onchange="updateEvent(${event.id}, 'starLife', this.value)">
-            </div>
-            <div class="form-group">
-                <label>Biến thiên tuổi thọ (0-1)</label>
-                <input type="number" step="0.05" min="0" max="1" value="${event.starLifeVariation || ''}" placeholder="Mặc định: 0.125" onchange="updateEvent(${event.id}, 'starLifeVariation', this.value)">
-            </div>
-
-            <!-- Màu sắc nâng cao -->
-            <div class="form-group">
-                <label>Màu nhấp nháy (Strobe)</label>
-                <div class="color-input-group tiny">
-                    <input type="color" value="${colorInputValue(event.strobeColor)}" onchange="updateEvent(${event.id}, 'strobeColor', this.value)">
-                    <input type="text" value="${escapeHtml(event.strobeColor)}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'strobeColor', this.value)">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Màu nhụy (Pistil)</label>
-                <div class="color-input-group tiny">
-                    <input type="color" value="${colorInputValue(event.pistilColor)}" onchange="updateEvent(${event.id}, 'pistilColor', this.value)">
-                    <input type="text" value="${escapeHtml(event.pistilColor)}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'pistilColor', this.value)">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Màu lấp lánh (Glitter)</label>
-                <div class="color-input-group tiny">
-                    <input type="color" value="${colorInputValue(event.glitterColor)}" onchange="updateEvent(${event.id}, 'glitterColor', this.value)">
-                    <input type="text" value="${escapeHtml(event.glitterColor)}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'glitterColor', this.value)">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Loại lấp lánh</label>
-                <select onchange="updateEvent(${event.id}, 'glitter', this.value)">
-                    ${GLITTER_TYPES.map(g => `<option value="${g.value}" ${event.glitter === g.value ? 'selected' : ''}>${g.name}</option>`).join('')}
-                </select>
-            </div>
-
-            <!-- Chuyển đổi màu -->
-            <div class="form-group">
-                <label>Màu chuyển đổi (2nd)</label>
-                <div class="color-input-group tiny">
-                    <input type="color" value="${colorInputValue(event.secondColor)}" onchange="updateEvent(${event.id}, 'secondColor', this.value)">
-                    <input type="text" value="${escapeHtml(event.secondColor)}" placeholder="Hex/Tên" onchange="updateEvent(${event.id}, 'secondColor', this.value)">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Thời điểm chuyển (ms)</label>
-                <input type="number" step="100" value="${event.transitionTime || ''}" placeholder="Tự động" onchange="updateEvent(${event.id}, 'transitionTime', this.value)">
-            </div>
-            <div class="form-group">
-                <label>Kích thước nổ (spread)</label>
-                <input type="number" step="10" value="${event.spreadSize || ''}" placeholder="Mặc định: 350" onchange="updateEvent(${event.id}, 'spreadSize', this.value)">
-            </div>
-            <div class="form-group">
-                <label>Tốc độ nháy (ms)</label>
-                <input type="number" step="10" value="${event.strobeFreq || ''}" placeholder="Mặc định: 50" onchange="updateEvent(${event.id}, 'strobeFreq', this.value)">
-            </div>
-            <div></div> <!-- Spacer -->
-        </div>
-
-        <!-- Hiệu ứng Toggle -->
-        <div class="advanced-checkbox-grid">
-            <div class="form-group checkbox">
-                <input type="checkbox" id="strobe-${event.id}" ${event.strobe ? 'checked' : ''} onchange="updateEvent(${event.id}, 'strobe', this.checked)">
-                <label for="strobe-${event.id}">Nhấp nháy</label>
-            </div>
-            <div class="form-group checkbox">
-                <input type="checkbox" id="crackle-${event.id}" ${event.crackle ? 'checked' : ''} onchange="updateEvent(${event.id}, 'crackle', this.checked)">
-                <label for="crackle-${event.id}">Nổ lách tách</label>
-            </div>
-            <div class="form-group checkbox">
-                <input type="checkbox" id="pistil-${event.id}" ${event.pistil ? 'checked' : ''} onchange="updateEvent(${event.id}, 'pistil', this.checked)">
-                <label for="pistil-${event.id}">Nhụy ở giữa</label>
-            </div>
-            <div class="form-group checkbox">
-                <input type="checkbox" id="streamers-${event.id}" ${event.streamers ? 'checked' : ''} onchange="updateEvent(${event.id}, 'streamers', this.checked)">
-                <label for="streamers-${event.id}">Dải sáng</label>
-            </div>
-            <div class="form-group checkbox">
-                <input type="checkbox" id="crossette-${event.id}" ${event.crossette ? 'checked' : ''} onchange="updateEvent(${event.id}, 'crossette', this.checked)">
-                <label for="crossette-${event.id}">Nổ chéo</label>
-            </div>
-            <div class="form-group checkbox">
-                <input type="checkbox" id="horsetail-${event.id}" ${event.horsetail ? 'checked' : ''} onchange="updateEvent(${event.id}, 'horsetail', this.checked)">
-                <label for="horsetail-${event.id}">Đuôi ngựa</label>
-            </div>
-            <div class="form-group checkbox">
-                <input type="checkbox" id="comet-${event.id}" ${event.comet ? 'checked' : ''} onchange="updateEvent(${event.id}, 'comet', this.checked)">
-                <label for="comet-${event.id}">Đuôi phóng</label>
-            </div>
-            <div class="form-group checkbox">
-                <input type="checkbox" id="floral-${event.id}" ${event.floral ? 'checked' : ''} onchange="updateEvent(${event.id}, 'floral', this.checked)">
-                <label for="floral-${event.id}">Hoa nở (Floral)</label>
-            </div>
-            <div class="form-group checkbox">
-                <input type="checkbox" id="ring-${event.id}" ${event.ring ? 'checked' : ''} onchange="updateEvent(${event.id}, 'ring', this.checked)">
-                <label for="ring-${event.id}">Vòng nhẫn (Ring)</label>
-            </div>
-        </div>
-    `;
-}
-
-window.closeAdvancedDrawer = closeAdvancedDrawer;
 
 function getFinalConfig() {
     return {
@@ -976,7 +1190,7 @@ function getFinalConfig() {
         background: state.background,
         status: state.status || "public",
         events: state.events.map(e => {
-            const { id, ...cleanEvent } = e;
+            const { id, expanded, ...cleanEvent } = e;
             return cleanEvent;
         })
     };
@@ -1443,6 +1657,7 @@ function loadConfigIntoState(config, filename) {
 
     state.events = [];
     state.nextId = 1;
+    state.activeEventId = null;
     state.currentFilename = filename;
     state.status = config.status || 'public';
     state.showBackground = !!config.showBackground;
@@ -1470,6 +1685,9 @@ function loadConfigIntoState(config, filename) {
     } else {
         addEvent();
     }
+    renderInspector();
+    updateMiniInfo();
+    updateScriptNameLabel();
 }
 
 function previewConfig() {
@@ -1498,6 +1716,7 @@ function hideModal(id) {
 }
 
 let lastToggleTime = 0;
+// Mở/đóng ngăn "Cấu hình chung" (dạng ngăn trượt trên tablet/điện thoại; trên máy tính là cột cố định)
 function toggleSidebar(e) {
     if (e) {
         e.preventDefault();
@@ -1509,33 +1728,21 @@ function toggleSidebar(e) {
     if (now - lastToggleTime < 300) return;
     lastToggleTime = now;
 
-    const sidebar = document.querySelector('.sidebar');
+    closeMoreMenu();
+    const panel = document.getElementById('settings-panel');
     const overlay = document.getElementById('sidebar-overlay');
-
-    if (sidebar.classList.contains('open')) {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('show');
-    } else {
-        sidebar.classList.add('open');
-        overlay.classList.add('show');
-    }
+    const open = !panel.classList.contains('open');
+    panel.classList.toggle('open', open);
+    overlay.classList.toggle('show', open);
 }
 
+function toggleMoreMenu() {
+    document.getElementById('more-menu').classList.toggle('hide');
+}
 
-// Global exposure for onclick handlers
-window.removeEvent = removeEvent;
-window.duplicateEvent = duplicateEvent;
-window.updateEvent = updateEvent;
-window.handleShellChange = handleShellChange;
-window.toggleAdvanced = toggleAdvanced;
-window.editScript = editScript;
-window.duplicateScript = duplicateScript;
-window.deleteScript = deleteScript;
-window.addColorToEvent = addColorToEvent;
-window.removeColorFromEvent = removeColorFromEvent;
-window.copyScriptLink = copyScriptLink;
-window.previewScript = previewScript;
-window.toggleFullscreenMiniPreview = toggleFullscreenMiniPreview;
+function closeMoreMenu() {
+    document.getElementById('more-menu')?.classList.add('hide');
+}
 
 /**
  * XEM NHANH
@@ -1545,7 +1752,10 @@ window.toggleFullscreenMiniPreview = toggleFullscreenMiniPreview;
 
 // Kích thước màn hình được giả lập. Trình phát xử lý điện thoại khác máy tính (thu hẹp vùng bắn, pháo nhỏ hơn).
 const PREVIEW_DEVICES = {
-    desktop: () => ({ width: Math.max(1024, window.innerWidth), height: Math.max(600, window.innerHeight) }),
+    // Mở builder trên máy tính thì giả lập đúng màn hình đang dùng, mở trên máy nhỏ thì giả lập 1366x768
+    desktop: () => window.innerWidth >= 1024
+        ? { width: window.innerWidth, height: Math.max(600, window.innerHeight) }
+        : { width: 1366, height: 768 },
     mobile: () => ({ width: 390, height: 844 })
 };
 let previewDevice = 'desktop';
@@ -1615,17 +1825,26 @@ function loadPreviewFrame() {
 
 // Đặt iframe ở kích thước màn hình giả lập rồi thu nhỏ cho vừa khung xem nhanh (giữ đúng tỉ lệ)
 function resizeMiniStages() {
+    const card = document.getElementById('mini-preview');
     const container = document.querySelector('.mini-preview-canvas-container');
     const stage = document.getElementById('mini-preview-stage');
     const frame = getPreviewFrame();
-    if (!container || !stage || !frame) return;
+    if (!card || !container || !stage || !frame || card.classList.contains('collapsed')) return;
     const { width, height } = PREVIEW_DEVICES[previewDevice]();
+
+    if (!card.classList.contains('fullscreen')) {
+        // Chiều cao khung theo tỉ lệ màn hình giả lập, chừa chỗ cho bảng chỉnh sửa/danh sách bên dưới
+        const maxHeight = window.innerHeight * (window.innerWidth < 768 ? 0.34 : 0.42);
+        container.style.height = Math.round(Math.min(container.clientWidth * height / width, maxHeight)) + 'px';
+    }
+
     const scale = Math.min(container.clientWidth / width, container.clientHeight / height) || 0.01;
     frame.style.width = width + 'px';
     frame.style.height = height + 'px';
     frame.style.transform = `scale(${scale})`;
     stage.style.width = width * scale + 'px';
     stage.style.height = height * scale + 'px';
+    positionMobileSheet();
 }
 
 function updateMiniRulers() {
@@ -1650,72 +1869,50 @@ function updateMiniRulers() {
     });
 }
 
-function getNonCanvasHeight() {
-    const el = document.getElementById('mini-preview');
-    if (!el) return 0;
-    const header = el.querySelector('.mini-preview-header');
-    const info = el.querySelector('.mini-preview-info');
-    return (header ? header.offsetHeight : 0) + (info ? info.offsetHeight : 0);
-}
-
-// Đặt kích thước khung xem nhanh theo tỉ lệ màn hình đang giả lập (không cao quá 80% cửa sổ)
-function fitMiniPreviewToDevice() {
-    const el = document.getElementById('mini-preview');
-    if (!el) return;
-    const { width, height } = PREVIEW_DEVICES[previewDevice]();
-    const nonCanvasH = getNonCanvasHeight();
-    let w = el.offsetWidth;
-    let canvasH = w * height / width;
-    const maxCanvasH = window.innerHeight * 0.8 - nonCanvasH;
-    if (canvasH > maxCanvasH) {
-        canvasH = maxCanvasH;
-        w = canvasH * width / height;
-    }
-    el.style.width = w + 'px';
-    el.style.height = canvasH + nonCanvasH + 'px';
-    resizeMiniStages();
-}
-
+// Ẩn/hiện khung xem nhanh. Khi ẩn thì dừng hẳn trình phát bên trong để không tốn CPU.
 function toggleMiniPreview(force) {
     state.miniPreviewEnabled = force !== undefined ? force : !state.miniPreviewEnabled;
-    const el = document.getElementById('mini-preview');
+    const card = document.getElementById('mini-preview');
     const btn = document.getElementById('btn-toggle-mini-preview');
-    if (state.miniPreviewEnabled) {
-        el.classList.remove('hide');
-        btn.classList.add('primary');
-        btn.classList.remove('secondary');
+    card.classList.toggle('collapsed', !state.miniPreviewEnabled);
+    if (btn) btn.title = state.miniPreviewEnabled ? 'Thu gọn xem nhanh' : 'Mở xem nhanh';
 
+    if (state.miniPreviewEnabled) {
         previewMode = document.getElementById('loop').checked ? 'loop' : 'idle';
-        fitMiniPreviewToDevice();
         updateMiniRulers();
         updateMiniInfo();
         loadPreviewFrame();
     } else {
-        el.classList.add('hide');
-        btn.classList.remove('primary');
-        btn.classList.add('secondary');
-        // Dừng hẳn trình phát để không tốn CPU khi đóng xem nhanh
         previewReady = false;
         getPreviewFrame().src = 'about:blank';
     }
+    positionMobileSheet();
 }
 
-function togglePreviewDevice() {
-    previewDevice = previewDevice === 'desktop' ? 'mobile' : 'desktop';
-    const isMobile = previewDevice === 'mobile';
+function setPreviewDevice(device) {
+    previewDevice = device;
+    const isMobile = device === 'mobile';
     const btn = document.getElementById('btn-device-mini');
     if (btn) {
-        btn.innerHTML = `<i class="fas fa-${isMobile ? 'mobile-alt' : 'desktop'}"></i>`;
+        btn.innerHTML = `<i class="fas fa-${isMobile ? 'mobile-screen' : 'desktop'}"></i>`;
         btn.title = isMobile
             ? 'Đang xem như trên điện thoại - bấm để xem như trên máy tính'
             : 'Đang xem như trên máy tính - bấm để xem như trên điện thoại';
     }
-    // Bỏ chiều rộng đã kéo để khung co giãn lại theo tỉ lệ mới
-    const el = document.getElementById('mini-preview');
-    if (el) el.style.width = '';
-    fitMiniPreviewToDevice();
+}
+
+function togglePreviewDevice() {
+    setPreviewDevice(previewDevice === 'desktop' ? 'mobile' : 'desktop');
+    // Khung chọn vị trí đổi theo tỉ lệ màn hình mới
+    renderInspector();
     // Trình phát xác định máy tính/điện thoại lúc tải trang nên phải tải lại
     if (state.miniPreviewEnabled) loadPreviewFrame();
+}
+
+// Chạy lại từ đầu (không lặp thì chạy một lượt)
+function restartMiniPreview() {
+    if (previewMode === 'idle') playMiniPreviewOnce();
+    else sendPreview(true);
 }
 
 function toggleFullscreenMiniPreview() {
@@ -1730,11 +1927,6 @@ function toggleFullscreenMiniPreview() {
     } else {
         fscreen.exitFullscreen();
     }
-}
-
-function resetMiniPreviewSize() {
-    fitMiniPreviewToDevice();
-    notify('Đã khôi phục tỉ lệ màn hình', 'info');
 }
 
 // Handle fullscreen changes to resize canvas
@@ -1757,184 +1949,15 @@ function playMiniPreviewOnce() {
     sendPreview(true);
 }
 
-/**
- * RESIZE LOGIC FOR MINI PREVIEW
- */
-let isResizingMini = false;
-let resizeType = 'both'; // 'v', 'h', 'both'
-let startX, startY, startW, startH;
-
-function initMiniResize() {
-    const handleV = document.getElementById('mini-preview-resize-v');
-    const handleH = document.getElementById('mini-preview-resize-h');
-    const handleBoth = document.getElementById('mini-preview-resize-both');
-    const container = document.getElementById('mini-preview');
-
-    const onDown = (e, type) => {
-        isResizingMini = true;
-        resizeType = type;
-        startX = e.clientX;
-        startY = e.clientY;
-        startW = container.offsetWidth;
-        startH = container.offsetHeight;
-
-        if (e.target.setPointerCapture) {
-            e.target.setPointerCapture(e.pointerId);
-        }
-
-        e.preventDefault();
-        e.stopPropagation();
-    };
-
-    handleV.onpointerdown = (e) => onDown(e, 'v');
-    handleH.onpointerdown = (e) => onDown(e, 'h');
-    handleBoth.onpointerdown = (e) => onDown(e, 'both');
-
-    const onMove = (e) => {
-        if (!isResizingMini) return;
-
-        const nonCanvasH = getNonCanvasHeight();
-        const deviceRatio = window.innerWidth / window.innerHeight;
-        let newW = startW;
-        let newH = startH;
-
-        const dx = startX - e.clientX;
-        const dy = startY - e.clientY;
-
-        if (resizeType === 'v') {
-            newH = Math.max(150, startH + dy);
-        } else if (resizeType === 'h') {
-            newW = Math.max(200, startW + dx);
-        } else {
-            // Corner resize: maintain CURRENT aspect ratio
-            const scaleW = (startX - e.clientX + startW) / startW;
-            const scaleH = (startY - e.clientY + startH) / startH;
-            const scale = Math.max(scaleW, scaleH);
-
-            newW = Math.max(200, startW * scale);
-            newH = Math.max(150, startH * scale);
-        }
-
-        // Check against viewport limits
-        if (newW > window.innerWidth * 0.95) {
-            newW = window.innerWidth * 0.95;
-            if (resizeType === 'both') newH = (newW * startH) / startW;
-        }
-        if (newH > window.innerHeight * 0.8) {
-            newH = window.innerHeight * 0.8;
-            if (resizeType === 'both') newW = (newH * startW) / startH;
-        }
-
-        container.style.width = newW + 'px';
-        container.style.height = newH + 'px';
-        resizeMiniStages();
-    };
-
-    const onUp = (e) => {
-        if (!isResizingMini) return;
-        isResizingMini = false;
-        if (e.target.releasePointerCapture) {
-            e.target.releasePointerCapture(e.pointerId);
-        }
-    };
-
-    [handleV, handleH, handleBoth].forEach(h => {
-        h.onpointermove = onMove;
-        h.onpointerup = onUp;
-    });
-}
-
-/**
- * MOVE LOGIC FOR MINI PREVIEW
- */
-let isMovingMini = false;
-let moveStartX, moveStartY, moveStartBottom, moveStartRight;
-
-function initMiniMove() {
-    const header = document.querySelector('.mini-preview-header');
-    const container = document.getElementById('mini-preview');
-
-    header.onpointerdown = (e) => {
-        if (e.target.closest('button')) return;
-        isMovingMini = true;
-        moveStartX = e.clientX;
-        moveStartY = e.clientY;
-
-        const style = window.getComputedStyle(container);
-        moveStartBottom = parseInt(style.bottom) || 0;
-        moveStartRight = parseInt(style.right) || 0;
-
-        header.setPointerCapture(e.pointerId);
-        e.preventDefault();
-    };
-
-    header.onpointermove = (e) => {
-        if (!isMovingMini) return;
-
-        const dx = moveStartX - e.clientX;
-        const dy = moveStartY - e.clientY;
-
-        let nextRight = moveStartRight + dx;
-        let nextBottom = moveStartBottom + dy;
-
-        // Keep inside viewport
-        const rect = container.getBoundingClientRect();
-        if (nextRight < 0) nextRight = 0;
-        if (nextBottom < 0) nextBottom = 0;
-        if (nextRight + rect.width > window.innerWidth) nextRight = window.innerWidth - rect.width;
-        if (nextBottom + rect.height > window.innerHeight) nextBottom = window.innerHeight - rect.height;
-
-        container.style.right = nextRight + 'px';
-        container.style.bottom = nextBottom + 'px';
-    };
-
-    header.onpointerup = (e) => {
-        isMovingMini = false;
-        if (header.releasePointerCapture) {
-            header.releasePointerCapture(e.pointerId);
-        }
-    };
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    initMiniResize();
-    initMiniMove();
+// Các hàm được gọi từ thuộc tính onclick/onchange trong HTML
+Object.assign(window, {
+    toggleMiniPreview, togglePreviewDevice, toggleFullscreenMiniPreview, playMiniPreviewOnce, restartMiniPreview,
+    createNewScript, selectEvent, closeInspector, addEventFromUI, addBurst, removeEvent, duplicateEvent, updateEvent,
+    handleShellChange, changeBurst, toggleEventColor, addColorToEvent, addCustomColor, removeColorFromEvent,
+    rememberSection, editScript, duplicateScript, deleteScript, previewScript, copyShareLink, copyScriptLink,
+    openScriptsModal, exportConfig, previewConfig, saveConfig, toggleSidebar, toggleMoreMenu, showModal,
+    resizeMiniStages, notify, confirmAction
 });
-
-function selectEvent(id) {
-    state.activeEventId = state.activeEventId === id ? null : id;
-    renderEventList();
-    updateMiniInfo();
-    // Bắn ngay phát vừa chọn, hoặc chạy lại cả kịch bản khi bỏ chọn
-    sendPreview(true);
-}
-
-window.toggleMiniPreview = toggleMiniPreview;
-window.togglePreviewDevice = togglePreviewDevice;
-window.toggleFullscreenMiniPreview = toggleFullscreenMiniPreview;
-window.resetMiniPreviewSize = resetMiniPreviewSize;
-window.playMiniPreviewOnce = playMiniPreviewOnce;
-window.createNewScript = createNewScript;
-window.selectEvent = selectEvent;
-window.removeEvent = removeEvent;
-window.updateEvent = updateEvent;
-window.handleShellChange = handleShellChange;
-window.toggleAdvanced = toggleAdvanced;
-window.editScript = editScript;
-window.duplicateScript = duplicateScript;
-window.deleteScript = deleteScript;
-window.addColorToEvent = addColorToEvent;
-window.removeColorFromEvent = removeColorFromEvent;
-window.copyShareLink = copyShareLink;
-window.copyScriptLink = copyScriptLink;
-window.openScriptsModal = openScriptsModal;
-window.exportConfig = exportConfig;
-window.previewConfig = previewConfig;
-window.saveConfig = saveConfig;
-window.toggleSidebar = toggleSidebar;
-window.resizeMiniStages = resizeMiniStages;
-window.notify = notify;
-window.confirmAction = confirmAction;
 window.shareSocial = (platform) => {
     const url = document.getElementById('share-url').innerText;
     if (!url) {

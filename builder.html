@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0d14">
     <title>Trình Tạo Kịch Bản Pháo Hoa - Firework Builder</title>
     <link rel="shortcut icon" type="image/png" href="./src/assets/img/firework-burst-icon-v2.png">
     <link rel="icon" type="image/png" href="./src/assets/img/firework-burst-icon-v2.png">
@@ -11,70 +12,81 @@
     <meta name="msapplication-TileColor" content="#000000">
     <meta name="msapplication-TileImage" content="./src/assets/img/firework-burst-icon-v2.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-
-
 </head>
 
 <body>
-    <div class="app-container">
-        <header>
-            <div class="logo">
-                <i class="fas fa-fireworks"></i>
-                <h1>Firework Builder</h1>
-                <button id="btn-help" class="btn-help-icon" title="Hướng dẫn sử dụng">
-                    <i class="fas fa-question-circle"></i>
-                </button>
+    <div class="app">
+        <!-- Thanh trên cùng -->
+        <header class="topbar">
+            <div class="brand">
+                <span class="brand-logo"><i class="fas fa-wand-magic-sparkles"></i></span>
+                <div class="brand-text">
+                    <strong>Firework Builder</strong>
+                    <span id="script-name-label">Kịch bản mới</span>
+                </div>
             </div>
-            <div class="header-actions-mobile show-mobile">
-                <button class="btn text" onclick="createNewScript()" title="Mới">
-                    <i class="fas fa-plus"></i>
+
+            <div class="topbar-actions">
+                <div class="btn-group hide-mobile">
+                    <button class="btn ghost" onclick="createNewScript()" title="Tạo kịch bản mới">
+                        <i class="fas fa-plus"></i><span>Mới</span>
+                    </button>
+                    <button class="btn ghost" onclick="openScriptsModal()" title="Mở kịch bản đã lưu">
+                        <i class="fas fa-folder-open"></i><span>Mở</span>
+                    </button>
+                    <button class="btn ghost" onclick="document.getElementById('import-file').click()"
+                        title="Nhập kịch bản từ file .json">
+                        <i class="fas fa-file-import"></i><span>Nhập</span>
+                    </button>
+                    <button class="btn ghost" onclick="exportConfig()" title="Xuất kịch bản ra file .json">
+                        <i class="fas fa-file-export"></i><span>Xuất</span>
+                    </button>
+                </div>
+                <button class="btn ghost show-tablet" onclick="toggleSidebar()" title="Cấu hình chung">
+                    <i class="fas fa-sliders"></i><span>Cài đặt</span>
                 </button>
-                <button class="btn text" onclick="previewConfig()" title="Xem thử">
-                    <i class="fas fa-play"></i>
+                <button id="btn-preview" class="btn secondary hide-mobile" title="Mở màn trình diễn trong tab mới">
+                    <i class="fas fa-play"></i><span>Xem thử</span>
                 </button>
-                <button class="btn text" onclick="document.getElementById('import-file').click()" title="Nhập">
-                    <i class="fas fa-file-import"></i>
+                <button id="btn-save" class="btn primary" title="Lưu kịch bản và tạo link chia sẻ">
+                    <i class="fas fa-floppy-disk"></i><span>Lưu</span>
                 </button>
-                <button class="btn text" onclick="exportConfig()" title="Xuất">
-                    <i class="fas fa-file-export"></i>
+                <button id="btn-help" class="btn icon hide-mobile" title="Hướng dẫn sử dụng">
+                    <i class="fas fa-circle-question"></i>
                 </button>
-                <button class="btn text" onclick="toggleMiniPreview()" title="Xem nhanh">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button id="btn-toggle-settings-header" class="btn text">
-                    <i class="fas fa-cog"></i>
-                </button>
-            </div>
-            <div class="actions">
-                <!-- Ô chọn file dùng chung cho các nút "Nhập" (phải nằm ngoài comment, nếu không nút Nhập báo lỗi) -->
-                <input type="file" id="import-file" class="hide" accept=".json">
-                <!-- <button id="btn-import" class="btn secondary">
-                    <i class="fas fa-file-import"></i> <span>Nhập</span>
-                </button>
-                <button id="btn-export" class="btn secondary">
-                    <i class="fas fa-file-export"></i> <span>Xuất</span>
-                </button>
-                <button id="btn-my-scripts" class="btn secondary">
-                    <i class="fas fa-folder-open"></i> <span>Kịch bản</span>
-                </button> -->
-                <button id="btn-preview" class="btn secondary">
-                    <i class="fas fa-play"></i> <span>Xem thử</span>
-                </button>
-                <button id="btn-save" class="btn primary">
-                    <i class="fas fa-save"></i> <span>Lưu</span>
-                </button>
-                <button id="btn-toggle-mini-preview" class="btn secondary" title="Bật/Tắt xem nhanh">
-                    <i class="fas fa-eye"></i> <span>Xem nhanh</span>
-                </button>
-                <a href="index.html" class="btn text"><span>Quay lại</span></a>
+                <a href="index.html" class="btn icon hide-mobile" title="Về trang trình diễn">
+                    <i class="fas fa-house"></i>
+                </a>
+
+                <!-- Menu gọn cho điện thoại -->
+                <div class="more-menu show-mobile">
+                    <button id="btn-more" class="btn icon" onclick="toggleMoreMenu()" title="Thêm thao tác">
+                        <i class="fas fa-ellipsis-vertical"></i>
+                    </button>
+                    <div id="more-menu" class="dropdown hide">
+                        <button onclick="previewConfig()"><i class="fas fa-play"></i> Xem thử toàn màn hình</button>
+                        <button onclick="toggleSidebar()"><i class="fas fa-sliders"></i> Cấu hình chung</button>
+                        <hr>
+                        <button onclick="createNewScript()"><i class="fas fa-plus"></i> Kịch bản mới</button>
+                        <button onclick="openScriptsModal()"><i class="fas fa-folder-open"></i> Mở kịch bản</button>
+                        <button onclick="document.getElementById('import-file').click()"><i
+                                class="fas fa-file-import"></i> Nhập file .json</button>
+                        <button onclick="exportConfig()"><i class="fas fa-file-export"></i> Xuất file .json</button>
+                        <hr>
+                        <button onclick="showModal('help-modal')"><i class="fas fa-circle-question"></i> Hướng
+                            dẫn</button>
+                        <a href="index.html"><i class="fas fa-house"></i> Về trang trình diễn</a>
+                    </div>
+                </div>
             </div>
         </header>
 
+        <!-- Link chia sẻ (hiện sau khi lưu) -->
         <div id="share-bar" class="share-bar hide">
             <div class="share-info">
                 <i class="fas fa-link"></i>
-                <span>Link chia sẻ: <strong id="share-url"></strong></span>
+                <span>Link chia sẻ:</span>
+                <strong id="share-url"></strong>
             </div>
             <div class="share-actions">
                 <button id="btn-copy-link" class="btn primary small" title="Sao chép link">
@@ -86,8 +98,7 @@
                         <i class="fab fa-facebook-messenger"></i>
                     </button>
                     <button class="btn-social zalo" onclick="shareSocial('zalo')" title="Chia sẻ qua Zalo">
-                        <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="100" height="100"
-                            viewBox="0 0 48 48">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
                             <path fill="#2962ff"
                                 d="M15,36V6.827l-1.211-0.811C8.64,8.083,5,13.112,5,19v10c0,7.732,6.268,14,14,14h10	c4.722,0,8.883-2.348,11.417-5.931V36H15z">
                             </path>
@@ -110,192 +121,192 @@
                         <i class="fab fa-tiktok"></i>
                     </button>
                 </div>
+                <button class="btn icon small" onclick="document.getElementById('share-bar').classList.add('hide')"
+                    title="Ẩn link chia sẻ"><i class="fas fa-xmark"></i></button>
             </div>
         </div>
 
-        <main>
-            <!-- Sidebar: Global Settings -->
-            <aside class="sidebar">
-                <div class="sidebar-header-mobile show-mobile">
-                    <h3>Cấu hình chung</h3>
-                    <button class="btn text close-sidebar-btn" onclick="toggleSidebar()">
-                        <i class="fas fa-times"></i>
+        <main class="workspace">
+            <!-- Cột trái: cấu hình chung (thành ngăn trượt trên tablet/điện thoại) -->
+            <aside id="settings-panel" class="settings-panel">
+                <div class="panel-header">
+                    <h2><i class="fas fa-sliders"></i> Cấu hình chung</h2>
+                    <button class="btn icon close-panel" onclick="toggleSidebar()" title="Đóng">
+                        <i class="fas fa-xmark"></i>
                     </button>
                 </div>
+                <div class="panel-body">
+                    <div class="field">
+                        <label for="title">Tiêu đề</label>
+                        <input type="text" id="title" placeholder="VD: CHÚC MỪNG SINH NHẬT">
+                    </div>
+                    <div class="field">
+                        <label for="subtitle">Dòng phụ</label>
+                        <input type="text" id="subtitle" placeholder="Lời nhắn ngắn gọn...">
+                    </div>
+                    <div class="field">
+                        <label for="author">Người thực hiện</label>
+                        <input type="text" id="author" placeholder="Tên của bạn">
+                    </div>
 
-                <div class="sidebar-content-mobile">
-                    <section class="card">
-                        <h3 class="hide-mobile"><i class="fas fa-cog"></i> Cấu hình chung</h3>
+                    <div class="field-divider"></div>
 
-                        <!-- Global Actions (Desktop & Mobile) -->
-                        <div class="sidebar-global-actions">
-                            <button class="btn secondary small" onclick="createNewScript()">
-                                <i class="fas fa-plus"></i> Mới
-                            </button>
-                            <button class="btn secondary small"
-                                onclick="document.getElementById('import-file').click()">
-                                <i class="fas fa-file-import"></i> Nhập
-                            </button>
-                            <button class="btn secondary small" onclick="exportConfig()">
-                                <i class="fas fa-file-export"></i> Xuất
-                            </button>
-                            <button class="btn secondary small hide-mobile" onclick="openScriptsModal()">
-                                <i class="fas fa-folder-open"></i> Kịch bản
-                            </button>
-                        </div>
-
-                        <div class="actions-mobile show-mobile" style="margin-top: 1rem;">
-                            <button class="btn primary btn-save-mobile" onclick="saveConfig()">
-                                <i class="fas fa-save"></i> Lưu
-                            </button>
-                            <button class="btn secondary" onclick="openScriptsModal()">
-                                <i class="fas fa-folder-open"></i> Kịch bản
-                            </button>
-                            <button class="btn secondary" onclick="previewConfig()">
-                                <i class="fas fa-play"></i> Xem thử
-                            </button>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="title">Tiêu đề (Title)</label>
-                            <input type="text" id="title" placeholder="Ví dụ: CHÚC MỪNG SINH NHẬT">
-                        </div>
-                        <div class="form-group">
-                            <label for="subtitle">Dòng phụ (Subtitle)</label>
-                            <input type="text" id="subtitle" placeholder="Lời nhắn ngắn gọn...">
-                        </div>
-                        <div class="form-group">
-                            <label for="author">Người thực hiện (Author)</label>
-                            <input type="text" id="author" placeholder="Tên của bạn">
-                        </div>
-                        <div class="form-group checkbox">
-                            <input type="checkbox" id="show-background">
-                            <label for="show-background">Hiển thị nền (Show Background)</label>
-                        </div>
-                        <div id="background-upload-container" class="form-group hide">
-                            <label>Ảnh nền (Background Image)</label>
-                            <div class="background-upload-frame" id="bg-upload-frame"
-                                onclick="document.getElementById('background-file').click()">
-                                <img id="background-preview" src="src/assets/img/background.png"
-                                    alt="Background Preview">
-                                <div class="upload-overlay">
-                                    <i class="fas fa-cloud-upload-alt"></i>
-                                    <span>Tải ảnh lên</span>
-                                </div>
-                            </div>
-                            <input type="file" id="background-file" class="hide" accept="image/*">
-                        </div>
-                        <div class="form-group checkbox">
-                            <input type="checkbox" id="loop" checked>
-                            <label for="loop">Tự động lặp lại (Loop)</label>
-                        </div>
-                        <div class="form-group">
-                            <label for="filename">Tên file kịch bản (Lưu vào /configs/)</label>
-                            <div class="input-with-ext">
-                                <input type="text" id="filename" placeholder="my_kịch_bản">
-                                <span>.json</span>
+                    <label class="switch-row" for="show-background">
+                        <span>
+                            <strong>Hiển thị ảnh nền</strong>
+                            <small>Ảnh phong cảnh phía sau pháo hoa</small>
+                        </span>
+                        <input type="checkbox" id="show-background" class="switch">
+                    </label>
+                    <div id="background-upload-container" class="field hide">
+                        <div class="background-upload-frame" id="bg-upload-frame"
+                            onclick="document.getElementById('background-file').click()">
+                            <img id="background-preview" src="src/assets/img/background.png" alt="Ảnh nền">
+                            <div class="upload-overlay">
+                                <i class="fas fa-cloud-arrow-up"></i>
+                                <span>Đổi ảnh nền</span>
                             </div>
                         </div>
-                    </section>
+                        <input type="file" id="background-file" class="hide" accept="image/*">
+                    </div>
 
-                    <section class="card info">
-                        <h4>Mẹo nhanh</h4>
+                    <label class="switch-row" for="loop">
+                        <span>
+                            <strong>Tự động lặp lại</strong>
+                            <small>Chạy hết thì quay lại đợt đầu</small>
+                        </span>
+                        <input type="checkbox" id="loop" class="switch" checked>
+                    </label>
+
+                    <div class="field-divider"></div>
+
+                    <div class="field">
+                        <label for="filename">Tên file kịch bản</label>
+                        <div class="input-with-ext">
+                            <input type="text" id="filename" placeholder="vd: sinh_nhat_me">
+                            <span>.json</span>
+                        </div>
+                        <small class="field-hint">Chỉ dùng chữ không dấu, số, gạch nối, gạch dưới.</small>
+                    </div>
+
+                    <div class="tips-card">
+                        <h4><i class="fas fa-lightbulb"></i> Mẹo nhanh</h4>
                         <ul>
-                            <li>Dùng pháo <strong>Liễu</strong> với màu <strong>Ngẫu nhiên</strong> để có hiệu ứng đẹp
-                                nhất.
-                            </li>
-                            <li>Sắp xếp các <strong>burst</strong> giống nhau để bắn đồng thời.</li>
-                            <li>Dùng <strong>delay</strong> để tạo chuỗi hiệu ứng liên hoàn.</li>
+                            <li>Các phát bắn cùng <strong>đợt</strong> nổ cùng lúc; dùng <strong>trễ</strong> để nổ nối
+                                tiếp.</li>
+                            <li>Thêm phát <strong>Tạm dừng</strong> để kéo dài một đợt.</li>
+                            <li>Bấm nút <i class="fas fa-mobile-screen"></i> ở khung xem nhanh để xem như trên điện
+                                thoại.</li>
                         </ul>
-                    </section>
-                </div> <!-- End sidebar-content-mobile -->
-            </aside>
-
-            <!-- Main Content: Event List -->
-            <section class="event-list-container">
-                <div class="section-header">
-                    <h2><i class="fas fa-list-ul"></i> Danh sách các đợt bắn</h2>
-                    <button id="btn-add-event" class="btn primary small hide-mobile">
-                        <i class="fas fa-plus"></i> Thêm phát bắn
-                    </button>
-                </div>
-
-                <div id="event-list" class="event-list">
-                    <!-- Events will be added here dynamically -->
-                    <div class="empty-state">
-                        <i class="fas fa-sparkles"></i>
-                        <p>Chưa có phát bắn nào. Hãy nhấn "+" để bắt đầu.</p>
                     </div>
                 </div>
+            </aside>
+
+            <!-- Cột giữa: dòng thời gian các đợt bắn -->
+            <section class="timeline-panel">
+                <div class="timeline-toolbar">
+                    <div class="timeline-heading">
+                        <h1>Dòng thời gian</h1>
+                        <p id="timeline-summary"></p>
+                    </div>
+                    <div class="toolbar-actions">
+                        <button class="btn ghost small" onclick="addBurst()" title="Thêm một phát bắn ở đợt mới">
+                            <i class="fas fa-layer-group"></i><span>Đợt mới</span>
+                        </button>
+                        <button id="btn-add-event" class="btn primary small hide-mobile">
+                            <i class="fas fa-plus"></i><span>Thêm phát bắn</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="event-list" class="timeline"></div>
             </section>
-            
-            <!-- Sidebar: Advanced Settings (Drawer) -->
-            <aside id="advanced-drawer" class="advanced-drawer hide">
-                <div class="drawer-header">
-                    <h3><i class="fas fa-magic"></i> Tùy chỉnh nâng cao</h3>
-                    <button class="btn text close-drawer-btn" onclick="closeAdvancedDrawer()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div id="drawer-content" class="drawer-content">
-                    <!-- Content will be injected here -->
-                </div>
-                <div class="drawer-footer">
-                    <button class="btn primary full-width" onclick="closeAdvancedDrawer()">Hoàn tất</button>
-                </div>
+
+            <!-- Cột phải: xem nhanh + bảng chỉnh sửa phát bắn đang chọn -->
+            <aside class="studio-panel">
+                <section id="mini-preview" class="preview-card">
+                    <div class="preview-header">
+                        <span class="preview-title"><i class="fas fa-eye"></i> Xem nhanh</span>
+                        <div class="preview-actions">
+                            <button id="btn-play-mini" class="icon-btn hide" onclick="playMiniPreviewOnce()"
+                                title="Chạy kịch bản một lượt"><i class="fas fa-play"></i></button>
+                            <button class="icon-btn" onclick="restartMiniPreview()" title="Chạy lại từ đầu"><i
+                                    class="fas fa-rotate-right"></i></button>
+                            <button id="btn-device-mini" class="icon-btn" onclick="togglePreviewDevice()"
+                                title="Đang xem như trên máy tính - bấm để xem như trên điện thoại"><i
+                                    class="fas fa-desktop"></i></button>
+                            <button class="icon-btn" onclick="toggleFullscreenMiniPreview()"
+                                title="Phóng to toàn màn hình"><i class="fas fa-expand"></i></button>
+                            <button id="btn-toggle-mini-preview" class="icon-btn" title="Ẩn/hiện xem nhanh"><i
+                                    class="fas fa-chevron-up"></i></button>
+                        </div>
+                    </div>
+                    <div class="mini-preview-canvas-container">
+                        <!-- Chạy chính trình phát thật (index.html?preview=1) để xem nhanh giống hệt khi trình diễn -->
+                        <div id="mini-preview-stage" class="mini-preview-stage">
+                            <iframe id="mini-preview-frame" class="mini-preview-frame"
+                                title="Xem nhanh màn trình diễn"></iframe>
+                            <div id="mini-ruler-x" class="mini-preview-ruler-x"></div>
+                            <div id="mini-ruler-y" class="mini-preview-ruler-y"></div>
+                        </div>
+                    </div>
+                    <div id="mini-preview-info" class="mini-preview-info">Đang hiển thị toàn bộ</div>
+                </section>
+
+                <!-- Nội dung do builder.js dựng theo phát bắn đang chọn -->
+                <section id="inspector" class="inspector"></section>
             </aside>
         </main>
     </div>
 
-    <!-- Floating Action Button for Mobile -->
-    <button id="btn-fab-add" class="fab show-mobile" title="Thêm phát bắn">
+    <!-- Nút thêm phát bắn trên điện thoại -->
+    <button id="btn-fab-add" class="fab-add show-mobile" title="Thêm phát bắn">
         <i class="fas fa-plus"></i>
     </button>
 
-    <!-- Modals or overlays could go here -->
+    <!-- Lớp mờ phía sau ngăn cấu hình chung (tablet/điện thoại) -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <!-- Ô chọn file dùng chung cho các nút "Nhập" -->
+    <input type="file" id="import-file" class="hide" accept=".json">
+
     <div id="save-modal" class="modal hide">
         <div class="modal-content">
             <h3>Lưu kịch bản</h3>
             <p id="save-status">Đang lưu kịch bản của bạn...</p>
             <div id="save-spinner" class="spinner"></div>
-            <div id="save-actions" class="hide" style="margin-top: 1rem;">
+            <div id="save-actions" class="hide">
                 <button class="btn secondary"
                     onclick="document.getElementById('save-modal').classList.add('hide')">Đóng</button>
             </div>
         </div>
     </div>
 
-    <!-- My Scripts Modal -->
     <div id="scripts-modal" class="modal hide">
         <div class="modal-content large">
             <div class="modal-header">
                 <h3><i class="fas fa-folder-open"></i> Kịch bản của tôi</h3>
-                <button class="btn text" onclick="document.getElementById('scripts-modal').classList.add('hide')">
-                    <i class="fas fa-times"></i>
+                <button class="btn icon" onclick="document.getElementById('scripts-modal').classList.add('hide')"
+                    title="Đóng">
+                    <i class="fas fa-xmark"></i>
                 </button>
             </div>
-            <div class="scripts-grid" id="scripts-list">
-                <!-- Scripts list will be loaded here -->
-            </div>
+            <div class="scripts-grid" id="scripts-list"></div>
         </div>
     </div>
 
-    <!-- Confirmation Modal -->
     <div id="confirm-modal" class="modal hide">
         <div class="modal-content">
-            <h3><i class="fas fa-question-circle" style="color: var(--accent);"></i> Xác nhận</h3>
-            <p id="confirm-message" style="margin: 1rem 0; font-size: 1.1rem;"></p>
-            <div class="modal-actions" style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
-                <button id="btn-confirm-yes" class="btn primary">Đồng ý</button>
+            <h3><i class="fas fa-circle-question"></i> Xác nhận</h3>
+            <p id="confirm-message"></p>
+            <div class="modal-actions">
                 <button id="btn-confirm-no" class="btn secondary">Hủy bỏ</button>
+                <button id="btn-confirm-yes" class="btn primary">Đồng ý</button>
             </div>
         </div>
     </div>
 
-    <!-- Notification Toast -->
     <div id="notification-container" class="notification-container"></div>
 
-    <!-- Global Loading Overlay -->
     <div id="global-loading" class="global-loading hide">
         <div class="loading-content">
             <div class="loading-spinner">
@@ -306,92 +317,58 @@
         </div>
     </div>
 
-    <!-- Sidebar Overlay -->
-    <div id="sidebar-overlay" class="sidebar-overlay"></div>
-
     <div id="help-modal" class="modal hide">
         <div class="modal-content large help-guide">
             <div class="modal-header">
-                <h3><i class="fas fa-question-circle"></i> HDSD Firework Builder</h3>
-                <button class="btn text" onclick="document.getElementById('help-modal').classList.add('hide')">
-                    <i class="fas fa-times"></i>
+                <h3><i class="fas fa-circle-question"></i> Hướng dẫn Firework Builder</h3>
+                <button class="btn icon" onclick="document.getElementById('help-modal').classList.add('hide')"
+                    title="Đóng">
+                    <i class="fas fa-xmark"></i>
                 </button>
             </div>
             <div class="help-content">
                 <div class="help-section">
-                    <h4><i class="fas fa-cog"></i> Cấu hình chung</h4>
-                    <p>Thiết lập thông tin cơ bản cho màn trình diễn của bạn.</p>
+                    <h4><i class="fas fa-sliders"></i> Cấu hình chung</h4>
                     <ul>
-                        <li><strong>Tiêu đề & Dòng phụ:</strong> Nội dung hiển thị khi bắt đầu màn trình diễn.</li>
-                        <li><strong>Ảnh nền:</strong> Bạn có thể tải ảnh của riêng mình lên để làm nền cho pháo hoa.
-                        </li>
-                        <li><strong>Tên file:</strong> Đặt tên để lưu và chia sẻ. Hệ thống sẽ tự động thêm số nếu tên bị
-                            trùng.</li>
+                        <li><strong>Tiêu đề & dòng phụ:</strong> hiện lên khi màn trình diễn bắt đầu.</li>
+                        <li><strong>Ảnh nền:</strong> bật để có cảnh thành phố, hoặc bấm vào ảnh để tải ảnh của bạn.</li>
+                        <li><strong>Tên file:</strong> dùng để lưu và tạo link chia sẻ. Trùng tên sẽ tự thêm số.</li>
                     </ul>
                 </div>
 
                 <div class="help-section">
-                    <h4><i class="fas fa-list-ul"></i> Quản lý đợt bắn</h4>
-                    <p>Mỗi kịch bản gồm nhiều đợt bắn (Burst) khác nhau.</p>
+                    <h4><i class="fas fa-timeline"></i> Dòng thời gian</h4>
                     <ul>
-                        <li><strong>Đợt (Burst):</strong> Các phát bắn có cùng số đợt sẽ nổ đồng thời.</li>
-                        <li><strong>Trễ (Delay):</strong> Thời gian chờ (mili giây) trước khi phát bắn đó được kích
-                            hoạt.</li>
-                        <li><strong>Thứ tự:</strong> Các đợt bắn sẽ được thực hiện tuần tự từ nhỏ đến lớn.</li>
+                        <li><strong>Đợt:</strong> các phát bắn cùng đợt nổ cùng lúc; các đợt chạy lần lượt từ nhỏ đến lớn.</li>
+                        <li><strong>Trễ (ms):</strong> chờ bao lâu kể từ đầu đợt rồi mới bắn, để tạo chuỗi nổ nối tiếp.</li>
+                        <li><strong>Tạm dừng:</strong> kéo dài đợt đó thêm một khoảng thời gian.</li>
+                        <li><strong>Thời lượng:</strong> mỗi đợt kéo dài khoảng 3 giây (cộng thêm thời gian tạm dừng).</li>
                     </ul>
                 </div>
 
                 <div class="help-section">
-                    <h4><i class="fas fa-rocket"></i> Thông số phát bắn</h4>
-                    <div class="help-grid">
-                        <div class="help-item">
-                            <strong>Loại pháo:</strong> Chọn hiệu ứng hình dạng (Hoa cúc, Liễu, Trái tim, Văn bản...).
-                        </div>
-                        <div class="help-item">
-                            <strong>Vị trí X/Y:</strong> Tọa độ nổ (X: 0-100, 0 là trái; Y: 0-100, 0 là dưới/mặt đất).
-                        </div>
-                        <div class="help-item">
-                            <strong>Size:</strong> Độ lớn của bông pháo khi nổ.
-                        </div>
-                        <div class="help-item">
-                            <strong>Màu sắc:</strong> Bạn có thể thêm nhiều màu cho một phát bắn để tạo hiệu ứng đa sắc.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="help-section">
-                    <h4><i class="fas fa-magic"></i> Tùy chỉnh nâng cao</h4>
-                    <p>Mở rộng khả năng sáng tạo với các thông số chi tiết.</p>
+                    <h4><i class="fas fa-pen-to-square"></i> Chỉnh một phát bắn</h4>
                     <ul>
-                        <li><strong>Hạt & Tuổi thọ:</strong> Điều chỉnh mật độ, số lượng hạt chính xác và độ biến thiên
-                            tuổi thọ để pháo tan rã tự nhiên hơn.</li>
-                        <li><strong>Màu sắc chuyên sâu:</strong> Thiết lập màu sắc độc lập cho Nhấp nháy (Strobe), Nhụy
-                            pháo (Pistil) và Tia lửa lấp lánh (Glitter).</li>
-                        <li><strong>Chuyển màu:</strong> Chọn <strong>Màu chuyển đổi (2nd)</strong> và thời điểm đổi màu
-                            để tạo hiệu ứng pháo hoa biến sắc giữa chừng.</li>
-                        <li><strong>Loại lấp lánh:</strong> Lựa chọn các hiệu ứng phụ như Willow (Liễu rủ), Streamer
-                            (Vệt sáng), Thick (Cây cọ)...</li>
-                        <li><strong>Hiệu ứng đặc biệt:</strong>
-                            <strong>Nổ chéo</strong> (hạt pháo nổ thêm lần 2),
-                            <strong>Đuôi ngựa</strong> (hiệu ứng rủ xuống 1 phía),
-                            <strong>Đuôi phóng</strong> (tạo vệt sáng khi pháo bay lên).
-                        </li>
+                        <li><strong>Chọn phát bắn</strong> trong dòng thời gian để mở bảng chỉnh sửa.</li>
+                        <li><strong>Vị trí:</strong> bấm hoặc kéo trên khung để chọn điểm nổ (X: trái → phải, Y: đất → trời).</li>
+                        <li><strong>Màu sắc:</strong> chọn nhiều màu để pháo đa sắc, hoặc "Ngẫu nhiên".</li>
+                        <li><strong>Nâng cao:</strong> mật độ hạt, màu chuyển, lấp lánh, nổ chéo, đuôi ngựa...</li>
                     </ul>
                 </div>
 
                 <div class="help-section">
-                    <h4><i class="fas fa-eye"></i> Xem nhanh (Mini Preview)</h4>
-                    <p>Công cụ đắc lực giúp bạn xem ngay kết quả mà không cần chuyển trang.</p>
+                    <h4><i class="fas fa-eye"></i> Xem nhanh</h4>
                     <ul>
-                        <li>Nhấn vào một phát bắn trong danh sách để xem riêng phát bắn đó nổ.</li>
-                        <li>Bạn có thể kéo thả để di chuyển hoặc thay đổi kích thước cửa sổ xem nhanh.</li>
+                        <li>Chạy chính trình diễn thật nên hiển thị giống hệt khi gửi cho bạn bè.</li>
+                        <li>Khi đang chọn một phát bắn, khung xem nhanh chỉ bắn lặp lại phát đó.</li>
+                        <li>Nút <i class="fas fa-desktop"></i> / <i class="fas fa-mobile-screen"></i> chuyển giữa màn hình
+                            máy tính và điện thoại.</li>
                     </ul>
                 </div>
 
                 <div class="help-section actions-guide">
-                    <h4><i class="fas fa-save"></i> Lưu & Chia sẻ</h4>
-                    <p>Sau khi hoàn tất, hãy nhấn <strong>Lưu</strong>. Một đường link duy nhất sẽ được tạo ra để bạn
-                        gửi cho bạn bè hoặc đăng lên mạng xã hội.</p>
+                    <h4><i class="fas fa-floppy-disk"></i> Lưu & chia sẻ</h4>
+                    <p>Bấm <strong>Lưu</strong> để tạo link riêng, rồi gửi cho bạn bè qua Messenger, Zalo...</p>
                 </div>
             </div>
             <div class="modal-footer">
@@ -400,40 +377,6 @@
             </div>
         </div>
     </div>
-
-    <div id="mini-preview" class="mini-preview hide">
-        <div class="mini-preview-header">
-            <span><i class="fas fa-eye"></i> Xem nhanh</span>
-            <div class="mini-preview-actions">
-                <button id="btn-play-mini" class="btn-play-mini hide" onclick="playMiniPreviewOnce()" title="Chạy kịch bản">
-                    <i class="fas fa-play"></i>
-                </button>
-                <button id="btn-device-mini" class="btn-device-mini" onclick="togglePreviewDevice()"
-                    title="Đang xem như trên máy tính - bấm để xem như trên điện thoại"><i class="fas fa-desktop"></i></button>
-                <button class="btn-reset-mini" onclick="resetMiniPreviewSize()"
-                    title="Khôi phục tỉ lệ màn hình"><i class="fas fa-sync-alt"></i></button>
-                <button class="btn-fullscreen-mini" onclick="toggleFullscreenMiniPreview()"
-                    title="Phóng to toàn màn hình"><i class="fas fa-expand"></i></button>
-                <button class="btn-close-mini" onclick="toggleMiniPreview(false)"><i class="fas fa-times"></i></button>
-            </div>
-        </div>
-        <div id="mini-preview-resize-v" class="mini-preview-resize-v" title="Kéo để thay đổi chiều cao"></div>
-        <div id="mini-preview-resize-h" class="mini-preview-resize-h" title="Kéo để thay đổi chiều ngang"></div>
-        <div id="mini-preview-resize-both" class="mini-preview-resize-both" title="Kéo để thay đổi cả hai"></div>
-        <div class="mini-preview-canvas-container">
-            <!-- Chạy chính trình phát thật (index.html?preview=1) để xem nhanh giống hệt khi trình diễn -->
-            <div id="mini-preview-stage" class="mini-preview-stage">
-                <iframe id="mini-preview-frame" class="mini-preview-frame" title="Xem nhanh màn trình diễn"></iframe>
-                <div id="mini-ruler-x" class="mini-preview-ruler-x"></div>
-                <div id="mini-ruler-y" class="mini-preview-ruler-y"></div>
-            </div>
-        </div>
-        <div id="mini-preview-info" class="mini-preview-info">Đang hiển thị toàn bộ</div>
-    </div>
-
-
-
-
 
     <script type="module" src="./src/assets/js/builder.js"></script>
 </body>

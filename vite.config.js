@@ -12,8 +12,10 @@ export default defineConfig({
         builder: resolve(__dirname, 'builder.html'),
       },
       output: {
-        entryFileNames: 'assets/js/[name].js',
-        chunkFileNames: 'assets/js/[name].js',
+        // Có mã hash trong tên file JS/CSS: mỗi lần deploy trình duyệt tải ngay bản mới,
+        // không dùng bản cũ trong cache (GitHub Pages cho phép cache 10 phút) chạy với HTML mới.
+        entryFileNames: 'assets/js/[name]-[hash].js',
+        chunkFileNames: 'assets/js/[name]-[hash].js',
         assetFileNames: (assetInfo) => {
           let name = assetInfo.name;
           let originalFileName = assetInfo.originalFileName;
@@ -45,6 +47,7 @@ export default defineConfig({
             return `assets/audio/${audioRel}`;
           }
 
+          if (subDir === 'css') return 'assets/css/[name]-[hash][extname]';
           return `assets/${subDir}/[name][extname]`;
 
         },
