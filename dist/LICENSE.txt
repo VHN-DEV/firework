@@ -1,0 +1,69 @@
+GIẤY PHÉP SỬ DỤNG – TRÌNH DIỄN PHÁO HOA (FIREWORK SHOW BUILDER)
+
+Bản quyền © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu.
+Liên hệ xin phép sử dụng: vuhoainam18032002@gmail.com · https://github.com/VHN-DEV
+
+Đây KHÔNG phải phần mềm mã nguồn mở. Mã nguồn được công khai để người dùng tham khảo và để
+vận hành trang web chính thức; việc công khai không đồng nghĩa với việc cho phép sao chép hay sử dụng lại.
+
+1. PHẠM VI
+   Giấy phép này áp dụng cho mã nguồn, giao diện, thiết kế, văn bản, kịch bản mẫu, hình ảnh và tài liệu
+   trong kho mã này do Vũ Hoài Nam tạo ra hoặc chỉnh sửa (gọi chung là "Tác phẩm"), gồm cả: trình soạn kịch
+   bản (builder), hệ thống chia sẻ và SEO, các loại pháo và hiệu ứng mới, pháo ảnh, nhạc nền, bản Việt hóa
+   và toàn bộ phần chỉnh sửa trên trình mô phỏng.
+
+   Thành phần của bên thứ ba liệt kê trong THIRD_PARTY_NOTICES.md KHÔNG thuộc phạm vi giấy phép này mà
+   tuân theo giấy phép riêng của chúng (ví dụ: lõi mô phỏng pháo hoa gốc của Caleb Miller theo giấy phép MIT).
+
+2. BẠN ĐƯỢC PHÉP
+   a) Xem mã nguồn để học tập, tham khảo.
+   b) Dùng trang web chính thức do tác giả vận hành để tạo, xem và gửi tặng màn trình diễn pháo hoa
+      cho mục đích cá nhân, phi thương mại.
+   c) Tạo bản fork trên GitHub trong phạm vi Điều khoản dịch vụ của GitHub cho phép, nhưng không được
+      triển khai, đăng tải hay phân phối tiếp bản fork đó.
+
+3. BẠN KHÔNG ĐƯỢC PHÉP (nếu chưa có sự đồng ý bằng văn bản, email hoặc tin nhắn của tác giả)
+   a) Sao chép, đăng lại, phân phối toàn bộ hoặc một phần Tác phẩm, ở dạng mã nguồn hay dạng đã build.
+   b) Triển khai Tác phẩm hoặc bản sửa đổi của nó thành trang web, ứng dụng hay dịch vụ khác.
+   c) Sử dụng Tác phẩm cho mục đích thương mại: bán, cho thuê, nhận làm màn trình diễn có thu phí,
+      gắn quảng cáo, đưa vào sản phẩm hoặc dịch vụ trả phí.
+   d) Sửa đổi, dịch, chuyển thể rồi phát hành dưới tên mình hoặc tên người khác.
+   e) Xóa, sửa hoặc che giấu thông báo bản quyền, giấy phép và ghi công trong mã nguồn và trên giao diện.
+
+4. NỘI DUNG CỦA NGƯỜI DÙNG
+   Kịch bản, lời chúc, hình ảnh và nhạc do người dùng tạo hoặc tải lên thuộc về người dùng hoặc chủ sở
+   hữu hợp pháp của chúng. Giấy phép này không trao cho tác giả quyền sở hữu các nội dung đó.
+
+5. KHÔNG BẢO ĐẢM
+   Tác phẩm được cung cấp "nguyên trạng", không kèm bất kỳ bảo đảm nào, rõ ràng hay ngụ ý. Tác giả không
+   chịu trách nhiệm về bất kỳ thiệt hại nào phát sinh từ việc sử dụng hoặc không thể sử dụng Tác phẩm.
+
+6. VI PHẠM
+   Mọi hành vi vi phạm giấy phép này làm chấm dứt ngay quyền sử dụng Tác phẩm. Tác giả có quyền yêu cầu
+   gỡ bỏ nội dung vi phạm (bao gồm gửi thông báo vi phạm bản quyền tới GitHub, nhà cung cấp hosting, công
+   cụ tìm kiếm) và áp dụng các biện pháp khác theo quy định của pháp luật về sở hữu trí tuệ.
+
+7. LUẬT ÁP DỤNG
+   Giấy phép này được điều chỉnh bởi pháp luật Việt Nam, bao gồm Luật Sở hữu trí tuệ, và các điều ước
+   quốc tế về quyền tác giả mà Việt Nam là thành viên (Công ước Berne).
+
+--------------------------------------------------------------------------------------------------------
+
+FIREWORK SHOW BUILDER – PROPRIETARY LICENSE (English summary)
+
+Copyright © 2026 Vũ Hoài Nam. All rights reserved.
+Permission requests: vuhoainam18032002@gmail.com · https://github.com/VHN-DEV
+
+This repository is NOT open source. The source code is published for reference and to run the official
+website only. Without prior written permission from the author you may NOT copy, redistribute, publish,
+deploy, sublicense, sell, use commercially, or create and distribute derivative works of this software,
+nor remove or alter any copyright, license or attribution notice. Viewing the code and forking it within
+GitHub as permitted by the GitHub Terms of Service is allowed.
+
+Third-party components listed in THIRD_PARTY_NOTICES.md remain under their own licenses (for example,
+the original fireworks simulation core by Caleb Miller is MIT licensed).
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. IN NO EVENT SHALL THE AUTHOR BE LIABLE
+FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE USE OF THE SOFTWARE.
+
+In case of conflict between the Vietnamese and English texts, the Vietnamese text prevails.

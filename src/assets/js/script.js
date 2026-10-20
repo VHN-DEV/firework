@@ -1,6 +1,14 @@
+/*!
+ * Trình diễn Pháo hoa – trình phát
+ * Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+ * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+ * Lõi mô phỏng dựa trên Firework Simulator v2 © Caleb Miller, giấy phép MIT (xem THIRD_PARTY_NOTICES.md).
+ */
+
 import fscreen from './fscreen@1.0.1.js';
 import { Stage, Ticker } from './Stage@0.1.4.js';
 import MyMath from './MyMath.js';
+import { printCopyrightNotice } from './copyright.js';
 import '../scss/style.scss';
 
 // Assign to window for global access (needed by HTML and other scripts)
@@ -11,6 +19,7 @@ window.MyMath = MyMath;
 
 'use strict';
 console.clear();
+printCopyrightNotice('Trình diễn Pháo hoa');
 
 // Đây là một ví dụ điển hình về những gì bắt đầu như một dự án đơn giản
 // và những quả cầu tuyết vượt quá kích thước dự định của nó. Nó hơi rắc rối một chút
@@ -1981,8 +1990,8 @@ async function prepareBurstConfig(burstConfig, { showOverlay }) {
     } else if (burstConfig.title) {
         document.title = `${burstConfig.title} | Trình diễn Pháo hoa`;
     }
-    // Mô tả trang theo kịch bản
-    const description = [burstConfig.subtitle, burstConfig.author].filter(Boolean).join(' – ');
+    // Mô tả trang theo kịch bản (mô tả tự nhập khi chia sẻ, không có thì ghép dòng phụ và người thực hiện)
+    const description = replacePlaceholders(burstConfig.seoDescription) || [burstConfig.subtitle, burstConfig.author].filter(Boolean).join(' – ');
     if (description) document.querySelector('meta[name="description"]')?.setAttribute('content', description);
 
     // Hiển thị overlay thông tin nếu có

@@ -23,6 +23,10 @@ Thư mục này chứa các file JSON để **tùy biến lời chúc và hiệu
 | `subtitle`| Dòng phụ bên dưới tiêu đề. |
 | `author` | Tên người đạo diễn/người gửi. |
 | `seoTitle` | (Tùy chọn) Tiêu đề hiện trên Facebook, Zalo, Messenger... khi gửi link. Để trống sẽ dùng `title`. |
+| `seoDescription` | (Tùy chọn) Mô tả hiện khi gửi link, tối đa 200 ký tự. Để trống sẽ ghép `subtitle` – `author`. |
+| `seoImage` | (Tùy chọn) Ảnh riêng làm ảnh khi chia sẻ (`./uploads/...`). Để trống sẽ dùng thiệp pháo hoa tự động. |
+| `seoImageText` | (Tùy chọn) `false`: chỉ dùng ảnh, không chèn tiêu đề và lời chúc lên ảnh. |
+| `seoImagePosition` | (Tùy chọn) Vị trí cắt ảnh cho vừa khung 1200×630, từ `0` (trên/trái) đến `100` (dưới/phải), mặc định `50`. |
 | `loop` | `true`: Tự động lặp lại show; `false`: Chạy hết một lần rồi dừng. |
 | `music` | (Tùy chọn) Nhạc nền, xem mục **🎵 Nhạc nền** bên dưới. |
 | `effectsVolume` | (Tùy chọn) Âm lượng tiếng pháo từ `0` (tắt hẳn) đến `1` (mặc định). Giảm xuống để nghe rõ nhạc nền. |

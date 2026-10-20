@@ -1,5 +1,8 @@
 <?php
 /**
+ * Trình diễn Pháo hoa – © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+ * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+ *
  * Trang chia sẻ cho kịch bản lưu trên host PHP (kịch bản có sẵn lúc build đã có file tĩnh s/<tên>.html).
  * .htaccess chuyển s/<tên>.html -> api/share.php?c=<tên>. Cùng mẫu HTML với seo-plugin.js:
  * mạng xã hội đọc thẻ meta (ảnh, tiêu đề, mô tả) để dựng khung xem trước, người xem được chuyển sang màn trình diễn.
@@ -40,7 +43,10 @@ function replace_placeholders($text) {
 
 $title = replace_placeholders(!empty($config['seoTitle']) ? $config['seoTitle'] : (!empty($config['title']) ? $config['title'] : SITE_NAME));
 $parts = array_filter([replace_placeholders($config['subtitle'] ?? ''), $config['author'] ?? '']);
-$description = $parts ? implode(' – ', $parts) : SITE_DESCRIPTION;
+// Mô tả tự nhập trong builder ("Mô tả khi chia sẻ"), không có thì ghép dòng phụ và người thực hiện
+$description = !empty($config['seoDescription']) && is_string($config['seoDescription'])
+    ? replace_placeholders($config['seoDescription'])
+    : ($parts ? implode(' – ', $parts) : SITE_DESCRIPTION);
 
 $imageFile = $configsDir . $id . '.jpg';
 $imageUrl = is_file($imageFile)

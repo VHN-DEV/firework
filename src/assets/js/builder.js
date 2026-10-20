@@ -1,11 +1,19 @@
+/*!
+ * Trình diễn Pháo hoa – trình soạn kịch bản (builder)
+ * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+ * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+ */
+
 import fscreen from './fscreen@1.0.1.js';
 import qrcode from 'qrcode-generator';
 import { renderShareImage } from './share-image.js';
+import { printCopyrightNotice } from './copyright.js';
 import '../scss/builder.scss';
 import backgroundImgUrl from '../img/background.png';
 
 // Assign to window for global access
 window.fscreen = fscreen;
+printCopyrightNotice('Trình diễn Pháo hoa – Builder');
 
 /**
  * Firework Script Builder Logic - Enhanced
@@ -21,7 +29,9 @@ const state = {
     background: null,
     // Nhạc nền { url, name, volume (0-1), start (giây) } và âm lượng tiếng pháo (0-1)
     music: null,
-    effectsVolume: 1
+    effectsVolume: 1,
+    // Ảnh khi chia sẻ: 'auto' = thiệp pháo hoa tự vẽ, 'custom' = ảnh người dùng chọn
+    seo: { mode: 'auto', image: null, imageText: true, imagePosition: 50, axis: 'y' }
 };
 
 const isStaticEnv = window.location.hostname.includes('github.io') ||
@@ -155,6 +165,21 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('title')?.addEventListener('input', updateScriptNameLabel);
     document.getElementById('filename')?.addEventListener('input', updateScriptNameLabel);
 
+    // Chia sẻ & SEO: thẻ xem trước cập nhật theo nội dung
+    ['title', 'subtitle', 'author', 'seo-title', 'seo-description'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', scheduleSeoPreview);
+    });
+    document.getElementById('seo-image-file')?.addEventListener('change', (e) => handleSeoImageUpload(e.target));
+    document.getElementById('seo-image-text')?.addEventListener('change', (e) => {
+        state.seo.imageText = e.target.checked;
+        scheduleSeoPreview();
+    });
+    document.getElementById('seo-image-position')?.addEventListener('input', (e) => {
+        state.seo.imagePosition = Number(e.target.value);
+        renderSeoControls();
+        scheduleSeoPreview();
+    });
+
     // Background logic
     const bgToggle = document.getElementById('show-background');
     const bgContainer = document.getElementById('background-upload-container');
@@ -209,6 +234,8 @@ document.addEventListener('DOMContentLoaded', () => {
             + 'hoặc chép file vào src/static/uploads/music/ rồi dán đường dẫn ./uploads/music/ten-file.mp3.';
     }
     renderMusic();
+    renderSeoControls();
+    scheduleSeoPreview();
 
     // File Import
     document.getElementById('import-file')?.addEventListener('change', importConfig);
@@ -492,6 +519,9 @@ function createNewScript() {
         document.getElementById('title').value = '';
         document.getElementById('subtitle').value = '';
         document.getElementById('seo-title').value = '';
+        document.getElementById('seo-description').value = '';
+        state.seo = { mode: 'auto', image: null, imageText: true, imagePosition: 50, axis: 'y' };
+        renderSeoControls();
         document.getElementById('author').value = '';
         document.getElementById('filename').value = '';
         document.getElementById('loop').checked = true;
@@ -724,6 +754,8 @@ function renderBurstGroup(burst, events) {
 function renderEventList() {
     const container = document.getElementById('event-list');
     updateTimelineSummary();
+    // Thiệp chia sẻ tự động lấy màu theo các phát bắn
+    scheduleSeoPreview();
 
     if (state.events.length === 0) {
         container.innerHTML = `
@@ -1431,7 +1463,9 @@ function getFinalConfig() {
         title: document.getElementById('title').value || "Kịch bản mới",
         subtitle: document.getElementById('subtitle').value || "",
         seoTitle: document.getElementById('seo-title').value.trim() || undefined,
-        author: document.getElementById('author').value || "Anonymous",
+        seoDescription: document.getElementById('seo-description').value.trim() || undefined,
+        ...getSeoImageConfig(),
+        author: document.getElementById('author').value.trim(),
         loop: document.getElementById('loop').checked,
         showBackground: state.showBackground,
         background: state.background,
@@ -1635,6 +1669,161 @@ async function saveConfig(isPreview = false) {
 
 
 // ---------------------------------------------------------------------------
+// CHIA SẺ & SEO: tiêu đề, mô tả, ảnh hiện ra khi gửi link
+// ---------------------------------------------------------------------------
+
+// Mô tả khi chia sẻ: người dùng tự nhập, hoặc ghép từ dòng phụ và người thực hiện (giống trang chia sẻ)
+function getShareDescription(config) {
+    return config.seoDescription || [config.subtitle, config.author].filter(Boolean).join(' – ');
+}
+
+function getSeoImageConfig() {
+    const seo = state.seo;
+    if (seo.mode !== 'custom' || !seo.image) return {};
+    return {
+        seoImage: seo.image,
+        seoImageText: seo.imageText ? undefined : false,
+        seoImagePosition: seo.imagePosition !== 50 ? seo.imagePosition : undefined
+    };
+}
+
+let seoPreviewTimer = null;
+let seoPreviewVersion = 0;
+
+function scheduleSeoPreview() {
+    clearTimeout(seoPreviewTimer);
+    seoPreviewTimer = setTimeout(renderSeoPreview, 350);
+}
+
+// Thẻ xem trước giống khung Facebook/Zalo hiện ra khi gửi link
+async function renderSeoPreview() {
+    const canvas = document.getElementById('seo-preview-canvas');
+    if (!canvas) return;
+    const config = getFinalConfig();
+    document.getElementById('seo-preview-domain').textContent = window.location.hostname || 'localhost';
+    document.getElementById('seo-preview-title').textContent = config.seoTitle || config.title;
+    document.getElementById('seo-preview-desc').textContent = getShareDescription(config);
+    [['seo-title', 90], ['seo-description', 200]].forEach(([id, max]) => {
+        document.getElementById(`count-${id}`).textContent = `${document.getElementById(id).value.length}/${max}`;
+    });
+    const version = ++seoPreviewVersion;
+    try {
+        const card = await renderShareImage(config);
+        if (version === seoPreviewVersion) canvas.getContext('2d').drawImage(card, 0, 0);
+    } catch (e) {
+        // Không vẽ được thì giữ ảnh cũ
+    }
+}
+
+function renderSeoControls() {
+    const seo = state.seo;
+    const custom = seo.mode === 'custom' && !!seo.image;
+    document.getElementById('seo-mode-auto')?.classList.toggle('active', !custom);
+    document.getElementById('seo-mode-custom')?.classList.toggle('active', custom);
+    document.getElementById('seo-image-options')?.classList.toggle('hide', !custom);
+    const text = document.getElementById('seo-image-text');
+    if (text) text.checked = seo.imageText;
+    const position = document.getElementById('seo-image-position');
+    if (position) position.value = seo.imagePosition;
+    const label = document.getElementById('out-seo-image-position');
+    if (label) {
+        const [start, end] = seo.axis === 'x' ? ['sang trái', 'sang phải'] : ['lên trên', 'xuống dưới'];
+        label.textContent = seo.imagePosition === 50 ? 'Giữa' : `Lệch ${seo.imagePosition < 50 ? start : end}`;
+    }
+}
+
+function setSeoImageMode(mode) {
+    if (mode === 'custom' && !state.seo.image) {
+        // Chưa có ảnh: chọn ảnh xong mới chuyển sang "Ảnh của bạn"
+        document.getElementById('seo-image-file').click();
+        return;
+    }
+    state.seo.mode = mode;
+    renderSeoControls();
+    scheduleSeoPreview();
+}
+
+// Ảnh rộng hơn khung 1200×630 thì cắt bớt hai bên, hẹp hơn thì cắt trên dưới
+function detectSeoImageAxis() {
+    if (!state.seo.image) return;
+    const img = new Image();
+    img.onload = () => {
+        state.seo.axis = img.naturalWidth / img.naturalHeight > 1200 / 630 ? 'x' : 'y';
+        renderSeoControls();
+    };
+    img.src = state.seo.image;
+}
+
+// Thu nhỏ ảnh (cạnh dài tối đa maxSide) thành JPEG dạng DataURL để lưu trong trình duyệt
+function shrinkImageToDataUrl(file, maxSide) {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+            const k = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.naturalWidth * k);
+            canvas.height = Math.round(img.naturalHeight * k);
+            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+            URL.revokeObjectURL(url);
+            resolve(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error('Không đọc được ảnh'));
+        };
+        img.src = url;
+    });
+}
+
+async function handleSeoImageUpload(input) {
+    const file = input.files[0];
+    input.value = '';
+    if (!file) return;
+
+    let imageUrl;
+    if (isStaticEnv) {
+        // Trang tĩnh lưu kịch bản trong trình duyệt (chỉ vài MB): thu nhỏ ảnh trước khi lưu
+        try {
+            imageUrl = await shrinkImageToDataUrl(file, 1600);
+        } catch (e) {
+            notify('Không đọc được file ảnh này.', 'error');
+            return;
+        }
+    } else {
+        const scenarioName = document.getElementById('filename').value.trim();
+        if (!scenarioName) {
+            notify('Vui lòng nhập tên kịch bản trước khi tải ảnh!', 'warning');
+            return;
+        }
+        showLoading('Đang tải ảnh lên...');
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('filename', scenarioName);
+        try {
+            const response = await fetch('api/upload_image.php', { method: 'POST', body: formData });
+            const data = await response.json();
+            hideLoading();
+            if (!data.success) {
+                notify('Lỗi: ' + data.message, 'error');
+                return;
+            }
+            imageUrl = data.url;
+        } catch (e) {
+            hideLoading();
+            notify('Lỗi kết nối khi tải ảnh.', 'error');
+            return;
+        }
+    }
+
+    Object.assign(state.seo, { mode: 'custom', image: imageUrl, imagePosition: 50 });
+    detectSeoImageAxis();
+    renderSeoControls();
+    scheduleSeoPreview();
+    notify('Đã đặt ảnh khi chia sẻ!', 'success');
+}
+
+// ---------------------------------------------------------------------------
 // CHIA SẺ: link có ảnh + tiêu đề xem trước, nhiều nền tảng, mã QR, ảnh thiệp
 // ---------------------------------------------------------------------------
 
@@ -1662,7 +1851,7 @@ async function resolveShareUrl(filename) {
 function refreshShareText() {
     const config = getFinalConfig();
     share.title = config.seoTitle || config.title;
-    share.description = [config.subtitle, config.author].filter(Boolean).join(' – ');
+    share.description = getShareDescription(config);
 }
 
 function updateShareBar(filename) {
@@ -2174,6 +2363,18 @@ function loadConfigIntoState(config, filename) {
     document.getElementById('title').value = config.title || '';
     document.getElementById('subtitle').value = config.subtitle || '';
     document.getElementById('seo-title').value = config.seoTitle || '';
+    document.getElementById('seo-description').value = config.seoDescription || '';
+    const seoPosition = Number(config.seoImagePosition);
+    state.seo = {
+        mode: config.seoImage ? 'custom' : 'auto',
+        image: typeof config.seoImage === 'string' ? config.seoImage : null,
+        imageText: config.seoImageText !== false,
+        imagePosition: config.seoImagePosition !== undefined && Number.isFinite(seoPosition) ? Math.max(0, Math.min(100, seoPosition)) : 50,
+        axis: 'y'
+    };
+    detectSeoImageAxis();
+    renderSeoControls();
+    scheduleSeoPreview();
     document.getElementById('author').value = config.author || '';
     document.getElementById('loop').checked = config.loop !== false;
     syncLoopState();
@@ -2491,7 +2692,7 @@ Object.assign(window, {
     openScriptsModal, exportConfig, previewConfig, saveConfig, toggleSidebar, toggleMoreMenu, showModal,
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
-    togglePreviewMusic
+    togglePreviewMusic, setSeoImageMode
 });
 window.addEventListener('resize', resizeMiniStages);
 

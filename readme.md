@@ -2,9 +2,11 @@
 
 Đây là một dự án Trình mô phỏng Pháo hoa (Firework Simulator) tuyệt đẹp chạy trực tiếp trên nền tảng Web (HTML5/Canvas), cho phép bạn tạo và tùy chỉnh các hiệu ứng pháo hoa một cách sinh động, mượt mà và chân thực.
 
-## Cài đặt và Chạy dự án (Clone Source)
+## Cài đặt và Chạy dự án
 
-Để tải mã nguồn và chạy dự án này trên máy tính cá nhân của bạn, hãy làm theo các bước sau:
+> Phần này dành cho tác giả và những người đã được tác giả cho phép (xem [LICENSE](LICENSE)).
+
+Để tải mã nguồn và chạy dự án trên máy tính, làm theo các bước sau:
 
 1. **Clone mã nguồn (hoặc tải mã nguồn)**
    Mở terminal/command prompt và chạy lệnh sau (yêu cầu máy tính đã cài đặt [Git](https://git-scm.com/)):
@@ -47,6 +49,16 @@ Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và 
 - `assets/scripts/script.js` - Chứa toàn bộ mã logic mô phỏng động lực học và vẽ pháo hoa.
 - `assets/` - Chứa các tài nguyên hình ảnh (`images/`), phông chữ, CSS (`styles/`) và các tập lệnh (`scripts/`) bổ sung.
 
-## Tác giả
+## Bản quyền & giấy phép
 
-Được xây dựng đầy tâm huyết bởi Jay Ramoliya (Bản Việt hóa và tùy chỉnh bởi V H Nam).
+© 2026 **Vũ Hoài Nam**. Mọi quyền được bảo lưu – xem [LICENSE](LICENSE).
+
+Đây **không phải** dự án mã nguồn mở. Mã nguồn được công khai để tham khảo và vận hành trang chính thức;
+không được sao chép, đăng lại, triển khai thành trang/ứng dụng khác hay dùng cho mục đích thương mại khi chưa có
+sự đồng ý của tác giả. Liên hệ xin phép: vuhoainam18032002@gmail.com
+
+Lõi mô phỏng pháo hoa dựa trên **Firework Simulator v2** của Caleb Miller (giấy phép MIT); bản Việt hóa ban đầu
+được chia sẻ bởi Jay Ramoliya. Danh sách đầy đủ các thành phần bên thứ ba và giấy phép của chúng:
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Chính sách bảo mật và điều khoản sử dụng của trang: `privacy.html`, `terms.html`.

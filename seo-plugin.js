@@ -1,3 +1,9 @@
+/*!
+ * Trình diễn Pháo hoa – SEO và trang chia sẻ lúc build
+ * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+ * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+ */
+
 /**
  * SEO & chia sẻ mạng xã hội lúc build.
  *
@@ -79,10 +85,9 @@ export function renderSharePage({ id, title, description, shareUrl, imageUrl }) 
 export function shareMetaFromConfig(config) {
     const title = replacePlaceholders(config.seoTitle || config.title || SITE_NAME);
     const parts = [replacePlaceholders(config.subtitle), config.author].filter(Boolean);
-    return {
-        title,
-        description: parts.length ? parts.join(' – ') : SITE_DESCRIPTION
-    };
+    // Mô tả tự nhập trong builder ("Mô tả khi chia sẻ"), không có thì ghép dòng phụ và người thực hiện
+    const description = replacePlaceholders(config.seoDescription) || (parts.length ? parts.join(' – ') : SITE_DESCRIPTION);
+    return { title, description };
 }
 
 export default function seoPlugin({ configsDir }) {
@@ -132,6 +137,8 @@ export default function seoPlugin({ configsDir }) {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url><loc>${SITE_URL}</loc><lastmod>${today}</lastmod><priority>1.0</priority></url>
     <url><loc>${SITE_URL}builder.html</loc><lastmod>${today}</lastmod><priority>0.8</priority></url>
+    <url><loc>${SITE_URL}terms.html</loc><lastmod>${today}</lastmod><priority>0.3</priority></url>
+    <url><loc>${SITE_URL}privacy.html</loc><lastmod>${today}</lastmod><priority>0.3</priority></url>
 </urlset>
 `
             });

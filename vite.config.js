@@ -1,22 +1,55 @@
+/*!
+ * Trình diễn Pháo hoa – cấu hình build
+ * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+ * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+ */
+
 import { defineConfig } from 'vite';
+import fs from 'fs';
 import { resolve } from 'path';
 import seoPlugin from './seo-plugin.js';
+
+// Kèm giấy phép và danh sách thành phần bên thứ ba trong bản build
+// (giấy phép MIT của lõi mô phỏng gốc yêu cầu giữ thông báo bản quyền trong mọi bản phân phối)
+// Thông báo bản quyền ở đầu mỗi file JS đã build (Rollup thêm banner sau bước nén nên không bị lược bỏ).
+// File có lõi mô phỏng gốc kèm thêm ghi công Caleb Miller theo yêu cầu của giấy phép MIT.
+const jsBanner = (chunk) => {
+  const lines = [
+    '/*! Trình diễn Pháo hoa | © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu, xem LICENSE.txt',
+    ' * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép. Liên hệ: vuhoainam18032002@gmail.com',
+  ];
+  if (chunk.moduleIds.some(id => /Stage@|MyMath/.test(id))) {
+    lines.push(' * Lõi mô phỏng: Firework Simulator v2 © Caleb Miller, giấy phép MIT, xem THIRD_PARTY_NOTICES.md');
+  }
+  return lines.join('\n') + ' */';
+};
+
+const legalFilesPlugin = () => ({
+  name: 'firework-legal-files',
+  generateBundle() {
+    this.emitFile({ type: 'asset', fileName: 'LICENSE.txt', source: fs.readFileSync(resolve(__dirname, 'LICENSE'), 'utf8') });
+    this.emitFile({ type: 'asset', fileName: 'THIRD_PARTY_NOTICES.md', source: fs.readFileSync(resolve(__dirname, 'THIRD_PARTY_NOTICES.md'), 'utf8') });
+  }
+});
 
 export default defineConfig({
   // Base path for deployment
   base: './',
   publicDir: 'src/static',
   // Trang chia sẻ s/<tên>.html (ảnh + tiêu đề khi gửi link), sitemap.xml, robots.txt
-  plugins: [seoPlugin({ configsDir: resolve(__dirname, 'src/static/configs') })],
+  plugins: [seoPlugin({ configsDir: resolve(__dirname, 'src/static/configs') }), legalFilesPlugin()],
   build: {
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
         builder: resolve(__dirname, 'builder.html'),
+        privacy: resolve(__dirname, 'privacy.html'),
+        terms: resolve(__dirname, 'terms.html'),
       },
       output: {
         // Có mã hash trong tên file JS/CSS: mỗi lần deploy trình duyệt tải ngay bản mới,
         // không dùng bản cũ trong cache (GitHub Pages cho phép cache 10 phút) chạy với HTML mới.
+        banner: jsBanner,
         entryFileNames: 'assets/js/[name]-[hash].js',
         chunkFileNames: 'assets/js/[name]-[hash].js',
         assetFileNames: (assetInfo) => {

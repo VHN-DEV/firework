@@ -1,5 +1,8 @@
 <?php
 /**
+ * Trình diễn Pháo hoa – © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+ * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+ *
  * Tải nhạc nền cho một kịch bản, lưu tại uploads/music/<tên kịch bản>/.
  */
 

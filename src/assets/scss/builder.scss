@@ -1,3 +1,9 @@
+/*!
+ * Trình diễn Pháo hoa – giao diện builder
+ * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+ * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+ */
+
 @use 'variables' as *;
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Outfit:wght@400;600;700&display=swap');
@@ -280,6 +286,7 @@ label {
 input[type="text"],
 input[type="number"],
 input[type="url"],
+textarea,
 select {
     width: 100%;
     height: 38px;
@@ -304,6 +311,15 @@ select {
         border-color: $b-accent;
         box-shadow: 0 0 0 3px rgba($b-accent, 0.22);
     }
+}
+
+textarea {
+    height: auto;
+    min-height: 76px;
+    padding: 0.55rem 0.7rem;
+    line-height: 1.45;
+    resize: vertical;
+    font-family: inherit;
 }
 
 select {
@@ -824,6 +840,133 @@ select.is-invalid {
     }
 }
 
+// Nhóm tiêu đề nhỏ trong cột cấu hình
+.group-title {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $b-muted;
+
+    i {
+        color: $b-accent;
+    }
+}
+
+// Thẻ xem trước khi gửi link (giống khung Facebook/Zalo)
+.seo-card {
+    margin-bottom: 1rem;
+    border-radius: $b-radius-sm;
+    overflow: hidden;
+    border: 1px solid $b-line-strong;
+    background: $b-panel-2;
+
+    canvas {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1200 / 630;
+        background: #0c0a22;
+    }
+}
+
+.seo-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.55rem 0.75rem 0.65rem;
+    min-width: 0;
+
+    span,
+    strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+    }
+
+    .seo-card-domain {
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        color: $b-faint;
+        -webkit-line-clamp: 1;
+    }
+
+    strong {
+        font-size: 0.85rem;
+        color: $b-text;
+        line-height: 1.3;
+        -webkit-line-clamp: 2;
+    }
+
+    span:last-child {
+        font-size: 0.75rem;
+        color: $b-muted;
+        line-height: 1.35;
+        -webkit-line-clamp: 2;
+    }
+}
+
+// Nút chọn một trong hai
+.segmented {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+    padding: 3px;
+    border-radius: $b-radius-sm;
+    background: $b-bg;
+    border: 1px solid $b-line-strong;
+
+    button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        min-height: 32px;
+        padding: 0 0.4rem;
+        border: none;
+        border-radius: 7px;
+        background: transparent;
+        color: $b-muted;
+        font-size: 0.75rem;
+        font-weight: 600;
+        transition: background-color 0.15s, color 0.15s;
+
+        &:hover {
+            color: $b-text;
+        }
+
+        &.active {
+            background: rgba($b-accent, 0.28);
+            color: #fff;
+        }
+    }
+}
+
+.seo-image-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 0.6rem;
+
+    > .btn {
+        align-self: flex-start;
+    }
+}
+
+.switch-row.compact {
+    margin: 0;
+
+    strong {
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+}
+
 // Nhạc nền
 .music-upload {
     width: 100%;
@@ -965,6 +1108,31 @@ select.is-invalid {
         height: auto;
         flex-shrink: 0;
         border: 1px solid $b-line-strong;
+    }
+}
+
+// Dòng bản quyền và liên kết Điều khoản/Bảo mật
+.legal-links {
+    margin: 1.25rem 0 0;
+    font-size: 0.72rem;
+    color: $b-faint;
+    text-align: center;
+
+    a {
+        color: $b-muted;
+        text-decoration: none;
+
+        &:hover {
+            color: $b-text;
+            text-decoration: underline;
+        }
+    }
+
+    .modal-footer & {
+        align-self: center;
+        margin: 0 auto 0 0;
+        padding-right: 1rem;
+        text-align: left;
     }
 }
 

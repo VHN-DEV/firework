@@ -1,3 +1,10 @@
+/*!
+ * Trình diễn Pháo hoa – giao diện trình phát
+ * Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+ * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+ * Phần giao diện gốc dựa trên Firework Simulator v2 © Caleb Miller, giấy phép MIT.
+ */
+
 @use 'variables' as *;
 @import './reset-2.0.min.css';
 @import './css2.css';
@@ -620,6 +627,29 @@ body {
         color: rgba(255, 255, 255, 0.7);
         margin-bottom: 2.5rem;
         line-height: 1.6;
+    }
+}
+
+// Dòng bản quyền và liên kết Điều khoản/Bảo mật ở chân màn hình chờ
+.start-screen__legal {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    margin: 0;
+    padding: 0 1rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.45);
+
+    a {
+        color: rgba(255, 255, 255, 0.65);
+        text-decoration: none;
+
+        &:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
     }
 }
 

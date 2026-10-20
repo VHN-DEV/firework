@@ -1,10 +1,17 @@
 <!DOCTYPE html>
+<!--
+    Trình diễn Pháo hoa – Builder
+    © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+    Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+-->
 <html lang="vi">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0b0d14">
+    <meta name="author" content="Vũ Hoài Nam">
+    <meta name="copyright" content="© 2026 Vũ Hoài Nam">
     <title>Firework Builder – Tự thiết kế màn pháo hoa tặng người thân</title>
     <meta name="description"
         content="Công cụ thiết kế màn pháo hoa trực tuyến: chọn loại pháo, màu sắc, vị trí, lời chúc rồi gửi link tặng bạn bè, người thân qua Facebook, Zalo, Messenger...">
@@ -167,12 +174,62 @@
                         <label for="author">Người thực hiện</label>
                         <input type="text" id="author" placeholder="Tên của bạn">
                     </div>
-                    <div class="field">
-                        <label for="seo-title">Tiêu đề khi chia sẻ</label>
-                        <input type="text" id="seo-title" placeholder="VD: Chúc mừng Nguyễn Vân tốt nghiệp 🎓"
-                            maxlength="90">
-                        <small class="field-hint">Hiện trên Facebook, Zalo, Messenger... khi gửi link. Để trống sẽ
-                            dùng Tiêu đề.</small>
+
+                    <div class="field-divider"></div>
+
+                    <!-- Chia sẻ & SEO: những gì hiện ra khi gửi link qua Facebook, Zalo, Messenger... -->
+                    <div class="seo-section">
+                        <h3 class="group-title"><i class="fas fa-share-nodes"></i> Chia sẻ & SEO</h3>
+                        <div class="seo-card" aria-label="Xem trước khi gửi link">
+                            <canvas id="seo-preview-canvas" width="1200" height="630"></canvas>
+                            <div class="seo-card-body">
+                                <span id="seo-preview-domain" class="seo-card-domain"></span>
+                                <strong id="seo-preview-title"></strong>
+                                <span id="seo-preview-desc"></span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label-row">
+                                <label for="seo-title">Tiêu đề khi chia sẻ</label>
+                                <output id="count-seo-title">0/90</output>
+                            </div>
+                            <input type="text" id="seo-title" placeholder="Để trống sẽ dùng Tiêu đề" maxlength="90">
+                        </div>
+                        <div class="field">
+                            <div class="field-label-row">
+                                <label for="seo-description">Mô tả khi chia sẻ</label>
+                                <output id="count-seo-description">0/200</output>
+                            </div>
+                            <textarea id="seo-description" rows="3" maxlength="200"
+                                placeholder="Để trống sẽ dùng Dòng phụ và Người thực hiện"></textarea>
+                        </div>
+                        <div class="field">
+                            <label>Ảnh khi chia sẻ</label>
+                            <div class="segmented" role="group" aria-label="Loại ảnh khi chia sẻ">
+                                <button type="button" id="seo-mode-auto" class="active" onclick="setSeoImageMode('auto')">
+                                    <i class="fas fa-wand-magic-sparkles"></i> Thiệp tự động</button>
+                                <button type="button" id="seo-mode-custom" onclick="setSeoImageMode('custom')">
+                                    <i class="fas fa-image"></i> Ảnh của bạn</button>
+                            </div>
+                            <div id="seo-image-options" class="seo-image-options hide">
+                                <button type="button" class="btn secondary small"
+                                    onclick="document.getElementById('seo-image-file').click()">
+                                    <i class="fas fa-cloud-arrow-up"></i><span>Đổi ảnh khác</span></button>
+                                <label class="switch-row compact" for="seo-image-text">
+                                    <span><strong>Chèn tiêu đề, lời chúc lên ảnh</strong></span>
+                                    <input type="checkbox" id="seo-image-text" class="switch" checked>
+                                </label>
+                                <div>
+                                    <div class="field-label-row">
+                                        <label for="seo-image-position">Vị trí cắt ảnh</label>
+                                        <output id="out-seo-image-position">Giữa</output>
+                                    </div>
+                                    <input type="range" id="seo-image-position" min="0" max="100" step="5" value="50">
+                                </div>
+                            </div>
+                            <input type="file" id="seo-image-file" class="hide" accept="image/*">
+                            <small class="field-hint">Ảnh 1200×630 được tạo lại mỗi lần bấm Lưu.</small>
+                        </div>
                     </div>
 
                     <div class="field-divider"></div>
@@ -286,6 +343,10 @@
                                 thoại.</li>
                         </ul>
                     </div>
+
+                    <p class="legal-links">© 2026 Vũ Hoài Nam ·
+                        <a href="./terms.html" target="_blank" rel="noopener">Điều khoản</a> ·
+                        <a href="./privacy.html" target="_blank" rel="noopener">Bảo mật</a></p>
                 </div>
             </aside>
 
@@ -514,6 +575,9 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <p class="legal-links">© 2026 Vũ Hoài Nam ·
+                    <a href="./terms.html" target="_blank" rel="noopener">Điều khoản</a> ·
+                    <a href="./privacy.html" target="_blank" rel="noopener">Bảo mật</a></p>
                 <button class="btn primary" onclick="document.getElementById('help-modal').classList.add('hide')">Đã
                     hiểu!</button>
             </div>

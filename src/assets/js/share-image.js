@@ -1,3 +1,9 @@
+/*!
+ * Trình diễn Pháo hoa – ảnh xem trước khi chia sẻ
+ * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+ * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+ */
+
 /**
  * Ảnh xem trước 1200×630 khi gửi link (Facebook, Zalo, Messenger, Telegram...):
  * bầu trời đêm, các chùm pháo theo màu của kịch bản, tiêu đề, lời chúc và người gửi.
@@ -162,6 +168,30 @@ function roundRect(ctx, x, y, w, h, r) {
     ctx.closePath();
 }
 
+function loadImage(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+    });
+}
+
+// Ảnh người dùng chọn: phủ kín khung 1200×630, phần thừa cắt theo `position` (0 = trên/trái, 100 = dưới/phải)
+function drawCoverPhoto(ctx, img, W, H, position = 50) {
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+    const scale = Math.max(W / iw, H / ih);
+    const dw = iw * scale;
+    const dh = ih * scale;
+    const p = Math.max(0, Math.min(100, Number(position) || 0)) / 100;
+    ctx.drawImage(img, -(dw - W) * p, -(dh - H) * p, dw, dh);
+}
+
+/**
+ * Vẽ ảnh xem trước. Mặc định là thiệp pháo hoa tự động; kịch bản có `seoImage` thì dùng ảnh đó làm nền
+ * (`seoImagePosition`: vị trí cắt ảnh, `seoImageText: false`: chỉ để ảnh, không chèn chữ).
+ */
 export async function renderShareImage(config) {
     const W = SHARE_IMAGE_WIDTH;
     const H = SHARE_IMAGE_HEIGHT;
@@ -182,6 +212,30 @@ export async function renderShareImage(config) {
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext('2d');
+
+    let photo = null;
+    if (config.seoImage) {
+        try {
+            photo = await loadImage(config.seoImage);
+        } catch (e) {
+            // Ảnh lỗi/đã bị xóa: dùng thiệp tự động
+        }
+    }
+    if (photo) {
+        drawCoverPhoto(ctx, photo, W, H, config.seoImagePosition ?? 50);
+        if (config.seoImageText === false) return canvas;
+        // Phủ tối để chữ luôn đọc rõ trên mọi ảnh
+        ctx.fillStyle = 'rgba(3, 4, 11, 0.3)';
+        ctx.fillRect(0, 0, W, H);
+        const photoVeil = ctx.createRadialGradient(W / 2, H / 2, 60, W / 2, H / 2, 640);
+        photoVeil.addColorStop(0, 'rgba(3, 4, 11, 0.7)');
+        photoVeil.addColorStop(1, 'rgba(3, 4, 11, 0.25)');
+        ctx.fillStyle = photoVeil;
+        ctx.fillRect(0, 0, W, H);
+        drawCardText(ctx, W, H, title, subtitle, author);
+        return canvas;
+    }
+
     const rand = seededRandom(`${title}|${subtitle}|${author}`);
     const palette = paletteOf(config);
 
@@ -214,6 +268,12 @@ export async function renderShareImage(config) {
     ctx.fillStyle = veil;
     ctx.fillRect(0, 0, W, H);
 
+    drawCardText(ctx, W, H, title, subtitle, author);
+    return canvas;
+}
+
+// Tiêu đề, lời chúc, người gửi và nút mời bấm xem, căn giữa thiệp
+function drawCardText(ctx, W, H, title, subtitle, author) {
     // Tiêu đề: thu nhỏ dần cho vừa tối đa 2 dòng
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
@@ -290,8 +350,6 @@ export async function renderShareImage(config) {
     ctx.fillStyle = '#ffffff';
     ctx.textBaseline = 'middle';
     ctx.fillText(cta, W / 2, ctaY + 24);
-
-    return canvas;
 }
 
 export async function renderShareImageDataUrl(config) {
