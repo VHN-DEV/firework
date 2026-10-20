@@ -35,9 +35,9 @@
     <meta name="msapplication-TileColor" content="#000000">
     <meta name="msapplication-TileImage" content="./assets/img/firework-burst-icon-v2.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <script type="module" crossorigin src="./assets/js/builder-yA7ydbsR.js"></script>
+  <script type="module" crossorigin src="./assets/js/builder-hN9eAaqc.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/js/copyright-bXHiVo6E.js">
-  <link rel="stylesheet" crossorigin href="./assets/css/builder-DZ4Kqiy1.css">
+  <link rel="stylesheet" crossorigin href="./assets/css/builder-DCFByvOB.css">
 </head>
 
 <body>
@@ -54,7 +54,7 @@
 
             <div class="topbar-actions">
                 <div class="btn-group hide-mobile">
-                    <button class="btn ghost" onclick="createNewScript()" title="Tạo kịch bản mới">
+                    <button class="btn ghost" onclick="openTemplatesModal()" title="Tạo kịch bản mới (từ mẫu theo dịp hoặc trang trống)">
                         <i class="fas fa-plus"></i><span>Mới</span>
                     </button>
                     <button class="btn ghost" onclick="openScriptsModal()" title="Mở kịch bản đã lưu">
@@ -93,7 +93,7 @@
                         <button onclick="previewConfig()"><i class="fas fa-play"></i> Xem thử toàn màn hình</button>
                         <button onclick="toggleSidebar()"><i class="fas fa-sliders"></i> Cấu hình chung</button>
                         <hr>
-                        <button onclick="createNewScript()"><i class="fas fa-plus"></i> Kịch bản mới</button>
+                        <button onclick="openTemplatesModal()"><i class="fas fa-plus"></i> Kịch bản mới</button>
                         <button onclick="openScriptsModal()"><i class="fas fa-folder-open"></i> Mở kịch bản</button>
                         <button onclick="document.getElementById('import-file').click()"><i
                                 class="fas fa-file-import"></i> Nhập file .json</button>
@@ -361,6 +361,7 @@
                         <ul>
                             <li>Các phát bắn cùng <strong>đợt</strong> nổ cùng lúc; dùng <strong>trễ</strong> để nổ nối
                                 tiếp.</li>
+                            <li>Bấm <strong>Mới</strong> để tạo nhanh màn trình diễn theo dịp (sinh nhật, 20/10, Tết...).</li>
                             <li>Thêm phát <strong>Tạm dừng</strong> để kéo dài một đợt.</li>
                             <li>Bấm nút <i class="fas fa-mobile-screen"></i> ở khung xem nhanh để xem như trên điện
                                 thoại.</li>
@@ -388,6 +389,13 @@
                             <i class="fas fa-plus"></i><span>Thêm phát bắn</span>
                         </button>
                     </div>
+                </div>
+                <div id="template-strip" class="template-strip hide">
+                    <div class="template-strip-head">
+                        <strong><i class="fas fa-wand-magic-sparkles"></i> Tạo nhanh theo dịp</strong>
+                        <span>Chọn dịp, nhập tên là có ngay màn pháo hoa hoàn chỉnh kèm lời chúc</span>
+                    </div>
+                    <div id="template-chips" class="template-chips"></div>
                 </div>
                 <div id="event-list" class="timeline"></div>
             </section>
@@ -515,6 +523,38 @@
         </div>
     </div>
 
+    <div id="templates-modal" class="modal hide">
+        <div class="modal-content large templates-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-wand-magic-sparkles"></i> Tạo màn trình diễn mới</h3>
+                <button class="btn icon" onclick="hideModal('templates-modal')" title="Đóng">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+            <div class="templates-body">
+                <p class="templates-lead">Chọn dịp và nhập tên: có ngay màn pháo hoa hoàn chỉnh (lời chúc, chữ trên trời,
+                    màn mở quà, màn kết) để chỉnh tiếp.</p>
+                <div id="template-grid" class="shell-grid template-grid"></div>
+                <div class="grid-2">
+                    <div>
+                        <label for="tpl-recipient">Gửi tới</label>
+                        <input type="text" id="tpl-recipient" maxlength="40" placeholder="VD: Mẹ yêu">
+                    </div>
+                    <div>
+                        <label for="tpl-sender">Từ</label>
+                        <input type="text" id="tpl-sender" maxlength="40" placeholder="VD: Con gái">
+                    </div>
+                </div>
+                <small class="field-hint">Kịch bản đang mở sẽ được thay thế, nhớ Lưu trước nếu cần.</small>
+            </div>
+            <div class="modal-actions templates-actions">
+                <button class="btn secondary" onclick="startBlankScript()">Trang trống</button>
+                <button id="btn-create-template" class="btn primary" onclick="createFromTemplate()">
+                    <i class="fas fa-wand-magic-sparkles"></i> Tạo màn trình diễn</button>
+            </div>
+        </div>
+    </div>
+
     <div id="confirm-modal" class="modal hide">
         <div class="modal-content">
             <h3><i class="fas fa-circle-question"></i> Xác nhận</h3>
@@ -564,6 +604,8 @@
                 <div class="help-section">
                     <h4><i class="fas fa-timeline"></i> Dòng thời gian</h4>
                     <ul>
+                        <li><strong>Tạo nhanh:</strong> bấm <strong>Mới</strong>, chọn dịp và nhập tên để có ngay một màn
+                            trình diễn hoàn chỉnh, rồi chỉnh tiếp.</li>
                         <li><strong>Đợt:</strong> các phát bắn cùng đợt nổ cùng lúc; các đợt chạy lần lượt từ nhỏ đến lớn.</li>
                         <li><strong>Trễ (ms):</strong> chờ bao lâu kể từ đầu đợt rồi mới bắn, để tạo chuỗi nổ nối tiếp.</li>
                         <li><strong>Tạm dừng:</strong> kéo dài đợt đó thêm một khoảng thời gian.</li>

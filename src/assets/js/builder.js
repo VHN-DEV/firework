@@ -7,6 +7,7 @@
 import fscreen from './fscreen@1.0.1.js';
 import qrcode from 'qrcode-generator';
 import { renderShareImage } from './share-image.js';
+import { OCCASIONS, buildTemplate } from './templates.js';
 import { printCopyrightNotice } from './copyright.js';
 import '../scss/builder.scss';
 import backgroundImgUrl from '../img/background.webp';
@@ -174,6 +175,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tên kịch bản trên thanh trên cùng
     document.getElementById('title')?.addEventListener('input', updateScriptNameLabel);
     document.getElementById('filename')?.addEventListener('input', updateScriptNameLabel);
+
+    // Dải mẫu theo dịp ẩn khi bắt đầu tự soạn
+    document.getElementById('title')?.addEventListener('input', updateTemplateStrip);
+    renderTemplateChips();
 
     // Chia sẻ & SEO: thẻ xem trước cập nhật theo nội dung
     ['title', 'subtitle', 'author', 'seo-title', 'seo-description'].forEach(id => {
@@ -778,6 +783,7 @@ function renderBurstGroup(burst, events) {
 function renderEventList() {
     const container = document.getElementById('event-list');
     updateTimelineSummary();
+    updateTemplateStrip();
     // Thiệp chia sẻ tự động lấy màu theo các phát bắn
     scheduleSeoPreview();
 
@@ -1712,6 +1718,71 @@ async function saveConfig(isPreview = false) {
         });
 }
 
+
+// ---------------------------------------------------------------------------
+// MẪU THEO DỊP: chọn dịp + tên -> màn trình diễn hoàn chỉnh để chỉnh tiếp
+// ---------------------------------------------------------------------------
+
+let selectedOccasion = OCCASIONS[0].id;
+
+function renderTemplateChips() {
+    const chips = document.getElementById('template-chips');
+    if (!chips) return;
+    chips.innerHTML = OCCASIONS.map(o => `
+        <button type="button" class="template-chip" onclick="openTemplatesModal('${o.id}')">
+            <span class="emoji">${o.icon}</span>${escapeHtml(o.name)}
+        </button>`).join('');
+}
+
+// Kịch bản còn trống (chưa đặt tiêu đề, chưa mở kịch bản nào, tối đa 1 phát bắn): gợi ý tạo nhanh từ mẫu
+function updateTemplateStrip() {
+    const strip = document.getElementById('template-strip');
+    if (!strip) return;
+    const isBlank = !state.currentFilename && state.events.length <= 1 && !document.getElementById('title').value.trim();
+    strip.classList.toggle('hide', !isBlank);
+}
+
+function renderTemplateGrid() {
+    document.getElementById('template-grid').innerHTML = OCCASIONS.map(o => `
+        <button type="button" class="shell-option${o.id === selectedOccasion ? ' selected' : ''}" onclick="selectOccasion('${o.id}')">
+            <span class="emoji">${o.icon}</span>${escapeHtml(o.name)}
+        </button>`).join('');
+}
+
+function selectOccasion(id) {
+    selectedOccasion = id;
+    renderTemplateGrid();
+}
+
+function openTemplatesModal(occasionId) {
+    if (occasionId) selectedOccasion = occasionId;
+    closeMoreMenu();
+    renderTemplateGrid();
+    showModal('templates-modal');
+    document.getElementById('tpl-recipient').focus();
+}
+
+function startBlankScript() {
+    hideModal('templates-modal');
+    createNewScript();
+}
+
+function createFromTemplate() {
+    const occasion = OCCASIONS.find(o => o.id === selectedOccasion) || OCCASIONS[0];
+    const recipient = document.getElementById('tpl-recipient').value.trim();
+    const sender = document.getElementById('tpl-sender').value.trim();
+    const config = buildTemplate(occasion.id, { recipient, sender });
+
+    loadConfigIntoState(config, toSlug(`${occasion.id} ${recipient}`).slice(0, 50));
+    // Kịch bản mới: lưu lần đầu không ghi đè kịch bản trùng tên (tự thêm số)
+    state.currentFilename = null;
+    document.getElementById('share-bar').classList.add('hide');
+    updateScriptNameLabel();
+    updateTemplateStrip();
+    hideModal('templates-modal');
+    playMiniPreviewOnce();
+    notify(`Đã tạo màn trình diễn "${occasion.name}". Xem thử ở khung xem nhanh, chỉnh tiếp rồi bấm Lưu.`, 'success');
+}
 
 // ---------------------------------------------------------------------------
 // CHIA SẺ & SEO: tiêu đề, mô tả, ảnh hiện ra khi gửi link
@@ -2736,7 +2807,8 @@ Object.assign(window, {
     openScriptsModal, exportConfig, previewConfig, saveConfig, toggleSidebar, toggleMoreMenu, showModal,
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
-    togglePreviewMusic, setSeoImageMode
+    togglePreviewMusic, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
+    hideModal
 });
 window.addEventListener('resize', resizeMiniStages);
 
