@@ -1,4 +1,6 @@
 import fscreen from './fscreen@1.0.1.js';
+import qrcode from 'qrcode-generator';
+import { renderShareImage } from './share-image.js';
 import '../scss/builder.scss';
 import backgroundImgUrl from '../img/background.png';
 
@@ -453,6 +455,7 @@ function createNewScript() {
         // Reset UI
         document.getElementById('title').value = '';
         document.getElementById('subtitle').value = '';
+        document.getElementById('seo-title').value = '';
         document.getElementById('author').value = '';
         document.getElementById('filename').value = '';
         document.getElementById('loop').checked = true;
@@ -1184,6 +1187,7 @@ function getFinalConfig() {
     return {
         title: document.getElementById('title').value || "Kịch bản mới",
         subtitle: document.getElementById('subtitle').value || "",
+        seoTitle: document.getElementById('seo-title').value.trim() || undefined,
         author: document.getElementById('author').value || "Anonymous",
         loop: document.getElementById('loop').checked,
         showBackground: state.showBackground,
@@ -1314,10 +1318,11 @@ async function saveConfig(isPreview = false) {
                     document.getElementById('save-actions').classList.remove('hide');
                     updateShareBar(filename);
 
-                    // Auto-close modal after success message
+                    // Lưu xong: đóng thông báo và mở hộp Chia sẻ để gửi tặng ngay
                     setTimeout(() => {
                         hideModal('save-modal');
-                    }, 1500);
+                        openShareModal();
+                    }, 1200);
                 } else {
                     hideLoading();
                 }
@@ -1326,10 +1331,20 @@ async function saveConfig(isPreview = false) {
         });
     }
 
+    // Ảnh xem trước khi gửi link (Facebook, Zalo...), máy chủ lưu thành configs/<tên>.jpg
+    let shareImage;
+    if (!isPreview) {
+        try {
+            shareImage = (await renderShareImage(config)).toDataURL('image/jpeg', 0.88);
+        } catch (e) {
+            // Không vẽ được ảnh thì vẫn lưu kịch bản, trang chia sẻ dùng ảnh chung
+        }
+    }
+
     return fetch('api/save_config.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename, config })
+        body: JSON.stringify({ filename, config, shareImage })
     })
         .then(response => response.json())
         .then(data => {
@@ -1341,10 +1356,11 @@ async function saveConfig(isPreview = false) {
                     document.getElementById('save-actions').classList.remove('hide');
                     updateShareBar(data.filename);
 
-                    // Auto-close modal after success message
+                    // Lưu xong: đóng thông báo và mở hộp Chia sẻ để gửi tặng ngay
                     setTimeout(() => {
                         hideModal('save-modal');
-                    }, 1500);
+                        openShareModal();
+                    }, 1200);
                 } else {
                     hideLoading();
                 }
@@ -1373,13 +1389,49 @@ async function saveConfig(isPreview = false) {
 }
 
 
+// ---------------------------------------------------------------------------
+// CHIA SẺ: link có ảnh + tiêu đề xem trước, nhiều nền tảng, mã QR, ảnh thiệp
+// ---------------------------------------------------------------------------
+
+// Trang chia sẻ s/<tên>.html chứa sẵn ảnh, tiêu đề, mô tả cho mạng xã hội rồi tự mở màn trình diễn
+function getShareUrl(filename) {
+    return new URL(`s/${encodeURIComponent(filename)}.html`, window.location.href).href;
+}
+
+// Thông tin của lần chia sẻ hiện tại
+const share = { id: '', url: '', published: true, title: '', description: '', imageCanvas: null };
+
+// Trên GitHub Pages kịch bản chỉ lưu trong trình duyệt, nên chỉ kịch bản đã đưa vào configs/ mới có trang chia sẻ
+async function resolveShareUrl(filename) {
+    const pageUrl = getShareUrl(filename);
+    if (!isStaticEnv) return { url: pageUrl, published: true };
+    try {
+        const response = await fetch(pageUrl, { method: 'HEAD', cache: 'no-store' });
+        if (response.ok) return { url: pageUrl, published: true };
+    } catch (e) {
+        // Không kiểm tra được (vd mở file trực tiếp): coi như chưa đăng
+    }
+    return { url: getShowUrl(filename), published: false };
+}
+
+function refreshShareText() {
+    const config = getFinalConfig();
+    share.title = config.seoTitle || config.title;
+    share.description = [config.subtitle, config.author].filter(Boolean).join(' – ');
+}
+
 function updateShareBar(filename) {
     const shareBar = document.getElementById('share-bar');
-    const shareUrl = document.getElementById('share-url');
-    const url = getShowUrl(filename);
-
-    shareUrl.innerText = url;
+    const shareUrlEl = document.getElementById('share-url');
+    share.id = filename;
+    share.url = getShareUrl(filename);
+    shareUrlEl.innerText = share.url;
     shareBar.classList.remove('hide');
+    resolveShareUrl(filename).then(({ url, published }) => {
+        if (share.id !== filename) return;
+        Object.assign(share, { url, published });
+        shareUrlEl.innerText = url;
+    });
 
     // Add highlight effect
     shareBar.classList.add('highlight-save');
@@ -1388,31 +1440,257 @@ function updateShareBar(filename) {
     }, 2000);
 }
 
+// Sao chép; có cách dự phòng khi trang không chạy https (vd mở qua IP mạng LAN trên điện thoại)
+async function copyText(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        return true;
+    } catch (e) {
+        const input = document.createElement('textarea');
+        input.value = text;
+        input.style.cssText = 'position:fixed;opacity:0';
+        document.body.appendChild(input);
+        input.select();
+        const ok = document.execCommand('copy');
+        input.remove();
+        return ok;
+    }
+}
 
-function copyShareLink() {
-    const url = document.getElementById('share-url').innerText;
-    if (!url) {
+async function copyShareLink() {
+    if (!share.id) {
         notify('Vui lòng lưu kịch bản trước khi sao chép link!', 'warning');
         return;
     }
-    navigator.clipboard.writeText(url).then(() => {
-        const btn = document.getElementById('btn-copy-link');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-check"></i> Đã sao chép!';
+    if (await copyText(share.url)) {
         notify('Đã sao chép link chia sẻ!', 'success');
-        setTimeout(() => btn.innerHTML = originalText, 2000);
-    }).catch(err => {
-        notify('Không thể sao chép link: ' + err, 'error');
-    });
+    } else {
+        notify('Không thể sao chép tự động, hãy chọn link và sao chép thủ công.', 'error');
+    }
 }
 
-function copyScriptLink(filename) {
-    const url = getShowUrl(filename);
-    navigator.clipboard.writeText(url).then(() => {
+// Điện thoại/máy tính bảng: theo User-Agent, iPad đời mới (báo là Mac) và thiết bị cảm ứng màn hình nhỏ
+const isMobileDevice = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent))
+    || (navigator.maxTouchPoints > 0 && window.matchMedia('(pointer: coarse)').matches && window.innerWidth < 1024);
+
+function openShareWindow(href) {
+    const win = window.open(href, '_blank');
+    if (win) {
+        win.opener = null;
+    } else {
+        notify('Trình duyệt đã chặn cửa sổ mới, hãy cho phép popup để chia sẻ.', 'warning');
+    }
+}
+
+const SHARE_PLATFORMS = [
+    { id: 'native', name: 'Ứng dụng khác', icon: '<i class="fas fa-share-nodes"></i>', bg: '#7c6cff', available: () => !!navigator.share },
+    { id: 'facebook', name: 'Facebook', icon: '<i class="fab fa-facebook-f"></i>', bg: '#1877f2' },
+    { id: 'messenger', name: 'Messenger', icon: '<i class="fab fa-facebook-messenger"></i>', bg: 'linear-gradient(45deg, #0695ff, #a334fa, #ff6968)' },
+    { id: 'zalo', name: 'Zalo', icon: 'zalo', bg: '#0068ff' },
+    { id: 'telegram', name: 'Telegram', icon: '<i class="fab fa-telegram"></i>', bg: '#229ed9' },
+    { id: 'whatsapp', name: 'WhatsApp', icon: '<i class="fab fa-whatsapp"></i>', bg: '#25d366' },
+    { id: 'x', name: 'X (Twitter)', icon: '<i class="fab fa-x-twitter"></i>', bg: '#000000' },
+    { id: 'threads', name: 'Threads', icon: '<i class="fab fa-threads"></i>', bg: '#000000' },
+    { id: 'linkedin', name: 'LinkedIn', icon: '<i class="fab fa-linkedin-in"></i>', bg: '#0a66c2' },
+    { id: 'instagram', name: 'Instagram', icon: '<i class="fab fa-instagram"></i>', bg: 'linear-gradient(45deg, #f9ce34, #ee2a7b, #6228d7)' },
+    { id: 'tiktok', name: 'TikTok', icon: '<i class="fab fa-tiktok"></i>', bg: '#000000' },
+    { id: 'email', name: 'Email', icon: '<i class="fas fa-envelope"></i>', bg: '#ea4335' },
+    { id: 'sms', name: 'Tin nhắn', icon: '<i class="fas fa-comment-sms"></i>', bg: '#34c759', available: isMobileDevice }
+];
+
+async function shareTo(platform) {
+    if (!share.id) {
+        notify('Vui lòng lưu kịch bản trước khi chia sẻ!', 'warning');
+        return;
+    }
+    refreshShareText();
+    const url = share.url;
+    const text = `🎆 ${share.title}${share.description ? ` – ${share.description}` : ''}`;
+    const enc = encodeURIComponent;
+    const useNativeShare = isMobileDevice() && !!navigator.share;
+
+    switch (platform) {
+        case 'native':
+            try {
+                await navigator.share({ title: share.title, text, url });
+            } catch (e) {
+                // Người dùng đóng bảng chia sẻ
+            }
+            return;
+        case 'facebook':
+            return openShareWindow(`https://www.facebook.com/sharer/sharer.php?u=${enc(url)}`);
+        case 'messenger':
+            // Điện thoại: bảng chia sẻ của hệ thống có sẵn Messenger; máy tính: Messenger không có link chia sẻ công khai
+            if (useNativeShare) return shareTo('native');
+            if (isMobileDevice()) {
+                window.location.href = `fb-messenger://share/?link=${enc(url)}`;
+                return;
+            }
+            await copyText(url);
+            notify('Đã sao chép link, hãy dán (Ctrl+V) vào cuộc trò chuyện Messenger.', 'success');
+            return openShareWindow('https://www.messenger.com/');
+        case 'zalo':
+            // Zalo không có link chia sẻ công khai: điện thoại dùng bảng chia sẻ hệ thống, máy tính mở Zalo Web
+            if (useNativeShare) return shareTo('native');
+            await copyText(url);
+            notify('Đã sao chép link, hãy dán (Ctrl+V) vào cuộc trò chuyện Zalo.', 'success');
+            return openShareWindow('https://chat.zalo.me/');
+        case 'telegram':
+            return openShareWindow(`https://t.me/share/url?url=${enc(url)}&text=${enc(text)}`);
+        case 'whatsapp':
+            return openShareWindow(`https://wa.me/?text=${enc(`${text}\n${url}`)}`);
+        case 'x':
+            return openShareWindow(`https://twitter.com/intent/tweet?text=${enc(text)}&url=${enc(url)}`);
+        case 'threads':
+            return openShareWindow(`https://www.threads.net/intent/post?text=${enc(`${text}\n${url}`)}`);
+        case 'linkedin':
+            return openShareWindow(`https://www.linkedin.com/sharing/share-offsite/?url=${enc(url)}`);
+        case 'email':
+            window.location.href = `mailto:?subject=${enc(share.title)}&body=${enc(`${text}\n\nMở xem màn pháo hoa: ${url}`)}`;
+            return;
+        case 'sms':
+            window.location.href = `sms:?&body=${enc(`${text} ${url}`)}`;
+            return;
+        case 'instagram':
+        case 'tiktok': {
+            // Hai nền tảng này không nhận link từ web: tải ảnh thiệp để đăng và sao chép link để dán vào phần mô tả/bio
+            await copyText(url);
+            await downloadShareImage();
+            const name = platform === 'instagram' ? 'Instagram' : 'TikTok';
+            notify(`${name} không cho chia sẻ link từ web: đã tải ảnh thiệp và sao chép link để bạn đăng kèm.`, 'info');
+            return;
+        }
+    }
+}
+
+function renderShareGrid() {
+    const zaloIcon = document.querySelector('.share-actions .btn-social.zalo svg')?.outerHTML || 'Zalo';
+    document.getElementById('share-grid').innerHTML = SHARE_PLATFORMS
+        .filter(p => !p.available || p.available())
+        .map(p => `
+            <button type="button" class="share-item" onclick="shareTo('${p.id}')" title="Chia sẻ qua ${p.name}">
+                <span class="share-icon${p.id === 'zalo' ? ' is-zalo' : ''}" style="background: ${p.bg}">${p.icon === 'zalo' ? zaloIcon : p.icon}</span>
+                <span class="share-name">${p.name}</span>
+            </button>`).join('');
+}
+
+// Vẽ mã QR lên canvas (nền trắng, chừa lề 2 ô theo chuẩn để camera dễ nhận)
+function drawQr(canvas, text, size) {
+    const qr = qrcode(0, 'M');
+    qr.addData(text);
+    qr.make();
+    const count = qr.getModuleCount();
+    const cell = size / (count + 4);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#0b0d14';
+    for (let row = 0; row < count; row++) {
+        for (let col = 0; col < count; col++) {
+            if (qr.isDark(row, col)) {
+                ctx.fillRect(Math.floor((col + 2) * cell), Math.floor((row + 2) * cell), Math.ceil(cell), Math.ceil(cell));
+            }
+        }
+    }
+}
+
+function downloadDataUrl(dataUrl, name) {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+
+// Mã QR dạng thẻ để in: tiêu đề + QR + lời nhắn quét mã
+function downloadShareQr() {
+    if (!share.id) return;
+    refreshShareText();
+    const W = 720, H = 900, qrSize = 520;
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#1d1033';
+    ctx.font = '700 40px Outfit, Inter, sans-serif';
+    let titleSize = 40;
+    while (titleSize > 24 && ctx.measureText(share.title).width > W - 80) {
+        titleSize -= 2;
+        ctx.font = `700 ${titleSize}px Outfit, Inter, sans-serif`;
+    }
+    ctx.fillText(share.title, W / 2, 92);
+
+    const qrCanvas = document.createElement('canvas');
+    qrCanvas.width = qrCanvas.height = qrSize;
+    drawQr(qrCanvas, share.url, qrSize);
+    ctx.drawImage(qrCanvas, (W - qrSize) / 2, 140);
+
+    ctx.fillStyle = '#6b21a8';
+    ctx.font = '600 28px Inter, sans-serif';
+    ctx.fillText('Quét mã để xem màn pháo hoa 🎆', W / 2, 720);
+    ctx.fillStyle = '#64748b';
+    ctx.font = '400 22px Inter, sans-serif';
+    ctx.fillText(new URL(share.url).hostname, W / 2, 762);
+
+    downloadDataUrl(canvas.toDataURL('image/png'), `qr-${share.id}.png`);
+}
+
+async function downloadShareImage() {
+    if (!share.id) return;
+    const canvas = share.imageCanvas || await renderShareImage(getFinalConfig());
+    downloadDataUrl(canvas.toDataURL('image/jpeg', 0.92), `${share.id}.jpg`);
+}
+
+async function openShareModal() {
+    if (!share.id) {
+        notify('Vui lòng lưu kịch bản trước khi chia sẻ!', 'warning');
+        return;
+    }
+    refreshShareText();
+    showModal('share-modal');
+    renderShareGrid();
+
+    const { url, published } = await resolveShareUrl(share.id);
+    Object.assign(share, { url, published });
+    document.getElementById('share-link-input').value = url;
+    document.getElementById('share-preview-domain').textContent = new URL(url).hostname;
+    document.getElementById('share-preview-title').textContent = share.title;
+    document.getElementById('share-preview-desc').textContent = share.description;
+
+    // Cảnh báo trên GitHub Pages: kịch bản lưu trong trình duyệt không tới được người nhận
+    const warning = document.getElementById('share-warning');
+    warning.classList.toggle('hide', !isStaticEnv);
+    if (isStaticEnv) {
+        warning.innerHTML = published
+            ? '<i class="fas fa-circle-info"></i><span>Người nhận sẽ thấy <strong>bản đã đăng</strong> của kịch bản này. Những thay đổi bạn vừa lưu chỉ nằm trong trình duyệt của bạn cho tới khi đăng lại trang.</span>'
+            : '<i class="fas fa-triangle-exclamation"></i><span>Kịch bản này mới chỉ lưu trong trình duyệt của bạn nên <strong>người khác mở link sẽ không xem được</strong>. Để gửi tặng: bấm <strong>Xuất</strong>, đưa file .json vào thư mục <code>src/static/configs/</code> của dự án rồi đăng lại trang (hoặc chạy trên máy chủ có PHP).</span>';
+    }
+
+    const qrCanvas = document.getElementById('share-qr');
+    qrCanvas.width = qrCanvas.height = 320;
+    drawQr(qrCanvas, url, 320);
+
+    share.imageCanvas = await renderShareImage(getFinalConfig());
+    document.getElementById('share-preview-img').src = share.imageCanvas.toDataURL('image/jpeg', 0.88);
+}
+
+function closeShareModal() {
+    hideModal('share-modal');
+}
+
+async function copyScriptLink(filename) {
+    const { url } = await resolveShareUrl(filename);
+    if (await copyText(url)) {
         notify('Đã sao chép link kịch bản!', 'success');
-    }).catch(err => {
-        notify('Không thể sao chép link: ' + err, 'error');
-    });
+    } else {
+        notify('Không thể sao chép link, hãy thử lại.', 'error');
+    }
 }
 
 // My Scripts Management
@@ -1650,6 +1928,7 @@ function importConfig(e) {
 function loadConfigIntoState(config, filename) {
     document.getElementById('title').value = config.title || '';
     document.getElementById('subtitle').value = config.subtitle || '';
+    document.getElementById('seo-title').value = config.seoTitle || '';
     document.getElementById('author').value = config.author || '';
     document.getElementById('loop').checked = config.loop !== false;
     syncLoopState();
@@ -1956,44 +2235,8 @@ Object.assign(window, {
     handleShellChange, changeBurst, toggleEventColor, addColorToEvent, addCustomColor, removeColorFromEvent,
     rememberSection, editScript, duplicateScript, deleteScript, previewScript, copyShareLink, copyScriptLink,
     openScriptsModal, exportConfig, previewConfig, saveConfig, toggleSidebar, toggleMoreMenu, showModal,
-    resizeMiniStages, notify, confirmAction
+    resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
+    downloadShareImage, renderShareImage
 });
-window.shareSocial = (platform) => {
-    const url = document.getElementById('share-url').innerText;
-    if (!url) {
-        notify('Vui lòng lưu kịch bản trước khi chia sẻ!', 'warning');
-        return;
-    }
-    const text = "Xem kịch bản pháo hoa tuyệt đẹp của tôi!";
-    let shareUrl = '';
-
-    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-
-    switch (platform) {
-        case 'messenger':
-            if (isMobile) {
-                shareUrl = `fb-messenger://share/?link=${encodeURIComponent(url)}`;
-            } else {
-                // Facebook Send Dialog
-                shareUrl = `https://www.facebook.com/dialog/send?link=${encodeURIComponent(url)}&app_id=2177090129179921&redirect_uri=${encodeURIComponent(url)}`;
-            }
-            break;
-        case 'zalo':
-            // Sử dụng Zalo Share API chính thức hoặc link redirect
-            shareUrl = `https://sp.zalo.me/share/base?url=${encodeURIComponent(url)}`;
-            break;
-        case 'tiktok':
-            copyShareLink();
-            notify("TikTok chưa hỗ trợ chia sẻ link trực tiếp. Đã sao chép link để bạn dán vào TikTok!", "info");
-            return;
-    }
-
-    if (shareUrl) {
-        const win = window.open(shareUrl, '_blank');
-        if (!win) {
-            notify('Vui lòng cho phép trình duyệt mở cửa sổ mới để chia sẻ.', 'warning');
-        }
-    }
-};
 window.addEventListener('resize', resizeMiniStages);
 

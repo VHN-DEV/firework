@@ -21,6 +21,12 @@ const IS_DESKTOP = window.innerWidth > 800;
 const IS_HEADER = IS_DESKTOP && window.innerHeight < 300;
 // Chế độ xem nhanh nhúng trong builder (index.html?preview=1): kịch bản được builder gửi sang qua postMessage
 const IS_PREVIEW = new URLSearchParams(window.location.search).has('preview');
+
+// Màn trình diễn tặng riêng (?config=..., có tên người nhận) không đưa lên công cụ tìm kiếm.
+// Đặt ngay khi tải trang vì Google không bấm nút "Bắt đầu".
+if (IS_PREVIEW || new URLSearchParams(window.location.search).get('config')) {
+    document.querySelector('meta[name="robots"]')?.setAttribute('content', 'noindex, follow');
+}
 // Phát hiện các thiết bị cao cấp. Đây sẽ là một mục tiêu di động.
 const IS_HIGH_END_DEVICE = (() => {
     const hwConcurrency = navigator.hardwareConcurrency;
@@ -1723,8 +1729,11 @@ async function prepareBurstConfig(burstConfig, { showOverlay }) {
     if (burstConfig.seoTitle) {
         document.title = burstConfig.seoTitle;
     } else if (burstConfig.title) {
-        document.title = `${burstConfig.title} | Trình mô phỏng Pháo hoa`;
+        document.title = `${burstConfig.title} | Trình diễn Pháo hoa`;
     }
+    // Mô tả trang theo kịch bản
+    const description = [burstConfig.subtitle, burstConfig.author].filter(Boolean).join(' – ');
+    if (description) document.querySelector('meta[name="description"]')?.setAttribute('content', description);
 
     // Hiển thị overlay thông tin nếu có
     if (burstConfig.title || burstConfig.author) {

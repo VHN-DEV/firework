@@ -5,7 +5,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0b0d14">
-    <title>Trình Tạo Kịch Bản Pháo Hoa - Firework Builder</title>
+    <title>Firework Builder – Tự thiết kế màn pháo hoa tặng người thân</title>
+    <meta name="description"
+        content="Công cụ thiết kế màn pháo hoa trực tuyến: chọn loại pháo, màu sắc, vị trí, lời chúc rồi gửi link tặng bạn bè, người thân qua Facebook, Zalo, Messenger...">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <link rel="canonical" href="__SITE_URL__builder.html">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="vi_VN">
+    <meta property="og:site_name" content="Trình diễn Pháo hoa">
+    <meta property="og:title" content="Firework Builder – Tự thiết kế màn pháo hoa tặng người thân">
+    <meta property="og:description"
+        content="Chọn loại pháo, màu sắc, lời chúc và gửi tặng một màn pháo hoa của riêng bạn.">
+    <meta property="og:url" content="__SITE_URL__builder.html">
+    <meta property="og:image" content="__SITE_URL__og-default.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="__SITE_URL__og-default.jpg">
     <link rel="shortcut icon" type="image/png" href="./src/assets/img/firework-burst-icon-v2.png">
     <link rel="icon" type="image/png" href="./src/assets/img/firework-burst-icon-v2.png">
     <link rel="apple-touch-icon-precomposed" href="./src/assets/img/firework-burst-icon-v2.png">
@@ -84,20 +100,22 @@
         <!-- Link chia sẻ (hiện sau khi lưu) -->
         <div id="share-bar" class="share-bar hide">
             <div class="share-info">
-                <i class="fas fa-link"></i>
-                <span>Link chia sẻ:</span>
+                <i class="fas fa-circle-check"></i>
+                <span>Đã lưu! Link chia sẻ:</span>
                 <strong id="share-url"></strong>
             </div>
             <div class="share-actions">
-                <button id="btn-copy-link" class="btn primary small" title="Sao chép link">
-                    <i class="fas fa-copy"></i> Sao chép
+                <button id="btn-copy-link" class="btn secondary small" title="Sao chép link">
+                    <i class="fas fa-copy"></i><span>Sao chép</span>
                 </button>
                 <div class="social-share">
-                    <button class="btn-social messenger" onclick="shareSocial('messenger')"
-                        title="Chia sẻ qua Messenger">
+                    <button class="btn-social facebook" onclick="shareTo('facebook')" title="Chia sẻ lên Facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </button>
+                    <button class="btn-social messenger" onclick="shareTo('messenger')" title="Gửi qua Messenger">
                         <i class="fab fa-facebook-messenger"></i>
                     </button>
-                    <button class="btn-social zalo" onclick="shareSocial('zalo')" title="Chia sẻ qua Zalo">
+                    <button class="btn-social zalo" onclick="shareTo('zalo')" title="Gửi qua Zalo">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
                             <path fill="#2962ff"
                                 d="M15,36V6.827l-1.211-0.811C8.64,8.083,5,13.112,5,19v10c0,7.732,6.268,14,14,14h10	c4.722,0,8.883-2.348,11.417-5.931V36H15z">
@@ -117,10 +135,11 @@
                             </path>
                         </svg>
                     </button>
-                    <button class="btn-social tiktok" onclick="shareSocial('tiktok')" title="Chia sẻ qua TikTok">
-                        <i class="fab fa-tiktok"></i>
-                    </button>
                 </div>
+                <button class="btn primary small" onclick="openShareModal()"
+                    title="Thêm nền tảng, mã QR và ảnh thiệp">
+                    <i class="fas fa-share-nodes"></i><span>Chia sẻ</span>
+                </button>
                 <button class="btn icon small" onclick="document.getElementById('share-bar').classList.add('hide')"
                     title="Ẩn link chia sẻ"><i class="fas fa-xmark"></i></button>
             </div>
@@ -147,6 +166,13 @@
                     <div class="field">
                         <label for="author">Người thực hiện</label>
                         <input type="text" id="author" placeholder="Tên của bạn">
+                    </div>
+                    <div class="field">
+                        <label for="seo-title">Tiêu đề khi chia sẻ</label>
+                        <input type="text" id="seo-title" placeholder="VD: Chúc mừng Nguyễn Vân tốt nghiệp 🎓"
+                            maxlength="90">
+                        <small class="field-hint">Hiện trên Facebook, Zalo, Messenger... khi gửi link. Để trống sẽ
+                            dùng Tiêu đề.</small>
                     </div>
 
                     <div class="field-divider"></div>
@@ -277,6 +303,54 @@
             <div id="save-actions" class="hide">
                 <button class="btn secondary"
                     onclick="document.getElementById('save-modal').classList.add('hide')">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="share-modal" class="modal hide">
+        <div class="modal-content large share-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-share-nodes"></i> Chia sẻ màn trình diễn</h3>
+                <button class="btn icon" onclick="closeShareModal()" title="Đóng"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="share-body">
+                <div id="share-warning" class="share-warning hide"></div>
+
+                <!-- Xem trước khung hiển thị khi gửi link lên mạng xã hội -->
+                <div class="share-preview">
+                    <div class="share-preview-image">
+                        <img id="share-preview-img" alt="Ảnh xem trước khi chia sẻ">
+                    </div>
+                    <div class="share-preview-meta">
+                        <span id="share-preview-domain"></span>
+                        <strong id="share-preview-title"></strong>
+                        <span id="share-preview-desc"></span>
+                    </div>
+                </div>
+
+                <div class="share-link-row">
+                    <input type="text" id="share-link-input" readonly aria-label="Link chia sẻ"
+                        onclick="this.select()">
+                    <button class="btn primary" onclick="copyShareLink()"><i class="fas fa-copy"></i>
+                        <span>Sao chép</span></button>
+                </div>
+
+                <div id="share-grid" class="share-grid"></div>
+
+                <div class="share-extras">
+                    <canvas id="share-qr" class="share-qr" width="160" height="160" aria-label="Mã QR"></canvas>
+                    <div class="share-extras-text">
+                        <strong>Mã QR & ảnh thiệp</strong>
+                        <span>In mã QR lên thiệp, người nhận chỉ cần quét bằng camera điện thoại. Ảnh thiệp dùng để
+                            đăng Instagram, TikTok hoặc gửi kèm tin nhắn.</span>
+                        <div class="share-extras-actions">
+                            <button class="btn secondary small" onclick="downloadShareQr()"><i
+                                    class="fas fa-qrcode"></i> Tải mã QR</button>
+                            <button class="btn secondary small" onclick="downloadShareImage()"><i
+                                    class="fas fa-image"></i> Tải ảnh thiệp</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

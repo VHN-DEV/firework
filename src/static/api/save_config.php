@@ -50,6 +50,15 @@ if (file_exists($filePath)) {
 // Save the file
 $jsonContent = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 if (file_put_contents($filePath, $jsonContent)) {
+    // Ảnh xem trước khi chia sẻ link (builder vẽ sẵn, dạng data:image/jpeg;base64,...): configs/<tên>.jpg
+    if (!empty($data['shareImage']) && is_string($data['shareImage'])
+        && preg_match('#^data:image/jpeg;base64,([A-Za-z0-9+/=]+)$#', $data['shareImage'], $m)) {
+        $binary = base64_decode($m[1], true);
+        $info = ($binary !== false && strlen($binary) <= 2 * 1024 * 1024) ? @getimagesizefromstring($binary) : false;
+        if ($info && $info[2] === IMAGETYPE_JPEG) {
+            file_put_contents($targetDir . $filename . '.jpg', $binary);
+        }
+    }
     echo json_encode(['success' => true, 'message' => 'Đã lưu kịch bản thành công!', 'filename' => $filename]);
 } else {
     echo json_encode(['success' => false, 'message' => 'Không thể lưu file. Vui lòng kiểm tra quyền ghi của thư mục configs.']);

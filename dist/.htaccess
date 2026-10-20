@@ -1,0 +1,14 @@
+# Trang chia sẻ của kịch bản lưu trên host PHP: s/<tên>.html -> api/share.php?c=<tên>
+# (kịch bản có sẵn lúc build đã có file tĩnh s/<tên>.html nên không bị chuyển)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^s/([A-Za-z0-9_-]+)\.html$ api/share.php?c=$1 [L,QSA]
+</IfModule>
+
+# Ảnh xem trước & kịch bản: cho phép mạng xã hội lấy ảnh, cache vừa phải
+<IfModule mod_headers.c>
+    <FilesMatch "\.(jpg|png)$">
+        Header set Cache-Control "public, max-age=86400"
+    </FilesMatch>
+</IfModule>

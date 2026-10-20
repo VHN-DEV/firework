@@ -1,10 +1,13 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import seoPlugin from './seo-plugin.js';
 
 export default defineConfig({
   // Base path for deployment
   base: './',
   publicDir: 'src/static',
+  // Trang chia sẻ s/<tên>.html (ảnh + tiêu đề khi gửi link), sitemap.xml, robots.txt
+  plugins: [seoPlugin({ configsDir: resolve(__dirname, 'src/static/configs') })],
   build: {
     rollupOptions: {
       input: {
@@ -62,6 +65,11 @@ export default defineConfig({
     // Chỉ API PHP cần chuyển qua Apache (XAMPP); configs/ và uploads/ được Vite phục vụ trực tiếp từ publicDir (src/static)
     proxy: {
       '/api': {
+        target: 'http://localhost/firework/src/static',
+        changeOrigin: true,
+      },
+      // Trang chia sẻ: .htaccess của Apache chuyển s/<tên>.html sang api/share.php
+      '/s/': {
         target: 'http://localhost/firework/src/static',
         changeOrigin: true,
       },

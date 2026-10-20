@@ -714,6 +714,10 @@ select.is-invalid {
         background: #000;
         border: 1px solid $b-line-strong;
     }
+
+    &.facebook {
+        background: #1877f2;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1968,6 +1972,219 @@ select.is-invalid {
     }
 }
 
+// Hộp Chia sẻ
+.share-modal {
+    max-width: 640px !important;
+
+    .modal-header h3 i {
+        color: $b-accent;
+    }
+}
+
+.share-body {
+    overflow-y: auto;
+    padding: 1.1rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+
+    // Không co các khối khi nội dung cao hơn hộp (cuộn thay vì ép khung xem trước)
+    > * {
+        flex-shrink: 0;
+    }
+}
+
+.share-warning {
+    display: flex;
+    gap: 0.65rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 12px;
+    background: rgba($b-gold, 0.08);
+    border: 1px solid rgba($b-gold, 0.3);
+    color: $b-muted;
+    font-size: 0.8rem;
+    line-height: 1.5;
+
+    > i {
+        color: $b-gold;
+        margin-top: 0.15rem;
+    }
+
+    strong {
+        color: $b-text;
+    }
+
+    code {
+        font-size: 0.75rem;
+        color: $b-gold;
+    }
+}
+
+// Mô phỏng khung xem trước khi gửi link trên mạng xã hội
+.share-preview {
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid $b-line-strong;
+    background: #242526;
+}
+
+.share-preview-image {
+    aspect-ratio: 1200 / 630;
+    background: linear-gradient(110deg, #12151f 30%, #1d2232 50%, #12151f 70%) 0 0 / 300% 100%;
+    animation: share-shimmer 1.4s linear infinite;
+
+    img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+
+        &[src=""],
+        &:not([src]) {
+            visibility: hidden;
+        }
+    }
+}
+
+@keyframes share-shimmer {
+    to {
+        background-position: -150% 0;
+    }
+}
+
+.share-preview-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.65rem 0.9rem 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+
+    span:first-child {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        color: #b0b3b8;
+    }
+
+    strong {
+        font-size: 0.98rem;
+        color: #e4e6eb;
+    }
+
+    span:last-child {
+        font-size: 0.82rem;
+        color: #b0b3b8;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+}
+
+.share-link-row {
+    display: flex;
+    gap: 0.5rem;
+
+    input {
+        flex: 1;
+        font-size: 0.82rem;
+        color: $b-gold;
+    }
+}
+
+.share-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 0.4rem 0.25rem;
+}
+
+.share-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 0.2rem;
+    border: none;
+    border-radius: 12px;
+    background: none;
+    color: $b-muted;
+    font-size: 0.74rem;
+    transition: background-color 0.15s, color 0.15s;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: $b-text;
+
+        .share-icon {
+            transform: translateY(-2px);
+        }
+    }
+}
+
+.share-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.25rem;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+    transition: transform 0.15s;
+
+    &.is-zalo {
+        padding: 6px;
+
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+    }
+}
+
+.share-name {
+    text-align: center;
+    line-height: 1.2;
+}
+
+.share-extras {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.9rem;
+    border-radius: 14px;
+    background: $b-panel;
+    border: 1px solid $b-line;
+}
+
+.share-qr {
+    width: 128px;
+    height: 128px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.share-extras-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: $b-muted;
+
+    strong {
+        color: $b-text;
+        font-size: 0.92rem;
+    }
+}
+
+.share-extras-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.35rem;
+}
+
 // Hướng dẫn sử dụng
 .help-guide {
     .help-content {
@@ -2384,5 +2601,42 @@ select.is-invalid {
     .scripts-grid {
         grid-template-columns: 1fr;
         padding: 1rem;
+    }
+
+    #share-modal {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .share-modal {
+        max-height: 94vh !important;
+        border-radius: 22px 22px 0 0;
+    }
+
+    .share-body {
+        padding: 0.9rem 1rem calc(1.25rem + env(safe-area-inset-bottom));
+    }
+
+    .share-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .share-extras {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .share-extras-actions {
+        justify-content: center;
+    }
+
+    // Thanh link gọn trên điện thoại: các nút chỉ còn biểu tượng
+    .share-bar .share-actions .btn span {
+        display: none;
+    }
+
+    .share-bar .share-actions .btn.small {
+        width: 32px;
+        padding: 0;
     }
 }

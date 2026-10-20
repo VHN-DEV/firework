@@ -22,6 +22,7 @@ Thư mục này chứa các file JSON để **tùy biến lời chúc và hiệu
 | `title` | Tiêu đề lớn hiển thị lúc mở màn. |
 | `subtitle`| Dòng phụ bên dưới tiêu đề. |
 | `author` | Tên người đạo diễn/người gửi. |
+| `seoTitle` | (Tùy chọn) Tiêu đề hiện trên Facebook, Zalo, Messenger... khi gửi link. Để trống sẽ dùng `title`. |
 | `loop` | `true`: Tự động lặp lại show; `false`: Chạy hết một lần rồi dừng. |
 
 ### 2. Cấu trúc Event (Mỗi phát bắn)
@@ -37,6 +38,21 @@ Mỗi phần tử trong mảng `events` đại diện cho một phát bắn ho�
 | **`x`**, **`y`** | Số | Vị trí nổ theo phần trăm màn hình (0 đến 100). `x`: 0 là mép trái; `y`: 0 là mặt đất, 100 là đỉnh. `x: 50, y: 50` là chính giữa màn hình. |
 | **`delay`** | Số | Độ trễ (ms) tính từ lúc bắt đầu đợt bắn. |
 | **`size`** | Số | Kích thước (0: 3" đến 5: 16"). |
+
+---
+
+## 🔗 Chia sẻ có ảnh & tiêu đề xem trước
+
+- Link gửi tặng có dạng `.../s/<tên_file>.html`: trang này chứa sẵn ảnh, tiêu đề, lời chúc để Facebook, Zalo,
+  Messenger, Telegram... hiện khung xem trước, rồi tự mở màn trình diễn.
+- Ảnh xem trước nằm cạnh kịch bản: `<tên_file>.jpg` (1200×630). Builder tự vẽ và lưu ảnh này khi bấm **Lưu**
+  trên máy chủ có PHP. Kịch bản không có ảnh riêng sẽ dùng ảnh chung `og-default.jpg`.
+- Trên GitHub Pages, các trang `s/*.html` được tạo khi build cho mọi file `.json` trong thư mục này. Hãy thêm kịch bản
+  mới vào `configs_index.json` để nó hiện trong mục "Mở kịch bản" của builder.
+- Địa chỉ trang dùng trong thẻ xem trước được đặt bằng biến môi trường `SITE_URL` khi build
+  (mặc định `https://vhn-dev.github.io/firework/`).
+- Facebook/Zalo lưu tạm khung xem trước. Nếu đổi tiêu đề/ảnh sau khi đã gửi link, dùng
+  [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/) để làm mới.
 
 ---
 

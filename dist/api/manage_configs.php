@@ -58,6 +58,11 @@ if ($action === 'delete') {
         }
 
         if (unlink($filePath)) {
+            // Xóa luôn ảnh xem trước khi chia sẻ (nếu có)
+            $imagePath = $targetDir . $filename . '.jpg';
+            if (is_file($imagePath)) {
+                unlink($imagePath);
+            }
             echo json_encode(['success' => true, 'message' => 'Đã xóa kịch bản thành công!']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Không thể xóa file.']);

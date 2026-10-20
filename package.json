@@ -16,5 +16,8 @@
     "rimraf": "^6.1.3",
     "sass": "^1.99.0",
     "vite": "^6.4.2"
+  },
+  "dependencies": {
+    "qrcode-generator": "^2.0.4"
   }
 }
