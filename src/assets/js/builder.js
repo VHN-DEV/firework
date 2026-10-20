@@ -1019,7 +1019,8 @@ const HELP_TIPS = {
     delay: () => (isSyncMode()
         ? 'Kịch bản đang <strong>khớp nhịp nhạc</strong>: đây là lúc pháo <strong>nổ</strong>, tính từ đầu đợt (1000 ms = 1 giây). Pháo tự phóng sớm hơn cho kịp.'
         : 'Chờ bao lâu kể từ đầu đợt rồi mới phóng (1000 ms = 1 giây). Dùng để các phát nổ nối tiếp nhau thay vì cùng lúc.'),
-    text: 'Chữ hiện trên trời bằng hạt pháo, tối đa 60 ký tự. Mã tự thay: <strong>[YEAR]</strong> năm hiện tại, '
+    text: 'Chữ hiện trên trời bằng hạt pháo, tối đa 60 ký tự; chèn được biểu tượng cảm xúc (🎓, ❤️, 🎂...), để màu "Ngẫu nhiên" thì '
+        + 'biểu tượng giữ màu gốc của nó. Mã tự thay: <strong>[YEAR]</strong> năm hiện tại, '
         + '<strong>[LUNAR_YEAR]</strong> tên năm âm lịch, <strong>[SINCE:2000]</strong> số năm kể từ năm 2000.',
     captionDuration: 'Lời nhắn hiện trên màn hình bao lâu rồi mờ dần (1000 ms = 1 giây).',
     position: 'Bấm hoặc kéo trên khung để chọn điểm nổ. Số nhỏ trên khung là các phát khác cùng đợt, giúp tránh nổ chồng lên nhau.',
@@ -1458,7 +1459,8 @@ function renderInspector() {
         </div>
         <small class="note">${isCaption
             ? 'Lời nhắn dùng màu đầu tiên; "Ngẫu nhiên" (ô cầu vồng) là chữ trắng.'
-            : 'Chọn nhiều màu để pháo đa sắc. "Ngẫu nhiên" (ô cầu vồng) cho mỗi hạt một màu.'}</small>`);
+            : 'Chọn nhiều màu để pháo đa sắc. "Ngẫu nhiên" (ô cầu vồng) cho mỗi hạt một màu.'
+                + (event.shell === 'Văn bản' ? ' Để "Ngẫu nhiên" thì biểu tượng cảm xúc trong chữ (🎓, ❤️...) giữ màu gốc của nó.' : '')}</small>`);
 
     // Lời nhắn chỉ cần thời điểm, nội dung và màu chữ
     if (isCaption) {

@@ -1013,7 +1013,18 @@ function randomFastShell() {
 const textCanvas = document.createElement('canvas');
 const textCtx = textCanvas.getContext('2d', { willReadFrequently: true });
 
-function getTextParticles(text, fontSize = 80, step = 3) {
+// Màu hạt lấy từ biểu tượng cảm xúc: kéo sáng lên cho nổi trên trời đêm (giữ sắc màu, vd mũ 🎓 xanh đen thành
+// xanh dương), rồi gom về 16 mức mỗi kênh để không sinh quá nhiều nhóm màu khi vẽ
+function emojiParticleColor(r, g, b) {
+    const max = Math.max(r, g, b);
+    const boost = max < 200 ? 200 / Math.max(max, 1) : 1;
+    const channel = v => Math.min(255, Math.round(v * boost / 17) * 17).toString(16).padStart(2, '0');
+    return `#${channel(r)}${channel(g)}${channel(b)}`;
+}
+
+// ownColors: biểu tượng cảm xúc trong chữ (🎓, ❤️, 🎂...) giữ màu gốc của nó (điểm có thuộc tính color);
+// chữ thường vẫn theo màu của phát pháo
+function getTextParticles(text, fontSize = 80, step = 3, ownColors = false) {
     textCanvas.width = 1000; // Tăng chiều rộng để hỗ trợ văn bản dài hơn
     textCanvas.height = 200; // Tăng chiều cao
     textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
@@ -1030,6 +1041,15 @@ function getTextParticles(text, fontSize = 80, step = 3) {
     textCtx.fillText(text, textCanvas.width / 2, textCanvas.height / 2);
 
     const imgData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height).data;
+    // Vẽ lại bằng màu đen: chữ thường đổi màu theo, biểu tượng cảm xúc luôn vẽ bằng màu gốc nên giữ nguyên.
+    // Nhờ vậy phần trắng của biểu tượng (⚽, 💬...) vẫn được nhận ra là biểu tượng.
+    let darkData = null;
+    if (ownColors && /\p{Extended_Pictographic}/u.test(text)) {
+        textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+        textCtx.fillStyle = 'black';
+        textCtx.fillText(text, textCanvas.width / 2, textCanvas.height / 2);
+        darkData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height).data;
+    }
     const points = [];
 
     let minX = textCanvas.width, maxX = 0, minY = textCanvas.height, maxY = 0;
@@ -1038,7 +1058,15 @@ function getTextParticles(text, fontSize = 80, step = 3) {
             const index = (y * textCanvas.width + x) * 4;
             const alpha = imgData[index + 3];
             if (alpha > 128) {
-                points.push({ x, y });
+                const point = { x, y };
+                if (darkData) {
+                    const r = imgData[index];
+                    const g = imgData[index + 1];
+                    const b = imgData[index + 2];
+                    const change = Math.abs(r - darkData[index]) + Math.abs(g - darkData[index + 1]) + Math.abs(b - darkData[index + 2]);
+                    if (change < 60) point.color = emojiParticleColor(r, g, b);
+                }
+                points.push(point);
                 if (x < minX) minX = x;
                 if (x > maxX) maxX = x;
                 if (y < minY) minY = y;
@@ -1053,7 +1081,8 @@ function getTextParticles(text, fontSize = 80, step = 3) {
 
     const result = points.map(p => ({
         x: (p.x - centerX) / maxDist,
-        y: (p.y - centerY) / maxDist
+        y: (p.y - centerY) / maxDist,
+        color: p.color
     }));
 
     result.isText = true; // Đánh dấu đây là dữ liệu văn bản
@@ -1675,7 +1704,7 @@ const textShell = (size = 1) => {
         color,
         spreadSize: 300 + size * 100, // Thêm spreadSize để tránh lỗi NaN
         starLife: 1400 + size * 200,
-        shapePoints: getTextParticles(text, 50),
+        shapePoints: getTextParticles(text, 50, 3, true),
         glitter: 'light',
         glitterColor: COLOR.Gold,
     };
@@ -2955,7 +2984,9 @@ function buildEventShot(event) {
         const starDensity = event.starDensity !== undefined ? event.starDensity : 1;
         // Bước lấy mẫu tối thiểu 2px để chữ dày không tạo ra hàng chục nghìn hạt làm treo máy
         const step = Math.max(2, Math.round(3 / starDensity));
-        options.shapePoints = getTextParticles(event.text, 50, step);
+        // Không chọn màu (để trống hoặc "Ngẫu nhiên"): biểu tượng cảm xúc giữ màu gốc của nó
+        const noColor = [].concat(event.color ?? []).every(c => !c || c === 'Ngẫu nhiên' || c === 'random');
+        options.shapePoints = getTextParticles(event.text, 50, step, noColor);
     }
 
     const hasValue = (value) => value !== undefined && value !== null && value !== '';
