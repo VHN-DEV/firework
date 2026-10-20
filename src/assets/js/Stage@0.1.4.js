@@ -17,8 +17,6 @@
  * -----------
  * requestAnimationFrame helper. Provides elapsed time between frames and a lag compensation multiplier to callbacks.
  * 
- * Author: Caleb Miller
- *         caleb@caleb-miller.com
 */
 
 /**
@@ -34,8 +32,6 @@
  * This is no replacement for robust canvas drawing libraries; it's designed to be as lightweight as possible and defers
  * full rendering burden to user.
  * 
- * Author: Caleb Miller
- *         caleb@caleb-miller.com
 */
 
 

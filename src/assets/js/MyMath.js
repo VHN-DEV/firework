@@ -3,8 +3,6 @@
  * -----------
  * Handy math/trig reference.
  * 
- * Author: Caleb Miller
- *         caleb@caleb-miller.com
 */
  
 const MyMath = (function MyMathFactory(Math) {

@@ -2,7 +2,6 @@
  * Trình diễn Pháo hoa – trình phát
  * Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
- * Lõi mô phỏng dựa trên Firework Simulator v2 © Caleb Miller, giấy phép MIT (xem THIRD_PARTY_NOTICES.md).
  */
 
 import fscreen from './fscreen@1.0.1.js';

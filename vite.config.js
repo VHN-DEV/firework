@@ -12,15 +12,11 @@ import seoPlugin from './seo-plugin.js';
 // Kèm giấy phép và danh sách thành phần bên thứ ba trong bản build
 // (giấy phép MIT của lõi mô phỏng gốc yêu cầu giữ thông báo bản quyền trong mọi bản phân phối)
 // Thông báo bản quyền ở đầu mỗi file JS đã build (Rollup thêm banner sau bước nén nên không bị lược bỏ).
-// File có lõi mô phỏng gốc kèm thêm ghi công Caleb Miller theo yêu cầu của giấy phép MIT.
 const jsBanner = (chunk) => {
   const lines = [
     '/*! Trình diễn Pháo hoa | © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu, xem LICENSE.txt',
     ' * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép. Liên hệ: vuhoainam18032002@gmail.com',
   ];
-  if (chunk.moduleIds.some(id => /Stage@|MyMath/.test(id))) {
-    lines.push(' * Lõi mô phỏng: Firework Simulator v2 © Caleb Miller, giấy phép MIT, xem THIRD_PARTY_NOTICES.md');
-  }
   return lines.join('\n') + ' */';
 };
 
