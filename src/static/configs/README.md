@@ -28,6 +28,7 @@ Thư mục này chứa các file JSON để **tùy biến lời chúc và hiệu
 | `seoImageText` | (Tùy chọn) `false`: chỉ dùng ảnh, không chèn tiêu đề và lời chúc lên ảnh. |
 | `seoImagePosition` | (Tùy chọn) Vị trí cắt ảnh cho vừa khung 1200×630, từ `0` (trên/trái) đến `100` (dưới/phải), mặc định `50`. |
 | `loop` | `true`: Tự động lặp lại show; `false`: Chạy hết một lần rồi dừng. |
+| `startFrame` | (Tùy chọn) Khung bắt đầu người xem thấy trước màn trình diễn: để trống là thiệp chào (lời mời + nút "Mở quà"), `"gift"` là hộp quà rung rinh, chạm vào thì bung nắp, nổ ruy băng và pháo giấy rồi mới bắt đầu. |
 | `recipient` | (Tùy chọn) Người nhận. Màn mở đầu hiện "Gửi <người nhận>" cùng hộp quà và nút "Mở quà" thay cho lời chào chung. |
 | `introMessage` | (Tùy chọn) Lời mời mở quà ở màn mở đầu. Mặc định: "Một màn pháo hoa được làm riêng để dành tặng bạn." |
 | `outroMessage` | (Tùy chọn) Lời chúc ở màn kết. Màn kết chỉ hiện khi `loop: false`, sau đợt cuối, kèm nút "Xem lại" và "Tạo màn pháo hoa của bạn". Để trống sẽ dùng `subtitle`. |

@@ -1940,30 +1940,206 @@ async function loadBurstConfig() {
 // MÀN MỞ QUÀ VÀ MÀN KẾT
 // ---------------------------------------------------------------------------
 
-// Link quà tặng: thay lời chào chung bằng lời mời riêng "Gửi <người nhận>", lời nhắn, người gửi, nút "Mở quà"
-function personalizeStartScreen(config) {
-    const screen = appNodes.startScreen;
-    if (config) {
-        const text = (value) => String(replacePlaceholders(value || '')).trim();
-        const recipient = text(config.recipient);
-        screen.classList.add('is-gift');
-        screen.querySelector('.start-screen__title').textContent = recipient ? `Gửi ${recipient}` : 'Bạn có một món quà!';
-        screen.querySelector('.start-screen__subtitle').textContent = text(config.introMessage) || 'Một màn pháo hoa được làm riêng để dành tặng bạn.';
-        screen.querySelector('.start-screen__from').textContent = text(config.author);
-        screen.querySelector('.start-screen__hint').textContent = config.music && config.music.url
-            ? '🔊 Bật loa để nghe nhạc nhé'
-            : '🔊 Bật âm thanh để trọn vẹn hơn';
-        appNodes.btnStart.textContent = 'Mở quà';
-        const title = text(config.seoTitle) || text(config.title);
-        if (title) document.title = title;
+// ---------------------------------------------------------------------------
+// KHUNG BẮT ĐẦU: màn hình người xem thấy trước khi màn trình diễn bắt đầu, chọn theo `startFrame` của kịch bản.
+// Mỗi khung có mount(screen, config) dựng nội dung và trả về { trigger, open, firstLaunchDelay }:
+// trigger là phần tử người xem bấm để bắt đầu, open() chạy hiệu ứng mở (promise) trước khi vào màn trình diễn,
+// firstLaunchDelay là thời gian chờ (ms) tới phát pháo đầu tiên.
+// Thêm khung mới: thêm một mục vào START_FRAMES, phần HTML/CSS của khung, và một dòng trong START_FRAMES của builder.
+// ---------------------------------------------------------------------------
+
+const frameText = (value) => String(replacePlaceholders(value || '')).trim();
+
+const START_FRAMES = {
+    // Thiệp chào: lời chào (trang chủ) hoặc lời mời mở quà (link có kịch bản) cùng một nút bấm
+    card: {
+        mount(screen, config) {
+            if (config) {
+                const recipient = frameText(config.recipient);
+                screen.classList.add('is-gift');
+                screen.querySelector('.start-screen__title').textContent = recipient ? `Gửi ${recipient}` : 'Bạn có một món quà!';
+                screen.querySelector('.start-screen__subtitle').textContent = frameText(config.introMessage) || 'Một màn pháo hoa được làm riêng để dành tặng bạn.';
+                screen.querySelector('.start-screen__from').textContent = frameText(config.author);
+                screen.querySelector('.start-screen__hint').textContent = config.music && config.music.url
+                    ? '🔊 Bật loa để nghe nhạc nhé'
+                    : '🔊 Bật âm thanh để trọn vẹn hơn';
+                appNodes.btnStart.textContent = 'Mở quà';
+            }
+            return { trigger: appNodes.btnStart, open: () => Promise.resolve(), firstLaunchDelay: 2500 };
+        }
+    },
+
+    // Hộp quà: hộp rung rinh, chạm vào thì rung mạnh, bung nắp, nổ tung ruy băng và pháo giấy rồi mới bắt đầu
+    gift: {
+        mount(screen, config) {
+            const recipient = frameText(config && config.recipient);
+            screen.classList.add('frame-gift');
+            screen.querySelector('.gift-stage__title').textContent = recipient ? `Gửi ${recipient}` : 'Bạn có một món quà!';
+            screen.querySelector('.gift-stage__message').textContent = frameText(config && config.introMessage) || 'Một màn pháo hoa được làm riêng để dành tặng bạn.';
+            screen.querySelector('.gift-stage__from').textContent = frameText(config && config.author);
+            screen.querySelector('.gift-stage__hint').textContent = config && config.music && config.music.url
+                ? 'Chạm vào hộp quà để mở · 🔊 bật loa nhé'
+                : 'Chạm vào hộp quà để mở';
+            const box = screen.querySelector('.gift-box');
+            // Pháo giấy còn đang rơi khi màn trình diễn bắt đầu: phát pháo đầu tiên bắn sớm cho liền mạch
+            return { trigger: box, open: () => openGiftBox(screen, box), firstLaunchDelay: 700 };
+        }
     }
-    screen.classList.add('is-ready');
+};
+
+// Rung mạnh -> bung nắp, lóe sáng, nổ ruy băng và pháo giấy -> vào màn trình diễn
+function openGiftBox(screen, box) {
+    return new Promise(resolve => {
+        screen.classList.add('gift-opening');
+        setTimeout(() => {
+            screen.classList.add('gift-open');
+            const rect = box.getBoundingClientRect();
+            launchConfetti(rect.left + rect.width / 2, rect.top + rect.height * 0.4);
+            playGiftOpenSound();
+            setTimeout(resolve, 900);
+        }, 520);
+    });
 }
 
-if (!IS_PREVIEW && !IS_HEADER) {
-    configRequest.then(personalizeStartScreen);
-    // Mạng chậm: không bắt người xem chờ mãi lời mời riêng
-    setTimeout(() => appNodes.startScreen.classList.add('is-ready'), 2500);
+// Pháo giấy và ruy băng bung ra từ hộp quà. Vẽ trên một lớp phủ riêng nên vẫn rơi tiếp khi màn trình diễn bắt đầu.
+function launchConfetti(x, y) {
+    const canvas = document.createElement('canvas');
+    canvas.className = 'confetti-layer';
+    document.body.appendChild(canvas);
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const colors = ['#ff0043', '#ffbf36', '#14fc56', '#1e7fff', '#e60aff', '#ffffff', '#ff6ad5'];
+    const pick = () => colors[(Math.random() * colors.length) | 0];
+    // Màn hình nhỏ bắn chậm hơn để pháo giấy không bay vọt ra ngoài
+    const power = Math.min(1, Math.max(0.6, W / 900));
+    const fan = (spread, min, max) => {
+        const angle = -Math.PI / 2 + (Math.random() - 0.5) * spread;
+        const speed = (min + Math.random() * (max - min)) * power;
+        return { x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed };
+    };
+    const pieces = Array.from({ length: isLowQuality ? 90 : 150 }, () => ({
+        ...fan(Math.PI * 1.1, 6, 18),
+        w: 6 + Math.random() * 6,
+        h: 10 + Math.random() * 8,
+        color: pick(),
+        rot: Math.random() * PI_2,
+        spin: (Math.random() - 0.5) * 0.3,
+        flip: Math.random() * PI_2,
+        flipSpeed: 0.1 + Math.random() * 0.2
+    }));
+    const ribbons = Array.from({ length: 14 }, () => ({
+        ...fan(Math.PI * 0.9, 9, 19),
+        color: pick(),
+        width: 4 + Math.random() * 3,
+        wave: Math.random() * PI_2,
+        trail: []
+    }));
+
+    const duration = 3800;
+    const start = performance.now();
+    let last = start;
+    const frame = (now) => {
+        const dt = Math.min(2.5, (now - last) / 16.67);
+        last = now;
+        const t = now - start;
+        ctx.clearRect(0, 0, W, H);
+        ctx.globalAlpha = t > duration - 900 ? Math.max(0, (duration - t) / 900) : 1;
+
+        pieces.forEach(p => {
+            p.vx *= Math.pow(0.97, dt);
+            // Giấy rơi chậm, lật qua lật lại
+            p.vy = Math.min(p.vy * Math.pow(0.97, dt) + 0.35 * dt, 4.5);
+            p.x += p.vx * dt + Math.sin(p.flip) * 0.8;
+            p.y += p.vy * dt;
+            p.rot += p.spin * dt;
+            p.flip += p.flipSpeed * dt;
+            const visibleH = p.h * Math.abs(Math.cos(p.flip));
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.w / 2, -visibleH / 2, p.w, visibleH);
+            ctx.restore();
+        });
+
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ribbons.forEach(r => {
+            r.vx *= Math.pow(0.975, dt);
+            r.vy = Math.min(r.vy * Math.pow(0.975, dt) + 0.28 * dt, 3.5);
+            r.x += r.vx * dt;
+            r.y += r.vy * dt;
+            r.wave += 0.25 * dt;
+            // Dải ruy băng là vệt đuôi uốn lượn theo đường bay
+            r.trail.unshift({ x: r.x + Math.sin(r.wave) * 6, y: r.y });
+            if (r.trail.length > 26) r.trail.pop();
+            ctx.strokeStyle = r.color;
+            ctx.lineWidth = r.width;
+            ctx.beginPath();
+            r.trail.forEach((pt, i) => (i ? ctx.lineTo(pt.x, pt.y) : ctx.moveTo(pt.x, pt.y)));
+            ctx.stroke();
+        });
+
+        if (t < duration) requestAnimationFrame(frame);
+        else canvas.remove();
+    };
+    requestAnimationFrame(frame);
+}
+
+let startFrameMounted = false;
+
+// Dựng khung bắt đầu theo kịch bản (chỉ một lần) và chờ người xem bấm để vào màn trình diễn
+function mountStartFrame(config) {
+    if (startFrameMounted) return;
+    startFrameMounted = true;
+    const frame = START_FRAMES[config && config.startFrame] || START_FRAMES.card;
+    const { trigger, open, firstLaunchDelay } = frame.mount(appNodes.startScreen, config);
+    if (config) {
+        const title = frameText(config.seoTitle) || frameText(config.title);
+        if (title) document.title = title;
+    }
+    appNodes.startScreen.classList.add('is-ready');
+    trigger.addEventListener('click', (e) => {
+        // Ngăn chặn sự kiện nổi bọt để tránh Stage nhận được tín hiệu bắn pháo hoa
+        e.stopPropagation();
+        e.preventDefault();
+        beginShow(open, firstLaunchDelay);
+    }, { once: true });
+}
+
+function beginShow(open, firstLaunchDelay) {
+    // Mở khóa âm thanh ngay trong lúc người xem bấm (AudioContext và phần tử phát nhạc nền)
+    soundManager.resumeAll();
+    musicPlayer.unlock();
+
+    // Khoảng chờ tới phát bắn tự động đầu tiên, để không chồng lấp với lúc bấm
+    autoLaunchTime = firstLaunchDelay;
+
+    // Tải trong lúc chạy hiệu ứng mở: chỉ các âm thanh kịch bản dùng tới
+    const ready = configRequest.then(config => soundManager.preload(getRequiredSoundTypes(config)));
+    let loaded = false;
+    ready.then(() => { loaded = true; }, () => { loaded = true; });
+
+    open().then(() => {
+        appNodes.startScreen.classList.add('hide');
+        if (!loaded) {
+            appNodes.loadingInit.classList.remove('remove');
+            setLoadingStatus('Đang châm ngòi');
+        }
+        ready.then(
+            init,
+            reason => {
+                init();
+                return Promise.reject(reason);
+            }
+        );
+    });
 }
 
 // Kịch bản không lặp chạy xong: thiệp lời chúc cuối, nút xem lại và nút tạo màn pháo hoa mới
@@ -4341,6 +4517,46 @@ function getRequiredSoundTypes(config) {
     return [...types].filter(type => soundManager.sources[type]);
 }
 
+// Tiếng "bụp" lúc hộp quà bung nắp kèm vài tiếng chuông lấp lánh, tổng hợp bằng Web Audio
+// (lúc này âm thanh pháo chưa tải xong và màn trình diễn chưa chạy)
+function playGiftOpenSound() {
+    if (!soundEnabledSelector()) return;
+    try {
+        const ctx = soundManager.ctx;
+        const now = ctx.currentTime;
+        const length = Math.floor(ctx.sampleRate * 0.3);
+        const noise = ctx.createBuffer(1, length, ctx.sampleRate);
+        const data = noise.getChannelData(0);
+        for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 3);
+        const pop = ctx.createBufferSource();
+        pop.buffer = noise;
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 900;
+        filter.Q.value = 0.7;
+        const popGain = ctx.createGain();
+        popGain.gain.value = 1.2;
+        pop.connect(filter).connect(popGain).connect(ctx.destination);
+        pop.start(now);
+
+        [1568, 2093, 2637, 3136].forEach((frequency, i) => {
+            const start = now + 0.06 + i * 0.07;
+            const osc = ctx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = frequency;
+            const gain = ctx.createGain();
+            gain.gain.setValueAtTime(0.0001, start);
+            gain.gain.exponentialRampToValueAtTime(0.08, start + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.6);
+            osc.connect(gain).connect(ctx.destination);
+            osc.start(start);
+            osc.stop(start + 0.65);
+        });
+    } catch (e) {
+        // Không phát được tiếng (trình duyệt cũ): bỏ qua, hiệu ứng hình vẫn chạy
+    }
+}
+
 // Một đoạn WAV im lặng 0,1 giây, dùng để "mở khóa" phần tử audio lúc người dùng bấm nút
 function createSilentWavUrl() {
     const samples = 800;
@@ -4542,36 +4758,8 @@ else if (IS_HEADER) {
     appNodes.startScreen.classList.add('hide');
     init();
 } else {
-    // Đợi người dùng nhấn "Bắt đầu"
-    appNodes.btnStart.addEventListener('click', (e) => {
-        // Ngăn chặn sự kiện nổi bọt để tránh Stage nhận được tín hiệu bắn pháo hoa
-        e.stopPropagation();
-        e.preventDefault();
-
-        // Ẩn màn hình bắt đầu và hiện màn hình loading
-        appNodes.startScreen.classList.add('hide');
-        appNodes.loadingInit.classList.remove('remove');
-
-        // Kích hoạt âm thanh ngay lập tức (mở khóa AudioContext và phần tử phát nhạc nền)
-        soundManager.resumeAll();
-        musicPlayer.unlock();
-
-        // Đặt một khoảng thời gian chờ cho phát bắn tự động đầu tiên 
-        // để không bị chồng lấp với hành động nhấn nút
-        autoLaunchTime = 2500;
-
-        // Bắt đầu tải dữ liệu: chỉ các âm thanh kịch bản dùng tới
-        setLoadingStatus('Đang châm ngòi');
-        setTimeout(() => {
-            configRequest
-                .then(config => soundManager.preload(getRequiredSoundTypes(config)))
-                .then(
-                    init,
-                    reason => {
-                        init();
-                        return Promise.reject(reason);
-                    }
-                );
-        }, 500); // Đợi một chút cho hiệu ứng chuyển cảnh
-    }, { once: true });
+    // Đợi người xem mở khung bắt đầu của kịch bản (thiệp chào, hộp quà...), xem START_FRAMES
+    configRequest.then(mountStartFrame);
+    // Mạng chậm: không bắt người xem chờ mãi, dùng thiệp chào chung
+    setTimeout(() => mountStartFrame(null), 2500);
 }

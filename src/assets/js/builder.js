@@ -31,6 +31,8 @@ const state = {
     // Nhạc nền { url, name, volume (0-1), start (giây) } và âm lượng tiếng pháo (0-1)
     music: null,
     effectsVolume: 1,
+    // Khung bắt đầu ('' = thiệp chào), xem START_FRAMES
+    startFrame: '',
     // Ảnh khi chia sẻ: 'auto' = thiệp pháo hoa tự vẽ, 'custom' = ảnh người dùng chọn
     seo: { mode: 'auto', image: null, imageText: true, imagePosition: 50, axis: 'y' }
 };
@@ -86,6 +88,13 @@ const LAUNCH_STYLES = [
     { value: 'popping', name: 'Nổ dọc đường', icon: '🎉', hint: 'Vừa bay lên vừa nổ lụp bụp từng chùm nhỏ.' },
     { value: 'stages', name: 'Bay nhiều tầng', icon: '🚀', hint: 'Bay chậm dần, nổ một chùm rồi vọt lên tầng tiếp theo, lặp lại trước khi nổ chính. Bay lâu hơn khoảng 2 giây.' },
     { value: 'wander', name: 'Bay lượn', icon: '〰️', hint: 'Chao qua chao lại ngẫu nhiên, không theo đường thẳng.' }
+];
+
+// Khung bắt đầu: màn hình người xem thấy trước khi màn trình diễn bắt đầu.
+// Giá trị khớp với START_FRAMES trong trình phát (script.js); thêm khung mới thì thêm ở cả hai nơi.
+const START_FRAMES = [
+    { value: '', name: 'Thiệp chào', icon: '💌', hint: 'Thiệp với lời mời và nút "Mở quà".' },
+    { value: 'gift', name: 'Hộp quà', icon: '🎁', hint: 'Hộp quà rung rinh; chạm vào thì bung nắp, nổ tung ruy băng và pháo giấy rồi mới bắt đầu.' }
 ];
 
 const FRAME_TYPES = [
@@ -175,6 +184,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tên kịch bản trên thanh trên cùng
     document.getElementById('title')?.addEventListener('input', updateScriptNameLabel);
     document.getElementById('filename')?.addEventListener('input', updateScriptNameLabel);
+
+    renderStartFrames();
 
     // Dải mẫu theo dịp ẩn khi bắt đầu tự soạn
     document.getElementById('title')?.addEventListener('input', updateTemplateStrip);
@@ -546,6 +557,8 @@ function createNewScript() {
         renderSeoControls();
         document.getElementById('author').value = '';
         document.getElementById('recipient').value = '';
+        state.startFrame = '';
+        renderStartFrames();
         document.getElementById('intro-message').value = '';
         document.getElementById('outro-message').value = '';
         document.getElementById('filename').value = '';
@@ -1514,6 +1527,7 @@ function getFinalConfig() {
         seoDescription: document.getElementById('seo-description').value.trim() || undefined,
         ...getSeoImageConfig(),
         author: document.getElementById('author').value.trim(),
+        startFrame: state.startFrame || undefined,
         recipient: document.getElementById('recipient').value.trim() || undefined,
         introMessage: document.getElementById('intro-message').value.trim() || undefined,
         outroMessage: document.getElementById('outro-message').value.trim() || undefined,
@@ -1718,6 +1732,23 @@ async function saveConfig(isPreview = false) {
         });
 }
 
+
+// Lưới chọn khung bắt đầu trong nhóm "Màn mở quà & màn kết"
+function renderStartFrames() {
+    const grid = document.getElementById('start-frame-grid');
+    if (!grid) return;
+    grid.innerHTML = START_FRAMES.map(f => `
+        <button type="button" class="shell-option${state.startFrame === f.value ? ' selected' : ''}" onclick="setStartFrame('${f.value}')">
+            <span class="emoji">${f.icon}</span>${f.name}
+        </button>`).join('');
+    const current = START_FRAMES.find(f => f.value === state.startFrame) || START_FRAMES[0];
+    document.getElementById('start-frame-hint').textContent = `${current.hint} Bấm "Xem thử" để trải nghiệm.`;
+}
+
+function setStartFrame(value) {
+    state.startFrame = value;
+    renderStartFrames();
+}
 
 // ---------------------------------------------------------------------------
 // MẪU THEO DỊP: chọn dịp + tên -> màn trình diễn hoàn chỉnh để chỉnh tiếp
@@ -2489,6 +2520,8 @@ function loadConfigIntoState(config, filename) {
     scheduleSeoPreview();
     document.getElementById('author').value = config.author || '';
     document.getElementById('recipient').value = config.recipient || '';
+    state.startFrame = START_FRAMES.some(f => f.value === config.startFrame) ? config.startFrame : '';
+    renderStartFrames();
     document.getElementById('intro-message').value = config.introMessage || '';
     document.getElementById('outro-message').value = config.outroMessage || '';
     document.getElementById('loop').checked = config.loop !== false;
@@ -2808,7 +2841,7 @@ Object.assign(window, {
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
     togglePreviewMusic, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
-    hideModal
+    hideModal, setStartFrame
 });
 window.addEventListener('resize', resizeMiniStages);
 

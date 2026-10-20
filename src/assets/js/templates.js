@@ -215,6 +215,8 @@ export function buildTemplate(occasionId, { recipient = '', sender = '' } = {}) 
         subtitle: o.subtitle(who),
         author: from ? `Từ: ${from}` : '',
         recipient: name || undefined,
+        // Món quà mở bằng hộp quà rung rinh, nổ ruy băng
+        startFrame: 'gift',
         introMessage: o.intro(who),
         outroMessage: o.outro,
         seoTitle: o.seoTitle(who),
