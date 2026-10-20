@@ -360,7 +360,8 @@ const frameToTime = frame => (frame * HOP + FRAME / 2) / RATE + ONSET_DELAY;
 
 /**
  * Kết quả: { duration, bpm, beats: [{ time, level (0-1, độ sôi động đoạn đó), strength (0-1, độ mạnh của phách),
- * downbeat (đầu ô nhịp), inBar (0-3), bar, silent (không có nhạc) }], drops: [chỉ số phách nhạc bùng lên] }
+ * downbeat (đầu ô nhịp), inBar (0-3), bar, silent (không có nhạc) }], drops: [chỉ số phách nhạc bùng lên],
+ * envelope: [âm lượng 0-1 từng khung], envelopeRate (số khung mỗi giây) }
  */
 export async function analyzeMusic(url, onProgress) {
     const progress = value => onProgress && onProgress(Math.min(1, value));
@@ -489,10 +490,17 @@ export async function analyzeMusic(url, onProgress) {
         drops.push(at);
     });
 
+    // Hình sóng cho dòng thời gian theo giây: âm lượng từng khung, chuẩn hóa theo đỉnh (căn bậc hai cho dễ nhìn)
+    let peakRms = 0;
+    for (let t = 0; t < features.frames; t++) peakRms = Math.max(peakRms, features.rms[t]);
+    const envelope = Array.from(features.rms, v => Math.round(Math.sqrt(v / (peakRms || 1)) * 1000) / 1000);
+
     const beatPeriod = step / FPS;
     progress(1);
     return {
         duration,
+        envelope,
+        envelopeRate: FPS,
         bpm: Math.round(600 / beatPeriod) / 10,
         beats: exact.map((frame, i) => ({
             time: Math.max(0, frameToTime(frame)),

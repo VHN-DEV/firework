@@ -4,7 +4,7 @@
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
 
-// Builder: nút "?" giải thích, mẫu theo dịp, lưu qua API PHP, trang chia sẻ, mở lại, kiểu bắn, khung bắt đầu, hoàn tác và bản nháp.
+// Builder: nút "?" giải thích, mẫu theo dịp, dòng thời gian theo giây, lưu qua API PHP, trang chia sẻ, mở lại, kiểu bắn, khung bắt đầu, hoàn tác và bản nháp.
 import fs from 'fs';
 import path from 'path';
 import { DIST, sleep, openPage, removeConfig } from './helpers.mjs';
@@ -45,6 +45,41 @@ export async function run(browser, base, { check }) {
             frame: document.querySelector('#start-frame-grid .shell-option.selected')?.textContent.trim()
         }));
         check('mẫu theo dịp điền đủ kịch bản', created.title.includes('20/10') && created.recipient === 'E2E Test' && created.filename === ID && created.shots > 25 && created.frame.endsWith('Hộp quà'), JSON.stringify(created));
+
+        // Dòng thời gian theo giây: kéo một phát sang phải ~1 giây, các phát khác giữ nguyên thời điểm, Ctrl+Z hoàn tác
+        await page.evaluate(() => setTimelineView('track'));
+        await sleep(400);
+        const markerTimes = () => page.$$eval('.track-marker', els => Object.fromEntries(els.map(e => [e.dataset.id, Number(e.dataset.time)])));
+        const times0 = await markerTimes();
+        check('xem theo giây: mỗi phát một nút trên thước giây', Object.keys(times0).length > 20, Object.keys(times0).length);
+        const target = await page.$$eval('.track-marker', els => {
+            const sorted = els.sort((a, b) => a.dataset.time - b.dataset.time);
+            const [a, b] = [sorted[0], sorted[sorted.length - 1]];
+            const pps = (parseFloat(b.style.left) - parseFloat(a.style.left)) / ((b.dataset.time - a.dataset.time) / 1000);
+            const el = sorted[2];
+            el.scrollIntoView({ block: 'nearest', inline: 'center' });
+            const r = el.getBoundingClientRect();
+            return { id: el.dataset.id, x: r.left + r.width / 2, y: r.top + r.height / 2, pps };
+        });
+        await page.mouse.move(target.x, target.y);
+        await page.mouse.down();
+        await page.mouse.move(target.x + target.pps * 0.5, target.y, { steps: 4 });
+        await page.mouse.move(target.x + target.pps * 1.02, target.y, { steps: 4 });
+        await page.mouse.up();
+        await sleep(500);
+        const times1 = await markerTimes();
+        const changed = Object.keys(times0).filter(id => Math.abs(times1[id] - times0[id]) > 1);
+        check('kéo phát bắn đổi đúng thời điểm của nó, các phát khác giữ nguyên',
+            changed.length === 1 && changed[0] === target.id && Math.abs(times1[target.id] - times0[target.id] - 1000) <= 100,
+            changed.map(id => `${id}: +${times1[id] - times0[id]}`).join(', '));
+        await page.keyboard.down('Control');
+        await page.keyboard.press('z');
+        await page.keyboard.up('Control');
+        await sleep(500);
+        const times2 = await markerTimes();
+        check('Ctrl+Z đưa phát bắn về chỗ cũ', Object.keys(times0).every(id => Math.abs(times2[id] - times0[id]) <= 1));
+        await page.evaluate(() => setTimelineView('list'));
+        await sleep(300);
 
         // Kiểu bắn cho phát đầu tiên
         await page.evaluate(() => document.querySelector('.shot-row').click());

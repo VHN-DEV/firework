@@ -9,6 +9,8 @@ import qrcode from 'qrcode-generator';
 import { renderShareImage } from './share-image.js';
 import { OCCASIONS, buildTemplate } from './templates.js';
 import { analyzeMusic, buildBeatShow, KEEP_SHELLS } from './beat-sync.js';
+import { eventTimes, layoutBursts, isPauseEvent, BURST_MS } from './timeline.js';
+import { createTimelineTrack } from './timeline-track.js';
 import { printCopyrightNotice } from './copyright.js';
 import '../scss/builder.scss';
 import backgroundImgUrl from '../img/background.webp';
@@ -467,7 +469,7 @@ function confirmAction(message, onConfirm) {
     noBtn.addEventListener('click', handleNo);
 }
 
-function addEvent(config = null) {
+function addEvent(config = null, { render = true } = {}) {
     const id = state.nextId++;
     let newEvent;
 
@@ -546,7 +548,7 @@ function addEvent(config = null) {
     }
 
     state.events.push(newEvent);
-    renderEventList();
+    if (render) renderEventList();
 }
 
 function addColorToEvent(id, color) {
@@ -872,6 +874,19 @@ function renderEventList() {
     // Thiệp chia sẻ tự động lấy màu theo các phát bắn
     scheduleSeoPreview();
 
+    // Xem theo giây (chỉ khi đã có phát bắn; trống thì vẫn hiện lời mời thêm phát)
+    document.querySelectorAll('.timeline-views button').forEach(btn => btn.classList.toggle('active', btn.dataset.view === timelineView));
+    document.getElementById('track-tools')?.classList.toggle('hide', timelineView !== 'track');
+    const showTrack = timelineView === 'track' && state.events.length > 0;
+    container.classList.toggle('hide', showTrack);
+    document.getElementById('track-view')?.classList.toggle('hide', !showTrack);
+    if (showTrack) {
+        renderTrackTools();
+        getTrack().render();
+        refreshMiniPreview();
+        return;
+    }
+
     if (state.events.length === 0) {
         container.innerHTML = `
             <div class="timeline-empty">
@@ -921,6 +936,7 @@ function addBurst() {
 function selectEvent(id) {
     state.activeEventId = id;
     renderEventList();
+    if (timelineView === 'track' && track) track.reveal(id);
     renderInspector();
     updateMiniInfo();
     // Bắn ngay phát vừa chọn trong khung xem nhanh
@@ -967,6 +983,9 @@ const HELP_TIPS = {
         + 'dòng thời gian hiện mốc ♪ trong bài. Nút <strong>Xếp pháo theo nhịp nhạc</strong> tự bật mục này.',
     effectsVolume: 'Độ to của tiếng phóng và tiếng nổ. Có nhạc nền thì nên giảm để nghe rõ nhạc; 0% là tắt hẳn.',
     filename: 'Tên dùng để lưu và làm link chia sẻ (…/s/ten-file.html). Chỉ chữ không dấu, số, gạch nối, gạch dưới. Trùng tên kịch bản khác thì tự thêm số.',
+    timelineTrack: 'Mỗi nút là một phát bắn đặt đúng thời điểm (lúc phóng; khi khớp nhịp nhạc là lúc nổ), phía trên là sóng nhạc và vạch phách. '
+        + '<strong>Kéo ngang</strong> để đổi thời điểm (bám phách hoặc theo 0,1 giây; giữ Alt để thả tự do), <strong>bấm</strong> để chỉnh, '
+        + '<strong>nhấn đúp</strong> chỗ trống để thêm phát, phím mũi tên để nhích. Các phát khác giữ nguyên thời điểm, đợt được xếp lại tự động.',
     timeline: 'Kịch bản gồm các <strong>đợt</strong> chạy lần lượt, mỗi đợt khoảng 3 giây. Các phát cùng đợt bắn cùng lúc, trừ khi đặt <strong>Trễ</strong>. '
         + 'Thêm phát <strong>Tạm dừng</strong> để kéo dài một đợt. Bấm vào một phát để chỉnh.',
     preview: 'Chạy chính trình phát thật nên giống hệt khi gửi đi. Đang chọn một phát thì chỉ bắn lặp phát đó. '
@@ -2448,7 +2467,27 @@ function createFromTemplate() {
 
 // Kết quả phân tích theo link nhạc (phân tích một lần, mở lại hộp thoại là có ngay)
 const beatAnalyses = new Map();
+// Kết quả đã xong (dòng thời gian theo giây vẽ sóng nhạc ngay) và các link không đọc được
+const beatResults = new Map();
+const beatFailures = new Set();
 const MAX_BEAT_SECONDS = 480;
+
+function analyzeMusicCached(url, onProgress) {
+    if (!beatAnalyses.has(url)) {
+        const job = analyzeMusic(url, onProgress);
+        beatAnalyses.set(url, job);
+        job.then(analysis => {
+            beatResults.set(url, analysis);
+            beatFailures.delete(url);
+            if (timelineView === 'track') renderEventList();
+        }, () => {
+            beatAnalyses.delete(url);
+            beatFailures.add(url);
+            if (timelineView === 'track') renderTrackTools();
+        });
+    }
+    return beatAnalyses.get(url);
+}
 let beatAnalysis = null;
 let beatDensity = 'medium';
 
@@ -2459,19 +2498,16 @@ async function openBeatModal() {
     setBeatDensity(beatDensity);
     renderBeatStatus('loading', 0);
     showModal('beat-modal');
-    if (!beatAnalyses.has(url)) {
-        beatAnalyses.set(url, analyzeMusic(url, p => {
-            if (!beatAnalysis) renderBeatStatus('loading', p);
-        }));
-    }
+    beatFailures.delete(url);
     try {
-        const analysis = await beatAnalyses.get(url);
+        const analysis = await analyzeMusicCached(url, p => {
+            if (!beatAnalysis) renderBeatStatus('loading', p);
+        });
         // Trong lúc chờ đã đổi bài nhạc khác
         if (!state.music || normalizeAssetPath(state.music.url) !== url) return;
         beatAnalysis = analysis;
         renderBeatResult();
     } catch (e) {
-        beatAnalyses.delete(url);
         console.warn('[Builder] Không phân tích được bài nhạc:', e);
         renderBeatStatus('error', e.code);
     }
@@ -2623,6 +2659,127 @@ function afterMusicStartChange() {
         notify('Đã đổi giây bắt đầu: bấm "Xếp pháo theo nhịp nhạc" để xếp lại cho khớp nhịp.', 'warning');
     }
     renderEventList();
+}
+
+// ---------------------------------------------------------------------------
+// DÒNG THỜI GIAN THEO GIÂY (timeline-track.js): thước giây, sóng nhạc, kéo thả phát bắn
+// ---------------------------------------------------------------------------
+
+const TIMELINE_VIEW_KEY = 'firework_builder_timeline_view';
+let timelineView = (() => {
+    try {
+        return localStorage.getItem(TIMELINE_VIEW_KEY) === 'track' ? 'track' : 'list';
+    } catch (e) {
+        return 'list';
+    }
+})();
+let track = null;
+
+function setTimelineView(view) {
+    timelineView = view === 'track' ? 'track' : 'list';
+    try {
+        localStorage.setItem(TIMELINE_VIEW_KEY, timelineView);
+    } catch (e) {
+        // Không nhớ được lựa chọn: lần sau mở lại danh sách
+    }
+    renderEventList();
+}
+
+function zoomTrack(dir) {
+    if (track) track.zoom(dir);
+}
+
+// Màu đánh dấu của phát bắn: màu đầu tiên đã chọn
+function markerColor(event) {
+    const first = Array.isArray(event.color) ? event.color[0] : event.color;
+    if (!first || first === 'Ngẫu nhiên' || first === 'random') return '#b46cff';
+    return COLOR[first] || first;
+}
+
+// Kết quả phân tích nhạc (sóng nhạc, phách) của bài đang dùng, có rồi mới vẽ
+function currentMusicAnalysis() {
+    return state.music ? beatResults.get(normalizeAssetPath(state.music.url)) || null : null;
+}
+
+function renderTrackTools() {
+    const note = document.getElementById('track-note');
+    const snapRow = document.getElementById('track-snap-row');
+    if (!state.music) {
+        note.textContent = '';
+        snapRow.classList.add('hide');
+        return;
+    }
+    const url = normalizeAssetPath(state.music.url);
+    const analysis = beatResults.get(url);
+    snapRow.classList.toggle('hide', !analysis);
+    if (analysis) {
+        note.textContent = `♪ ${formatNumber(analysis.bpm)} BPM`;
+    } else if (beatFailures.has(url)) {
+        note.textContent = 'Không đọc được sóng nhạc từ link này';
+    } else {
+        note.textContent = 'Đang đọc sóng nhạc...';
+        analyzeMusicCached(url).catch(() => {});
+    }
+}
+
+function getTrack() {
+    if (track) return track;
+    track = createTimelineTrack(document.getElementById('track-view'), {
+        getEvents: () => state.events,
+        activeId: () => state.activeEventId,
+        icon: event => SHELL_ICONS[event.shell] || '🎆',
+        color: markerColor,
+        title: (event, time) => `#${state.events.indexOf(event) + 1} ${event.shell} · ${formatMusicTime(time)}`
+            + (isSyncMode() ? ' (nổ)' : ''),
+        escape: escapeHtml,
+        isSync: isSyncMode,
+        musicStart: () => Number(state.music?.start) || 0,
+        analysis: currentMusicAnalysis,
+        snapToBeats: () => document.getElementById('track-snap').checked,
+        formatTime: formatMusicTime,
+        // Vạch chạy theo nhạc builder đang phát cùng khung xem nhanh
+        musicPosition: () => {
+            const audio = getMusicAudio();
+            return previewMusicPlaying && audio && !audio.paused ? (audio.currentTime - (Number(state.music?.start) || 0)) * 1000 : null;
+        },
+        onSelect: id => selectEvent(id),
+        onMove: (id, time) => moveEventToTime(id, time),
+        onAdd: time => addEventAtTime(time)
+    });
+    return track;
+}
+
+// Đặt phát bắn vào thời điểm `time` (ms; lúc phóng, hoặc lúc nổ khi khớp nhịp nhạc). Các phát khác giữ nguyên
+// thời điểm: các đợt được xếp lại, "Tạm dừng" được tạo lại cho vừa (timeline.js).
+function moveEventToTime(id, time) {
+    const { items, end } = eventTimes(state.events);
+    const item = items.find(i => i.event.id === id);
+    if (!item) return;
+    const tail = end - Math.max(...items.map(i => i.time));
+    item.time = Math.max(0, Math.round(time));
+    const { placed, pauses } = layoutBursts(items, tail);
+    placed.forEach(({ event, burst, delay }) => {
+        event.burst = burst;
+        event.delay = delay;
+    });
+    if (state.events.some(e => e.id === state.activeEventId && isPauseEvent(e))) state.activeEventId = null;
+    state.events = state.events.filter(e => !isPauseEvent(e));
+    pauses.forEach(p => addEvent({ burst: p.burst, shell: 'Tạm dừng', duration: p.duration }, { render: false }));
+    // Trong mỗi đợt: theo thời điểm, Tạm dừng ở cuối
+    state.events.sort((a, b) => (a.burst - b.burst)
+        || (isPauseEvent(a) - isPauseEvent(b))
+        || ((Number(a.delay) || 0) - (Number(b.delay) || 0)));
+    renderEventList();
+    renderInspector();
+    scheduleCheckpoint();
+}
+
+// Nhấn đúp chỗ trống: thêm phát bắn mới ở thời điểm đó rồi mở bảng chỉnh sửa
+function addEventAtTime(time) {
+    addEvent({ burst: 1 }, { render: false });
+    const added = state.events[state.events.length - 1];
+    moveEventToTime(added.id, time);
+    selectEvent(added.id);
 }
 
 // ---------------------------------------------------------------------------
@@ -3935,7 +4092,7 @@ Object.assign(window, {
     togglePreviewMusic, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
     hideModal, setStartFrame, undo, redo, setOpenMode, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
     openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, prepareVideo, stopVideo, downloadVideo, shareVideo,
-    restartVideo
+    restartVideo, setTimelineView, zoomTrack
 });
 window.addEventListener('resize', resizeMiniStages);
 

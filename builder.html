@@ -433,6 +433,27 @@
                         </button>
                     </div>
                 </div>
+                <div class="timeline-subbar">
+                    <div class="segmented timeline-views" role="group" aria-label="Cách xem dòng thời gian">
+                        <button type="button" data-view="list" onclick="setTimelineView('list')"><i
+                                class="fas fa-list"></i> Danh sách</button>
+                        <button type="button" data-view="track" onclick="setTimelineView('track')"><i
+                                class="fas fa-ruler-horizontal"></i> Theo giây</button>
+                    </div>
+                    <div id="track-tools" class="track-tools hide">
+                        <span id="track-note" class="track-note"></span>
+                        <label id="track-snap-row" class="track-snap hide"
+                            title="Kéo phát bắn thì tự bám vào phách nhạc gần nhất (giữ Alt để thả tự do)">
+                            <input type="checkbox" id="track-snap" checked> Bám phách</label>
+                        <button type="button" class="icon-btn" onclick="zoomTrack(-1)" title="Thu nhỏ"><i
+                                class="fas fa-magnifying-glass-minus"></i></button>
+                        <button type="button" class="icon-btn" onclick="zoomTrack(1)" title="Phóng to"><i
+                                class="fas fa-magnifying-glass-plus"></i></button>
+                        <button type="button" class="icon-btn" onclick="zoomTrack(0)" title="Vừa khung"><i
+                                class="fas fa-arrows-left-right-to-line"></i></button>
+                        <button type="button" class="help-tip" data-help="timelineTrack" aria-label="Giải thích">?</button>
+                    </div>
+                </div>
                 <div id="draft-bar" class="draft-bar hide" role="status">
                     <i class="fas fa-clock-rotate-left"></i>
                     <span id="draft-info"></span>
@@ -449,6 +470,7 @@
                     <div id="template-chips" class="template-chips"></div>
                 </div>
                 <div id="event-list" class="timeline"></div>
+                <div id="track-view" class="track-view hide"></div>
             </section>
 
             <!-- Cột phải: xem nhanh + bảng chỉnh sửa phát bắn đang chọn -->
@@ -756,6 +778,9 @@
                         <li><strong>Tạo nhanh:</strong> bấm <strong>Mới</strong>, chọn dịp và nhập tên để có ngay một màn
                             trình diễn hoàn chỉnh, rồi chỉnh tiếp.</li>
                         <li><strong>Đợt:</strong> các phát bắn cùng đợt nổ cùng lúc; các đợt chạy lần lượt từ nhỏ đến lớn.</li>
+                        <li><strong>Theo giây:</strong> xem các phát bắn trên thước giây cùng sóng nhạc; kéo ngang để đổi
+                            thời điểm (bám phách nhạc), nhấn đúp chỗ trống để thêm phát. Các phát khác giữ nguyên thời
+                            điểm, đợt được xếp lại tự động.</li>
                         <li><strong>Hoàn tác:</strong> Ctrl+Z (làm lại: Ctrl+Y) hoặc hai nút mũi tên trên cùng. Kịch bản
                             đang soạn được tự lưu nháp trong trình duyệt; lần sau mở builder sẽ hỏi khôi phục.</li>
                         <li><strong>Trễ (ms):</strong> chờ bao lâu kể từ đầu đợt rồi mới bắn, để tạo chuỗi nổ nối tiếp.</li>
