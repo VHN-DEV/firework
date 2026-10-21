@@ -43,6 +43,9 @@ const state = {
     smoke: '',
     // Cảnh vật: mặt nước ('' không, 'third' 1/3, 'half' nửa màn hình), trang trí ('lanterns', 'balloons', 'both')
     water: '',
+    // Kiểu mặt nước ('lake' hồ tĩnh lặng, 'river' sông chảy), vật trôi ('' / 'lanterns' hoa đăng / 'petals' cánh hoa)
+    waterStyle: 'lake',
+    floating: '',
     // Bầu trời đêm: trang trí (danh sách), sao ('' / 'few' / 'many'), trăng ({ phase: 'auto' | 0-7, x, y } hoặc null)
     decor: [],
     stars: '',
@@ -659,6 +662,8 @@ function createNewScript() {
         state.smoke = '';
         renderSmoke();
         state.water = '';
+        state.waterStyle = 'lake';
+        state.floating = '';
         renderScene();
         state.decor = [];
         state.stars = '';
@@ -1078,6 +1083,8 @@ const HELP_TIPS = {
     decor: '<strong>Đèn trời</strong>: những chiếc đèn lồng giấy chập chờn bay lên chậm. <strong>Khinh khí cầu</strong>: vài khinh khí cầu '
         + 'trôi ngang, thỉnh thoảng bừng sáng khi đốt lửa. <strong>Máy bay</strong>: thỉnh thoảng một chiếc bay ngang trên cao, ban đêm chỉ '
         + 'thấy đèn đỏ, xanh ở hai đầu cánh và đèn chớp. Chỉ để trang trí, không ảnh hưởng tới các phát bắn; bật Giảm chớp sáng thì đèn không chớp.',
+    floating: '<strong>Hoa đăng</strong>: đèn hoa sen thả nước, ánh nến in bóng xuống nước. <strong>Cánh hoa</strong>: cánh hoa hồng, trắng '
+        + 'lác đác trên mặt nước. Kiểu "Sông chảy" thì chúng trôi theo dòng, "Hồ tĩnh lặng" thì gần như đứng yên, dập dềnh.',
     stars: 'Sao lấp lánh nhẹ trên bầu trời, mờ dần sát chân trời và trôi chậm cùng trăng. Có ảnh nền thành phố thì sao chỉ ở phần trời phía trên.',
     moon: '<strong>Theo ngày xem</strong>: trăng đúng pha của hôm người nhận mở (tính theo chu kỳ 29,53 ngày; rằm thì trăng tròn). '
         + '<strong>Tự chọn</strong>: chọn 1 trong 8 pha. Trăng trôi chậm theo một cung, phản chiếu xuống mặt nước nếu có. '
@@ -2185,6 +2192,8 @@ function getFinalConfig() {
         showBackground: state.showBackground,
         smoke: state.smoke || undefined,
         water: state.water || undefined,
+        waterStyle: state.water && state.waterStyle === 'river' ? 'river' : undefined,
+        floating: state.water && state.floating ? state.floating : undefined,
         decor: state.decor.length ? [...state.decor] : undefined,
         stars: state.stars || undefined,
         moon: state.moon ? { ...state.moon } : undefined,
@@ -2681,7 +2690,8 @@ function settingsSummaries() {
     const scene = [
         state.showBackground && 'Ảnh nền',
         state.smoke === 'light' ? 'Khói nhẹ' : state.smoke === 'heavy' ? 'Khói dày' : '',
-        state.water === 'third' ? 'Mặt nước 1/3' : state.water === 'half' ? 'Mặt nước nửa' : '',
+        state.water ? `${state.waterStyle === 'river' ? 'Sông' : 'Hồ'} ${state.water === 'third' ? '1/3' : 'nửa'} màn hình` : '',
+        state.water && { lanterns: 'hoa đăng', petals: 'cánh hoa' }[state.floating],
         state.reduceFlashing && 'Giảm chớp sáng',
         checked('loop') ? 'Lặp lại' : 'Chạy một lượt'
     ].filter(Boolean);
@@ -2856,12 +2866,28 @@ function setWater(level) {
     refreshMiniPreview();
 }
 
+function setWaterStyle(style) {
+    state.waterStyle = style;
+    renderScene();
+    refreshMiniPreview();
+}
+
+function setFloating(kind) {
+    state.floating = kind;
+    renderScene();
+    refreshMiniPreview();
+}
+
 function renderScene() {
-    document.querySelectorAll('.scene-water [data-water]').forEach(btn => {
-        const on = btn.dataset.water === (state.water || '');
-        btn.classList.toggle('active', on);
-        btn.setAttribute('aria-pressed', String(on));
+    [['.scene-water [data-water]', 'water', state.water || ''], ['.water-style [data-style]', 'style', state.waterStyle],
+        ['.water-floating [data-floating]', 'floating', state.floating || '']].forEach(([selector, attr, value]) => {
+        document.querySelectorAll(selector).forEach(btn => {
+            const on = btn.dataset[attr] === value;
+            btn.classList.toggle('active', on);
+            btn.setAttribute('aria-pressed', String(on));
+        });
     });
+    document.getElementById('water-options')?.classList.toggle('hide', !state.water);
     // Thước dọc của khung xem nhanh: độ cao 0 là mặt nước
     const level = { third: 2 / 3, half: 0.5 }[state.water] || 1;
     const rulerY = document.getElementById('mini-ruler-y');
@@ -4433,6 +4459,8 @@ function loadConfigIntoState(config, filename) {
     state.smoke = ['light', 'heavy'].includes(config.smoke) ? config.smoke : '';
     renderSmoke();
     state.water = ['third', 'half'].includes(config.water) ? config.water : '';
+    state.waterStyle = config.waterStyle === 'river' ? 'river' : 'lake';
+    state.floating = ['lanterns', 'petals'].includes(config.floating) ? config.floating : '';
     renderScene();
     state.decor = normalizeDecor(config.decor);
     state.stars = ['few', 'many'].includes(config.stars) ? config.stars : '';
@@ -4748,7 +4776,7 @@ Object.assign(window, {
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
     togglePreviewMusic, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
-    hideModal, setStartFrame, undo, redo, setOpenMode, setSmoke, setWater, setStars, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
+    hideModal, setStartFrame, undo, redo, setOpenMode, setSmoke, setWater, setWaterStyle, setFloating, setStars, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
     toggleLibraryPreview, chooseLibraryItem, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
     openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, prepareVideo, stopVideo, downloadVideo, shareVideo,
     restartVideo, setTimelineView, zoomTrack, copyTrackingLink, enableOpenNotifications, checkGiftOpens

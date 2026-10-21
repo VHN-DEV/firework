@@ -203,6 +203,18 @@ export async function run(browser, base, { check }) {
         check('mặt nước: có bóng phản chiếu dưới mép nước, pháo không vẽ xuống nước',
             scene.water > 0.001 && scene.sky === 0 && scene.sparksBelow === 0, JSON.stringify(scene));
         check('trang trí: đèn trời, khinh khí cầu hiện trên trời', scene.deco > 0.001, scene.deco.toFixed(4));
+        // Sông chảy có hoa đăng: đèn hoa sen sáng trên mặt nước
+        await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
+            { ...smokeShow(undefined), water: 'half', waterStyle: 'river', floating: 'lanterns' });
+        await sleep(1500);
+        const lanterns = await page.evaluate(() => {
+            const c = document.getElementById('water-canvas');
+            const d = c.getContext('2d').getImageData(0, Math.round(c.height / 2), c.width, Math.round(c.height / 2)).data;
+            let n = 0;
+            for (let i = 0; i < d.length; i += 4) if (d[i] > 200 && d[i + 1] > 120 && d[i + 2] > 120) n++;
+            return n;
+        });
+        check('sông chảy: hoa đăng trôi trên mặt nước', lanterns > 5, lanterns);
         check('cảnh vật không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
         await page.close();
 

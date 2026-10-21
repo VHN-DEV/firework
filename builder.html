@@ -413,6 +413,19 @@
                                     <button type="button" data-water="half" onclick="setWater('half')">Nửa</button>
                                 </div>
                                 <small class="field-hint">Mặt nước chiếm 1/3 hoặc nửa màn hình: pháo bắn lên từ mép nước, bóng pháo phản chiếu lung linh dưới nước</small>
+                                <div id="water-options" class="water-options hide">
+                                    <label>Kiểu mặt nước</label>
+                                    <div class="segmented water-style" role="group" aria-label="Kiểu mặt nước">
+                                        <button type="button" data-style="lake" onclick="setWaterStyle('lake')">Hồ tĩnh lặng</button>
+                                        <button type="button" data-style="river" onclick="setWaterStyle('river')">Sông chảy</button>
+                                    </div>
+                                    <label>Vật trôi trên nước<button type="button" class="help-tip" data-help="floating" aria-label="Giải thích">?</button></label>
+                                    <div class="segmented water-floating" role="group" aria-label="Vật trôi trên nước">
+                                        <button type="button" data-floating="" onclick="setFloating('')">Không</button>
+                                        <button type="button" data-floating="lanterns" onclick="setFloating('lanterns')">🪷 Hoa đăng</button>
+                                        <button type="button" data-floating="petals" onclick="setFloating('petals')">🌸 Cánh hoa</button>
+                                    </div>
+                                </div>
                             </div>
 
                             <label class="switch-row" for="reduce-flashing">
@@ -925,7 +938,8 @@
                             được những quả nổ sau rọi màu. "Nhẹ" thoáng qua, "Dày" đặc và lâu tan. Máy đặt chất lượng
                             Thấp thì không có khói.</li>
                         <li><strong>Mặt nước:</strong> nâng chân trời lên 1/3 hoặc nửa màn hình; pháo bắn từ mép nước và phản
-                            chiếu xuống nước. Độ cao 0 của mỗi phát bắn là mặt nước.</li>
+                            chiếu xuống nước. Độ cao 0 của mỗi phát bắn là mặt nước. Chọn hồ tĩnh lặng hoặc sông chảy, thả hoa đăng hay cánh hoa
+                            trôi trên nước.</li>
                         <li><strong>Bầu trời đêm:</strong> sao, trăng (đúng pha của hôm người nhận xem, hoặc tự chọn 1 trong 8 pha
                             và vị trí), đèn trời, khinh khí cầu, máy bay.</li>
                         <li><strong>Giảm chớp sáng:</strong> cho người nhạy cảm với ánh sáng nhấp nháy (hạt không chớp tắt,

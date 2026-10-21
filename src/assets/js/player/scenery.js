@@ -43,12 +43,61 @@ function backgroundOf(el) {
 
 let mirror = null;
 
+// Số giả ngẫu nhiên cố định theo chỉ số (mỗi dải sóng giữ nhịp riêng giữa các khung hình)
+const hash = n => {
+    const v = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+    return v - Math.floor(v);
+};
+
+// Hoa đăng: đế hoa sen giấy, nến cháy ở giữa
+function floatLanternSprite() {
+    if (sprites.floatLantern) return sprites.floatLantern;
+    const c = document.createElement('canvas');
+    c.width = 48;
+    c.height = 40;
+    const g = c.getContext('2d');
+    const glow = g.createRadialGradient(24, 18, 1, 24, 18, 20);
+    glow.addColorStop(0, 'rgba(255, 210, 120, 0.85)');
+    glow.addColorStop(1, 'rgba(255, 150, 60, 0)');
+    g.fillStyle = glow;
+    g.fillRect(0, 0, 48, 40);
+    // Cánh sen: ba lớp từ ngoài vào
+    [[-15, 0.8, '#ff7fa8'], [-9, 0.95, '#ff9fbf'], [-3, 1, '#ffc6d9']].forEach(([spread, h, color], layer) => {
+        g.fillStyle = color;
+        [-1, 1].forEach(side => {
+            g.beginPath();
+            g.moveTo(24, 32);
+            g.quadraticCurveTo(24 + side * (spread - 6) * -1, 30 - 10 * h, 24 + side * -spread * 0.6, 22 - layer * 2);
+            g.quadraticCurveTo(24 + side * 4, 28, 24, 32);
+            g.fill();
+        });
+    });
+    g.fillStyle = '#ffb3cb';
+    g.beginPath();
+    g.ellipse(24, 32, 14, 4, 0, 0, Math.PI * 2);
+    g.fill();
+    // Ngọn nến
+    g.fillStyle = '#fff3c4';
+    g.beginPath();
+    g.ellipse(24, 20, 2.2, 4, 0, 0, Math.PI * 2);
+    g.fill();
+    sprites.floatLantern = c;
+    return c;
+}
+
 export const Water = {
     drawn: false,
     frame: 0,
+    last: 0,
+    flow: 0,
+    dashes: [],
+    dashKey: '',
+    floats: [],
+    floatKey: '',
 
-    // sources: các canvas cùng kích thước khung (vẽ theo điểm ảnh CSS cssW x cssH); background: phần tử ảnh nền
-    render(ctx, { sources, background, sky, cssW, cssH, time }) {
+    // sources: các canvas cùng kích thước khung (vẽ theo điểm ảnh CSS cssW x cssH); background: phần tử ảnh nền;
+    // style: 'lake' hồ tĩnh lặng | 'river' sông chảy; floating: '' | 'lanterns' hoa đăng | 'petals' cánh hoa
+    render(ctx, { sources, background, sky, cssW, cssH, time, style, floating, calm }) {
         const level = horizon();
         const { width: W, height: H } = ctx.canvas;
         if (level >= 1 || !W || !H) {
@@ -100,25 +149,106 @@ export const Water = {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.globalAlpha = 1;
         ctx.clearRect(0, 0, W, H);
-        const tint = `${18 + sky.r * 0.5 | 0}, ${26 + sky.g * 0.5 | 0}, ${44 + sky.b * 0.5 | 0}`;
+        const tint = `${9 + sky.r * 0.5 | 0}, ${13 + sky.g * 0.5 | 0}, ${24 + sky.b * 0.5 | 0}`;
         const base = ctx.createLinearGradient(0, top, 0, H);
         base.addColorStop(0, `rgb(${tint})`);
-        base.addColorStop(1, 'rgb(4, 7, 15)');
+        base.addColorStop(1, 'rgb(3, 5, 10)');
         ctx.fillStyle = base;
         ctx.fillRect(0, top, W, depth);
 
-        // 3. Bóng phản chiếu: từng dải ngang lệch theo sóng, càng xa bờ càng lệch nhiều và càng mờ
+        // 3. Bóng phản chiếu kiểu tranh điểm ảnh: mặt nước chia thành từng dải ngang, mỗi dải lệch một nấc theo nhịp
+        //    sóng riêng. Sát bờ dải mỏng, lệch ít (gần như gương); càng xa bờ dải càng dày, lệch nhiều, mờ hơn.
+        //    Sông thì sóng mạnh hơn và các vệt sáng trôi ngang theo dòng.
+        const river = style === 'river';
+        const dt = Math.min(50, this.last ? time - this.last : 16);
+        this.last = time;
+        this.flow += dt * (river ? 0.03 : 0.004);
         const strip = IS_MOBILE ? 3 : 2;
-        for (let y = 0; y < depth; y += strip) {
+        // Ghép kiểu lighten như các lớp trên trang: phần đen (lớp vệt pháo được phủ đen dần) không làm tối mặt nước
+        ctx.globalCompositeOperation = 'lighten';
+        for (let y = 0, i = 0; y < depth; i++) {
             const d = y / depth;
-            const amp = (0.5 + d * 2.2) * k;
-            const yc = y / k;
-            const dx = Math.sin(yc * 0.32 + time * 0.0021) * amp + Math.sin(yc * 0.097 - time * 0.0013) * amp * 0.6;
-            ctx.globalAlpha = 0.62 * (1 - d * 0.65);
-            ctx.drawImage(mirror, 0, y, W, strip, dx, top + y, W, strip);
+            const band = Math.max(strip, Math.round((strip + d * (river ? 9 : 5) * k * 2) / strip) * strip);
+            const phase = hash(i) * Math.PI * 2;
+            const speed = 0.0008 + hash(i + 50) * 0.0016;
+            const amp = (river ? 0.6 + d * 9 : 0.2 + d * 3) * k;
+            const dx = Math.round((Math.sin(time * speed + phase) + 0.5 * Math.sin(time * speed * 1.7 + phase * 2)) * amp);
+            // Khe tối ngang, càng xa bờ càng nhiều: bóng trăng, bóng pháo vỡ thành từng lát
+            const gap = hash(i + 99) < 0.1 + d * 0.3 ? 0.35 : 1;
+            ctx.globalAlpha = (river ? 0.6 * (1 - d * 0.6) : 0.78 * (1 - d * 0.5)) * gap;
+            ctx.drawImage(mirror, 0, y, W, band, dx, top + y, W, band);
+            y += band;
         }
 
-        // 4. Đường chân trời sáng mảnh
+        // 4. Ánh sáng in thành vệt dọc xuống nước (trăng, pháo sáng kéo dài như ngoài đời)
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, top, W, depth);
+        ctx.clip();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.16;
+        ctx.drawImage(mirror, 0, top + Math.round(3 * k));
+        ctx.globalAlpha = 0.08;
+        ctx.drawImage(mirror, 0, top + Math.round(7 * k));
+
+        // 5. Vệt sáng ngắn lấp lánh trên mặt nước; vệt nào nằm chỗ có ánh pháo thì sáng rực lên
+        this.syncDashes(river, cssW);
+        this.dashes.forEach(dash => {
+            const x = (((dash.u * (cssW + 40) + this.flow * (river ? 0.4 + dash.d * 1.2 : 0.3)) % (cssW + 40)) - 20) * k;
+            const row = top + Math.round(dash.d * (depth - 1));
+            const len = Math.max(1, dash.len * (0.5 + dash.d) * k);
+            const twinkle = calm ? 0.6 : 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(time * dash.speed + dash.phase));
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.globalAlpha = twinkle * 0.22 * (1 - dash.d * 0.3);
+            ctx.fillStyle = 'rgb(190, 210, 255)';
+            ctx.fillRect(x, row, len, Math.max(1, Math.round(k)));
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = twinkle;
+            ctx.drawImage(mirror, Math.max(0, x), row - top, len, 1, x, row, len, Math.max(1, Math.round(k)));
+        });
+        ctx.restore();
+
+        // 6. Vật trôi trên nước: hoa đăng (tự phát sáng, in bóng), cánh hoa; xa bờ thì to và trôi nhanh hơn (gần người xem)
+        this.syncFloats(floating, river);
+        this.floats.forEach(item => {
+            item.u += (river ? item.speed * (0.3 + item.d) : item.speed * 0.08) * dt / cssW;
+            if (item.u > 1.05) item.u = -0.05;
+            if (item.u < -0.05) item.u = 1.05;
+            item.bob += dt * 0.0015;
+            const x = item.u * cssW * k;
+            const y = top + item.d * depth + Math.sin(item.bob) * k;
+            const s = (0.35 + item.d * 0.9) * k * (IS_MOBILE ? 0.85 : 1);
+            if (item.kind === 'lantern') {
+                // Bóng ánh nến kéo dài xuống nước
+                const glow = ctx.createRadialGradient(x, y + 6 * s, 0, x, y + 6 * s, 16 * s);
+                glow.addColorStop(0, `rgba(255, 180, 90, ${calm ? 0.3 : 0.25 + Math.sin(item.bob * 3) * 0.05})`);
+                glow.addColorStop(1, 'rgba(255, 150, 60, 0)');
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = glow;
+                ctx.save();
+                ctx.translate(x, y + 6 * s);
+                ctx.scale(1, 1.8);
+                ctx.translate(-x, -(y + 6 * s));
+                ctx.fillRect(x - 16 * s, y + 6 * s - 16 * s, 32 * s, 32 * s);
+                ctx.restore();
+                const sprite = floatLanternSprite();
+                ctx.drawImage(sprite, x - 12 * s, y - 14 * s, 24 * s, 20 * s);
+            } else {
+                item.rot += dt * item.spin;
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(item.rot);
+                ctx.globalAlpha = 0.85;
+                ctx.fillStyle = item.color;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 2.6 * s, 1.5 * s, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        });
+
+        // 7. Mép nước sáng mảnh
+        ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
         const line = ctx.createLinearGradient(0, 0, W, 0);
         line.addColorStop(0, 'rgba(150, 180, 230, 0)');
@@ -126,6 +256,44 @@ export const Water = {
         line.addColorStop(1, 'rgba(150, 180, 230, 0)');
         ctx.fillStyle = line;
         ctx.fillRect(0, top, W, Math.max(1, k));
+    },
+
+    // Rải lại các vệt sáng khi đổi kiểu nước hoặc cỡ khung
+    syncDashes(river, cssW) {
+        const key = `${river}_${Math.round(cssW)}`;
+        if (key === this.dashKey) return;
+        this.dashKey = key;
+        const count = Math.round((river ? 150 : 80) * (IS_MOBILE ? 0.55 : 1));
+        this.dashes = Array.from({ length: count }, () => ({
+            u: Math.random(),
+            d: Math.pow(Math.random(), 0.8),
+            len: MyMath.random(2, 10),
+            phase: Math.random() * Math.PI * 2,
+            speed: MyMath.random(0.0015, 0.005)
+        }));
+    },
+
+    syncFloats(kind, river) {
+        const key = `${kind}_${river}`;
+        if (key === this.floatKey) return;
+        this.floatKey = key;
+        this.floats = [];
+        if (kind === 'lanterns') {
+            const count = IS_MOBILE ? 6 : 10;
+            for (let i = 0; i < count; i++) {
+                this.floats.push({ kind: 'lantern', u: Math.random(), d: MyMath.random(0.12, 0.9), speed: MyMath.random(0.012, 0.022), bob: Math.random() * 6 });
+            }
+        } else if (kind === 'petals') {
+            const count = IS_MOBILE ? 22 : 38;
+            const colors = ['#ff9ec4', '#ffc2d8', '#ffffff', '#ffb3c7'];
+            for (let i = 0; i < count; i++) {
+                this.floats.push({
+                    kind: 'petal', u: Math.random(), d: MyMath.random(0.05, 0.95), speed: MyMath.random(0.015, 0.03),
+                    bob: Math.random() * 6, rot: Math.random() * Math.PI, spin: MyMath.random(-0.0006, 0.0006),
+                    color: colors[(Math.random() * colors.length) | 0]
+                });
+            }
+        }
     }
 };
 

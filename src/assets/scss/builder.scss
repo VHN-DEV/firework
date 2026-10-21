@@ -3249,6 +3249,26 @@ select.is-invalid {
     grid-template-columns: repeat(3, 1fr);
 }
 
+// Kiểu mặt nước, vật trôi (hiện khi có mặt nước)
+.water-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+
+    &.hide {
+        display: none;
+    }
+
+    > label {
+        margin-top: 0.2rem;
+    }
+}
+
+.segmented.water-floating {
+    grid-template-columns: repeat(3, 1fr);
+}
+
 // 8 pha trăng (biểu tượng)
 .moon-phases {
     display: grid;

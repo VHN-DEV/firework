@@ -2356,7 +2356,10 @@ function render(speed) {
         sky: currentSkyColor,
         cssW: frameW,
         cssH: frameH,
-        time: performance.now()
+        time: performance.now(),
+        style: burstConfig && burstConfig.waterStyle === 'river' ? 'river' : 'lake',
+        floating: burstConfig && ['lanterns', 'petals'].includes(burstConfig.floating) ? burstConfig.floating : '',
+        calm: reduceFlashingSelector()
     });
 }
 
