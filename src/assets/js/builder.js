@@ -2988,22 +2988,19 @@ function settingsSummaries() {
     const recipient = value('recipient');
     const music = state.music;
     const musicName = music ? (music.name || decodeURIComponent(music.url.split('/').pop().split('?')[0])) : '';
+    const moon = state.moon;
     const scene = [
         state.showBackground && 'Ảnh nền',
+        { few: 'Ít sao', many: 'Nhiều sao' }[state.stars],
+        !moon ? '' : moon.phase === 'auto' ? 'Trăng theo ngày' : `${MOON_PHASES[moon.phase].emoji} ${MOON_PHASES[moon.phase].name}`,
+        state.decor.map(kind => DECOR_NAMES[kind]).join(', '),
         state.smoke === 'light' ? 'Khói nhẹ' : state.smoke === 'heavy' ? 'Khói dày' : '',
         state.water ? `${state.waterStyle === 'river' ? 'Sông' : 'Hồ'} ${state.water === 'third' ? '1/3' : 'nửa'} màn hình` : '',
         state.water && { lanterns: 'hoa đăng', petals: 'cánh hoa' }[state.floating],
         checked('loop') ? 'Lặp lại' : 'Chạy một lượt'
     ].filter(Boolean);
-    const moon = state.moon;
-    const sky = [
-        !moon ? '' : moon.phase === 'auto' ? 'Trăng theo ngày' : `${MOON_PHASES[moon.phase].emoji} ${MOON_PHASES[moon.phase].name}`,
-        { few: 'Ít sao', many: 'Nhiều sao' }[state.stars] || '',
-        state.decor.map(kind => DECOR_NAMES[kind]).join(', ')
-    ].filter(Boolean);
     const filename = value('filename');
     return {
-        sky: sky.join(' · ') || 'Không có',
         viewer: [
             VIEWER_QUALITY_NAMES[state.viewer.quality] || 'Chất lượng tự động',
             VIEWER_SKY_NAMES[state.viewer.skyLighting],
@@ -3083,7 +3080,7 @@ function setSmoke(level) {
     refreshMiniPreview();
 }
 
-// Bầu trời đêm (nhóm "Bầu trời đêm"): sao, trăng, trang trí
+// Bầu trời đêm (nhóm "Khung cảnh & hiệu ứng"): sao, trăng, trang trí
 const DECOR_NAMES = { lanterns: 'Đèn trời', balloons: 'Khinh khí cầu', planes: 'Máy bay' };
 
 function setStars(level) {

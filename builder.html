@@ -323,9 +323,28 @@
                             </div>
                         </div>
                     </details>
-                    <details class="settings-group" data-group="sky">
-                        <summary><i class="fas fa-moon"></i><span class="summary-title">Bầu trời đêm</span><span class="summary-hint" data-summary="sky"></span></summary>
+                    <details class="settings-group" data-group="scene">
+                        <summary><i class="fas fa-mountain-sun"></i><span class="summary-title">Khung cảnh & hiệu ứng</span><span class="summary-hint" data-summary="scene"></span></summary>
                         <div class="settings-group-body">
+                            <label class="switch-row" for="show-background">
+                                <span>
+                                    <strong>Hiển thị ảnh nền<button type="button" class="help-tip" data-help="background" aria-label="Giải thích">?</button></strong>
+                                    <small>Ảnh phong cảnh phía sau pháo hoa</small>
+                                </span>
+                                <input type="checkbox" id="show-background" class="switch">
+                            </label>
+                            <div id="background-upload-container" class="field hide">
+                                <div class="background-upload-frame" id="bg-upload-frame"
+                                    onclick="document.getElementById('background-file').click()">
+                                    <img id="background-preview" src="src/assets/img/background.webp" alt="Ảnh nền">
+                                    <div class="upload-overlay">
+                                        <i class="fas fa-cloud-arrow-up"></i>
+                                        <span>Đổi ảnh nền</span>
+                                    </div>
+                                </div>
+                                <input type="file" id="background-file" class="hide" accept="image/*">
+                            </div>
+
                             <div class="field">
                                 <label>Sao<button type="button" class="help-tip" data-help="stars" aria-label="Giải thích">?</button></label>
                                 <div class="segmented sky-stars" role="group" aria-label="Sao">
@@ -370,29 +389,6 @@
                                     <button type="button" data-decor="planes" onclick="toggleDecor('planes')">✈️</button>
                                 </div>
                                 <small class="field-hint">Bấm để bật/tắt từng thứ, chọn được nhiều</small>
-                            </div>
-                        </div>
-                    </details>
-                    <details class="settings-group" data-group="scene">
-                        <summary><i class="fas fa-mountain-sun"></i><span class="summary-title">Khung cảnh & hiệu ứng</span><span class="summary-hint" data-summary="scene"></span></summary>
-                        <div class="settings-group-body">
-                            <label class="switch-row" for="show-background">
-                                <span>
-                                    <strong>Hiển thị ảnh nền<button type="button" class="help-tip" data-help="background" aria-label="Giải thích">?</button></strong>
-                                    <small>Ảnh phong cảnh phía sau pháo hoa</small>
-                                </span>
-                                <input type="checkbox" id="show-background" class="switch">
-                            </label>
-                            <div id="background-upload-container" class="field hide">
-                                <div class="background-upload-frame" id="bg-upload-frame"
-                                    onclick="document.getElementById('background-file').click()">
-                                    <img id="background-preview" src="src/assets/img/background.webp" alt="Ảnh nền">
-                                    <div class="upload-overlay">
-                                        <i class="fas fa-cloud-arrow-up"></i>
-                                        <span>Đổi ảnh nền</span>
-                                    </div>
-                                </div>
-                                <input type="file" id="background-file" class="hide" accept="image/*">
                             </div>
 
                             <div class="field">
