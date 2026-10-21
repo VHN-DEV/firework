@@ -956,9 +956,31 @@ const WaterLife = {
         this.drops = this.drops.filter(p => p.y <= p.base || p.vy < 0);
     },
 
-    // Vòng sóng (dưới mọi vật). Lớp đã nhân k: tọa độ điểm ảnh CSS.
-    drawUnder(ctx, k, topCss, depthCss) {
+    // Vòng sóng; bóng cò, vịt đang bay in xuống nước, bay càng cao bóng càng nhạt (dưới mọi vật). Lớp đã nhân k: tọa độ
+    // điểm ảnh CSS.
+    drawUnder(ctx, k, topCss, depthCss, time = 0) {
         ctx.globalCompositeOperation = 'source-over';
+        const reach = depthCss * 1.2;
+        this.birds.forEach(bird => {
+            if (bird.state !== 'fly' && bird.state !== 'leave') return;
+            const surf = this.surfaceY(bird.d, topCss, depthCss);
+            const y = bird.y + Math.cos(bird.ph) * 0.8 * bird.u;
+            const lift = surf - y + 30 * bird.u;
+            if (surf - y < 0 || surf - y > reach) return;
+            drawMirrorSlices(ctx, surf, lift, bird.x, 45 * bird.u, 0.24 * (1 - (surf - y) / reach), time, bird.seed, bird.u, 1)(alpha => {
+                ctx.globalAlpha = alpha;
+                drawEgret(ctx, bird.x, y, bird.u, bird.dir, bird.pose, k);
+            });
+        });
+        this.ducks.forEach(duck => {
+            if (duck.state !== 'fly' && duck.state !== 'leave') return;
+            const s = this.scale(duck.d);
+            const surf = this.surfaceY(duck.d, topCss, depthCss);
+            if (surf - duck.y < 0 || surf - duck.y > reach) return;
+            const pose = Math.floor(duck.flap / 85) % 2 ? 'up' : 'down';
+            drawMirrorSlices(ctx, surf, surf - duck.y + 12 * s, duck.x, 14 * s, 0.26 * (1 - (surf - duck.y) / reach), time, duck.seed, s, 1)(
+                alpha => this.paintDuck(ctx, duck, pose, s, alpha));
+        });
         ctx.lineWidth = 1 / k;
         ctx.strokeStyle = 'rgb(205, 222, 255)';
         this.ripples.forEach(r => {
@@ -1049,33 +1071,34 @@ const WaterLife = {
         }
     },
 
+    // Vịt: đang bơi thì vệt sóng tách ra phía sau, bóng in xuống nước gợn theo sóng
     drawDuck(ctx, duck, pose, s, k, time = 0) {
+        if (pose === 'swim' || pose === 'dabble') {
+            if (pose === 'swim' && Math.abs(duck.vx) > 0.004) {
+                drawWakeTrail(ctx, duck.x - Math.sign(duck.vx) * 4 * s, duck.y, 5 * s, s, k, time, duck.seed, -Math.sign(duck.vx), 0.45);
+            }
+            drawMirrorSlices(ctx, duck.y, 24 * s * 20 / 40, duck.x, 13 * s, 0.46, time, duck.seed, s, 0.8)(
+                alpha => this.paintDuck(ctx, duck, pose, s, alpha));
+        }
+        this.paintDuck(ctx, duck, pose, s, 0.95);
+    },
+
+    paintDuck(ctx, duck, pose, s, alpha) {
         const sprite = duckSprite(duck.kind, pose);
         const w = 24 * s;
         const h = w * 28 / 40;
-        const onWater = pose === 'swim' || pose === 'dabble';
-        // Đang bơi: vệt sóng tách ra phía sau theo hướng bơi
-        if (pose === 'swim' && Math.abs(duck.vx) > 0.004) {
-            drawWakeTrail(ctx, duck.x - Math.sign(duck.vx) * 4 * s, duck.y, 5 * s, s, k, time, duck.seed, -Math.sign(duck.vx), 0.45);
-        }
         ctx.save();
-        ctx.globalAlpha = 0.95;
+        ctx.globalAlpha = alpha;
         ctx.translate(duck.x, duck.y);
         if (duck.dir < 0) ctx.scale(-1, 1);
-        const anchorY = onWater ? 20 / 28 : 0.5;
-        ctx.drawImage(sprite, -w / 2, -h * anchorY, w, h);
-        if (onWater) {
-            ctx.globalAlpha = 0.22;
-            ctx.scale(1, -0.7);
-            ctx.drawImage(sprite, -w / 2, -h * anchorY, w, h);
-        }
+        ctx.drawImage(sprite, -w / 2, -h * (pose === 'swim' || pose === 'dabble' ? 20 / 28 : 0.5), w, h);
         ctx.restore();
     },
 
     makeEgret(cssW, topCss, rocks) {
         const dir = Math.random() < 0.5 ? 1 : -1;
         const bird = {
-            state: 'fly', dir, x: dir > 0 ? -30 : cssW + 30, y: topCss * rand(0.2, 0.55), ph: Math.random() * 6, t: 0,
+            state: 'fly', dir, x: dir > 0 ? -30 : cssW + 30, y: topCss * rand(0.2, 0.55), ph: Math.random() * 6, t: 0, seed: Math.random(),
             rest: rand(9000, 18000), act: null, legs: 'fly', d: 0.5, u: 1, pose: { ...EGRET_POSE, legs: 'fly' }
         };
         const logs = this.logs.filter(log => !log.bird && logSprite(log.variant).perch && log.x > cssW * 0.15 && log.x < cssW * 0.6);
@@ -1279,12 +1302,7 @@ const WaterLife = {
             drawEgret(ctx, bird.x, bird.y, u, bird.dir, bird.pose, k);
             ctx.restore();
         };
-        ctx.save();
-        ctx.translate(0, feet.surf);
-        ctx.scale(1, -0.75);
-        ctx.translate(0, -feet.surf);
-        paint(0.2);
-        ctx.restore();
+        drawMirrorSlices(ctx, feet.surf, feet.surf - (bird.y - 30 * u), bird.x, 34 * u, 0.36, bird.t, bird.seed, u)(paint);
         paint(0.97);
         if (feet.wade) {
             ctx.strokeStyle = 'rgb(205, 222, 255)';
@@ -1764,6 +1782,28 @@ function drawReflection(ctx, sprite, x, y, w, wlOff, alpha, time, seed, s) {
     }
 }
 
+// Bóng con vật (cò, vịt) in xuống nước: lật ngược qua mặt nước surf, ngắn lại chút, chia từng lát ngang, mỗi lát lệch
+// một nhịp sóng riêng, lát càng xa mặt nước càng lệch nhiều và nhạt. lift: từ mặt nước lên tới đỉnh con vật; paint(alpha)
+// vẽ con vật ở chỗ thật (vẽ lại cho từng lát, cắt theo lát).
+function drawMirrorSlices(ctx, surf, lift, x, halfW, alpha, time, seed, s, squash = 0.85) {
+    return paint => {
+        const rows = 5;
+        const span = lift * squash;
+        for (let i = 0; i < rows; i++) {
+            const dx = Math.sin(time * 0.0035 + i * 1.9 + seed * 7) * (0.4 + i * 0.5) * s;
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(x - halfW - 4 * s, surf + span * i / rows, halfW * 2 + 8 * s, span / rows + 0.5);
+            ctx.clip();
+            ctx.translate(dx, surf);
+            ctx.scale(1, -squash);
+            ctx.translate(0, -surf);
+            paint(alpha * (1 - 0.6 * i / rows));
+            ctx.restore();
+        }
+    };
+}
+
 // Phần chìm dưới nước: từng lát lệch nhẹ theo sóng (nước khúc xạ) nên không đứng im như ảnh dán
 function drawSubmerged(ctx, sprite, x, y, w, below, time, seed, s) {
     const slices = 5;
@@ -2048,7 +2088,7 @@ export const Water = {
         }
         ctx.setTransform(k, 0, 0, k, 0, 0);
         ctx.globalCompositeOperation = 'source-over';
-        if (life) WaterLife.drawUnder(ctx, k, waterTopCss, waterDepthCss);
+        if (life) WaterLife.drawUnder(ctx, k, waterTopCss, waterDepthCss, time);
         [
             ...this.plants.map(item => ({
                 d: item.d, draw: () => this.drawPlant(ctx, item, item.u * cssW, surfY(item.d) + Math.sin(item.bob) * 0.5, floatScale(item.d), k, time, river)
