@@ -563,6 +563,8 @@ export const musicPlayer = {
     finish(delay) {
         if (!this.started || this.finished) return;
         this.finished = true;
+        // Màn trình diễn đã hết: bài nhạc hết trong lúc nhỏ dần thì dừng luôn, không phát lại từ đầu
+        if (this.audio) this.audio.loop = false;
         this.finishTimer = setTimeout(() => this.fadeTo(0, 4000, () => this.audio.pause()), delay);
     },
 
@@ -572,6 +574,7 @@ export const musicPlayer = {
         clearTimeout(this.finishTimer);
         clearInterval(this.fadeTimer);
         this.audio.pause();
+        this.audio.loop = !this.config.sync;
         this.setVolume(0);
         this.started = false;
         this.finished = false;
