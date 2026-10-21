@@ -10,7 +10,7 @@ import MyMath from '../MyMath.js';
 import { LAUNCH_STYLES } from './launch-styles.js';
 import { randomColor } from './colors.js';
 import { IS_MOBILE, COLOR, INVISIBLE, PI_2 } from './env.js';
-import { stageW, stageH, quality, isHighQuality, isRunning, settings } from './state.js';
+import { stageW, stageH, quality, isHighQuality, isRunning, settings, horizon } from './state.js';
 import { Star, BurstFlash } from './particles.js';
 import { soundManager } from './audio.js';
 import { normalizeAssetPath } from './utils.js';
@@ -66,7 +66,8 @@ export class Shell {
     // Pháo theo kịch bản dùng `launchAt()` để nổ đúng tọa độ đã đặt.
     launch(position, launchHeight) {
         const width = stageW;
-        const height = stageH;
+        // Có mặt nước thì tính theo phần trời phía trên
+        const height = stageH * horizon();
         // Khoảng cách từ các cạnh của màn hình để giữ vỏ.
         const hpad = 60;
         // Khoảng cách từ đỉnh màn hình để giữ cho vỏ nổ.
@@ -84,7 +85,8 @@ export class Shell {
 
     launchAt(x, y) {
         const width = stageW;
-        const height = stageH;
+        // Phóng từ đường chân trời (đáy màn hình, hoặc mép nước khi kịch bản có mặt nước)
+        const height = stageH * horizon();
 
         const launchX = x;
         const launchY = height;

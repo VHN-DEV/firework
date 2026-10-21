@@ -355,6 +355,26 @@
                                 <small class="field-hint">Khói trắng khi pháo nổ, được pháo rọi màu và trôi theo gió như ngoài đời</small>
                             </div>
 
+                            <div class="field">
+                                <label>Mặt nước<button type="button" class="help-tip" data-help="water" aria-label="Giải thích">?</button></label>
+                                <div class="segmented scene-water" role="group" aria-label="Mặt nước">
+                                    <button type="button" data-water="" onclick="setWater('')">Không</button>
+                                    <button type="button" data-water="third" onclick="setWater('third')">1/3</button>
+                                    <button type="button" data-water="half" onclick="setWater('half')">Nửa</button>
+                                </div>
+                                <small class="field-hint">Mặt nước chiếm 1/3 hoặc nửa màn hình: pháo bắn lên từ mép nước, bóng pháo phản chiếu lung linh dưới nước</small>
+                            </div>
+
+                            <div class="field">
+                                <label>Trang trí bầu trời<button type="button" class="help-tip" data-help="decor" aria-label="Giải thích">?</button></label>
+                                <div class="segmented scene-decor" role="group" aria-label="Trang trí bầu trời">
+                                    <button type="button" data-decor="" onclick="setDecor('')">Không</button>
+                                    <button type="button" data-decor="lanterns" onclick="setDecor('lanterns')">🏮 Đèn trời</button>
+                                    <button type="button" data-decor="balloons" onclick="setDecor('balloons')">🎈 Khinh khí cầu</button>
+                                    <button type="button" data-decor="both" onclick="setDecor('both')">Cả hai</button>
+                                </div>
+                            </div>
+
                             <label class="switch-row" for="reduce-flashing">
                                 <span>
                                     <strong>Giảm chớp sáng<button type="button" class="help-tip" data-help="reduceFlashing" aria-label="Giải thích">?</button></strong>

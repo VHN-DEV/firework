@@ -53,6 +53,14 @@ export function setReduceFlashing(check) {
     reduceFlashing = check;
 }
 
+// Đường chân trời (điểm phóng pháo), tính theo phần chiều cao sân khấu từ trên xuống: 1 là đáy màn hình,
+// nhỏ hơn khi kịch bản có mặt nước. Trình phát cắm hàm thật vào lúc khởi động.
+export let horizon = () => 1;
+
+export function setHorizon(check) {
+    horizon = check;
+}
+
 // Mức khói pháo: 0 tắt, 1 nhẹ, 2 dày (kịch bản chọn; chất lượng Thấp thì tắt). Trình phát cắm hàm thật vào lúc khởi động.
 export let smokeLevel = () => 0;
 

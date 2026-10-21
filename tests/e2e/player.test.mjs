@@ -182,6 +182,29 @@ export async function run(browser, base, { check }) {
         check('khói pháo không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
         await page.close();
 
+        // ---- Cảnh vật: mặt nước phản chiếu (pháo không vẽ dưới mép nước), đèn trời, khinh khí cầu
+        page = await openPage(browser);
+        await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
+            { ...smokeShow(undefined), water: 'half', decor: 'both' });
+        await sleep(4500);
+        const scene = await page.evaluate(() => {
+            const cov = (id, from = 0, to = 1) => {
+                const c = document.getElementById(id);
+                const y0 = Math.round(c.height * from), h = Math.max(1, Math.round(c.height * (to - from)));
+                const d = c.getContext('2d').getImageData(0, y0, c.width, h).data;
+                let n = 0;
+                for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 60) n++;
+                return n / (d.length / 4);
+            };
+            return { water: cov('water-canvas', 0.5, 1), sky: cov('water-canvas', 0, 0.5), deco: cov('deco-canvas'), sparksBelow: cov('trails-canvas', 0.52, 1) };
+        });
+        check('mặt nước: có bóng phản chiếu dưới mép nước, pháo không vẽ xuống nước',
+            scene.water > 0.001 && scene.sky === 0 && scene.sparksBelow === 0, JSON.stringify(scene));
+        check('trang trí: đèn trời, khinh khí cầu hiện trên trời', scene.deco > 0.001, scene.deco.toFixed(4));
+        check('cảnh vật không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
+        await page.close();
+
         // Người nhận mở link tặng trên máy đã đặt chất lượng Thấp (xem nhanh không đọc cài đặt đã lưu)
         writeConfig('zz_e2e_smoke', smokeShow('heavy'));
         page = await openPage(browser);

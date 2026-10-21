@@ -2324,7 +2324,8 @@ function render(speed) {
 
     // Mặt nước phản chiếu mọi thứ phía trên (vẽ sau cùng để bắt kịp khung hình này)
     Water.render(waterCtx, {
-        sources: [decoCanvas, smokeCanvas, trailsStage.canvas, mainStage.canvas],
+        // Lớp đang trống (không trang trí, không khói) thì bỏ qua cho nhẹ máy
+        sources: [Decor.items.length && decoCanvas, Smoke.count() && smokeCanvas, trailsStage.canvas, mainStage.canvas],
         background: store.state.config.showBackground ? appNodes.backgroundImage : null,
         sky: currentSkyColor,
         cssW: frameW,

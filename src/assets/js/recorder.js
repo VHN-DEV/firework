@@ -233,13 +233,21 @@ export function createVideoRecorder({ width, height, fps = 30, bitrate = 8e6, co
         ctx.fillRect(0, 0, width, height);
         const bg = backgroundImage();
         if (bg) {
+            // Đúng khung và vị trí như trên trang (có mặt nước thì ảnh nền chỉ chiếm phần trời, canh đáy)
             const { image, opacity } = bg;
-            const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+            const r = background.getBoundingClientRect();
+            const bx = (r.left - box.left) * k, by = (r.top - box.top) * k, bw = r.width * k, bh = r.height * k;
+            const [px, py] = getComputedStyle(background).backgroundPosition.split(' ').map(v => (Number.isFinite(parseFloat(v)) ? parseFloat(v) : 50) / 100);
+            const scale = Math.max(bw / image.naturalWidth, bh / image.naturalHeight);
             const w = image.naturalWidth * scale;
             const h = image.naturalHeight * scale;
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(bx, by, bw, bh);
+            ctx.clip();
             ctx.globalAlpha = opacity;
-            ctx.drawImage(image, (width - w) / 2, (height - h) / 2, w, h);
-            ctx.globalAlpha = 1;
+            ctx.drawImage(image, bx + (bw - w) * px, by + (bh - h) * py, w, h);
+            ctx.restore();
         }
         ctx.globalCompositeOperation = 'lighten';
         layers.forEach(layer => {

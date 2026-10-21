@@ -8,7 +8,7 @@
 
 import MyMath from '../MyMath.js';
 import { PI_2, INVISIBLE, COLOR } from './env.js';
-import { stageW, stageH, isLowQuality, quality } from './state.js';
+import { stageW, stageH, isLowQuality, quality, horizon } from './state.js';
 import { Star, Spark } from './particles.js';
 import { soundManager } from './audio.js';
 
@@ -149,7 +149,9 @@ export class ImageBurst {
         // "Không khung" thì không vẽ viền, chỉ có hạt và tia lửa quanh ảnh
         this.stroke = !!(this.frame && this.color);
         // Cỡ 1 ≈ 500px nhưng không vượt quá 86% cạnh ngắn của màn hình (điện thoại)
-        const box = Math.max(60, Math.min(size * 500, Math.min(stageW, stageH) * 0.86));
+        // Ảnh nằm gọn trong phần trời (phía trên mặt nước nếu có)
+        const skyH = stageH * horizon();
+        const box = Math.max(60, Math.min(size * 500, Math.min(stageW, skyH) * 0.86));
         const aspect = img.width / img.height;
         this.w = aspect >= 1 ? box : box * aspect;
         this.h = aspect >= 1 ? box / aspect : box;
@@ -157,7 +159,7 @@ export class ImageBurst {
         const margin = 12;
         const fit = (v, half, max) => half * 2 + margin * 2 >= max ? max / 2 : MyMath.clamp(v, half + margin, max - half - margin);
         this.x = fit(x, this.w / 2, stageW);
-        this.y = fit(y, this.h / 2, stageH);
+        this.y = fit(y, this.h / 2, skyH);
         this.totalLife = Math.max(1500, Number(duration) || 4500);
         this.life = this.totalLife;
         this.appearTime = Math.min(1800, this.totalLife * 0.4);
