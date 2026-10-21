@@ -196,78 +196,62 @@
             </div>
             <div class="menu hide">
                 <div class="menu__inner-wrap">
-                    <div class="btn btn--bright close-menu-btn">
-                        <svg fill="white" width="24" height="24">
-                            <use href="#icon-close" xlink:href="#icon-close"></use>
-                        </svg>
-                    </div>
-                    <div class="menu__header">Cài đặt</div>
-                    <div class="menu__subheader">Nhấp vào nhãn bất kỳ để xem thêm thông tin.</div>
-                    <form>
-                        <div class="form-option form-option--checkbox-list">
-                            <label class="shell-type-label">Loại pháo</label>
-                            <div class="shell-type-list"></div>
+                    <div class="menu__panel" role="dialog" aria-modal="true" aria-labelledby="menu-title">
+                        <div class="menu__top">
+                            <h2 id="menu-title" class="menu__header">Cài đặt</h2>
+                            <div class="btn btn--bright close-menu-btn" role="button" aria-label="Đóng cài đặt">
+                                <svg fill="white" width="24" height="24">
+                                    <use href="#icon-close" xlink:href="#icon-close"></use>
+                                </svg>
+                            </div>
                         </div>
-                        <div class="form-option form-option--text">
-                            <label class="custom-text-label">Văn bản</label>
-                            <input class="custom-text" type="text"
-                                placeholder="Nhập chữ, dùng dấu phẩy (,) để ngăn cách" maxlength="50" />
+                        <!-- Chỉ giữ cài đặt cho người xem; loại pháo, chữ, nhạc... nằm trong kịch bản (builder) -->
+                        <form>
+                            <p class="menu__group">Hình ảnh</p>
+                            <div class="form-option form-option--select">
+                                <label for="set-quality" class="quality-ui-label">Chất lượng</label>
+                                <button type="button" class="menu-help" data-help="quality" aria-label="Giải thích: Chất lượng">?</button>
+                                <select id="set-quality" class="quality-ui"></select>
+                            </div>
+                            <div class="form-option form-option--select">
+                                <label for="set-sky" class="sky-lighting-label">Ánh sáng bầu trời</label>
+                                <button type="button" class="menu-help" data-help="skyLighting" aria-label="Giải thích: Ánh sáng bầu trời">?</button>
+                                <select id="set-sky" class="sky-lighting"></select>
+                            </div>
+                            <div class="form-option form-option--select">
+                                <label for="set-scale" class="scaleFactor-label">Thu phóng</label>
+                                <button type="button" class="menu-help" data-help="scaleFactor" aria-label="Giải thích: Thu phóng">?</button>
+                                <select id="set-scale" class="scaleFactor"></select>
+                            </div>
+                            <p class="menu__group">Khi xem</p>
+                            <div class="form-option form-option--checkbox form-option--fullscreen">
+                                <label for="set-fullscreen" class="fullscreen-label">Toàn màn hình</label>
+                                <button type="button" class="menu-help" data-help="fullscreen" aria-label="Giải thích: Toàn màn hình">?</button>
+                                <input id="set-fullscreen" class="fullscreen" type="checkbox" role="switch" />
+                            </div>
+                            <div class="form-option form-option--checkbox">
+                                <label for="set-reduce-flashing" class="reduce-flashing-label">Giảm chớp sáng</label>
+                                <button type="button" class="menu-help" data-help="reduceFlashing" aria-label="Giải thích: Giảm chớp sáng">?</button>
+                                <input id="set-reduce-flashing" class="reduce-flashing" type="checkbox" role="switch" />
+                            </div>
+                            <div class="form-option form-option--checkbox">
+                                <label for="set-hide-controls" class="hide-controls-label">Ẩn nút điều khiển</label>
+                                <button type="button" class="menu-help" data-help="hideControls" aria-label="Giải thích: Ẩn nút điều khiển">?</button>
+                                <input id="set-hide-controls" class="hide-controls" type="checkbox" role="switch" />
+                            </div>
+                        </form>
+                        <div class="menu__builder-link">
+                            <p>Muốn chọn loại pháo, chữ trên trời, nhạc nền và lời chúc? Hãy tạo kịch bản riêng.</p>
+                            <a href="builder.html" class="btn-builder">
+                                <svg fill="currentColor" width="20" height="20">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+                                </svg>
+                                Tạo kịch bản pháo hoa
+                            </a>
                         </div>
-                        <div class="form-option form-option--select">
-                            <label class="shell-size-label">Kích thước pháo</label>
-                            <select class="shell-size"></select>
+                        <div class="credits">
+                            Được xây dựng đầy tâm huyết bởi Vũ Hoài Nam.
                         </div>
-                        <div class="form-option form-option--select">
-                            <label class="quality-ui-label">Chất lượng</label>
-                            <select class="quality-ui"></select>
-                        </div>
-                        <div class="form-option form-option--select">
-                            <label class="sky-lighting-label">Ánh sáng bầu trời</label>
-                            <select class="sky-lighting"></select>
-                        </div>
-                        <div class="form-option form-option--select">
-                            <label class="scaleFactor-label">Tỉ lệ</label>
-                            <select class="scaleFactor"></select>
-                        </div>
-                        <div class="form-option form-option--checkbox">
-                            <label class="auto-launch-label">Tự động bắn</label>
-                            <input class="auto-launch" type="checkbox" />
-                        </div>
-                        <div class="form-option form-option--checkbox form-option--finale-mode">
-                            <label class="finale-mode-label">Chế độ kết thúc</label>
-                            <input class="finale-mode" type="checkbox" />
-                        </div>
-                        <div class="form-option form-option--checkbox">
-                            <label class="hide-controls-label">Ẩn điều khiển</label>
-                            <input class="hide-controls" type="checkbox" />
-                        </div>
-                        <div class="form-option form-option--checkbox">
-                            <label class="show-background-label">Hiển thị nền</label>
-                            <input class="show-background" type="checkbox" />
-                        </div>
-                        <div class="form-option form-option--checkbox form-option--fullscreen">
-                            <label class="fullscreen-label">Toàn màn hình</label>
-                            <input class="fullscreen" type="checkbox" />
-                        </div>
-                        <div class="form-option form-option--checkbox">
-                            <label class="long-exposure-label">Mở màn trập</label>
-                            <input class="long-exposure" type="checkbox" />
-                        </div>
-                        <div class="form-option form-option--checkbox">
-                            <label class="reduce-flashing-label">Giảm chớp sáng</label>
-                            <input class="reduce-flashing" type="checkbox" />
-                        </div>
-                    </form>
-                    <div class="menu__builder-link">
-                        <a href="builder.html" class="btn-builder">
-                            <svg fill="currentColor" width="20" height="20">
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
-                            </svg>
-                            Tạo kịch bản pháo hoa
-                        </a>
-                    </div>
-                    <div class="credits">
-                        Được xây dựng đầy tâm huyết bởi Vũ Hoài Nam.
                     </div>
                 </div>
             </div>

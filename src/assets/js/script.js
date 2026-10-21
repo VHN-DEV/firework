@@ -175,14 +175,13 @@ const store = {
 
             const config = this.state.config;
             switch (schemaVersion) {
+                // Kích thước pháo đã lưu từ bản cũ bỏ qua: menu không còn mục này nên không đổi lại được
                 case '1.1':
                     config.quality = data.quality;
-                    config.size = data.size;
                     config.skyLighting = data.skyLighting;
                     break;
                 case '1.2':
                     config.quality = data.quality;
-                    config.size = data.size;
                     config.skyLighting = data.skyLighting;
                     config.scaleFactor = data.scaleFactor || getDefaultScaleFactor();
                     if (typeof data.reduceFlashing === 'boolean') config.reduceFlashing = data.reduceFlashing;
@@ -191,25 +190,6 @@ const store = {
                     throw new Error('version switch should be exhaustive');
             }
             console.log(`Loaded config (schema version ${schemaVersion})`);
-        }
-        // Định dạng dữ liệu không được dùng nữa. Đã kiểm tra cẩn thận (nó không được đặt tên).
-        else if (localStorage.getItem('schemaVersion') === '1') {
-            let size;
-            // Cố gắng phân tích dữ liệu, bỏ qua nếu có lỗi.
-            try {
-                const sizeRaw = localStorage.getItem('configSize');
-                size = typeof sizeRaw === 'string' && JSON.parse(sizeRaw);
-            }
-            catch (e) {
-                console.log('Recovered from error parsing saved config:');
-                console.error(e);
-                return;
-            }
-            // Chỉ khôi phục các giá trị được xác thực
-            const sizeInt = parseInt(size, 10);
-            if (sizeInt >= 0 && sizeInt <= 4) {
-                this.state.config.size = String(sizeInt);
-            }
         }
     },
 
@@ -222,7 +202,6 @@ const store = {
                 schemaVersion: '1.2',
                 data: {
                     quality: config.quality,
-                    size: config.size,
                     skyLighting: config.skyLighting,
                     scaleFactor: config.scaleFactor,
                     reduceFlashing: config.reduceFlashing
@@ -333,64 +312,30 @@ const scaleFactorSelector = () => store.state.config.scaleFactor;
 
 // Nội dung trợ giúp
 const helpContent = {
-    shellType: {
-        header: 'Loại pháo',
-        body: 'Loại pháo hoa sẽ được bắn. Chọn "Ngẫu nhiên" để có sự kết hợp thú vị!'
-    },
-    shellSize: {
-        header: 'Kích thước pháo',
-        body: 'Kích thước của pháo hoa. Lấy cảm hứng từ kích thước pháo hoa thật, pháo lớn hơn sẽ có chùm nổ to hơn với nhiều sao hơn, và đôi khi có các hiệu ứng phức tạp hơn. Tuy nhiên, pháo lớn cũng đòi hỏi sức mạnh xử lý cao hơn và có thể gây giật lag.'
-    },
     quality: {
         header: 'Chất lượng',
         body: 'Chất lượng đồ họa tổng thể. Nếu hình ảnh chuyển động không mượt mà, hãy thử giảm chất lượng xuống. Chất lượng cao làm tăng đáng kể số lượng tia lửa được hiển thị và có thể gây giật lag.'
     },
     skyLighting: {
         header: 'Ánh sáng bầu trời',
-        body: 'Chiếu sáng nền khi pháo hoa nổ. Nếu nền trông quá sáng trên màn hình của bạn, hãy thử đặt thành "Mờ" hoặc "Không".'
+        body: 'Bầu trời sáng lên theo màu pháo khi pháo nổ. Nếu nền trông quá sáng trên màn hình của bạn, hãy chọn "Mờ" hoặc "Tắt".'
     },
     scaleFactor: {
-        header: 'Tỉ lệ',
-        body: 'Cho phép điều chỉnh kích thước của tất cả pháo hoa, thực chất là đưa bạn lại gần hoặc ra xa hơn. Đối với các loại pháo lớn, việc giảm tỉ lệ một chút có thể thuận tiện hơn, đặc biệt là trên điện thoại hoặc máy tính bảng.'
-    },
-    autoLaunch: {
-        header: 'Tự động bắn',
-        body: 'Tự động bắn pháo hoa liên tục. Hãy ngồi lại và thưởng thức buổi trình diễn, hoặc tắt đi để tự điều khiển.'
-    },
-    finaleMode: {
-        header: 'Chế độ kết thúc',
-        body: 'Bắn những loạt pháo hoa dữ dội. Có thể gây giật lag. Yêu cầu bật "Tự động bắn".'
-    },
-    hideControls: {
-        header: 'Ẩn điều khiển',
-        body: 'Ẩn các điều khiển bán trong suốt dọc theo phía trên màn hình. Hữu ích khi chụp ảnh màn hình, hoặc chỉ để có trải nghiệm liền mạch hơn. Khi bị ẩn, bạn vẫn có thể chạm vào góc trên bên phải để mở lại menu này.'
+        header: 'Thu phóng',
+        body: 'Phóng to hoặc thu nhỏ toàn bộ pháo hoa, giống như đứng gần hay xa hơn. Trên điện thoại, thu nhỏ một chút giúp những quả pháo lớn không tràn khỏi màn hình.'
     },
     fullscreen: {
         header: 'Toàn màn hình',
         body: 'Bật/tắt chế độ toàn màn hình.'
     },
-    longExposure: {
-        header: 'Mở màn trập',
-        body: 'Hiệu ứng thử nghiệm giữ lại những vệt sáng dài, tương tự như việc mở màn trập máy ảnh.'
-    },
     reduceFlashing: {
         header: 'Giảm chớp sáng',
         body: 'Dành cho người nhạy cảm với ánh sáng nhấp nháy: hạt pháo không chớp tắt hay lấp lánh, không có quầng chớp lúc nổ, bầu trời không đổi màu theo pháo. Pháo hoa vẫn nổ đầy đủ.'
+    },
+    hideControls: {
+        header: 'Ẩn nút điều khiển',
+        body: 'Ẩn các nút tạm dừng, âm thanh và cài đặt ở phía trên màn hình để xem trọn vẹn. Trên máy tính, đưa chuột lên mép trên là các nút hiện lại; trên điện thoại, chạm vào góc trên bên phải để mở lại bảng này.'
     }
-};
-
-const nodeKeyToHelpKey = {
-    shellTypeLabel: 'shellType',
-    shellSizeLabel: 'shellSize',
-    qualityLabel: 'quality',
-    skyLightingLabel: 'skyLighting',
-    scaleFactorLabel: 'scaleFactor',
-    autoLaunchLabel: 'autoLaunch',
-    finaleModeLabel: 'finaleMode',
-    hideControlsLabel: 'hideControls',
-    fullscreenLabel: 'fullscreen',
-    longExposureLabel: 'longExposure',
-    reduceFlashingLabel: 'reduceFlashing'
 };
 
 
@@ -408,33 +353,13 @@ const appNodes = {
     soundBtnSVG: '.sound-btn use',
     settingsBtn: '.settings-btn',
     closeMenuBtn: '.close-menu-btn',
-    shellType: '.shell-type-list',
-    shellTypeLabel: '.shell-type-label',
-    customText: '.custom-text',
-    shellSize: '.shell-size',
-    shellSizeLabel: '.shell-size-label',
     quality: '.quality-ui',
-    qualityLabel: '.quality-ui-label',
     skyLighting: '.sky-lighting',
-    skyLightingLabel: '.sky-lighting-label',
     scaleFactor: '.scaleFactor',
-    scaleFactorLabel: '.scaleFactor-label',
-    autoLaunch: '.auto-launch',
-    autoLaunchLabel: '.auto-launch-label',
-    finaleModeFormOption: '.form-option--finale-mode',
-    finaleMode: '.finale-mode',
-    finaleModeLabel: '.finale-mode-label',
     hideControls: '.hide-controls',
-    hideControlsLabel: '.hide-controls-label',
     fullscreenFormOption: '.form-option--fullscreen',
     fullscreen: '.fullscreen',
-    fullscreenLabel: '.fullscreen-label',
-    showBackground: '.show-background',
-    showBackgroundLabel: '.show-background-label',
-    longExposure: '.long-exposure',
-    longExposureLabel: '.long-exposure-label',
     reduceFlashing: '.reduce-flashing',
-    reduceFlashingLabel: '.reduce-flashing-label',
     reduceFlashingToggle: '.start-screen__a11y',
 
     // Giao diện trợ giúp
@@ -473,25 +398,14 @@ function renderApp(state) {
     appNodes.controls.classList.toggle('hide', state.menuOpen || state.config.hideControls);
     appNodes.canvasContainer.classList.toggle('blur', state.menuOpen);
     appNodes.menu.classList.toggle('hide', !state.menuOpen);
-    appNodes.finaleModeFormOption.style.opacity = state.config.autoLaunch ? 1 : 0.32;
 
     appNodes.quality.value = state.config.quality;
-    appNodes.customText.value = state.config.customText;
-    const selectedShells = Array.isArray(state.config.shell) ? state.config.shell : [state.config.shell];
-    appNodes.shellType.querySelectorAll('input').forEach(cb => {
-        cb.checked = selectedShells.includes(cb.value);
-    });
-    appNodes.shellSize.value = state.config.size;
-    appNodes.autoLaunch.checked = state.config.autoLaunch;
-    appNodes.finaleMode.checked = state.config.finale;
     appNodes.skyLighting.value = state.config.skyLighting;
     appNodes.hideControls.checked = state.config.hideControls;
-    appNodes.showBackground.checked = state.config.showBackground;
     appNodes.fullscreen.checked = state.fullscreen;
 
     // Hiển thị/ẩn nền
     appNodes.backgroundImage.classList.toggle('show', state.config.showBackground);
-    appNodes.longExposure.checked = state.config.longExposure;
     appNodes.reduceFlashing.checked = state.config.reduceFlashing;
     renderReduceFlashingToggle();
     appNodes.scaleFactor.value = (state.config.scaleFactor || 1).toFixed(2);
@@ -532,60 +446,21 @@ document.addEventListener('visibilitychange', () => {
 });
 
 
+// Chỉ các cài đặt còn trên menu; loại pháo, kích thước, tự động bắn... giữ giá trị mặc định (kịch bản tự quyết)
 function getConfigFromDOM() {
     return {
         quality: appNodes.quality.value,
-        customText: appNodes.customText.value,
-        shell: Array.from(appNodes.shellType.querySelectorAll('input:checked')).map(cb => cb.value),
-        size: appNodes.shellSize.value,
-        autoLaunch: appNodes.autoLaunch.checked,
-        finale: appNodes.finaleMode.checked,
         skyLighting: appNodes.skyLighting.value,
-        longExposure: appNodes.longExposure.checked,
         reduceFlashing: appNodes.reduceFlashing.checked,
         hideControls: appNodes.hideControls.checked,
-        showBackground: appNodes.showBackground.checked,
         // Lưu trữ giá trị dưới dạng số.
         scaleFactor: parseFloat(appNodes.scaleFactor.value)
     };
-};
+}
 
 const updateConfigNoEvent = () => updateConfig();
 appNodes.quality.addEventListener('input', updateConfigNoEvent);
-appNodes.customText.addEventListener('input', updateConfigNoEvent);
-appNodes.shellType.addEventListener('change', (e) => {
-    const target = e.target;
-    if (target.tagName !== 'INPUT') return;
-
-    const allCheckboxes = Array.from(appNodes.shellType.querySelectorAll('input'));
-    const randomCheckbox = allCheckboxes.find(cb => cb.value === 'Ngẫu nhiên');
-
-    if (target.value === 'Ngẫu nhiên') {
-        if (target.checked) {
-            // Nếu chọn "Ngẫu nhiên", bỏ chọn tất cả các loại khác
-            allCheckboxes.forEach(cb => {
-                if (cb !== target) cb.checked = false;
-            });
-        }
-    } else {
-        if (target.checked) {
-            // Nếu chọn bất kỳ loại nào khác, bỏ chọn "Ngẫu nhiên"
-            if (randomCheckbox) randomCheckbox.checked = false;
-        }
-    }
-
-    // Luôn đảm bảo có ít nhất một loại được chọn. Nếu không có gì được chọn, tự động chọn lại "Ngẫu nhiên".
-    if (!allCheckboxes.some(cb => cb.checked)) {
-        if (randomCheckbox) randomCheckbox.checked = true;
-    }
-
-    updateConfig();
-});
-appNodes.shellSize.addEventListener('input', updateConfigNoEvent);
-appNodes.autoLaunch.addEventListener('click', () => setTimeout(updateConfig, 0));
-appNodes.finaleMode.addEventListener('click', () => setTimeout(updateConfig, 0));
 appNodes.skyLighting.addEventListener('input', updateConfigNoEvent);
-appNodes.longExposure.addEventListener('click', () => setTimeout(updateConfig, 0));
 appNodes.reduceFlashing.addEventListener('click', () => setTimeout(updateConfig, 0));
 // Nút "Giảm chớp sáng" trên màn mở quà: bật trước khi pháo bắt đầu
 appNodes.reduceFlashingToggle.addEventListener('click', (e) => {
@@ -604,7 +479,6 @@ function renderReduceFlashingToggle(config = burstConfig) {
     toggle.querySelector('span').textContent = forced ? 'Đã giảm chớp sáng' : on ? 'Giảm chớp sáng: bật' : 'Giảm chớp sáng';
 }
 appNodes.hideControls.addEventListener('click', () => setTimeout(updateConfig, 0));
-appNodes.showBackground.addEventListener('click', () => setTimeout(updateConfig, 0));
 const stopAndRun = (fn) => (e) => {
     e.stopPropagation();
     e.preventDefault();
@@ -636,11 +510,9 @@ appNodes.scaleFactor.addEventListener('input', () => {
     handleResize();
 });
 
-Object.keys(nodeKeyToHelpKey).forEach(nodeKey => {
-    const helpKey = nodeKeyToHelpKey[nodeKey];
-    appNodes[nodeKey].addEventListener('click', () => {
-        store.setState({ openHelpTopic: helpKey });
-    });
+// Nút "?" cạnh từng cài đặt mở lời giải thích (bấm vào tên cài đặt thì đổi cài đặt như bình thường)
+appNodes.menu.querySelectorAll('[data-help]').forEach(btn => {
+    btn.addEventListener('click', () => store.setState({ openHelpTopic: btn.dataset.help }));
 });
 
 appNodes.helpModalCloseBtn.addEventListener('click', () => {
@@ -1220,29 +1092,16 @@ async function init() {
         node.innerHTML = options.reduce((acc, opt) => acc += `<option value="${opt.value}">${opt.label}</option>`, '');
     }
 
-    // loại vỏ
-    let checkboxes = '';
-    shellNames.forEach(opt => checkboxes += `
-        <label>
-            <input type="checkbox" name="shellType" value="${opt}">
-            ${opt}
-        </label>`);
-    appNodes.shellType.innerHTML = checkboxes;
-    // kích thước vỏ
-    let options = '';
-    ['3"', '4"', '6"', '8"', '12"', '16"'].forEach((opt, i) => options += `<option value="${i}">${opt}</option>`);
-    appNodes.shellSize.innerHTML = options;
-
     setOptionsForSelect(appNodes.quality, [
-        { label: 'Low', value: QUALITY_LOW },
-        { label: 'Normal', value: QUALITY_NORMAL },
-        { label: 'High', value: QUALITY_HIGH }
+        { label: 'Thấp', value: QUALITY_LOW },
+        { label: 'Vừa', value: QUALITY_NORMAL },
+        { label: 'Cao', value: QUALITY_HIGH }
     ]);
 
     setOptionsForSelect(appNodes.skyLighting, [
-        { label: 'None', value: SKY_LIGHT_NONE },
-        { label: 'Dim', value: SKY_LIGHT_DIM },
-        { label: 'Normal', value: SKY_LIGHT_NORMAL }
+        { label: 'Tắt', value: SKY_LIGHT_NONE },
+        { label: 'Mờ', value: SKY_LIGHT_DIM },
+        { label: 'Bình thường', value: SKY_LIGHT_NORMAL }
     ]);
 
     // Tỉ lệ mặc định trên điện thoại tính theo chiều rộng màn hình (vd 0.83) nên phải có trong danh sách,
@@ -2024,7 +1883,7 @@ function handlePointerMove(event) {
 }
 
 function handleKeydown(event) {
-    // Đang gõ chữ trong menu (ví dụ ô "Văn bản") thì chỉ giữ lại phím Esc, tránh gõ chữ "o"/"p" làm đóng menu/tạm dừng
+    // Đang chọn trong menu thì chỉ giữ lại phím Esc, tránh gõ chữ "o"/"p" làm đóng menu/tạm dừng
     if (/^(INPUT|SELECT|TEXTAREA)$/.test(event.target.tagName) && event.keyCode !== 27) {
         return;
     }

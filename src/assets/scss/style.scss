@@ -163,13 +163,12 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    background-color: rgba(0, 0, 0, 0.85);
+    background-color: rgba(0, 0, 0, 0.7);
     transition: opacity 0.3s, visibility 0.3s;
     z-index: 500;
 
     &__inner-wrap {
         display: flex;
-        flex-direction: column;
         justify-content: center;
         align-items: center;
         position: absolute;
@@ -177,109 +176,199 @@ body {
         bottom: 0;
         left: 0;
         right: 0;
+        padding: 16px;
         transition: opacity 0.3s;
+    }
+
+    // Một bảng duy nhất, cuộn chung khi màn hình thấp (không còn khung cuộn lồng bên trong)
+    &__panel {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-width: 420px;
+        max-height: 100%;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 14px 20px 16px;
+        border-radius: 18px;
+        background: rgba(17, 19, 28, 0.94);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+
+        // Màn hẹp (360px): tên cài đặt vẫn một dòng
+        @media (max-width: 380px) {
+            padding: 12px 14px 14px;
+
+            .form-option {
+                gap: 6px;
+
+                label {
+                    font-size: 0.9rem;
+                    white-space: nowrap;
+                }
+
+                select {
+                    min-width: 0;
+                    width: 112px;
+                    padding: 0 4px;
+                    font-size: 0.85rem;
+                }
+            }
+        }
+    }
+
+    &__top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-right: -12px;
     }
 
     &__header {
-        margin-top: auto;
-        margin-bottom: 8px;
-        padding-top: 16px;
-        font-size: 2em;
+        font-size: 1.35rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: #fff;
+    }
+
+    &__group {
+        margin: 14px 0 2px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.45);
     }
 
     &__builder-link {
-        margin: 20px 0;
-        padding: 0 10px;
-        width: 100%;
-        max-width: 400px;
+        margin: 18px 0 4px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+        p {
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            line-height: 1.45;
+            color: rgba(255, 255, 255, 0.6);
+        }
     }
 
-    &__subheader {
-        margin-bottom: auto;
-        padding-bottom: 12px;
-        font-size: 0.86em;
-        opacity: 0.8;
-    }
-
-    form {
-        width: 100%;
-        max-width: 400px;
-        padding: 0 10px;
-        overflow: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
+    // Mỗi dòng: tên cài đặt, nút "?", ô chọn/công tắc ở bên phải
     .form-option {
         display: flex;
         align-items: center;
-        margin: 16px 0;
-        transition: opacity 0.3s;
+        gap: 8px;
+        min-height: 48px;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+        &:last-child {
+            border-bottom: none;
+        }
 
         label {
-            display: block;
-            width: 50%;
-            padding-right: 12px;
-            text-align: right;
-            text-transform: uppercase;
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.88);
             user-select: none;
+            cursor: pointer;
         }
 
-        &--select select {
-            display: block;
-            width: 50%;
-            height: 30px;
-            font-size: 1rem;
-            font-family: "Roboto", arial, sans-serif;
-            color: rgba(255, 255, 255, 0.5);
-            letter-spacing: 0.06em;
-            background-color: transparent;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-
-            option {
-                background-color: black;
-            }
-        }
-
-        &--checkbox-list {
-            display: flex;
-            align-items: center;
-            margin: 16px 0;
-            > label {
-                width: 50%;
-                padding-right: 12px;
-                text-align: right;
-                text-transform: uppercase;
-                user-select: none;
-            }
-        }
-
-        &--checkbox input {
-            display: block;
-            width: 26px;
-            height: 26px;
-            margin: 0;
-            opacity: 0.5;
-        }
-
-        &--text input {
-            display: block;
-            width: 50%;
-            height: 30px;
+        select {
+            margin-left: auto;
+            min-width: 128px;
+            height: 36px;
+            padding: 0 8px;
             font-size: 0.9rem;
             font-family: "Roboto", arial, sans-serif;
-            color: rgba(255, 255, 255, 0.5);
-            background-color: transparent;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            padding: 0 5px;
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 9px;
+            cursor: pointer;
+
+            &:focus-visible {
+                outline: 2px solid #8b5cf6;
+                outline-offset: 1px;
+            }
+
+            option {
+                background-color: #11131c;
+            }
+        }
+
+        // Công tắc bật/tắt (giống builder) thay cho ô vuông xám
+        &--checkbox input {
+            appearance: none;
+            -webkit-appearance: none;
+            position: relative;
+            flex-shrink: 0;
+            margin: 0 0 0 auto;
+            width: 46px;
+            height: 26px;
+            border-radius: 13px;
+            background: rgba(255, 255, 255, 0.18);
+            cursor: pointer;
+            transition: background-color 0.2s;
+
+            &::before {
+                content: '';
+                position: absolute;
+                top: 3px;
+                left: 3px;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: #fff;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+                transition: transform 0.2s;
+            }
+
+            &:checked {
+                background: linear-gradient(135deg, #6366f1, #a855f7);
+
+                &::before {
+                    transform: translateX(20px);
+                }
+            }
+
+            &:focus-visible {
+                outline: 2px solid #8b5cf6;
+                outline-offset: 2px;
+            }
         }
     }
+}
 
-    @media (max-width: $tablet) {
-        .form-option select,
-        .form-option input {
-            outline: none;
-        }
+// Nút "?" giải thích cài đặt (giống builder); vùng chạm rộng hơn hình tròn
+.menu-help {
+    position: relative;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font: 700 0.68rem/1 "Roboto", arial, sans-serif;
+    cursor: help;
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: -10px;
+    }
+
+    &:hover,
+    &:focus-visible {
+        border-color: #8b5cf6;
+        background: #8b5cf6;
+        color: #fff;
+        outline: none;
     }
 }
 
@@ -319,83 +408,9 @@ body {
     }
 }
 
-.shell-type-list {
-    width: 50%;
-    max-height: 180px;
-    overflow-y: auto;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
-    padding: 6px;
-    background: rgba(255, 255, 255, 0.04);
-
-    label {
-        width: 100% !important;
-        display: flex !important;
-        align-items: center;
-        padding: 7px 10px;
-        margin: 2px 0;
-        cursor: pointer;
-        border-radius: 4px;
-        transition: all 0.2s ease;
-        font-size: 0.9rem;
-        text-transform: none !important;
-        color: rgba(255, 255, 255, 0.7);
-        user-select: none !important;
-
-        &:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: #fff;
-        }
-    }
-
-    input[type="checkbox"] {
-        appearance: none;
-        -webkit-appearance: none;
-        width: 18px;
-        height: 18px;
-        border: 1.5px solid rgba(255, 255, 255, 0.3);
-        border-radius: 4px;
-        background: transparent;
-        margin: 0 12px 0 0;
-        position: relative;
-        cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        flex-shrink: 0;
-
-        &:checked {
-            background-color: #0d6efd;
-            border-color: #0d6efd;
-
-            &::after {
-                content: '';
-                position: absolute;
-                left: 5px;
-                top: 1px;
-                width: 5px;
-                height: 10px;
-                border: solid white;
-                border-width: 0 2px 2px 0;
-                transform: rotate(45deg);
-                animation: checkbox-check 0.2s ease-out;
-            }
-        }
-
-        &:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
-        }
-    }
-}
-
-@keyframes checkbox-check {
-    from { transform: rotate(45deg) scale(0); }
-    to { transform: rotate(45deg) scale(1); }
-}
-
 .close-menu-btn {
-    position: absolute;
-    top: 0;
-    right: 0;
+    flex-shrink: 0;
+    cursor: pointer;
 }
 
 .btn {
@@ -423,11 +438,10 @@ body {
 }
 
 .credits {
-    margin-top: auto;
-    margin-bottom: 10px;
-    padding-top: 6px;
-    font-size: 0.8em;
-    opacity: 0.75;
+    margin-top: 12px;
+    text-align: center;
+    font-size: 0.78em;
+    opacity: 0.55;
 
     a {
         color: rgba(255, 255, 255, 0.5);
@@ -465,10 +479,12 @@ body {
         align-items: center;
         max-width: 400px;
         max-height: calc(100vh - 100px);
-        margin: 10px;
-        padding: 20px;
-        border-radius: 0.3em;
-        background-color: rgba(0, 0, 0, 0.4);
+        margin: 16px;
+        padding: 20px 22px;
+        border-radius: 18px;
+        background: rgba(17, 19, 28, 0.97);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
         opacity: 0;
         transform: scale(0.9, 0.9);
         transition-property: opacity, transform;
@@ -482,9 +498,10 @@ body {
     }
 
     &__header {
-        font-size: 1.75em;
-        text-transform: uppercase;
+        font-size: 1.3em;
+        font-weight: 600;
         text-align: center;
+        color: #fff;
     }
 
     &__body {
@@ -502,20 +519,20 @@ body {
         flex-shrink: 0;
         outline: none;
         border: none;
-        border-radius: 2px;
-        padding: 0.25em 0.75em;
+        border-radius: 10px;
+        padding: 0.5em 1.6em;
         margin-top: 0.36em;
         font-family: "Roboto", arial, sans-serif;
-        font-size: 1em;
-        color: rgba(255, 255, 255, 0.5);
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        background-color: rgba(255, 255, 255, 0.25);
+        font-size: 0.95em;
+        font-weight: 600;
+        color: #fff;
+        background-color: rgba(255, 255, 255, 0.12);
+        cursor: pointer;
         transition: color 0.3s, background-color 0.3s;
 
-        &:hover, &:active, &:focus {
-            color: #FFF;
-            background-color: #09F;
+        &:hover, &:active, &:focus-visible {
+            color: #fff;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
         }
     }
 
