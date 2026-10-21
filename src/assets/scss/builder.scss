@@ -1199,7 +1199,7 @@ select.is-invalid {
     display: flex;
     flex-direction: column;
     min-height: 0;
-    overflow: hidden;
+    overflow: hidden auto;
 }
 
 .timeline-toolbar {
@@ -1567,6 +1567,10 @@ select.is-invalid {
         justify-content: space-between;
         align-items: flex-end;
         padding: 0 4px 2px 22px;
+    }
+
+    .mini-preview-stage.narrow .mini-preview-ruler-x span:not(:first-child, :last-child) {
+        display: none;
     }
 
     .mini-preview-ruler-y {
@@ -2575,12 +2579,10 @@ select.is-invalid {
     --track-muted: #{$b-muted};
     --track-accent: #{$b-accent};
     position: relative;
-    flex: 1;
-    min-height: 0;
+    // Không co nhỏ hơn dải thời gian: khung thấp (laptop, có dải tạo nhanh/bản nháp) thì cả cột cuộn
+    flex: 1 0 auto;
     display: flex;
     flex-direction: column;
-    // Khung hẹp (điện thoại, có thanh bản nháp): cả phần này cuộn dọc, dải thời gian giữ đủ chiều cao
-    overflow-y: auto;
     padding: 0.75rem 1.1rem 6rem;
 
     &.hide {
@@ -3560,7 +3562,9 @@ select.is-invalid {
         display: none;
     }
 
+    // Cao theo nội dung để cả trang cuộn một lần (không bị ép bằng phần màn hình còn lại rồi cắt mất dòng thời gian)
     .timeline-panel {
+        flex: none;
         overflow: visible;
         border: none;
         background: none;
@@ -3579,6 +3583,41 @@ select.is-invalid {
     .timeline {
         overflow: visible;
         padding: 0.25rem 0.75rem 7rem;
+    }
+
+    .track-view {
+        flex: none;
+        overflow: visible;
+        padding: 0.5rem 0.75rem 7rem;
+    }
+
+    // Tạo nhanh: một hàng dịp vuốt ngang thay vì 5 hàng chiếm gần hết màn hình
+    .template-strip {
+        margin: 0.5rem 0.75rem 0.25rem;
+        padding: 0.75rem 0 0.75rem 0.85rem;
+    }
+
+    .template-strip-head {
+        padding-right: 0.85rem;
+        margin-bottom: 0.6rem;
+    }
+
+    .template-chips {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-right: 2.5rem;
+        scrollbar-width: none;
+        // Mờ dần ở mép phải: gợi ý còn dịp khác khi vuốt
+        mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+    }
+
+    .template-chip {
+        flex: none;
+        white-space: nowrap;
     }
 
     .burst-group {

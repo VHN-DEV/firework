@@ -4175,6 +4175,8 @@ function resizeMiniStages() {
     frame.style.transform = `scale(${scale})`;
     stage.style.width = width * scale + 'px';
     stage.style.height = height * scale + 'px';
+    // Khung hẹp (xem kiểu điện thoại trên màn hình nhỏ): thước ngang chỉ ghi 0 và 100 cho khỏi dính chữ
+    stage.classList.toggle('narrow', width * scale < 160);
     positionMobileSheet();
 }
 
