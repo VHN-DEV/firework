@@ -73,7 +73,9 @@ export async function run(browser, base, { check }) {
             let lit = 0;
             for (let i = 0; i < d.length; i += 16) if (d[i] + d[i + 1] + d[i + 2] > 150) lit++;
             // Khói (pháo cuối đã nổ vài giây, trời hết ửng màu): điểm xám, ba kênh gần bằng nhau, sáng hơn bầu trời đêm nhưng
-            // không chói như hạt pháo. Khói ngẫu nhiên (gió, số đám) nên lấy mốc nhiều khói nhất trong vài mốc
+            // không chói như hạt pháo. Khói ngẫu nhiên (gió, số đám) nên lấy mốc nhiều khói nhất trong vài mốc. Máy GitHub (không
+            // có GPU) đo được khoảng 1/3 so với máy thường (1,4% so với 3-4% ở mốc 8,5 giây); tắt khói thì gần 0% ở các mốc này.
+            // Không đo sớm hơn: 5,5-6,5 giây còn tiêu đề, vệt pháo mờ (tắt khói vẫn ra 0,8-1,2%), 7,5 giây kịch bản lặp lại.
             const smokeSamples = [];
             for (const t of [8.5, 9.5, 10.5]) {
                 const s = await frameAt(t);
@@ -106,7 +108,7 @@ export async function run(browser, base, { check }) {
             video && `mô phỏng + vẽ ${((timing.simulate + timing.paint) / 1000).toFixed(1)} s, cả quá trình ${renderSeconds.toFixed(1)} s cho video ${video.duration.toFixed(1)} s ${JSON.stringify(timing)}`);
         check('video dài trọn màn trình diễn kèm thiệp lời chúc', !!video && video.duration > 13 && video.duration < 22, video && `${video.duration.toFixed(1)} s`);
         check('video có hình pháo hoa và chữ', !!video && video.lit > 100, video && `${video.lit} điểm sáng`);
-        check('video có khói pháo (kịch bản bật "Dày")', !!video && video.smoky > 0.015, video && `${video.smokeSamples.map(x => (x * 100).toFixed(1)).join(' / ')}% điểm xám`);
+        check('video có khói pháo (kịch bản bật "Dày")', !!video && video.smoky > 0.006, video && `${video.smokeSamples.map(x => (x * 100).toFixed(1)).join(' / ')}% điểm xám`);
         check('video có tiếng (nhạc nền, tiếng pháo)', !!video && video.rms > 0.005, video && `rms ${video.rms.toFixed(4)}`);
 
         await page.evaluate(() => closeVideoModal());
