@@ -2978,13 +2978,14 @@ select.is-invalid {
 
 .scripts-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
     gap: 0.9rem;
     padding: 1.25rem 1.5rem 1.5rem;
     overflow-y: auto;
 }
 
 .script-item {
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
@@ -3006,13 +3007,12 @@ select.is-invalid {
         overflow: hidden;
         text-overflow: ellipsis;
 
-        i {
-            color: $b-gold;
-            font-size: 0.8rem;
-        }
     }
 
     .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.15rem 0.9rem;
         font-size: 0.75rem;
         color: $b-muted;
 
@@ -3023,14 +3023,49 @@ select.is-invalid {
     }
 }
 
+// Nhãn trạng thái nằm cùng hàng tác giả/số phát bắn
+.script-badges {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+
+    &:empty {
+        display: none;
+    }
+
+    .gift-badge i {
+        width: auto;
+        margin-right: 0.25rem;
+        color: inherit;
+    }
+
+    .fa-lock {
+        color: $b-gold !important;
+    }
+}
+
+// Luôn nằm sát đáy thẻ để các thẻ cùng hàng thẳng nút
 .script-actions {
     display: flex;
     gap: 0.4rem;
-    margin-top: 0.5rem;
+    margin-top: auto;
+    padding-top: 0.35rem;
 
+    // Co được khi thẻ hẹp (màn 320px) thay vì đẩy thẻ tràn khỏi hộp
     .btn {
-        flex: 1;
-        height: 32px;
+        flex: 1 1 auto;
+        min-width: 0;
+        height: 34px;
+        padding: 0 0.4rem;
+        gap: 0.3rem;
+        font-size: 0.78rem;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+
+    .btn.is-icon {
+        flex: none;
+        width: 36px;
         padding: 0;
     }
 }
@@ -3729,6 +3764,15 @@ select.is-invalid {
         content: '';
         position: absolute;
         inset: -3px;
+    }
+
+    .scripts-grid {
+        gap: 0.6rem;
+        padding: 0.9rem;
+    }
+
+    .script-item {
+        padding: 0.8rem 0.9rem;
     }
 
     // Ngay trên nút nổi "+"

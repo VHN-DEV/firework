@@ -2777,10 +2777,10 @@ async function showGiftBadges() {
         (await fetchOpenStatus(items)).forEach(item => {
             if (!item.ok) return;
             giftStatuses.set(item.id, item);
-            const el = document.querySelector(`#scripts-list .script-item[data-id="${CSS.escape(item.id)}"] h4`);
+            const el = document.querySelector(`#scripts-list .script-item[data-id="${CSS.escape(item.id)}"] .script-badges`);
             if (!el || el.querySelector('.gift-badge')) return;
             const { opened, text } = describeOpenStatus(item);
-            el.insertAdjacentHTML('beforeend', ` <span class="gift-badge${opened ? ' is-opened' : ''}" title="${escapeHtml(text)}">`
+            el.insertAdjacentHTML('beforeend', `<span class="gift-badge${opened ? ' is-opened' : ''}" title="${escapeHtml(text)}">`
                 + `${opened ? '🎉 Đã mở' : item.counts.view ? '🔗 Đã xem link' : 'Chưa mở'}</span>`);
         });
     } catch (e) {
@@ -3760,17 +3760,19 @@ function loadScriptsList() {
                     copyScriptLink(script.id);
                 };
 
+                // Nút có chữ (điện thoại không có chú thích khi rê chuột); nhãn trạng thái ghi rõ bằng chữ
                 item.innerHTML = `
-                <h4>${isPrivate ? '<i class="fas fa-lock" title="Riêng tư"></i> ' : ''}${isLocal ? '<i class="fas fa-laptop" title="Lưu cục bộ"></i> ' : ''}${escapeHtml(script.title)}</h4>
+                <h4 title="${escapeHtml(script.title)}">${escapeHtml(script.title)}</h4>
                 <div class="meta">
-                    <span><i class="fas fa-user"></i> ${escapeHtml(script.author)}</span><br>
+                    <span><i class="fas fa-user"></i> ${escapeHtml(script.author)}</span>
                     <span><i class="fas fa-fireworks"></i> ${escapeHtml(script.eventCount)} phát bắn</span>
+                    <span class="script-badges">${isPrivate ? '<span class="gift-badge" title="Kịch bản riêng tư: không xóa được từ đây"><i class="fas fa-lock"></i>Riêng tư</span>' : ''}${isLocal ? '<span class="gift-badge" title="Chỉ lưu trên trình duyệt này"><i class="fas fa-laptop"></i>Trên máy này</span>' : ''}</span>
                 </div>
                 <div class="script-actions">
-                    <button class="btn primary small" onclick="editScript('${script.id}')" title="Sửa"><i class="fas fa-edit"></i></button>
-                    <button class="btn secondary small" onclick="duplicateScript('${script.id}')" title="Nhân bản"><i class="fas fa-copy"></i></button>
-                    <button class="btn secondary small" onclick="previewScript('${script.id}')" title="Xem thử"><i class="fas fa-play"></i></button>
-                    ${(!isPrivate || isLocal) ? `<button class="btn danger small" onclick="deleteScript('${script.id}')"><i class="fas fa-trash"></i></button>` : ''}
+                    <button class="btn primary small" onclick="editScript('${script.id}')"><i class="fas fa-edit"></i> Sửa</button>
+                    <button class="btn secondary small" onclick="duplicateScript('${script.id}')"><i class="fas fa-copy"></i> Nhân bản</button>
+                    <button class="btn secondary small" onclick="previewScript('${script.id}')"><i class="fas fa-play"></i> Xem</button>
+                    ${(!isPrivate || isLocal) ? `<button class="btn danger small is-icon" onclick="deleteScript('${script.id}')" title="Xóa" aria-label="Xóa kịch bản"><i class="fas fa-trash"></i></button>` : ''}
                 </div>
             `;
                 list.appendChild(item);
