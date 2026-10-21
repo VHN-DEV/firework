@@ -9,7 +9,7 @@ import qrcode from 'qrcode-generator';
 import { renderShareImage } from './share-image.js';
 import { availablePlatforms, copyText, platformIcon, shareLink } from './share-targets.js';
 import {
-    VIDEO_FORMATS, canRecordVideoHere, createRecordFrame, estimateVideoLength, estimateVideoMegabytes, formatClock, videoExtension
+    VIDEO_FORMATS, VIDEO_UNSUPPORTED, canRecordVideoHere, createVideoJob, estimateVideoLength, estimateVideoMegabytes, formatClock
 } from './video-export.js';
 import { OCCASIONS, buildTemplate } from './templates.js';
 import { analyzeMusic, buildBeatShow, KEEP_SHELLS } from './beat-sync.js';
@@ -1171,7 +1171,7 @@ const HELP_TIPS = {
     tapToLaunch: 'Bật (mặc định): người xem chạm hoặc bấm vào bầu trời là bắn thêm một quả pháo, vui cho trẻ nhỏ và người thích tự tay '
         + 'bắn. Tắt: chạm vào trời không bắn thêm pháo, màn trình diễn giữ đúng như bạn sắp đặt (vẫn chạm được các nút tạm dừng, âm thanh, cài đặt).',
     receiverShare: 'Bật (mặc định): góc dưới màn trình diễn có nút 📷 để người nhận chụp lại khoảnh khắc đẹp (hoặc bấm phím C) và nút '
-        + 'chia sẻ để gửi link qua Facebook, Messenger, Zalo..., tự quay video dọc đăng TikTok, Reels, Shorts. Ảnh và video làm ngay trên máy '
+        + 'chia sẻ để gửi link qua Facebook, Messenger, Zalo..., tự tạo video dọc đăng TikTok, Reels, Shorts. Ảnh và video làm ngay trên máy '
         + 'người nhận, không tải lên máy chủ. Người khác mở link được chia sẻ cũng được tính khi bạn bật báo mở quà. Tắt nếu quà chỉ dành riêng cho người nhận.',
     viewerControls: 'Mặc định các nút tạm dừng, âm thanh, cài đặt ẩn đi cho trọn khung hình (đưa chuột hoặc chạm góc trên để mở). '
         + 'Bật mục này để các nút luôn hiện.',
@@ -1258,7 +1258,7 @@ const HELP_TIPS = {
     videoFormat: '<strong>Dọc 9:16</strong>: TikTok, Story, Reels, xem trên điện thoại (pháo bố trí như trên điện thoại). '
         + '<strong>Ngang 16:9</strong>: YouTube, Facebook, màn hình máy tính. <strong>Vuông 1:1</strong>: bài đăng Facebook, Instagram.',
     videoQuality: '<strong>Full HD</strong> (1080p): nét nhất, file nặng hơn. <strong>HD</strong> (720p): file nhẹ khoảng một nửa, '
-        + 'gửi qua Zalo, Messenger nhanh hơn và đỡ nặng máy khi quay.',
+        + 'gửi qua Zalo, Messenger nhanh hơn và tạo xong nhanh hơn.',
     strobeColor: 'Màu lúc hạt chớp sáng, dùng khi bật Nhấp nháy.'
 };
 
@@ -3890,23 +3890,25 @@ function addEventAtTime(time) {
 }
 
 // ---------------------------------------------------------------------------
-// XUẤT VIDEO: khung quay (index.html?record=1) chạy chính trình phát ở cỡ video đã chọn, quay lại màn trình diễn
-// kèm tiếng pháo và nhạc nền (xem video-export.js, recorder.js), rồi gửi file về đây để xem lại, tải về hoặc chia sẻ
+// TẠO VIDEO: khung ẩn (index.html?record=1) chạy chính trình phát ở cỡ video đã chọn, dựng màn trình diễn thành file
+// MP4 kèm tiếng pháo và nhạc nền, nhanh hết mức máy cho phép (xem video-export.js, recorder.js), rồi gửi file về đây
+// để xem lại, tải về hoặc chia sẻ
 // ---------------------------------------------------------------------------
 
 const video = {
     format: 'portrait',
     quality: 'fhd',
-    // 'setup' | 'preparing' | 'ready' | 'recording' | 'saving' | 'done'
+    // 'setup' | 'rendering' | 'done'
     step: 'setup',
-    frame: null,
+    job: null,
     url: '',
     blob: null,
     length: 0,
+    size: [0, 0],
     previousPreviewMode: null
 };
 
-// Nhạc dán link từ trang khác: trình duyệt không cho ghi vào video
+// Nhạc dán link từ trang khác: trình duyệt không cho đọc để đưa vào video
 function isExternalMusic() {
     if (!state.music) return false;
     const url = normalizeAssetPath(state.music.url);
@@ -3920,7 +3922,7 @@ function isExternalMusic() {
 
 function openVideoModal() {
     if (!state.events.some(isFireworkShot)) {
-        notify('Kịch bản chưa có phát pháo nào để quay.', 'warning');
+        notify('Kịch bản chưa có phát pháo nào để tạo video.', 'warning');
         return;
     }
     closeMoreMenu();
@@ -3942,7 +3944,7 @@ function setVideoQuality(value) {
 function renderVideoModal() {
     const step = video.step;
     document.getElementById('video-setup').classList.toggle('hide', step !== 'setup');
-    document.getElementById('video-stage').classList.toggle('hide', !['preparing', 'ready', 'recording', 'saving'].includes(step));
+    document.getElementById('video-stage').classList.toggle('hide', step !== 'rendering');
     document.getElementById('video-result').classList.toggle('hide', step !== 'done');
     const actions = document.getElementById('video-actions');
 
@@ -3957,27 +3959,24 @@ function renderVideoModal() {
         video.length = estimateVideoLength(state.events, isSyncMode());
         const megabytes = estimateVideoMegabytes(video.quality, video.length);
         const notes = [
-            `Video ${width}×${height}, dài khoảng <strong>${formatClock(video.length)}</strong>, nặng tối đa khoảng ${megabytes} MB; có tiêu đề, lời nhắn và thiệp lời chúc ở cuối.`,
-            'Quay theo thời gian thật nên mất đúng chừng ấy thời gian. Giữ tab này mở trong lúc quay (chuyển tab thì video tạm dừng).'
+            `Video MP4 ${width}×${height}, dài khoảng <strong>${formatClock(video.length)}</strong>, nặng tối đa khoảng ${megabytes} MB; có tiêu đề, lời nhắn, nhạc nền và thiệp lời chúc ở cuối.`,
+            'Không cần ngồi xem hết: video được dựng ngay trên máy bạn, nhanh hết mức máy cho phép. Giữ trang này mở tới khi xong.'
         ];
-        if (isExternalMusic()) notes.push('<span class="warn">Nhạc dán từ link trang khác không ghi được vào video. Muốn có nhạc, hãy chọn file nhạc từ máy ở mục Nhạc nền.</span>');
-        if (!canRecordVideoHere()) notes.push('<span class="warn">Trình duyệt này chưa quay được video. Hãy dùng Chrome, Edge, Firefox hoặc Safari bản mới.</span>');
+        if (isExternalMusic()) notes.push('<span class="warn">Nhạc dán từ link trang khác không đưa được vào video. Muốn có nhạc, hãy chọn file nhạc từ máy ở mục Nhạc nền.</span>');
+        if (!canRecordVideoHere()) notes.push(`<span class="warn">${VIDEO_UNSUPPORTED}</span>`);
         document.getElementById('video-notes').innerHTML = notes.map(n => `<li>${n}</li>`).join('');
         actions.innerHTML = `
             <button class="btn secondary" onclick="closeVideoModal()">Hủy</button>
-            <button id="btn-video-prepare" class="btn primary" onclick="prepareVideo()" ${canRecordVideoHere() ? '' : 'disabled'}>
-                <i class="fas fa-video"></i> Chuẩn bị quay</button>`;
+            <button id="btn-video-create" class="btn primary" onclick="createVideo()" ${canRecordVideoHere() ? '' : 'disabled'}>
+                <i class="fas fa-wand-magic-sparkles"></i> Tạo video</button>`;
     } else if (step === 'done') {
         const canShare = navigator.canShare && navigator.canShare({ files: [videoFile()] });
         actions.innerHTML = `
-            <button class="btn secondary" onclick="restartVideo()"><i class="fas fa-rotate-left"></i> Quay lại</button>
+            <button class="btn secondary" onclick="restartVideo()"><i class="fas fa-rotate-left"></i> Tạo lại</button>
             ${canShare ? '<button class="btn secondary" onclick="shareVideo()"><i class="fas fa-share-nodes"></i> Chia sẻ</button>' : ''}
             <button id="btn-video-download" class="btn primary" onclick="downloadVideo()"><i class="fas fa-download"></i> Tải video</button>`;
     } else {
-        actions.innerHTML = step === 'recording'
-            ? `<button class="btn secondary" onclick="closeVideoModal()">Hủy</button>
-               <button class="btn primary" onclick="stopVideo()"><i class="fas fa-stop"></i> Dừng và lưu</button>`
-            : '<button class="btn secondary" onclick="closeVideoModal()">Hủy</button>';
+        actions.innerHTML = '<button class="btn secondary" onclick="closeVideoModal()">Hủy</button>';
     }
 }
 
@@ -3986,82 +3985,58 @@ function setVideoStatus(text, progress) {
     if (progress !== undefined) document.getElementById('video-progress-bar').style.width = `${Math.min(100, progress * 100)}%`;
 }
 
-// Dựng khung quay ở cỡ màn hình thật rồi thu nhỏ cho vừa hộp thoại
-function prepareVideo() {
-    video.step = 'preparing';
+function createVideo() {
+    video.step = 'rendering';
     renderVideoModal();
     setVideoStatus('Đang chuẩn bị âm thanh, hình ảnh và nhạc nền...', 0);
 
-    // Khung xem nhanh nghỉ trong lúc quay cho đỡ nặng máy
+    // Khung xem nhanh nghỉ trong lúc dựng cho đỡ nặng máy
     if (previewMusicPlaying) stopPreviewMusic();
-    // Quay lại lần nữa: giữ trạng thái khung xem nhanh từ trước lần quay đầu
+    // Tạo lại lần nữa: giữ trạng thái khung xem nhanh từ trước lần đầu
     if (video.previousPreviewMode === null) video.previousPreviewMode = previewMode;
     previewMode = 'idle';
     sendPreview(true);
 
-    const box = document.getElementById('video-frame-box');
-    video.frame = createRecordFrame({
-        box,
+    video.job = createVideoJob({
         format: VIDEO_FORMATS.find(f => f.value === video.format),
         quality: video.quality,
         config: getFinalConfig(),
-        maxW: Math.min(box.parentElement.clientWidth || 520, 560),
-        maxH: Math.min(window.innerHeight * 0.52, 520),
-        onPrepared(msg) {
-            if (!msg.supported) {
-                setVideoStatus('<span class="warn">Trình duyệt này chưa quay được video. Hãy dùng Chrome, Edge, Firefox hoặc Safari bản mới.</span>');
-                return;
-            }
-            video.step = 'ready';
+        length: video.length,
+        onProgress(progress, phase) {
+            if (video.step !== 'rendering') return;
+            setVideoStatus(phase === 'audio'
+                ? 'Đang ghép tiếng pháo và nhạc nền...'
+                : `Đang tạo video <strong>${Math.round(progress * 100)}%</strong> · giữ trang này mở`, progress);
+        },
+        onDone: showRecordedVideo,
+        onError(message) {
+            video.job = null;
+            video.step = 'setup';
             renderVideoModal();
-            setVideoStatus('Sẵn sàng! Bấm <strong>Bắt đầu quay</strong> trong khung phía trên.'
-                + (msg.musicCaptured ? '' : ' <span class="warn">Video sẽ không có nhạc nền (nhạc từ link trang khác).</span>'), 0);
-        },
-        onStarted() {
-            video.step = 'recording';
-            renderVideoModal();
-            setVideoStatus(`Đang quay 0:00 / ${formatClock(video.length)}`, 0);
-        },
-        onProgress(elapsed) {
-            if (video.step !== 'recording') return;
-            setVideoStatus(`<span class="record-live"></span>Đang quay ${formatClock(elapsed)} / ${formatClock(video.length)}`
-                + ' · giữ tab này mở', elapsed / video.length);
-        },
-        onDone: showRecordedVideo
+            notify(message, 'error');
+        }
     });
-    video.size = video.frame.size;
-}
-
-function stopVideo() {
-    if (video.step !== 'recording' || !video.frame) return;
-    video.step = 'saving';
-    renderVideoModal();
-    setVideoStatus('Đang lưu video...');
-    video.frame.stop();
+    video.size = video.job.size;
 }
 
 function videoFile() {
     const name = document.getElementById('filename').value.trim() || toSlug(document.getElementById('title').value) || 'phao-hoa';
-    return new File([video.blob || new Blob()], `${name}.${videoExtension(video.blob)}`, { type: video.blob ? video.blob.type : 'video/mp4' });
+    return new File([video.blob || new Blob()], `${name}.mp4`, { type: 'video/mp4' });
 }
 
-function showRecordedVideo(blob, elapsed) {
-    video.frame = null;
-    if (!blob || !blob.size) {
-        video.step = 'setup';
-        renderVideoModal();
-        notify('Không quay được video. Hãy thử lại hoặc dùng trình duyệt khác.', 'error');
-        return;
-    }
+function showRecordedVideo(blob, elapsed, { musicCaptured, hasAudio }) {
+    video.job = null;
     video.blob = blob;
     if (video.url) URL.revokeObjectURL(video.url);
     video.url = URL.createObjectURL(blob);
     const player = document.getElementById('video-output');
     player.src = video.url;
-    const ext = videoExtension(blob);
-    document.getElementById('video-info').innerHTML = `${ext.toUpperCase()} · ${video.size[0]}×${video.size[1]} · ${formatClock(elapsed)}`
+    // Video mở đầu bằng trời tối: khung xem trước dừng ở lúc đã có pháo
+    player.addEventListener('loadedmetadata', () => { player.currentTime = Math.min(4, player.duration / 3 || 0); }, { once: true });
+    document.getElementById('video-info').innerHTML = `MP4 · ${video.size[0]}×${video.size[1]} · ${formatClock(elapsed)}`
         + ` · ${(blob.size / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} MB`
-        + (ext === 'webm' ? '<br><span class="warn">Trình duyệt này chỉ quay được WebM; một số ứng dụng (Zalo, Instagram) cần MP4, hãy dùng Chrome bản mới hoặc Safari để quay ra MP4.</span>' : '');
+        + (!hasAudio ? '<br><span class="warn">Trình duyệt này chưa ghi được tiếng vào video; dùng Chrome hoặc Edge để có tiếng pháo và nhạc nền.</span>'
+            : musicCaptured ? '' : '<br><span class="warn">Video không có nhạc nền (nhạc từ link trang khác).</span>');
     video.step = 'done';
     renderVideoModal();
 }
@@ -4090,13 +4065,13 @@ function restartVideo() {
     renderVideoModal();
 }
 
-function removeVideoFrame() {
-    if (video.frame) video.frame.remove();
-    video.frame = null;
+function cancelVideoJob() {
+    if (video.job) video.job.cancel();
+    video.job = null;
 }
 
 function closeVideoModal() {
-    removeVideoFrame();
+    cancelVideoJob();
     const player = document.getElementById('video-output');
     player.pause();
     player.removeAttribute('src');
@@ -5104,7 +5079,7 @@ Object.assign(window, {
     togglePreviewSound, previewAsRecipient, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
     hideModal, setStartFrame, undo, redo, setOpenMode, setSmoke, setViewerOption, setWater, setWaterStyle, setFloating, setStars, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
     toggleLibraryPreview, chooseLibraryItem, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
-    openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, prepareVideo, stopVideo, downloadVideo, shareVideo,
+    openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, createVideo, downloadVideo, shareVideo,
     restartVideo, setTimelineView, zoomTrack, copyTrackingLink, enableOpenNotifications, checkGiftOpens,
     openCropper, closeCropper, zoomCropper, resetCropper, saveCropper
 });

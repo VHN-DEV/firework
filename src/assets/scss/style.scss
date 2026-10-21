@@ -619,66 +619,12 @@ body {
     display: none;
 }
 
-// Khung quay video (builder > Xuất video): chỉ còn bầu trời; nút "Bắt đầu quay" ở giữa trước khi quay
+// Khung dựng video (ẩn trong builder hoặc trang xem): chỉ còn bầu trời
 .is-record-mode {
     .controls,
     .end-screen {
         display: none !important;
     }
-}
-
-.record-start {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 3000;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3vmin;
-    padding: 0 8vmin;
-    background: rgba(0, 0, 0, 0.45);
-    text-align: center;
-
-    .record-ready & {
-        display: flex;
-    }
-
-    button {
-        display: inline-flex;
-        align-items: center;
-        gap: 2.4vmin;
-        padding: 3vmin 7vmin;
-        border: none;
-        border-radius: 99px;
-        background: linear-gradient(135deg, #ff0043 0%, #ff6a3d 100%);
-        color: #fff;
-        font-family: inherit;
-        font-size: 6vmin;
-        font-weight: 700;
-        cursor: pointer;
-        box-shadow: 0 2vmin 5vmin rgba(255, 0, 67, 0.4);
-        animation: recordPulse 1.6s ease-in-out infinite;
-    }
-
-    p {
-        max-width: 80vmin;
-        margin: 0;
-        color: rgba(255, 255, 255, 0.85);
-        font-size: 3.6vmin;
-        line-height: 1.5;
-    }
-}
-
-.record-dot {
-    width: 4vmin;
-    height: 4vmin;
-    border-radius: 50%;
-    background: #fff;
-}
-
-@keyframes recordPulse {
-    50% { transform: scale(1.05); }
 }
 
 /* Start Screen */
@@ -2057,20 +2003,16 @@ body {
     }
 }
 
-.video-frame-box {
-    margin: 6px auto 0;
-    overflow: hidden;
-    border-radius: 12px;
-    background: #000;
-    border: 1px solid rgba(255, 255, 255, 0.16);
+.video-stage-icon {
+    margin: 18px 0 4px;
+    font-size: 2.6rem;
+    line-height: 1;
+    text-align: center;
+    animation: videoPulse 1.6s ease-in-out infinite;
+}
 
-    iframe {
-        position: absolute;
-        top: 0;
-        left: 0;
-        border: 0;
-        transform-origin: 0 0;
-    }
+@keyframes videoPulse {
+    50% { opacity: 0.45; transform: scale(0.94); }
 }
 
 .video-progress {
@@ -2112,18 +2054,4 @@ body {
     max-height: 50vh;
     border-radius: 12px;
     background: #000;
-}
-
-.record-live {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    margin-right: 0.4rem;
-    border-radius: 50%;
-    background: #ff3b5c;
-    animation: recordBlink 1s steps(1) infinite;
-}
-
-@keyframes recordBlink {
-    50% { opacity: 0.2; }
 }

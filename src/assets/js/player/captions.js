@@ -10,6 +10,7 @@
 
 import { replacePlaceholders } from './utils.js';
 import { COLOR } from './env.js';
+import { after, every, cancel } from './clock.js';
 
 const stageContainer = () => document.querySelector('.stage-container');
 
@@ -25,16 +26,16 @@ function getCaptionLayer() {
 
 function dismissCaption(el) {
     if (!el.isConnected || el.classList.contains('is-leaving')) return;
-    clearInterval(el.typingTimer);
+    cancel(el.typingTimer);
     el.classList.add('is-leaving');
-    setTimeout(() => el.remove(), 700);
+    after(700, () => el.remove());
 }
 
 // Chạy lại kịch bản (xem nhanh, "Xem lại"): bỏ các lời nhắn đang hiện
 export function clearCaptions() {
     const layer = stageContainer().querySelector('.caption-layer');
     if (layer) layer.querySelectorAll('.caption').forEach(el => {
-        clearInterval(el.typingTimer);
+        cancel(el.typingTimer);
         el.remove();
     });
 }
@@ -60,17 +61,17 @@ export function showCaption(event) {
         el.classList.add('caption--typing');
         let shown = 0;
         el.textContent = '';
-        el.typingTimer = setInterval(() => {
+        el.typingTimer = every(45, () => {
             shown++;
             el.textContent = chars.slice(0, shown).join('');
             if (shown >= chars.length) {
-                clearInterval(el.typingTimer);
+                cancel(el.typingTimer);
                 el.classList.remove('caption--typing');
             }
-        }, 45);
+        });
         duration = Math.max(duration, chars.length * 45 + 1500);
     } else {
         el.textContent = text;
     }
-    setTimeout(() => dismissCaption(el), duration);
+    after(duration, () => dismissCaption(el));
 }

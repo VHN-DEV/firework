@@ -1,30 +1,12 @@
 /*!
- * Trình diễn Pháo hoa – quay video màn trình diễn
+ * Trình diễn Pháo hoa – dựng video màn trình diễn
  * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
 
 // Mỗi khung hình ghép vào một canvas: màu bầu trời, ảnh nền, hai lớp pháo (hòa trộn "lighten" như trên trang),
 // chữ tiêu đề và lời nhắn (vẽ lại từ phần tử HTML, đúng từng dòng đang hiển thị), cuối cùng là thiệp lời chúc.
-// MediaRecorder ghi canvas đó cùng tiếng pháo và nhạc nền (lấy thẳng từ Web Audio) thành MP4, không được thì WebM.
-
-const MIME_TYPES = [
-    'video/mp4;codecs="avc1.640028,mp4a.40.2"',
-    'video/mp4;codecs=avc1,opus',
-    'video/mp4',
-    'video/webm;codecs=vp9,opus',
-    'video/webm;codecs=vp8,opus',
-    'video/webm'
-];
-
-export function pickVideoMimeType() {
-    if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';
-    return MIME_TYPES.find(type => MediaRecorder.isTypeSupported(type)) || '';
-}
-
-export function canRecordVideo() {
-    return !!(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream && pickVideoMimeType());
-}
+// Video: từng khung đó được mã hóa H.264, tiếng pháo và nhạc nền trộn sẵn rồi mã hóa AAC, ghép thành MP4.
 
 // "rgba(0, 0, 0, 0.95) 0px 2px 6px, ..." -> [{ color, x, y, blur }]
 function parseShadows(value) {
@@ -115,9 +97,10 @@ function wrapText(ctx, text, maxWidth) {
 /**
  * Ghép khung hình đang hiện trên trang vào một canvas (dùng cho video và ảnh chụp khoảnh khắc).
  * width, height: cỡ ảnh; container: khung chứa các lớp pháo (đo vị trí chữ theo khung này);
- * background: phần tử ảnh nền; layers: các canvas pháo; texts(): các phần tử chữ cần vẽ.
+ * background: phần tử ảnh nền; layers: các canvas pháo; texts(): các phần tử chữ cần vẽ;
+ * now(): đồng hồ cho thiệp lời chúc hiện dần (video dùng đồng hồ giả lập).
  */
-export function createFrameComposer({ width, height, container, background, layers, texts }) {
+export function createFrameComposer({ width, height, container, background, layers, texts, now = () => performance.now() }) {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -176,7 +159,7 @@ export function createFrameComposer({ width, height, container, background, laye
 
     // Thiệp lời chúc cuối video: nền tối dần, tiêu đề phát sáng, lời chúc và tên người gửi
     function paintEndCard() {
-        const t = Math.min(1, (performance.now() - endCard.start) / 700);
+        const t = Math.min(1, (now() - endCard.start) / 700);
         ctx.fillStyle = `rgba(0, 0, 0, ${0.55 * t})`;
         ctx.fillRect(0, 0, width, height);
         const unit = Math.min(width, height);
@@ -263,95 +246,182 @@ export function createFrameComposer({ width, height, container, background, laye
         },
         // Thiệp lời chúc phủ lên các khung hình sau đó (hiện dần)
         setEndCard(card) {
-            endCard = { ...card, start: performance.now() };
+            endCard = { ...card, start: now() };
+        }
+    };
+}
+
+// ---------------------------------------------------------------------------
+// Mã hóa MP4: khung hình (canvas) -> H.264, tiếng (AudioBuffer) -> AAC (không được thì Opus) bằng WebCodecs,
+// mp4-muxer ghép thành file. Mọi khung giữ trong bộ nhớ tới lúc chốt file nên ghi hình trước, tiếng sau cũng được.
+// ---------------------------------------------------------------------------
+
+// High, Main rồi Baseline, cùng mức 4.0 (đủ cho 1080×1920)
+const AVC_CODECS = ['avc1.640028', 'avc1.4d0028', 'avc1.42e028'];
+const AUDIO_CODECS = [{ codec: 'mp4a.40.2', muxer: 'aac' }, { codec: 'opus', muxer: 'opus' }];
+const SAMPLE_RATE = 48000;
+const AUDIO_BITRATE = 160000;
+
+export function canEncodeVideo() {
+    return typeof VideoEncoder !== 'undefined' && typeof VideoFrame !== 'undefined' && typeof OfflineAudioContext !== 'undefined';
+}
+
+// Ưu tiên bộ mã hóa phần cứng (card đồ họa, chip điện thoại): nhanh hơn nhiều lần so với mã hóa bằng CPU
+async function pickVideoConfig(width, height, fps, bitrate) {
+    for (const hardwareAcceleration of ['prefer-hardware', 'no-preference']) {
+        for (const codec of AVC_CODECS) {
+            const config = { codec, width, height, bitrate, framerate: fps, avc: { format: 'avc' }, hardwareAcceleration };
+            try {
+                if ((await VideoEncoder.isConfigSupported(config)).supported) return config;
+            } catch (e) {
+                // Trình duyệt không nhận cấu hình này: thử cấu hình kế tiếp
+            }
+        }
+    }
+    return null;
+}
+
+async function pickAudioConfig() {
+    if (typeof AudioEncoder === 'undefined') return null;
+    for (const { codec, muxer } of AUDIO_CODECS) {
+        const config = { codec, sampleRate: SAMPLE_RATE, numberOfChannels: 2, bitrate: AUDIO_BITRATE };
+        try {
+            if ((await AudioEncoder.isConfigSupported(config)).supported) return { config, muxer };
+        } catch (e) {
+            // Thử bộ mã hóa kế tiếp
+        }
+    }
+    return null;
+}
+
+// Nhường luồng chính một nhịp (không bị trình duyệt hãm như setTimeout khi tab ở nền)
+function yieldTask() {
+    return new Promise(resolve => {
+        const channel = new MessageChannel();
+        channel.port1.onmessage = () => resolve();
+        channel.port2.postMessage(null);
+    });
+}
+
+/**
+ * Bộ ghi MP4 width × height, fps khung/giây. Trả về null nếu trình duyệt không mã hóa được H.264.
+ * addFrame(canvas): thêm một khung; addAudio(buffer): thêm tiếng (cả bài một lần); finish(): Blob MP4.
+ */
+export async function createMp4Writer({ width, height, fps, bitrate }) {
+    if (!canEncodeVideo()) return null;
+    const videoConfig = await pickVideoConfig(width, height, fps, bitrate);
+    if (!videoConfig) return null;
+    const audio = await pickAudioConfig();
+    const { Muxer, ArrayBufferTarget } = await import('mp4-muxer');
+    const target = new ArrayBufferTarget();
+    const muxer = new Muxer({
+        target,
+        video: { codec: 'avc', width, height, frameRate: fps },
+        audio: audio ? { codec: audio.muxer, numberOfChannels: 2, sampleRate: SAMPLE_RATE } : undefined,
+        fastStart: 'in-memory',
+        firstTimestampBehavior: 'offset'
+    });
+    let failure = null;
+    const fail = e => { failure = failure || e; };
+    const videoEncoder = new VideoEncoder({ output: (chunk, meta) => muxer.addVideoChunk(chunk, meta), error: fail });
+    videoEncoder.configure(videoConfig);
+    let frames = 0;
+
+    return {
+        hasAudio: !!audio,
+
+        async addFrame(canvas) {
+            if (failure) throw failure;
+            const frame = new VideoFrame(canvas, { timestamp: Math.round(frames * 1e6 / fps), duration: Math.round(1e6 / fps) });
+            // Khung chính mỗi 2 giây: tua video mượt
+            videoEncoder.encode(frame, { keyFrame: frames % (fps * 2) === 0 });
+            frame.close();
+            frames++;
+            // Bộ mã hóa đang bận: chờ nó nhả bớt khung (sự kiện dequeue, trình duyệt cũ thì hỏi lại từng nhịp)
+            while (videoEncoder.encodeQueueSize > 6) {
+                await ('ondequeue' in videoEncoder
+                    ? new Promise(resolve => videoEncoder.addEventListener('dequeue', resolve, { once: true }))
+                    : yieldTask());
+            }
+        },
+
+        async addAudio(buffer) {
+            if (!audio || !buffer) return;
+            const encoder = new AudioEncoder({ output: (chunk, meta) => muxer.addAudioChunk(chunk, meta), error: fail });
+            encoder.configure(audio.config);
+            const left = buffer.getChannelData(0);
+            const right = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : left;
+            const size = 4800;
+            for (let i = 0; i < buffer.length; i += size) {
+                const n = Math.min(size, buffer.length - i);
+                const data = new Float32Array(n * 2);
+                data.set(left.subarray(i, i + n), 0);
+                data.set(right.subarray(i, i + n), n);
+                const chunk = new AudioData({
+                    format: 'f32-planar', sampleRate: SAMPLE_RATE, numberOfFrames: n, numberOfChannels: 2,
+                    timestamp: Math.round(i * 1e6 / SAMPLE_RATE), data
+                });
+                encoder.encode(chunk);
+                chunk.close();
+                if (encoder.encodeQueueSize > 20) await yieldTask();
+            }
+            await encoder.flush();
+            encoder.close();
+            if (failure) throw failure;
+        },
+
+        async finish() {
+            await videoEncoder.flush();
+            videoEncoder.close();
+            if (failure) throw failure;
+            muxer.finalize();
+            return new Blob([target.buffer], { type: 'video/mp4' });
+        },
+
+        close() {
+            if (videoEncoder.state !== 'closed') videoEncoder.close();
         }
     };
 }
 
 /**
- * Như createFrameComposer, thêm audioContext + audioNodes: nguồn tiếng (tiếng pháo, nhạc nền) để ghi vào video.
+ * Trộn tiếng cho video dài `duration` giây: tiếng pháo đã ghi lại (sounds: { at, buffer, rate, gain }) qua âm lượng
+ * chung effectsVolume, và nhạc nền (music: { buffer, offset (giây), volume, loop, start, end (ms) }) to dần 1,2 giây
+ * lúc bắt đầu, nhỏ dần 4 giây lúc kết thúc như khi xem thật.
  */
-export function createVideoRecorder({ width, height, fps = 30, bitrate = 8e6, container, background, layers, texts, audioContext, audioNodes = [] }) {
-    const composer = createFrameComposer({ width, height, container, background, layers, texts });
-    const { canvas, paint } = composer;
-    const mimeType = pickVideoMimeType();
-    let recorder = null;
-    let destination = null;
-    let chunks = [];
-    let frame = null;
-    let lastPaint = 0;
-    let startedAt = 0;
-    let pausedAt = 0;
-    let pausedTotal = 0;
-
-    function loop(now) {
-        frame = requestAnimationFrame(loop);
-        // Vẽ vừa đủ số khung hình của video
-        if (now - lastPaint < 1000 / fps - 4) return;
-        lastPaint = now;
-        paint();
-    }
-
-    return {
-        canvas,
-        mimeType,
-
-        start() {
-            const stream = canvas.captureStream(fps);
-            if (audioContext && audioNodes.length) {
-                destination = audioContext.createMediaStreamDestination();
-                audioNodes.forEach(node => node && node.connect(destination));
-                destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
-            }
-            chunks = [];
-            recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: bitrate, audioBitsPerSecond: 160000 });
-            recorder.ondataavailable = e => {
-                if (e.data && e.data.size) chunks.push(e.data);
-            };
-            paint();
-            recorder.start(1000);
-            startedAt = performance.now();
-            frame = requestAnimationFrame(loop);
-        },
-
-        // Thời gian đã quay (giây), không tính lúc tạm dừng
-        elapsed() {
-            if (!startedAt) return 0;
-            return ((pausedAt || performance.now()) - startedAt - pausedTotal) / 1000;
-        },
-
-        pause() {
-            if (!recorder || recorder.state !== 'recording') return;
-            recorder.pause();
-            pausedAt = performance.now();
-        },
-
-        resume() {
-            if (!recorder || recorder.state !== 'paused') return;
-            pausedTotal += performance.now() - pausedAt;
-            pausedAt = 0;
-            recorder.resume();
-        },
-
-        // Hiện thiệp lời chúc trong `duration` ms rồi xong
-        showEndCard(card, duration) {
-            composer.setEndCard(card);
-            return new Promise(resolve => setTimeout(resolve, duration));
-        },
-
-        stop() {
-            return new Promise(resolve => {
-                if (!recorder || recorder.state === 'inactive') {
-                    resolve(null);
-                    return;
-                }
-                recorder.onstop = () => {
-                    cancelAnimationFrame(frame);
-                    if (destination) audioNodes.forEach(node => node && node.disconnect(destination));
-                    resolve(new Blob(chunks, { type: (recorder.mimeType || mimeType).split(';')[0] }));
-                };
-                recorder.stop();
-            });
+export async function mixAudio({ duration, sounds, effectsVolume, music }) {
+    const ctx = new OfflineAudioContext(2, Math.max(1, Math.ceil(duration * SAMPLE_RATE)), SAMPLE_RATE);
+    const effects = ctx.createGain();
+    effects.gain.value = effectsVolume;
+    effects.connect(ctx.destination);
+    sounds.forEach(sound => {
+        if (sound.at / 1000 >= duration) return;
+        const source = ctx.createBufferSource();
+        source.buffer = sound.buffer;
+        source.playbackRate.value = sound.rate;
+        const gain = ctx.createGain();
+        gain.gain.value = sound.gain;
+        source.connect(gain);
+        gain.connect(effects);
+        source.start(Math.max(0, sound.at / 1000));
+    });
+    if (music && music.buffer && music.start !== null && music.start / 1000 < duration) {
+        const source = ctx.createBufferSource();
+        source.buffer = music.buffer;
+        source.loop = music.loop;
+        const gain = ctx.createGain();
+        const t0 = Math.max(0, music.start / 1000);
+        source.connect(gain);
+        gain.connect(ctx.destination);
+        source.start(t0, Math.min(Math.max(0, music.offset), Math.max(0, music.buffer.duration - 0.01)));
+        gain.gain.setValueAtTime(0, t0);
+        gain.gain.linearRampToValueAtTime(music.volume, t0 + 1.2);
+        if (music.end !== null) {
+            const t1 = Math.max(t0 + 1.2, music.end / 1000);
+            gain.gain.setValueAtTime(music.volume, t1);
+            gain.gain.linearRampToValueAtTime(0, t1 + 4);
+            source.stop(t1 + 4);
         }
-    };
+    }
+    return ctx.startRendering();
 }

@@ -3177,24 +3177,32 @@ select.is-invalid {
     }
 }
 
-.video-frame-box {
-    position: relative;
-    overflow: hidden;
-    border-radius: $b-radius-sm;
-    background: #000;
-    border: 1px solid $b-line-strong;
-
-    iframe {
-        position: absolute;
-        top: 0;
-        left: 0;
-        border: 0;
-        transform-origin: 0 0;
-    }
+.video-stage {
+    padding: 1.5rem 0 0.5rem;
 }
 
-.video-progress {
+.video-stage-icon {
+    font-size: 2.2rem;
+    color: $b-accent-2;
+    animation: videoPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes videoPulse {
+    50% { opacity: 0.45; transform: scale(0.94); }
+}
+
+// Trong hộp xếp theo cột, flex-basis 100% của .beat-progress (khai báo sau) sẽ thành chiều cao: ghi đè bằng bộ chọn mạnh hơn
+.video-stage .video-progress {
+    flex: none;
     width: 100%;
+    max-width: 420px;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.12);
+
+    span {
+        background: linear-gradient(90deg, $b-accent, $b-accent-2);
+    }
 }
 
 .video-status {
@@ -3219,20 +3227,6 @@ select.is-invalid {
 
 .warn {
     color: $b-gold;
-}
-
-.record-live {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    margin-right: 0.4rem;
-    border-radius: 50%;
-    background: #ff3b5c;
-    animation: recordBlink 1s steps(1) infinite;
-}
-
-@keyframes recordBlink {
-    50% { opacity: 0.2; }
 }
 
 // Xếp pháo theo nhịp nhạc

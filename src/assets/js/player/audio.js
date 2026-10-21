@@ -11,11 +11,14 @@ import MyMath from '../MyMath.js';
 import { canPlaySound, soundEnabled, simSpeed } from './state.js';
 import { IS_PREVIEW } from './env.js';
 import { normalizeAssetPath } from './utils.js';
+import { now } from './clock.js';
 
 // Lấy URL thật của các file âm thanh từ Vite: đúng cả khi chạy dev (src/assets/audio) lẫn bản build (assets/audio)
 const AUDIO_URLS = import.meta.glob('../../audio/**/*.mp3', { eager: true, query: '?url', import: 'default' });
 
 export const soundManager = {
+    // Dựng video: không phát ra loa, ghi lại từng tiếng { at (ms), buffer, rate, gain } để trộn sau (xem recorder.js)
+    capture: null,
     baseURL: '../../audio/',
     ctx: new (window.AudioContext || window.webkitAudioContext),
     sources: {
@@ -249,17 +252,17 @@ export const soundManager = {
         // Không cho phép bắt đầu âm thanh mới nếu âm thanh bị tắt, ứng dụng đang chạy ở chế độ chuyển động chậm hoặc bị tạm dừng.
         // Kiểm tra chuyển động chậm có một số khoảng trống trong trường hợp người dùng không kéo xong thanh tốc độ
         // *tất cả* đường về.
-        if (!canPlaySound() || simSpeed < 0.95) {
+        if (!this.capture && (!canPlaySound() || simSpeed < 0.95)) {
             return;
         }
 
         // Van tiết lưu nổ nhỏ, vì vỏ hoa/lá rụng có rất nhiều.
         if (type === 'burstSmall') {
-            const now = Date.now();
-            if (now - this._lastSmallBurstTime < 20) {
+            const time = now();
+            if (time - this._lastSmallBurstTime < 20) {
                 return;
             }
-            this._lastSmallBurstTime = now;
+            this._lastSmallBurstTime = time;
         }
 
         const source = this.sources[type];
@@ -288,6 +291,10 @@ export const soundManager = {
         gainNode.gain.value = scaledVolume;
 
         const buffer = MyMath.randomChoice(source.buffers);
+        if (this.capture) {
+            if (scaledVolume > 0) this.capture.push({ at: now(), buffer, rate: scaledPlaybackRate, gain: scaledVolume });
+            return;
+        }
         const bufferSource = this.ctx.createBufferSource();
         bufferSource.playbackRate.value = scaledPlaybackRate;
         bufferSource.buffer = buffer;
@@ -402,6 +409,16 @@ export const musicPlayer = {
     progressing: false,
     resumeFrom: 0,
     fadeTimer: null,
+    // Dựng video: không phát, chỉ ghi lại { start, end } (ms) để trộn nhạc sau (xem recorder.js)
+    capture: null,
+
+    // Dựng video: nhạc của kịch bản, phát từ lúc đợt đầu bắn và nhỏ dần khi hết như khi xem thật
+    captureOnly(music) {
+        this.config = music && music.url ? music : null;
+        this.capture = { start: null, end: null };
+        this.started = false;
+        this.finished = false;
+    },
 
     // Gọi ngay trong lúc người dùng bấm "Bắt đầu": trình duyệt (nhất là iPhone) chỉ cho phát nhạc
     // về sau nếu phần tử audio đã từng được play() trong một thao tác của người dùng.
@@ -486,6 +503,10 @@ export const musicPlayer = {
     start() {
         if (!this.config || this.started) return;
         this.started = true;
+        if (this.capture) {
+            this.capture.start = now();
+            return;
+        }
         const begin = () => {
             const startAt = Math.max(0, Number(this.config.start) || 0);
             try {
@@ -501,7 +522,7 @@ export const musicPlayer = {
 
     // Tua sẵn tới giây bắt đầu để lúc vào nhạc phát được ngay (kịch bản khớp nhịp)
     cue() {
-        if (!this.config || this.started || !this.audio || this.audio.readyState < 1) return;
+        if (!this.config || this.started || this.capture || !this.audio || this.audio.readyState < 1) return;
         try {
             this.audio.currentTime = Math.max(0, Number(this.config.start) || 0);
         } catch (e) {
@@ -523,7 +544,7 @@ export const musicPlayer = {
     // Đã bảo phát (vừa bắt đầu, vừa chạy lại sau tạm dừng, đang tải thêm) nhưng nhạc chưa kêu
     isStarting() {
         const audio = this.audio;
-        return !!(this.started && !this.finished && audio && !audio.paused && !audio.ended && !audio.error && !this.checkProgress());
+        return !!(!this.capture && this.started && !this.finished && audio && !audio.paused && !audio.ended && !audio.error && !this.checkProgress());
     },
 
     seekBy(ms) {
@@ -539,20 +560,21 @@ export const musicPlayer = {
     // undefined khi không có nhạc để bám (không có nhạc, lỗi, hết bài, đang nhỏ dần để kết thúc)
     position() {
         const audio = this.audio;
-        if (!this.config || !audio || this.finished || audio.ended || audio.error) return undefined;
+        // Dựng video: pháo chạy theo đồng hồ giả lập, nhạc trộn sau cho khớp đúng mốc đó
+        if (this.capture || !this.config || !audio || this.finished || audio.ended || audio.error) return undefined;
         if (!this.started || audio.paused || !this.checkProgress()) return null;
         return (audio.currentTime - Math.max(0, Number(this.config.start) || 0)) * 1000;
     },
 
     resume() {
-        if (!this.started || this.finished || document.hidden) return;
+        if (!this.started || this.finished || this.capture || document.hidden) return;
         const attempt = this.audio.play();
         if (attempt && attempt.catch) attempt.catch(err => console.warn('[Firework] Không phát được nhạc nền:', err.message));
         this.fadeTo(this.targetVolume(), 1200);
     },
 
     pause() {
-        if (!this.started || !this.audio) return;
+        if (!this.started || !this.audio || this.capture) return;
         clearInterval(this.fadeTimer);
         this.audio.pause();
         // Lần phát tiếp theo sẽ to dần lên, không bật đột ngột
@@ -563,6 +585,10 @@ export const musicPlayer = {
     finish(delay) {
         if (!this.started || this.finished) return;
         this.finished = true;
+        if (this.capture) {
+            this.capture.end = now() + delay;
+            return;
+        }
         // Màn trình diễn đã hết: bài nhạc hết trong lúc nhỏ dần thì dừng luôn, không phát lại từ đầu
         if (this.audio) this.audio.loop = false;
         this.finishTimer = setTimeout(() => this.fadeTo(0, 4000, () => this.audio.pause()), delay);

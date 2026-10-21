@@ -9,6 +9,7 @@ phạm vi giấy phép độc quyền của dự án.
 | Firework Simulator v2 (lõi mô phỏng pháo hoa, Stage.js, Ticker.js, MyMath.js, âm thanh gốc) | Caleb Miller – [bản gốc trên CodePen](https://codepen.io/MillerTime/pen/XgpNwb) | MIT | `src/assets/js/script.js` (phần lõi, đã chỉnh sửa và mở rộng), `src/assets/js/Stage@0.1.4.js`, `src/assets/js/MyMath.js`, `src/assets/scss/style.scss` (phần gốc), `src/assets/audio/lift/lift1-3.mp3`, `src/assets/audio/burst/burst1-2.mp3`, `burst-sm-*.mp3`, `crackle1.mp3`, `crackle-sm-1.mp3` |
 | Fscreen 1.0.1 | Rafael Pedicini – [github.com/rafrex/fscreen](https://github.com/rafrex/fscreen) | MIT | `src/assets/js/fscreen@1.0.1.js` |
 | qrcode-generator | Kazuhiko Arase – [github.com/kazuhikoarase/qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) | MIT | thư viện npm, tạo mã QR trong builder |
+| mp4-muxer | Vanilagy – [github.com/Vanilagy/mp4-muxer](https://github.com/Vanilagy/mp4-muxer) | MIT | thư viện npm, ghép hình và tiếng thành file MP4 khi tạo video |
 | country-flag-emoji-polyfill (kèm phông Twemoji Country Flags) | TalkJS – [github.com/talkjs/country-flag-emoji-polyfill](https://github.com/talkjs/country-flag-emoji-polyfill); hình cờ từ [Twemoji](https://github.com/twitter/twemoji) © Twitter, Inc. và các cộng tác viên | Mã: MIT · Hình cờ: CC BY 4.0 | thư viện npm, hiện cờ quốc gia trên máy thiếu cờ (Windows) trong builder và trình phát |
 | Font Awesome Free 6.5.1 | Fonticons, Inc. – [fontawesome.com](https://fontawesome.com) | Biểu tượng: CC BY 4.0 · Font: SIL OFL 1.1 · Mã: MIT | tải từ cdnjs trong builder và bảng chia sẻ của trang xem |
 | Phông chữ Inter, Outfit, Roboto | Các tác giả trên [Google Fonts](https://fonts.google.com) | SIL OFL 1.1 / Apache 2.0 | tải từ Google Fonts |
@@ -50,5 +51,5 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-Fscreen và qrcode-generator dùng cùng nội dung giấy phép MIT ở trên, với dòng bản quyền của tác giả tương ứng
+Fscreen, qrcode-generator và mp4-muxer dùng cùng nội dung giấy phép MIT ở trên, với dòng bản quyền của tác giả tương ứng
 (xem trong mã nguồn của từng thư viện).

@@ -17,6 +17,7 @@ import { normalizeAssetPath } from './utils.js';
 import { imageParticleCache, ImageBurst } from './image-burst.js';
 import { imageCacheKey } from './image-frame.js';
 import { Smoke } from './smoke.js';
+import { after } from './clock.js';
 import {
     crossetteEffect, crackleEffect, floralEffect, fallingLeavesEffect, createParticleArc, createBurst
 } from './effects.js';
@@ -215,7 +216,7 @@ export class Shell {
             const count = 4 + Math.floor(Math.random() * 4);
             for (let i = 0; i < count; i++) {
                 const delay = 400 + Math.random() * 1200;
-                setTimeout(() => {
+                after(delay, () => {
                     if (!isRunning()) return;
                     const offsetX = (Math.random() - 0.5) * this.spreadSize * 1.8;
                     const offsetY = (Math.random() - 0.5) * this.spreadSize * 1.8;
@@ -229,7 +230,7 @@ export class Shell {
                         isSubBurst: true
                     });
                     subShell.burst(x + offsetX, y + offsetY);
-                }, delay);
+                });
             }
         }
 

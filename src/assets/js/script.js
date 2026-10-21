@@ -8,7 +8,8 @@ import fscreen from './fscreen@1.0.1.js';
 import { Stage, Ticker } from './Stage@0.1.4.js';
 import MyMath from './MyMath.js';
 import { printCopyrightNotice } from './copyright.js';
-import { createFrameComposer, createVideoRecorder, canRecordVideo, pickVideoMimeType } from './recorder.js';
+import { createFrameComposer, createMp4Writer, mixAudio } from './recorder.js';
+import { now, after, cancel, useSimulatedClock, advanceClock } from './player/clock.js';
 import { setupViewerShare } from './viewer-share.js';
 import { getOwnerKeys } from './gift-tracking.js';
 import '../scss/style.scss';
@@ -966,9 +967,9 @@ function startCountdown(config) {
 let endScreenTimer = null;
 
 function showEndScreen() {
-    // Khung quay video: thay màn kết bằng thiệp lời chúc trong video rồi xong
+    // Khung dựng video: thay màn kết bằng thiệp lời chúc trong video rồi xong
     if (IS_RECORD) {
-        finishRecording(true);
+        finishRecording();
         return;
     }
     if (IS_HEADER || !burstConfig || burstConfig.loop) return;
@@ -995,7 +996,7 @@ function replayShow() {
         window.parent.postMessage({ type: 'firework-preview-replay' }, window.location.origin);
         return;
     }
-    clearTimeout(endScreenTimer);
+    cancel(endScreenTimer);
     appNodes.endScreen.classList.add('hide');
     pendingLaunches = [];
     burstCounter = 0;
@@ -1007,130 +1008,182 @@ function replayShow() {
 }
 
 // ---------------------------------------------------------------------------
-// QUAY VIDEO (builder > Xuất video): builder gửi kịch bản và cỡ video sang; người dùng bấm "Bắt đầu quay" ngay trong
-// khung (trình duyệt chỉ cho phát tiếng sau một lần bấm); màn trình diễn chạy một lượt từ đầu, kết bằng thiệp lời chúc,
-// rồi file video được gửi về builder. Xem recorder.js.
+// DỰNG VIDEO (builder > Tạo video, người nhận > Tạo video): trang gửi kịch bản và cỡ video sang khung ẩn
+// (index.html?record=1). Khung chạy màn trình diễn một lượt theo đồng hồ giả lập, từng khung hình một và nhanh hết
+// mức máy cho phép (không phải chờ theo thời gian thật, không cần phát ra loa), mã hóa thành MP4 kèm tiếng pháo và
+// nhạc nền trộn sẵn, kết bằng thiệp lời chúc, rồi gửi file về. Xem recorder.js, player/clock.js.
 // ---------------------------------------------------------------------------
 
 // Chờ trước phát pháo đầu tiên, và thời gian thiệp lời chúc ở cuối video (ms)
 const RECORD_LEAD = 800;
 const RECORD_END_CARD = 4000;
-// Bộ mã hóa video của trình duyệt có lúc mất 1-2 giây mới bắt đầu nhận khung hình: quay trước một đoạn trời đêm yên
-// tĩnh rồi mới vào màn trình diễn, để phần đứng hình (nếu có) chỉ là nền tối, không phải pháo hay tiêu đề
-const RECORD_WARMUP = 1500;
+const RECORD_FPS = 30;
+// Giới hạn an toàn: kịch bản hỏng không làm video dài mãi
+const RECORD_MAX_MS = 20 * 60 * 1000;
 
 const recording = {
-    config: null,
-    options: null,
-    recorder: null,
-    progressTimer: null,
-    finishing: false
+    // Đang dựng: vòng lặp của Ticker đứng ngoài, chỉ vòng dựng mới cho mô phỏng bước tiếp (xem update())
+    active: false,
+    stepping: false,
+    composer: null,
+    // Mốc (đồng hồ giả lập) hết thiệp lời chúc, tức là hết video
+    endsAt: null
 };
 
 function postToBuilder(message) {
     window.parent.postMessage(message, window.location.origin);
 }
 
-// Nhạc nền tải đủ để phát liền mạch (tối đa 15 giây)
-function waitForMusic(audio) {
-    return new Promise(resolve => {
-        if (!audio || audio.readyState >= 4) {
-            resolve();
+// Nhạc nền để trộn vào video: file cùng tên miền (hoặc link cho phép CORS); link ngoài không đọc được thì bỏ qua
+async function loadMusicForVideo(music) {
+    if (!music || !music.url) return null;
+    try {
+        const response = await fetch(normalizeAssetPath(music.url));
+        if (!response.ok) return null;
+        const buffer = await soundManager.ctx.decodeAudioData(await response.arrayBuffer());
+        const volume = Number(music.volume);
+        return {
+            buffer,
+            offset: Math.max(0, Number(music.start) || 0),
+            volume: Number.isFinite(volume) ? Math.min(1, Math.max(0, volume)) : 0.8,
+            // Như khi xem thật: kịch bản khớp nhịp hết bài thì thôi, còn lại phát lặp
+            loop: !music.sync
+        };
+    } catch (e) {
+        return null;
+    }
+}
+
+// Hiệu ứng CSS (tiêu đề hiện dần rồi mờ đi, lời nhắn hiện/ẩn, con trỏ gõ chữ) đi theo đồng hồ giả lập: dừng lại và
+// tua đúng `ms` mỗi khung; hiệu ứng mới xuất hiện trong khung này bắt đầu từ 0
+const steppedAnimations = new WeakSet();
+
+function stepAnimations(ms) {
+    document.getAnimations().forEach(animation => {
+        if (!steppedAnimations.has(animation)) {
+            steppedAnimations.add(animation);
+            animation.pause();
+            animation.currentTime = 0;
+        } else {
+            animation.currentTime = (Number(animation.currentTime) || 0) + ms;
+        }
+    });
+}
+
+async function renderVideo({ config: source, options }) {
+    if (recording.active) return;
+    recording.active = true;
+    const fail = message => postToBuilder({ type: 'firework-record-error', message });
+    try {
+        const { width, height, bitrate } = options;
+        const fps = RECORD_FPS;
+        const timing = { start: performance.now(), simulate: 0, paint: 0, encode: 0 };
+        const writer = await createMp4Writer({ width, height, fps, bitrate });
+        if (!writer) {
+            fail('unsupported');
             return;
         }
-        const done = () => {
-            clearTimeout(timer);
-            resolve();
-        };
-        const timer = setTimeout(done, 15000);
-        audio.addEventListener('canplaythrough', done, { once: true });
-        audio.addEventListener('error', done, { once: true });
-    });
-}
+        // Video chỉ chạy một lượt
+        const config = await prepareBurstConfig({ ...source, loop: false }, { showOverlay: false });
+        soundManager.setEffectsVolume(config.effectsVolume ?? 1);
+        await soundManager.preload(getRequiredSoundTypes(config));
+        const music = await loadMusicForVideo(config.music);
+        if (document.fonts) await document.fonts.ready;
 
-async function prepareRecording({ config: source, options }) {
-    // Video chỉ quay một lượt
-    const config = await prepareBurstConfig({ ...source, loop: false }, { showOverlay: false });
-    soundManager.setEffectsVolume(config.effectsVolume ?? 1);
-    await soundManager.preload(getRequiredSoundTypes(config));
-    musicPlayer.load(config.music);
-    if (musicPlayer.config) await waitForMusic(musicPlayer.audio);
-    recording.config = config;
-    recording.options = options || {};
-    document.documentElement.classList.add('record-ready');
-    postToBuilder({
-        type: 'firework-record-prepared',
-        supported: canRecordVideo(),
-        mimeType: pickVideoMimeType(),
-        // Nhạc từ link ngoài không đưa qua Web Audio được nên không ghi vào video
-        musicCaptured: !config.music || !!musicPlayer.gain
-    });
-}
-
-function startRecording() {
-    if (!recording.config || recording.recorder) return;
-    document.documentElement.classList.remove('record-ready');
-    // Đang trong lúc bấm: mở khóa tiếng pháo và cho phép phát nhạc về sau
-    soundManager.resumeAll();
-    const audio = musicPlayer.audio;
-    if (musicPlayer.config && audio) {
-        audio.muted = true;
-        const attempt = audio.play();
-        const unmute = () => {
-            audio.pause();
-            audio.muted = false;
-        };
-        if (attempt && attempt.then) attempt.then(unmute, unmute);
-    }
-    const { width, height, fps, bitrate } = recording.options;
-    const recorder = recording.recorder = createVideoRecorder({
-        width: width || mainStage.canvas.width,
-        height: height || mainStage.canvas.height,
-        fps,
-        bitrate,
-        ...frameSources(),
-        audioContext: soundManager.ctx,
-        audioNodes: [soundManager.effectsGain, musicPlayer.gain]
-    });
-    recorder.start();
-    recording.progressTimer = setInterval(() => postToBuilder({ type: 'firework-record-progress', elapsed: recorder.elapsed() }), 500);
-    postToBuilder({ type: 'firework-record-started' });
-    // Bỏ hẹn giờ màn kết của kịch bản rỗng lúc chờ quay
-    clearTimeout(endScreenTimer);
-    setTimeout(() => {
-        if (recording.finishing) return;
-        // Chạy lại từ đầu, đúng như khi người nhận vừa mở quà
-        burstConfig = recording.config;
+        // Từ đây thời gian chỉ trôi theo từng khung hình của video. Bỏ hẹn giờ màn kết (đồng hồ thật) của kịch bản rỗng
+        // lúc khung vừa mở, kẻo nó kết video giữa chừng
+        cancel(endScreenTimer);
+        pendingLaunches = [];
+        clearCaptions();
+        document.querySelectorAll('.config-overlay').forEach(el => el.remove());
+        useSimulatedClock();
+        soundManager.capture = [];
+        musicPlayer.captureOnly(config.music);
+        burstConfig = config;
         burstCounter = 0;
         syncShow.reset();
-        clearCaptions();
-        musicPlayer.restart();
         autoLaunchTime = RECORD_LEAD;
-        showTitleOverlay(burstConfig);
-    }, RECORD_WARMUP);
+        showTitleOverlay(config);
+        const composer = recording.composer = createFrameComposer({ width, height, ...frameSources(), now });
+        await composer.load();
+
+        timing.frames = performance.now();
+        const step = 1000 / fps;
+        const estimate = Math.max(1, Number(options.length) || 60) * 1000;
+        let frames = 0;
+        let lastReport = 0;
+        while (recording.endsAt === null || now() < recording.endsAt) {
+            if (frames * step > RECORD_MAX_MS) break;
+            let t = performance.now();
+            advanceClock(step);
+            recording.stepping = true;
+            try {
+                update(step, step / 16.6667);
+            } finally {
+                recording.stepping = false;
+            }
+            stepAnimations(step);
+            timing.simulate += performance.now() - t;
+            t = performance.now();
+            composer.paint();
+            timing.paint += performance.now() - t;
+            t = performance.now();
+            await writer.addFrame(composer.canvas);
+            timing.encode += performance.now() - t;
+            frames++;
+            // Báo tiến độ khoảng 4 lần mỗi giây thật
+            if (performance.now() - lastReport > 250) {
+                lastReport = performance.now();
+                postToBuilder({ type: 'firework-record-progress', phase: 'frames', progress: Math.min(0.95, (frames * step) / estimate) * 0.9 });
+            }
+        }
+
+        timing.audio = performance.now();
+        postToBuilder({ type: 'firework-record-progress', phase: 'audio', progress: 0.92 });
+        const duration = frames / fps;
+        const audio = await mixAudio({
+            duration,
+            sounds: soundManager.capture,
+            effectsVolume: soundManager.effectsGain.gain.value,
+            music: music && { ...music, start: musicPlayer.capture.start, end: musicPlayer.capture.end }
+        });
+        await writer.addAudio(audio);
+        const blob = await writer.finish();
+        postToBuilder({
+            type: 'firework-record-done',
+            blob,
+            elapsed: duration,
+            // Nhạc từ link trang khác không đọc được nên không có trong video
+            musicCaptured: !config.music || !!music,
+            hasAudio: writer.hasAudio,
+            // Thời gian thật (ms) của từng bước: chuẩn bị, dựng hình, ghép tiếng
+            timing: {
+                prepare: Math.round(timing.frames - timing.start),
+                frames: Math.round(timing.audio - timing.frames),
+                simulate: Math.round(timing.simulate),
+                paint: Math.round(timing.paint),
+                encode: Math.round(timing.encode),
+                audio: Math.round(performance.now() - timing.audio)
+            }
+        });
+    } catch (e) {
+        console.error('[Firework] Không dựng được video:', e);
+        fail(e && e.message ? e.message : String(e));
+    } finally {
+        soundManager.capture = null;
+    }
 }
 
-// withCard: chạy hết màn trình diễn thì kết bằng thiệp lời chúc; dừng giữa chừng thì cắt luôn
-async function finishRecording(withCard) {
-    const recorder = recording.recorder;
-    if (!recorder || recording.finishing) return;
-    recording.finishing = true;
-    const config = recording.config;
-    if (withCard) {
-        await recorder.showEndCard({
-            title: config.title,
-            message: frameText(config.outroMessage) || config.subtitle,
-            from: config.author
-        }, RECORD_END_CARD);
-    }
-    clearInterval(recording.progressTimer);
-    const elapsed = recorder.elapsed();
-    const blob = await recorder.stop();
-    // Dừng pháo và nhạc
-    burstConfig = { events: [] };
-    syncShow.reset();
-    musicPlayer.finish(0);
-    postToBuilder({ type: 'firework-record-done', blob, elapsed });
+// Màn trình diễn đã chạy hết (lúc màn kết hiện ra khi xem thật): kết video bằng thiệp lời chúc
+function finishRecording() {
+    if (!recording.composer || recording.endsAt !== null) return;
+    const config = burstConfig;
+    recording.composer.setEndCard({
+        title: config.title,
+        message: frameText(config.outroMessage) || config.subtitle,
+        from: config.author
+    });
+    recording.endsAt = now() + RECORD_END_CARD;
 }
 
 appNodes.endScreen.querySelector('.end-screen__replay').addEventListener('click', replayShow);
@@ -1281,8 +1334,8 @@ function showTitleOverlay(config) {
         overlay.appendChild(el);
     });
     document.body.appendChild(overlay);
-    setTimeout(() => overlay.classList.add('fade-out'), 5000);
-    setTimeout(() => overlay.remove(), 7000);
+    after(5000, () => overlay.classList.add('fade-out'));
+    after(7000, () => overlay.remove());
 }
 
 async function init() {
@@ -1900,8 +1953,8 @@ const syncShow = {
         }
         this.state = 'done';
         musicPlayer.finish(3000);
-        clearTimeout(endScreenTimer);
-        endScreenTimer = setTimeout(showEndScreen, 4500);
+        cancel(endScreenTimer);
+        endScreenTimer = after(4500, showEndScreen);
         if (IS_PREVIEW) {
             window.parent.postMessage({ type: 'firework-preview-ended' }, window.location.origin);
         }
@@ -1936,8 +1989,8 @@ function startSequence() {
                 if (burstCounter === maxBurst + 1) {
                     // Chờ những phát cuối tàn hẳn rồi cho nhạc nhỏ dần và hiện màn kết
                     musicPlayer.finish(3000);
-                    clearTimeout(endScreenTimer);
-                    endScreenTimer = setTimeout(showEndScreen, 4500);
+                    cancel(endScreenTimer);
+                    endScreenTimer = after(4500, showEndScreen);
                     // Báo cho builder biết bản xem nhanh đã chạy xong một lượt
                     if (IS_PREVIEW) {
                         window.parent.postMessage({ type: 'firework-preview-ended' }, window.location.origin);
@@ -2328,6 +2381,8 @@ function removeAt(list, i) {
 }
 
 function update(frameTime, lag) {
+    // Đang dựng video: chỉ vòng dựng (renderVideo) cho mô phỏng bước tiếp, theo đúng nhịp khung hình của video
+    if (recording.active && !recording.stepping) return;
     if (!isRunning()) return;
     autoTuner.frame(performance.now());
     // Kịch bản khớp nhịp: chờ nhạc kêu rồi pháo mới bay tiếp
@@ -2641,7 +2696,7 @@ function render(speed) {
         sky: currentSkyColor,
         cssW: frameW,
         cssH: frameH,
-        time: performance.now(),
+        time: now(),
         style: burstConfig && burstConfig.waterStyle === 'river' ? 'river' : 'lake',
         floating: burstConfig && ['lanterns', 'petals'].includes(burstConfig.floating) ? burstConfig.floating : '',
         calm: reduceFlashingSelector(),
@@ -2805,7 +2860,7 @@ if (IS_PREVIEW) {
         }
         if (msg.sound) soundManager.preload(getRequiredSoundTypes(config));
         if (msg.restart) {
-            clearTimeout(endScreenTimer);
+            cancel(endScreenTimer);
             appNodes.endScreen.classList.add('hide');
             hidePreviewStartFrame();
             if (!msg.startFrame) previewInteractive(false);
@@ -2829,30 +2884,15 @@ if (IS_PREVIEW) {
     init().then(() => window.parent.postMessage({ type: 'firework-preview-ready' }, window.location.origin));
 }
 else if (IS_RECORD) {
-    // Khung quay video trong builder: không có màn chờ, chưa nhận kịch bản thì không bắn pháo ngẫu nhiên
+    // Khung dựng video (ẩn trong builder hoặc trang xem): không có màn chờ, chưa nhận kịch bản thì không bắn pháo ngẫu nhiên
     document.documentElement.classList.add('is-record-mode');
     appNodes.startScreen.classList.add('remove');
     burstConfig = { events: [] };
-    const startPanel = document.createElement('div');
-    startPanel.className = 'record-start';
-    startPanel.innerHTML = '<button type="button"><span class="record-dot"></span>Bắt đầu quay</button>'
-        + '<p>Màn trình diễn sẽ chạy từ đầu và được quay lại kèm âm thanh.</p>';
-    startPanel.querySelector('button').addEventListener('click', startRecording);
-    document.body.appendChild(startPanel);
 
     window.addEventListener('message', (e) => {
         const msg = e.data;
         if (e.origin !== window.location.origin || !msg) return;
-        if (msg.type === 'firework-record-load') prepareRecording(msg);
-        else if (msg.type === 'firework-record-start') startRecording();
-        else if (msg.type === 'firework-record-stop') finishRecording(false);
-    });
-    // Tab bị ẩn thì pháo và nhạc đứng lại, video cũng tạm dừng theo
-    document.addEventListener('visibilitychange', () => {
-        const recorder = recording.recorder;
-        if (!recorder || recording.finishing) return;
-        if (document.hidden) recorder.pause();
-        else recorder.resume();
+        if (msg.type === 'firework-record-load') renderVideo(msg);
     });
 
     init().then(() => window.parent.postMessage({ type: 'firework-record-frame-ready' }, window.location.origin));

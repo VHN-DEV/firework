@@ -115,22 +115,10 @@ export async function run(browser, base, { check }) {
         }));
         check('TikTok: mở tạo video khổ dọc 9:16', tiktok.open && tiktok.format === 'portrait' && tiktok.note.includes('TikTok'), JSON.stringify(tiktok));
 
-        // Quay video ngay trên trang xem (HD cho nhanh)
+        // Tạo video ngay trên trang xem (HD cho nhanh): bấm một lần là có file, không phải quay
         await page.click('.video-qualities [data-quality="hd"]');
-        await page.click('.video-sheet [data-act="prepare"]');
-        await page.waitForFunction(() => /Sẵn sàng/.test(document.querySelector('.video-status').textContent), { timeout: 60000 });
-        const frame = page.frames().find(f => f.url().includes('record=1'));
-        const inner = await frame.$eval('.record-start button', b => {
-            const r = b.getBoundingClientRect();
-            return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: innerWidth };
-        });
-        const outer = await page.$eval('.video-frame-box iframe', f => {
-            const r = f.getBoundingClientRect();
-            return { x: r.left, y: r.top, w: r.width };
-        });
-        const k = outer.w / inner.w;
-        await page.mouse.click(outer.x + inner.x * k, outer.y + inner.y * k);
-        await page.waitForFunction(() => !document.querySelector('.video-sheet__result').classList.contains('remove'), { timeout: 90000 }).catch(() => {});
+        await page.click('.video-sheet [data-act="create"]');
+        await page.waitForFunction(() => !document.querySelector('.video-sheet__result').classList.contains('remove'), { timeout: 120000 }).catch(() => {});
         const video = await page.evaluate(async () => {
             const v = document.querySelector('.video-output');
             if (!v.src) return null;
@@ -148,22 +136,22 @@ export async function run(browser, base, { check }) {
                 tip: document.querySelector('.video-tip').textContent
             };
         });
-        check('người nhận quay được video dọc 720×1280 có nút tải về', !!video && /video\/(mp4|webm)/.test(video.type) && video.w === 720 && video.h === 1280 && video.download,
+        check('người nhận tạo được video MP4 dọc 720×1280 có nút tải về', !!video && video.type === 'video/mp4' && video.w === 720 && video.h === 1280 && video.download,
             video && `${video.type} ${video.w}×${video.h}`);
         check('video người nhận dài trọn màn trình diễn kèm thiệp lời chúc', !!video && video.duration > 12 && video.duration < 22, video && `${video.duration.toFixed(1)} s`);
         check('kèm hướng dẫn đăng TikTok', !!video && video.tip.includes('TikTok'), video && video.tip);
 
-        // Đóng hết bảng: gỡ khung quay, màn trình diễn chạy tiếp
+        // Đóng hết bảng: không còn khung dựng, màn trình diễn chạy tiếp
         await page.click('.video-sheet .sheet__close');
         // Chờ bảng video mờ hẳn rồi mới bấm nút đóng của bảng chia sẻ bên dưới
         await sleep(400);
         await page.click('.share-sheet .sheet__close');
         await sleep(300);
         const after = await page.evaluate(() => ({
-            frames: document.querySelectorAll('.video-frame-box iframe').length,
+            frames: document.querySelectorAll('iframe[title="Khung dựng video"]').length,
             paused: document.querySelector('.pause-btn use').getAttribute('href')
         }));
-        check('đóng bảng: gỡ khung quay, màn trình diễn chạy tiếp', after.frames === 0 && after.paused === '#icon-pause', JSON.stringify(after));
+        check('đóng bảng: không còn khung dựng, màn trình diễn chạy tiếp', after.frames === 0 && after.paused === '#icon-pause', JSON.stringify(after));
         check('chia sẻ, chụp, tạo video không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
         await page.close();
 

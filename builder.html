@@ -72,7 +72,7 @@
                     <button class="btn ghost" onclick="exportConfig()" title="Xuất kịch bản ra file .json">
                         <i class="fas fa-file-export"></i><span>Xuất</span>
                     </button>
-                    <button class="btn ghost" onclick="openVideoModal()" title="Quay màn trình diễn thành video (TikTok, Zalo...)">
+                    <button class="btn ghost" onclick="openVideoModal()" title="Tạo video MP4 từ màn trình diễn (TikTok, Zalo...)">
                         <i class="fas fa-film"></i><span>Video</span>
                     </button>
                 </div>
@@ -107,7 +107,7 @@
                         <button onclick="document.getElementById('import-file').click()"><i
                                 class="fas fa-file-import"></i> Nhập file .json</button>
                         <button onclick="exportConfig()"><i class="fas fa-file-export"></i> Xuất file .json</button>
-                        <button onclick="openVideoModal()"><i class="fas fa-film"></i> Xuất video</button>
+                        <button onclick="openVideoModal()"><i class="fas fa-film"></i> Tạo video</button>
                         <hr>
                         <button onclick="showModal('help-modal')"><i class="fas fa-circle-question"></i> Hướng
                             dẫn</button>
@@ -496,7 +496,7 @@
                             <label class="switch-row" for="receiver-share">
                                 <span>
                                     <strong>Cho người nhận chụp ảnh, tạo video, chia sẻ<button type="button" class="help-tip" data-help="receiverShare" aria-label="Giải thích">?</button></strong>
-                                    <small>Nút 📷 và nút chia sẻ ở góc dưới: lưu khoảnh khắc, quay video TikTok, gửi link</small>
+                                    <small>Nút 📷 và nút chia sẻ ở góc dưới: lưu khoảnh khắc, tạo video TikTok, gửi link</small>
                                 </span>
                                 <input type="checkbox" id="receiver-share" class="switch" checked>
                             </label>
@@ -779,7 +779,7 @@
                             <button class="btn secondary small" onclick="downloadShareImage()"><i
                                     class="fas fa-image"></i> Tải ảnh thiệp</button>
                             <button class="btn secondary small" onclick="closeShareModal(); openVideoModal()"><i
-                                    class="fas fa-film"></i> Xuất video</button>
+                                    class="fas fa-film"></i> Tạo video</button>
                         </div>
                     </div>
                 </div>
@@ -803,7 +803,7 @@
     <div id="video-modal" class="modal hide">
         <div class="modal-content large video-modal">
             <div class="modal-header">
-                <h3><i class="fas fa-film"></i> Xuất video</h3>
+                <h3><i class="fas fa-film"></i> Tạo video</h3>
                 <button class="btn icon" onclick="closeVideoModal()" title="Đóng">
                     <i class="fas fa-xmark"></i>
                 </button>
@@ -811,8 +811,8 @@
             <div class="templates-body video-body">
                 <!-- Bước 1: khung hình, chất lượng -->
                 <div id="video-setup" class="video-setup">
-                    <p class="templates-lead">Quay màn trình diễn kèm tiếng pháo và nhạc nền thành video để đăng TikTok,
-                        Story, Reels hoặc gửi qua Zalo, Messenger.</p>
+                    <p class="templates-lead">Tạo file video MP4 từ màn trình diễn, kèm tiếng pháo, nhạc nền và thiệp lời
+                        chúc, để đăng TikTok, Story, Reels hoặc gửi qua Zalo, Messenger.</p>
                     <div>
                         <label>Khung hình<button type="button" class="help-tip" data-help="videoFormat" aria-label="Giải thích">?</button></label>
                         <div id="video-formats" class="shell-grid video-formats"></div>
@@ -826,9 +826,9 @@
                     </div>
                     <ul id="video-notes" class="video-notes"></ul>
                 </div>
-                <!-- Bước 2: quay -->
+                <!-- Bước 2: dựng video -->
                 <div id="video-stage" class="video-stage hide">
-                    <div id="video-frame-box" class="video-frame-box"></div>
+                    <i class="fas fa-film video-stage-icon" aria-hidden="true"></i>
                     <div class="beat-progress video-progress"><span id="video-progress-bar"></span></div>
                     <p id="video-status" class="video-status"></p>
                 </div>
@@ -1084,7 +1084,7 @@
                         <li><strong>Chạm màn hình để bắn pháo:</strong> tắt để người xem chỉ xem, chạm vào trời không bắn
                             thêm pháo.</li>
                         <li><strong>Cho người nhận chụp ảnh, tạo video, chia sẻ:</strong> người nhận chụp lại khoảnh khắc đẹp
-                            (nút 📷 hoặc phím C), tự quay video dọc để đăng TikTok, Reels, Shorts, gửi link qua Facebook, Zalo,
+                            (nút 📷 hoặc phím C), tự tạo video dọc để đăng TikTok, Reels, Shorts, gửi link qua Facebook, Zalo,
                             Messenger... Tắt nếu món quà chỉ dành riêng cho người nhận.</li>
                         <li><strong>Giảm chớp sáng:</strong> cho người nhạy cảm với ánh sáng nhấp nháy. Người xem cũng tự
                             bật được bằng nút trên màn mở quà.</li>
@@ -1156,8 +1156,8 @@
                         đã mở link, mở quà, xem hết chưa: xem trong hộp Chia sẻ, danh sách Kịch bản của tôi hoặc link theo
                         dõi riêng (cần bản có máy chủ PHP).</p>
                     <p><strong>Mở</strong> để sửa kịch bản đã lưu; <strong>Nhập</strong> / <strong>Xuất</strong> file .json
-                        để chuyển kịch bản sang máy khác; <strong>Video</strong> quay màn trình diễn kèm tiếng pháo và nhạc
-                        (dọc cho TikTok/Story, ngang hoặc vuông), xem lại rồi tải về.</p>
+                        để chuyển kịch bản sang máy khác; <strong>Video</strong> tạo file MP4 từ màn trình diễn kèm tiếng pháo và
+                        nhạc (dọc cho TikTok/Story, ngang hoặc vuông), không cần ngồi chờ hết, xem lại rồi tải về.</p>
                 </div>
             </div>
             <div class="modal-footer">

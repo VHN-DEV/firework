@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "country-flag-emoji-polyfill": "^0.1.10",
+    "mp4-muxer": "^5.2.2",
     "qrcode-generator": "^2.0.4"
   }
 }

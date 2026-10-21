@@ -5,11 +5,11 @@
  */
 
 // Trên trang xem: nút 📷 (phím C) chụp khung hình đang hiện (ảnh nền, pháo, chữ) thành ảnh JPEG; nút chia sẻ mở bảng
-// gửi link lên mạng xã hội, xem lại ảnh đã chụp và tạo video (TikTok, Reels, Shorts...) bằng khung quay của builder.
+// gửi link lên mạng xã hội, xem lại ảnh đã chụp và tạo file video MP4 (TikTok, Reels, Shorts...) như builder.
 // Ảnh và video làm ngay trên máy người xem, không tải lên máy chủ. Người tạo tắt được (kịch bản receiverShare: false).
 import { availablePlatforms, copyText, platformIcon, shareLink } from './share-targets.js';
 import {
-    VIDEO_FORMATS, canRecordVideoHere, createRecordFrame, estimateVideoLength, estimateVideoMegabytes, formatClock, videoExtension
+    VIDEO_FORMATS, canRecordVideoHere, createVideoJob, estimateVideoLength, estimateVideoMegabytes, formatClock
 } from './video-export.js';
 
 // Biểu tượng mạng xã hội (cùng bản với builder), chỉ tải khi mở bảng chia sẻ
@@ -43,7 +43,7 @@ async function shareFile(file, title) {
  * composeFrame(): Promise<canvas> khung hình đang hiện; describe(): { title, description } của màn trình diễn;
  * pauseShow(paused): tạm dừng/chạy tiếp, trả về trạng thái tạm dừng trước đó; configName: tên kịch bản (link quà) hoặc null;
  * preview: bản xem nhanh trong builder (chỉ báo cho người tạo biết nút dùng làm gì); reduceFlashing(): không chớp khi chụp;
- * off: không dùng tới (khung quay video, ảnh đầu trang hồ sơ).
+ * off: không dùng tới (khung dựng video, ảnh đầu trang hồ sơ).
  */
 export function setupViewerShare({ composeFrame, describe, pauseShow, configName, preview, reduceFlashing, off }) {
     const bar = $('.moment-bar');
@@ -95,11 +95,11 @@ export function setupViewerShare({ composeFrame, describe, pauseShow, configName
 
     [shareSheet, videoSheet].forEach(sheet => {
         sheet.querySelector('.sheet__close').addEventListener('click', () => (sheet === videoSheet ? closeVideo() : closeSheet(sheet)));
-        // Bấm ra ngoài bảng thì đóng (trừ lúc đang quay)
+        // Bấm ra ngoài bảng thì đóng (trừ lúc đang tạo video)
         sheet.addEventListener('click', e => {
             if (e.target !== sheet) return;
             if (sheet === videoSheet) {
-                if (!['preparing', 'ready', 'recording', 'saving'].includes(video.step)) closeVideo();
+                if (video.step !== 'rendering') closeVideo();
             } else {
                 closeSheet(sheet);
             }
@@ -264,14 +264,14 @@ export function setupViewerShare({ composeFrame, describe, pauseShow, configName
         }
     });
 
-    // ---- Tạo video: như builder > Xuất video, chạy trong bảng của trang xem
+    // ---- Tạo video: như builder > Tạo video, dựng thành file MP4 ngay trong bảng của trang xem
     const video = {
         format: 'portrait',
-        // Điện thoại quay HD cho nhẹ máy, file nhỏ gửi nhanh
+        // Điện thoại dựng HD: nhanh hơn, file nhỏ gửi nhanh
         quality: isMobile() ? 'hd' : 'fhd',
-        // 'setup' | 'preparing' | 'ready' | 'recording' | 'saving' | 'done'
+        // 'setup' | 'rendering' | 'done'
         step: 'setup',
-        frame: null,
+        job: null,
         blob: null,
         url: '',
         length: 0,
@@ -292,7 +292,7 @@ export function setupViewerShare({ composeFrame, describe, pauseShow, configName
     function renderVideo() {
         const step = video.step;
         v('.video-sheet__setup').classList.toggle('remove', step !== 'setup');
-        v('.video-sheet__stage').classList.toggle('remove', !['preparing', 'ready', 'recording', 'saving'].includes(step));
+        v('.video-sheet__stage').classList.toggle('remove', step !== 'rendering');
         v('.video-sheet__result').classList.toggle('remove', step !== 'done');
         const actions = v('.sheet__actions');
 
@@ -306,23 +306,21 @@ export function setupViewerShare({ composeFrame, describe, pauseShow, configName
             const [width, height] = format.size[video.quality];
             video.length = estimateVideoLength(show.config.events, !!(show.config.music && show.config.music.sync));
             const notes = [
-                `Video ${width}×${height}, dài khoảng <strong>${formatClock(video.length)}</strong>, nặng tối đa khoảng `
+                `Video MP4 ${width}×${height}, dài khoảng <strong>${formatClock(video.length)}</strong>, nặng tối đa khoảng `
                 + `${estimateVideoMegabytes(video.quality, video.length)} MB; có tiêu đề, lời nhắn, nhạc nền và thiệp lời chúc ở cuối.`,
-                'Quay theo thời gian thật nên mất đúng chừng ấy thời gian. Giữ trang này mở trong lúc quay (chuyển ứng dụng khác thì video tạm dừng).',
-                'Video làm ngay trên máy bạn, không tải lên đâu cả.'
+                'Không cần ngồi xem hết: video được dựng ngay trên máy bạn, nhanh hết mức máy cho phép, không tải lên đâu cả.'
             ];
             if (video.intro) notes.unshift(`<span class="ok">${video.intro}</span>`);
             v('.video-notes').innerHTML = notes.map(n => `<li>${n}</li>`).join('');
             actions.innerHTML = `<button type="button" class="sheet__btn" data-act="cancel">Hủy</button>
-                <button type="button" class="sheet__btn sheet__btn--primary" data-act="prepare">🎬 Chuẩn bị quay</button>`;
+                <button type="button" class="sheet__btn sheet__btn--primary" data-act="create">🎬 Tạo video</button>`;
         } else if (step === 'done') {
             const file = videoFile();
-            actions.innerHTML = `<button type="button" class="sheet__btn" data-act="again">↻ Quay lại</button>
+            actions.innerHTML = `<button type="button" class="sheet__btn" data-act="again">↻ Tạo lại</button>
                 ${canShareFile(file) ? '<button type="button" class="sheet__btn" data-act="share">↗ Chia sẻ</button>' : ''}
                 <button type="button" class="sheet__btn sheet__btn--primary" data-act="download">⬇ Tải video</button>`;
         } else {
-            actions.innerHTML = `<button type="button" class="sheet__btn" data-act="cancel">Hủy</button>`
-                + (step === 'recording' ? '<button type="button" class="sheet__btn sheet__btn--primary" data-act="stop">■ Dừng và lưu</button>' : '');
+            actions.innerHTML = '<button type="button" class="sheet__btn" data-act="cancel">Hủy</button>';
         }
     }
 
@@ -331,63 +329,49 @@ export function setupViewerShare({ composeFrame, describe, pauseShow, configName
         if (progress !== undefined) v('.video-progress__bar').style.width = `${Math.min(100, progress * 100)}%`;
     }
 
-    function prepareVideo() {
-        video.step = 'preparing';
+    function createVideo() {
+        video.step = 'rendering';
         renderVideo();
         setStatus('Đang chuẩn bị âm thanh, hình ảnh và nhạc nền...', 0);
-        const box = v('.video-frame-box');
-        video.frame = createRecordFrame({
-            box,
+        video.job = createVideoJob({
             format: VIDEO_FORMATS.find(f => f.value === video.format),
             quality: video.quality,
             config: show.config,
-            maxW: Math.min(box.parentElement.clientWidth || 320, 480),
-            maxH: Math.min(window.innerHeight * 0.5, 480),
-            onPrepared(msg) {
-                if (!msg.supported) {
-                    setStatus('<span class="warn">Trình duyệt này chưa quay được video. Hãy dùng Chrome, Edge, Firefox hoặc Safari bản mới.</span>');
-                    return;
-                }
-                video.step = 'ready';
+            length: video.length,
+            onProgress(progress, phase) {
+                if (video.step !== 'rendering') return;
+                setStatus(phase === 'audio'
+                    ? 'Đang ghép tiếng pháo và nhạc nền...'
+                    : `Đang tạo video <strong>${Math.round(progress * 100)}%</strong> · giữ trang này mở`, progress);
+            },
+            onDone: showVideo,
+            onError(message) {
+                video.job = null;
+                video.step = 'setup';
                 renderVideo();
-                setStatus('Sẵn sàng! Bấm <strong>Bắt đầu quay</strong> trong khung phía trên.'
-                    + (msg.musicCaptured ? '' : ' <span class="warn">Video sẽ không có nhạc nền (nhạc từ link trang khác).</span>'), 0);
-            },
-            onStarted() {
-                video.step = 'recording';
-                renderVideo();
-                setStatus(`Đang quay 0:00 / ${formatClock(video.length)}`, 0);
-            },
-            onProgress(elapsed) {
-                if (video.step !== 'recording') return;
-                setStatus(`<span class="record-live"></span>Đang quay ${formatClock(elapsed)} / ${formatClock(video.length)} · giữ trang này mở`,
-                    elapsed / video.length);
-            },
-            onDone: showVideo
+                notify(message);
+            }
         });
-        video.size = video.frame.size;
+        video.size = video.job.size;
     }
 
     function videoFile() {
-        return new File([video.blob || new Blob()], `${baseName()}.${videoExtension(video.blob)}`, { type: video.blob ? video.blob.type : 'video/mp4' });
+        return new File([video.blob || new Blob()], `${baseName()}.mp4`, { type: 'video/mp4' });
     }
 
-    function showVideo(blob, elapsed) {
-        video.frame = null;
-        if (!blob || !blob.size) {
-            video.step = 'setup';
-            renderVideo();
-            notify('Không quay được video. Hãy thử lại hoặc dùng trình duyệt khác.');
-            return;
-        }
+    function showVideo(blob, elapsed, { musicCaptured, hasAudio }) {
+        video.job = null;
         video.blob = blob;
         if (video.url) URL.revokeObjectURL(video.url);
         video.url = URL.createObjectURL(blob);
-        v('.video-output').src = video.url;
-        const ext = videoExtension(blob);
-        v('.video-info').innerHTML = `${ext.toUpperCase()} · ${video.size[0]}×${video.size[1]} · ${formatClock(elapsed)}`
+        const player = v('.video-output');
+        player.src = video.url;
+        // Video mở đầu bằng trời tối: khung xem trước dừng ở lúc đã có pháo
+        player.addEventListener('loadedmetadata', () => { player.currentTime = Math.min(4, player.duration / 3 || 0); }, { once: true });
+        v('.video-info').innerHTML = `MP4 · ${video.size[0]}×${video.size[1]} · ${formatClock(elapsed)}`
             + ` · ${(blob.size / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} MB`
-            + (ext === 'webm' ? '<br><span class="warn">Trình duyệt này chỉ quay được WebM; TikTok, Instagram, Zalo cần MP4, hãy dùng Chrome bản mới hoặc Safari để quay ra MP4.</span>' : '');
+            + (!hasAudio ? '<br><span class="warn">Trình duyệt này chưa ghi được tiếng vào video; dùng Chrome hoặc Edge để có tiếng pháo và nhạc nền.</span>'
+                : musicCaptured ? '' : '<br><span class="warn">Video không có nhạc nền (nhạc từ link trang khác).</span>');
         v('.video-tip').textContent = video.format === 'portrait'
             ? 'Đăng TikTok: tải video về máy, mở TikTok, bấm dấu + rồi chọn Tải lên. Instagram Reels, YouTube Shorts, Facebook Story làm tương tự.'
             : 'Tải video về máy rồi đăng lên YouTube, Facebook hoặc gửi qua Zalo, Messenger như video thường.';
@@ -396,8 +380,8 @@ export function setupViewerShare({ composeFrame, describe, pauseShow, configName
     }
 
     function resetVideo() {
-        if (video.frame) video.frame.remove();
-        video.frame = null;
+        if (video.job) video.job.cancel();
+        video.job = null;
         const player = v('.video-output');
         player.pause();
         player.removeAttribute('src');
@@ -425,13 +409,8 @@ export function setupViewerShare({ composeFrame, describe, pauseShow, configName
         } else if (act) {
             const action = act.dataset.act;
             if (action === 'cancel') closeVideo();
-            else if (action === 'prepare') prepareVideo();
-            else if (action === 'stop' && video.step === 'recording' && video.frame) {
-                video.step = 'saving';
-                renderVideo();
-                setStatus('Đang lưu video...');
-                video.frame.stop();
-            } else if (action === 'again') {
+            else if (action === 'create') createVideo();
+            else if (action === 'again') {
                 resetVideo();
                 renderVideo();
             } else if (action === 'share') shareFile(videoFile(), shareText().title);
@@ -447,7 +426,7 @@ export function setupViewerShare({ composeFrame, describe, pauseShow, configName
     window.addEventListener('keydown', e => {
         if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
         if (e.key === 'Escape') {
-            if (!videoSheet.classList.contains('hide') && !['recording', 'saving'].includes(video.step)) closeVideo();
+            if (!videoSheet.classList.contains('hide') && video.step !== 'rendering') closeVideo();
             else closeSheet(shareSheet);
         } else if ((e.key === 'c' || e.key === 'C') && !openSheets.size && !bar.closest('.remove')) {
             snap();

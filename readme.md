@@ -30,8 +30,8 @@
 - `npm run build`: build vào thư mục `dist` (chạy trên XAMPP tại `http://localhost/firework/dist/`).
 - `npm test`: build rồi chạy kiểm thử tự động (hơn 60 bước: trình phát, link tặng, hộp quà, hẹn giờ, nhạc nền, lời nhắn,
   màn kết, mọi loại pháo và kiểu bắn, builder lưu/mở/chia sẻ, dòng thời gian theo giây, hoàn tác và bản nháp, xếp pháo
-  theo nhịp nhạc với bài nhạc biết trước đáp án, xuất video có hình và tiếng, người nhận chụp khoảnh khắc, chia sẻ và tạo
-  video, báo mở quà, trang Điều khoản/Bảo mật).
+  theo nhịp nhạc với bài nhạc biết trước đáp án, tạo video MP4 có hình và tiếng nhanh hơn thời gian thật, người nhận
+  chụp khoảnh khắc, chia sẻ và tạo video, báo mở quà, trang Điều khoản/Bảo mật).
   Cần PHP (lệnh `php`, hoặc biến `PHP_BIN`) và Google Chrome (biến `CHROME_PATH` nếu không ở chỗ mặc định).
   `npm run test:e2e` chạy kiểm thử trên bản build sẵn có.
 - Mỗi lần push lên `main`, GitHub Actions (`.github/workflows/deploy.yml`) tự cài thư viện, build, chạy kiểm thử;
@@ -65,15 +65,19 @@ Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và 
   - 📷 (hoặc phím `C`): chụp khung hình đang hiện (ảnh nền, pháo, chữ) thành ảnh JPEG để lưu hoặc gửi; các ảnh đã chụp
     xem lại trong bảng chia sẻ.
   - Chia sẻ (cũng có ở màn kết): sao chép link hoặc gửi qua Facebook, Messenger, Zalo, Telegram, WhatsApp, X, Threads,
-    LinkedIn, Email, tin nhắn, bảng chia sẻ của máy. **Tạo video** quay lại màn trình diễn (khổ dọc 9:16 cho TikTok,
-    Reels, Shorts; ngang 16:9; vuông 1:1) kèm nhạc và thiệp lời chúc; nút TikTok, Instagram mở thẳng video dọc.
+    LinkedIn, Email, tin nhắn, bảng chia sẻ của máy. **Tạo video** dựng màn trình diễn thành file MP4 (khổ dọc 9:16 cho
+    TikTok, Reels, Shorts; ngang 16:9; vuông 1:1) kèm nhạc và thiệp lời chúc; nút TikTok, Instagram mở thẳng video dọc.
+- **Tạo video** (builder nút Video, hoặc người nhận): bấm một lần là có file MP4, không phải ngồi chờ hết màn trình
+  diễn. Khung ẩn chạy màn trình diễn theo đồng hồ giả lập (`player/clock.js`), từng khung hình được mã hóa H.264 ngay
+  trong trình duyệt (WebCodecs, ưu tiên bộ mã hóa phần cứng), tiếng pháo và nhạc nền trộn sẵn rồi mã hóa AAC, ghép
+  bằng mp4-muxer. Cần Chrome, Edge hoặc Safari bản mới.
   - Ảnh và video làm ngay trên máy người xem. Người tạo tắt được trong builder (nhóm "Khi người nhận xem", kịch bản lưu
     `receiverShare: false`).
 
 ## Cấu trúc thư mục
 
 - `index.html`, `builder.html`, `theo-doi.html`, `privacy.html`, `terms.html`: các trang (Vite build ra `dist/`).
-- `src/assets/js/script.js`: trình phát (cài đặt, menu, khung mở quà, hẹn giờ, khớp nhịp nhạc, quay video, vòng lặp
+- `src/assets/js/script.js`: trình phát (cài đặt, menu, khung mở quà, hẹn giờ, khớp nhịp nhạc, dựng video, vòng lặp
   vẽ). Lõi pháo hoa tách trong `src/assets/js/player/`:
   - `env.js`, `state.js`: môi trường, hằng số, trạng thái dùng chung (cỡ sân khấu, chất lượng, tốc độ, cài đặt);
   - `particles.js` (hạt, tia lửa), `effects.js` (hiệu ứng nổ), `shapes.js` (pháo hình, chữ), `colors.js`;
@@ -81,10 +85,11 @@ Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và 
   - `smoke.js` (khói pháo: lớp canvas riêng dưới lớp pháo, độ phân giải thấp, có giới hạn số đám khói);
   - `scenery.js` (mặt nước phản chiếu; bầu trời đêm: sao, trăng, đèn trời, khinh khí cầu, máy bay), `moon.js` (pha trăng
     theo ngày);
-  - `audio.js` (tiếng pháo, nhạc nền), `start-frames.js` (khung mở quà), `captions.js` (lời nhắn), `utils.js`.
+  - `audio.js` (tiếng pháo, nhạc nền), `start-frames.js` (khung mở quà), `captions.js` (lời nhắn), `utils.js`;
+  - `clock.js` (đồng hồ của màn trình diễn: thật khi xem, giả lập khi dựng video).
 - `src/assets/js/builder.js`: trình soạn; kèm `beat-sync.js` (xếp pháo theo nhịp), `timeline.js`, `timeline-track.js`
-  (dòng thời gian theo giây), `templates.js` (mẫu theo dịp), `recorder.js` (ghép khung hình, quay video),
-  `video-export.js` (khung quay video), `share-targets.js` (chia sẻ link lên mạng xã hội), `gift-tracking.js` (báo mở
+  (dòng thời gian theo giây), `templates.js` (mẫu theo dịp), `recorder.js` (ghép khung hình, mã hóa MP4, trộn tiếng),
+  `video-export.js` (khung dựng video), `share-targets.js` (chia sẻ link lên mạng xã hội), `gift-tracking.js` (báo mở
   quà), `share-image.js` (ảnh khi chia sẻ). Trình phát dùng `viewer-share.js` (người nhận chụp khoảnh khắc, chia sẻ,
   tạo video) cùng các module video, chia sẻ này.
 - `src/assets/scss/`: giao diện; `src/assets/audio/`, `src/assets/img/`: âm thanh, hình ảnh.
