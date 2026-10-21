@@ -7,6 +7,10 @@
 import fscreen from './fscreen@1.0.1.js';
 import qrcode from 'qrcode-generator';
 import { renderShareImage } from './share-image.js';
+import { availablePlatforms, copyText, platformIcon, shareLink } from './share-targets.js';
+import {
+    VIDEO_FORMATS, canRecordVideoHere, createRecordFrame, estimateVideoLength, estimateVideoMegabytes, formatClock, videoExtension
+} from './video-export.js';
 import { OCCASIONS, buildTemplate } from './templates.js';
 import { analyzeMusic, buildBeatShow, KEEP_SHELLS } from './beat-sync.js';
 import { MOON_PHASES, moonFraction, moonPhaseIndex, moonIllumination } from './player/moon.js';
@@ -3841,18 +3845,8 @@ function addEventAtTime(time) {
 
 // ---------------------------------------------------------------------------
 // XUẤT VIDEO: khung quay (index.html?record=1) chạy chính trình phát ở cỡ video đã chọn, quay lại màn trình diễn
-// kèm tiếng pháo và nhạc nền (xem recorder.js), rồi gửi file về đây để xem lại, tải về hoặc chia sẻ
+// kèm tiếng pháo và nhạc nền (xem video-export.js, recorder.js), rồi gửi file về đây để xem lại, tải về hoặc chia sẻ
 // ---------------------------------------------------------------------------
-
-// frame: cỡ khung (px) như màn hình thật để pháo bố trí đúng kiểu; size: cỡ video theo chất lượng
-const VIDEO_FORMATS = [
-    { value: 'portrait', icon: '📱', name: 'Dọc 9:16', hint: 'TikTok, Story, Reels', frame: [405, 720], size: { fhd: [1080, 1920], hd: [720, 1280] } },
-    { value: 'landscape', icon: '🖥️', name: 'Ngang 16:9', hint: 'YouTube, Facebook', frame: [1280, 720], size: { fhd: [1920, 1080], hd: [1280, 720] } },
-    { value: 'square', icon: '⬛', name: 'Vuông 1:1', hint: 'Bài đăng Facebook, Instagram', frame: [720, 720], size: { fhd: [1080, 1080], hd: [720, 720] } }
-];
-const VIDEO_BITRATES = { fhd: 8e6, hd: 4e6 };
-// Sau đợt cuối: chờ pháo tàn (4,5 giây) rồi thiệp lời chúc (4 giây)
-const VIDEO_TAIL_SECONDS = 8.5;
 
 const video = {
     format: 'portrait',
@@ -3865,25 +3859,6 @@ const video = {
     length: 0,
     previousPreviewMode: null
 };
-
-function canRecordVideoHere() {
-    const canvas = document.createElement('canvas');
-    return !!(window.MediaRecorder && canvas.captureStream);
-}
-
-// Thời lượng video dự kiến (giây): các đợt như trình phát, cộng lúc chờ đầu và cuối
-function estimateVideoLength() {
-    let total = 0;
-    for (let b = 1; b <= getMaxBurst(); b++) total += getBurstDuration(getBurstEvents(b));
-    // Kịch bản khớp nhịp phóng pháo đầu tiên sớm hơn nhạc khoảng 2,5 giây
-    // 1,5 giây trời đêm đầu video (chờ bộ mã hóa video khởi động) + 0,8 giây tới phát đầu tiên
-    return total / 1000 + 1.5 + 0.8 + (isSyncMode() ? 2.5 : 0) + VIDEO_TAIL_SECONDS;
-}
-
-function formatClock(seconds) {
-    const s = Math.max(0, Math.round(seconds));
-    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
 
 // Nhạc dán link từ trang khác: trình duyệt không cho ghi vào video
 function isExternalMusic() {
@@ -3933,8 +3908,8 @@ function renderVideoModal() {
         document.querySelectorAll('.video-qualities button').forEach(btn => btn.classList.toggle('active', btn.dataset.quality === video.quality));
         const format = VIDEO_FORMATS.find(f => f.value === video.format);
         const [width, height] = format.size[video.quality];
-        video.length = estimateVideoLength();
-        const megabytes = Math.max(1, Math.round((VIDEO_BITRATES[video.quality] + 160000) * video.length / 8 / 1e6));
+        video.length = estimateVideoLength(state.events, isSyncMode());
+        const megabytes = estimateVideoMegabytes(video.quality, video.length);
         const notes = [
             `Video ${width}×${height}, dài khoảng <strong>${formatClock(video.length)}</strong>, nặng tối đa khoảng ${megabytes} MB; có tiêu đề, lời nhắn và thiệp lời chúc ở cuối.`,
             'Quay theo thời gian thật nên mất đúng chừng ấy thời gian. Giữ tab này mở trong lúc quay (chuyển tab thì video tạm dừng).'
@@ -3967,9 +3942,6 @@ function setVideoStatus(text, progress) {
 
 // Dựng khung quay ở cỡ màn hình thật rồi thu nhỏ cho vừa hộp thoại
 function prepareVideo() {
-    const format = VIDEO_FORMATS.find(f => f.value === video.format);
-    const [frameW, frameH] = format.frame;
-    const [width, height] = format.size[video.quality];
     video.step = 'preparing';
     renderVideoModal();
     setVideoStatus('Đang chuẩn bị âm thanh, hình ảnh và nhạc nền...', 0);
@@ -3982,73 +3954,53 @@ function prepareVideo() {
     sendPreview(true);
 
     const box = document.getElementById('video-frame-box');
-    const maxW = Math.min(box.parentElement.clientWidth || 520, 560);
-    const maxH = Math.min(window.innerHeight * 0.52, 520);
-    const scale = Math.min(maxW / frameW, maxH / frameH);
-    box.style.width = `${Math.round(frameW * scale)}px`;
-    box.style.height = `${Math.round(frameH * scale)}px`;
-    const frame = document.createElement('iframe');
-    frame.title = 'Khung quay video';
-    frame.allow = 'autoplay';
-    frame.style.width = `${frameW}px`;
-    frame.style.height = `${frameH}px`;
-    frame.style.transform = `scale(${scale})`;
-    frame.src = `index.html?record=1&scale=${width / frameW}`;
-    box.replaceChildren(frame);
-    video.frame = frame;
-    video.size = [width, height];
+    video.frame = createRecordFrame({
+        box,
+        format: VIDEO_FORMATS.find(f => f.value === video.format),
+        quality: video.quality,
+        config: getFinalConfig(),
+        maxW: Math.min(box.parentElement.clientWidth || 520, 560),
+        maxH: Math.min(window.innerHeight * 0.52, 520),
+        onPrepared(msg) {
+            if (!msg.supported) {
+                setVideoStatus('<span class="warn">Trình duyệt này chưa quay được video. Hãy dùng Chrome, Edge, Firefox hoặc Safari bản mới.</span>');
+                return;
+            }
+            video.step = 'ready';
+            renderVideoModal();
+            setVideoStatus('Sẵn sàng! Bấm <strong>Bắt đầu quay</strong> trong khung phía trên.'
+                + (msg.musicCaptured ? '' : ' <span class="warn">Video sẽ không có nhạc nền (nhạc từ link trang khác).</span>'), 0);
+        },
+        onStarted() {
+            video.step = 'recording';
+            renderVideoModal();
+            setVideoStatus(`Đang quay 0:00 / ${formatClock(video.length)}`, 0);
+        },
+        onProgress(elapsed) {
+            if (video.step !== 'recording') return;
+            setVideoStatus(`<span class="record-live"></span>Đang quay ${formatClock(elapsed)} / ${formatClock(video.length)}`
+                + ' · giữ tab này mở', elapsed / video.length);
+        },
+        onDone: showRecordedVideo
+    });
+    video.size = video.frame.size;
 }
-
-window.addEventListener('message', (e) => {
-    const msg = e.data;
-    if (e.origin !== window.location.origin || !msg || !video.frame || e.source !== video.frame.contentWindow) return;
-    if (msg.type === 'firework-record-frame-ready') {
-        const config = getFinalConfig();
-        video.frame.contentWindow.postMessage({
-            type: 'firework-record-load',
-            config,
-            options: { width: video.size[0], height: video.size[1], fps: 30, bitrate: VIDEO_BITRATES[video.quality] }
-        }, window.location.origin);
-    } else if (msg.type === 'firework-record-prepared') {
-        if (!msg.supported) {
-            setVideoStatus('<span class="warn">Trình duyệt này chưa quay được video. Hãy dùng Chrome, Edge, Firefox hoặc Safari bản mới.</span>');
-            return;
-        }
-        video.step = 'ready';
-        renderVideoModal();
-        setVideoStatus('Sẵn sàng! Bấm <strong>Bắt đầu quay</strong> trong khung phía trên.'
-            + (msg.musicCaptured ? '' : ' <span class="warn">Video sẽ không có nhạc nền (nhạc từ link trang khác).</span>'), 0);
-    } else if (msg.type === 'firework-record-started') {
-        video.step = 'recording';
-        renderVideoModal();
-        setVideoStatus(`Đang quay 0:00 / ${formatClock(video.length)}`, 0);
-    } else if (msg.type === 'firework-record-progress' && video.step === 'recording') {
-        setVideoStatus(`<span class="record-live"></span>Đang quay ${formatClock(msg.elapsed)} / ${formatClock(video.length)}`
-            + ' · giữ tab này mở', msg.elapsed / video.length);
-    } else if (msg.type === 'firework-record-done') {
-        showRecordedVideo(msg.blob, msg.elapsed);
-    }
-});
 
 function stopVideo() {
     if (video.step !== 'recording' || !video.frame) return;
     video.step = 'saving';
     renderVideoModal();
     setVideoStatus('Đang lưu video...');
-    video.frame.contentWindow.postMessage({ type: 'firework-record-stop' }, window.location.origin);
-}
-
-function videoExtension() {
-    return video.blob && /mp4/.test(video.blob.type) ? 'mp4' : 'webm';
+    video.frame.stop();
 }
 
 function videoFile() {
     const name = document.getElementById('filename').value.trim() || toSlug(document.getElementById('title').value) || 'phao-hoa';
-    return new File([video.blob || new Blob()], `${name}.${videoExtension()}`, { type: video.blob ? video.blob.type : 'video/mp4' });
+    return new File([video.blob || new Blob()], `${name}.${videoExtension(video.blob)}`, { type: video.blob ? video.blob.type : 'video/mp4' });
 }
 
 function showRecordedVideo(blob, elapsed) {
-    removeVideoFrame();
+    video.frame = null;
     if (!blob || !blob.size) {
         video.step = 'setup';
         renderVideoModal();
@@ -4060,7 +4012,7 @@ function showRecordedVideo(blob, elapsed) {
     video.url = URL.createObjectURL(blob);
     const player = document.getElementById('video-output');
     player.src = video.url;
-    const ext = videoExtension();
+    const ext = videoExtension(blob);
     document.getElementById('video-info').innerHTML = `${ext.toUpperCase()} · ${video.size[0]}×${video.size[1]} · ${formatClock(elapsed)}`
         + ` · ${(blob.size / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} MB`
         + (ext === 'webm' ? '<br><span class="warn">Trình duyệt này chỉ quay được WebM; một số ứng dụng (Zalo, Instagram) cần MP4, hãy dùng Chrome bản mới hoặc Safari để quay ra MP4.</span>' : '');
@@ -4318,23 +4270,6 @@ function updateShareBar(filename) {
     }, 2000);
 }
 
-// Sao chép; có cách dự phòng khi trang không chạy https (vd mở qua IP mạng LAN trên điện thoại)
-async function copyText(text) {
-    try {
-        await navigator.clipboard.writeText(text);
-        return true;
-    } catch (e) {
-        const input = document.createElement('textarea');
-        input.value = text;
-        input.style.cssText = 'position:fixed;opacity:0';
-        document.body.appendChild(input);
-        input.select();
-        const ok = document.execCommand('copy');
-        input.remove();
-        return ok;
-    }
-}
-
 async function copyShareLink() {
     if (!share.id) {
         notify('Vui lòng lưu kịch bản trước khi sao chép link!', 'warning');
@@ -4347,36 +4282,6 @@ async function copyShareLink() {
     }
 }
 
-// Điện thoại/máy tính bảng: theo User-Agent, iPad đời mới (báo là Mac) và thiết bị cảm ứng màn hình nhỏ
-const isMobileDevice = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-    || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent))
-    || (navigator.maxTouchPoints > 0 && window.matchMedia('(pointer: coarse)').matches && window.innerWidth < 1024);
-
-function openShareWindow(href) {
-    const win = window.open(href, '_blank');
-    if (win) {
-        win.opener = null;
-    } else {
-        notify('Trình duyệt đã chặn cửa sổ mới, hãy cho phép popup để chia sẻ.', 'warning');
-    }
-}
-
-const SHARE_PLATFORMS = [
-    { id: 'native', name: 'Ứng dụng khác', icon: '<i class="fas fa-share-nodes"></i>', bg: '#7c6cff', available: () => !!navigator.share },
-    { id: 'facebook', name: 'Facebook', icon: '<i class="fab fa-facebook-f"></i>', bg: '#1877f2' },
-    { id: 'messenger', name: 'Messenger', icon: '<i class="fab fa-facebook-messenger"></i>', bg: 'linear-gradient(45deg, #0695ff, #a334fa, #ff6968)' },
-    { id: 'zalo', name: 'Zalo', icon: 'zalo', bg: '#0068ff' },
-    { id: 'telegram', name: 'Telegram', icon: '<i class="fab fa-telegram"></i>', bg: '#229ed9' },
-    { id: 'whatsapp', name: 'WhatsApp', icon: '<i class="fab fa-whatsapp"></i>', bg: '#25d366' },
-    { id: 'x', name: 'X (Twitter)', icon: '<i class="fab fa-x-twitter"></i>', bg: '#000000' },
-    { id: 'threads', name: 'Threads', icon: '<i class="fab fa-threads"></i>', bg: '#000000' },
-    { id: 'linkedin', name: 'LinkedIn', icon: '<i class="fab fa-linkedin-in"></i>', bg: '#0a66c2' },
-    { id: 'instagram', name: 'Instagram', icon: '<i class="fab fa-instagram"></i>', bg: 'linear-gradient(45deg, #f9ce34, #ee2a7b, #6228d7)' },
-    { id: 'tiktok', name: 'TikTok', icon: '<i class="fab fa-tiktok"></i>', bg: '#000000' },
-    { id: 'email', name: 'Email', icon: '<i class="fas fa-envelope"></i>', bg: '#ea4335' },
-    { id: 'sms', name: 'Tin nhắn', icon: '<i class="fas fa-comment-sms"></i>', bg: '#34c759', available: isMobileDevice }
-];
-
 async function shareTo(platform) {
     if (!share.id) {
         notify('Vui lòng lưu kịch bản trước khi chia sẻ!', 'warning');
@@ -4385,70 +4290,22 @@ async function shareTo(platform) {
     refreshShareText();
     const url = share.url;
     const text = `🎆 ${share.title}${share.description ? ` – ${share.description}` : ''}`;
-    const enc = encodeURIComponent;
-    const useNativeShare = isMobileDevice() && !!navigator.share;
-
-    switch (platform) {
-        case 'native':
-            try {
-                await navigator.share({ title: share.title, text, url });
-            } catch (e) {
-                // Người dùng đóng bảng chia sẻ
-            }
-            return;
-        case 'facebook':
-            return openShareWindow(`https://www.facebook.com/sharer/sharer.php?u=${enc(url)}`);
-        case 'messenger':
-            // Điện thoại: bảng chia sẻ của hệ thống có sẵn Messenger; máy tính: Messenger không có link chia sẻ công khai
-            if (useNativeShare) return shareTo('native');
-            if (isMobileDevice()) {
-                window.location.href = `fb-messenger://share/?link=${enc(url)}`;
-                return;
-            }
-            await copyText(url);
-            notify('Đã sao chép link, hãy dán (Ctrl+V) vào cuộc trò chuyện Messenger.', 'success');
-            return openShareWindow('https://www.messenger.com/');
-        case 'zalo':
-            // Zalo không có link chia sẻ công khai: điện thoại dùng bảng chia sẻ hệ thống, máy tính mở Zalo Web
-            if (useNativeShare) return shareTo('native');
-            await copyText(url);
-            notify('Đã sao chép link, hãy dán (Ctrl+V) vào cuộc trò chuyện Zalo.', 'success');
-            return openShareWindow('https://chat.zalo.me/');
-        case 'telegram':
-            return openShareWindow(`https://t.me/share/url?url=${enc(url)}&text=${enc(text)}`);
-        case 'whatsapp':
-            return openShareWindow(`https://wa.me/?text=${enc(`${text}\n${url}`)}`);
-        case 'x':
-            return openShareWindow(`https://twitter.com/intent/tweet?text=${enc(text)}&url=${enc(url)}`);
-        case 'threads':
-            return openShareWindow(`https://www.threads.net/intent/post?text=${enc(`${text}\n${url}`)}`);
-        case 'linkedin':
-            return openShareWindow(`https://www.linkedin.com/sharing/share-offsite/?url=${enc(url)}`);
-        case 'email':
-            window.location.href = `mailto:?subject=${enc(share.title)}&body=${enc(`${text}\n\nMở xem màn pháo hoa: ${url}`)}`;
-            return;
-        case 'sms':
-            window.location.href = `sms:?&body=${enc(`${text} ${url}`)}`;
-            return;
-        case 'instagram':
-        case 'tiktok': {
-            // Hai nền tảng này không nhận link từ web: tải ảnh thiệp để đăng và sao chép link để dán vào phần mô tả/bio
+    await shareLink(platform, { url, title: share.title, text }, {
+        notify,
+        // Instagram, TikTok không nhận link từ web: tải ảnh thiệp để đăng và sao chép link để dán vào phần mô tả/bio
+        onMedia: async p => {
             await copyText(url);
             await downloadShareImage();
-            const name = platform === 'instagram' ? 'Instagram' : 'TikTok';
+            const name = p === 'instagram' ? 'Instagram' : 'TikTok';
             notify(`${name} không cho chia sẻ link từ web: đã tải ảnh thiệp và sao chép link để bạn đăng kèm.`, 'info');
-            return;
         }
-    }
+    });
 }
 
 function renderShareGrid() {
-    const zaloIcon = document.querySelector('.share-actions .btn-social.zalo svg')?.outerHTML || 'Zalo';
-    document.getElementById('share-grid').innerHTML = SHARE_PLATFORMS
-        .filter(p => !p.available || p.available())
-        .map(p => `
+    document.getElementById('share-grid').innerHTML = availablePlatforms().map(p => `
             <button type="button" class="share-item" onclick="shareTo('${p.id}')" title="Chia sẻ qua ${p.name}">
-                <span class="share-icon${p.id === 'zalo' ? ' is-zalo' : ''}" style="background: ${p.bg}">${p.icon === 'zalo' ? zaloIcon : p.icon}</span>
+                ${platformIcon(p)}
                 <span class="share-name">${p.name}</span>
             </button>`).join('');
 }

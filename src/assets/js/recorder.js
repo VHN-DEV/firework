@@ -113,26 +113,17 @@ function wrapText(ctx, text, maxWidth) {
 }
 
 /**
- * width, height: cỡ video; container: khung chứa các lớp pháo (đo vị trí chữ theo khung này);
- * background: phần tử ảnh nền; layers: các canvas pháo; texts(): các phần tử chữ cần vẽ;
- * audioContext + audioNodes: nguồn tiếng (tiếng pháo, nhạc nền) để ghi vào video.
+ * Ghép khung hình đang hiện trên trang vào một canvas (dùng cho video và ảnh chụp khoảnh khắc).
+ * width, height: cỡ ảnh; container: khung chứa các lớp pháo (đo vị trí chữ theo khung này);
+ * background: phần tử ảnh nền; layers: các canvas pháo; texts(): các phần tử chữ cần vẽ.
  */
-export function createVideoRecorder({ width, height, fps = 30, bitrate = 8e6, container, background, layers, texts, audioContext, audioNodes = [] }) {
+export function createFrameComposer({ width, height, container, background, layers, texts }) {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
-    const mimeType = pickVideoMimeType();
     const images = new Map();
     const fontFamily = getComputedStyle(document.body).fontFamily;
-    let recorder = null;
-    let destination = null;
-    let chunks = [];
-    let frame = null;
-    let lastPaint = 0;
-    let startedAt = 0;
-    let pausedAt = 0;
-    let pausedTotal = 0;
     let endCard = null;
 
     function backgroundImage() {
@@ -258,6 +249,32 @@ export function createVideoRecorder({ width, height, fps = 30, bitrate = 8e6, co
         if (endCard) paintEndCard();
     }
 
+    return {
+        canvas,
+        paint,
+        // Thiệp lời chúc phủ lên các khung hình sau đó (hiện dần)
+        setEndCard(card) {
+            endCard = { ...card, start: performance.now() };
+        }
+    };
+}
+
+/**
+ * Như createFrameComposer, thêm audioContext + audioNodes: nguồn tiếng (tiếng pháo, nhạc nền) để ghi vào video.
+ */
+export function createVideoRecorder({ width, height, fps = 30, bitrate = 8e6, container, background, layers, texts, audioContext, audioNodes = [] }) {
+    const composer = createFrameComposer({ width, height, container, background, layers, texts });
+    const { canvas, paint } = composer;
+    const mimeType = pickVideoMimeType();
+    let recorder = null;
+    let destination = null;
+    let chunks = [];
+    let frame = null;
+    let lastPaint = 0;
+    let startedAt = 0;
+    let pausedAt = 0;
+    let pausedTotal = 0;
+
     function loop(now) {
         frame = requestAnimationFrame(loop);
         // Vẽ vừa đủ số khung hình của video
@@ -309,7 +326,7 @@ export function createVideoRecorder({ width, height, fps = 30, bitrate = 8e6, co
 
         // Hiện thiệp lời chúc trong `duration` ms rồi xong
         showEndCard(card, duration) {
-            endCard = { ...card, start: performance.now() };
+            composer.setEndCard(card);
             return new Promise(resolve => setTimeout(resolve, duration));
         },
 
