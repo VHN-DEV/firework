@@ -1,3 +1,6 @@
+# Không liệt kê file trong thư mục (uploads/, configs/...): ảnh, nhạc người dùng tải lên không bị duyệt hàng loạt
+Options -Indexes
+
 # Trang chia sẻ trên host PHP: s/<tên>.html -> api/share.php?c=<tên>
 # Luôn dùng trang động, kể cả kịch bản đã có file tĩnh s/<tên>.html từ lúc build: trang động đọc kịch bản hiện tại,
 # nên tiêu đề, mô tả, ảnh khi chia sẻ vừa sửa trong builder có hiệu lực ngay và ảnh trỏ đúng tên miền đang chạy.

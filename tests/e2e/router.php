@@ -6,9 +6,12 @@
  * Bộ định tuyến cho máy chủ PHP có sẵn (php -S) khi chạy kiểm thử, làm thay .htaccess của Apache:
  * s/<tên>.html -> api/share.php?c=<tên>, chặn api/data/. Các đường dẫn khác phục vụ như bình thường.
  */
-$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-// Như api/data/.htaccess: dữ liệu báo mở quà không tải trực tiếp được
-if (strpos($path, '/api/data/') === 0) {
+// Không dùng parse_url: nó hiểu //api/... là tên máy chủ 'api' chứ không phải đường dẫn
+$path = explode('?', $_SERVER['REQUEST_URI'], 2)[0];
+// Như api/data/.htaccess: dữ liệu báo mở quà không tải trực tiếp được. So theo đường dẫn đã giải mã và chuẩn hóa
+// (%64ata, //api, /API, /./ đều trỏ tới cùng thư mục trên Windows)
+$plain = strtolower(preg_replace('#/(\./)+#', '/', preg_replace('#/+#', '/', rawurldecode($path))));
+if (strpos($plain, '/api/data/') === 0 || $plain === '/api/data') {
     http_response_code(403);
     return true;
 }

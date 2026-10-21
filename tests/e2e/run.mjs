@@ -15,6 +15,7 @@ import * as pages from './pages.test.mjs';
 import * as beat from './beat.test.mjs';
 import * as video from './video.test.mjs';
 import * as gift from './gift.test.mjs';
+import * as api from './api.test.mjs';
 
 if (!fs.existsSync(path.join(DIST, 'index.html'))) {
     console.error('Chưa có bản build: chạy "npm run build" trước (hoặc dùng "npm test").');
@@ -26,7 +27,7 @@ const browser = await launchBrowser();
 const all = [];
 let crashed = false;
 try {
-    for (const [name, suite] of [['Trình phát', player], ['Builder', builder], ['Xếp pháo theo nhịp nhạc', beat], ['Xuất video', video], ['Báo mở quà', gift], ['Trang & bản build', pages]]) {
+    for (const [name, suite] of [['Trình phát', player], ['Builder', builder], ['Xếp pháo theo nhịp nhạc', beat], ['Xuất video', video], ['Báo mở quà', gift], ['API máy chủ', api], ['Trang & bản build', pages]]) {
         console.log(`\n${name}`);
         const reporter = createReporter(name);
         try {

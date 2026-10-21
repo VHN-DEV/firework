@@ -27,12 +27,16 @@ if ($action === 'list') {
         $filename = basename($file, '.json');
         // Optionally read some info from the file
         $content = json_decode(file_get_contents($file), true);
+        // File hỏng hoặc sai kiểu: vẫn liệt kê, không để một file làm hỏng cả danh sách
+        if (!is_array($content)) {
+            $content = [];
+        }
         $result[] = [
             'id' => $filename,
-            'title' => isset($content['title']) ? $content['title'] : $filename,
-            'author' => isset($content['author']) ? $content['author'] : 'Unknown',
-            'eventCount' => isset($content['events']) ? count($content['events']) : 0,
-            'status' => isset($content['status']) ? $content['status'] : 'public'
+            'title' => isset($content['title']) && is_string($content['title']) ? $content['title'] : $filename,
+            'author' => isset($content['author']) && is_string($content['author']) ? $content['author'] : 'Unknown',
+            'eventCount' => isset($content['events']) && is_array($content['events']) ? count($content['events']) : 0,
+            'status' => isset($content['status']) && $content['status'] === 'private' ? 'private' : 'public'
         ];
     }
 
@@ -43,7 +47,7 @@ if ($action === 'list') {
 if ($action === 'delete') {
     $rawData = file_get_contents('php://input');
     $data = json_decode($rawData, true);
-    $filename = isset($data['filename']) ? $data['filename'] : '';
+    $filename = isset($data['filename']) && is_string($data['filename']) ? $data['filename'] : '';
 
     if (empty($filename)) {
         echo json_encode(['success' => false, 'message' => 'Thiếu tên file.']);

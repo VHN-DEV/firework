@@ -279,11 +279,13 @@ function drawCardText(ctx, W, H, title, subtitle, author) {
     ctx.textBaseline = 'alphabetic';
     let titleSize = 84;
     let titleLines;
+    // wrapLines cắt bớt và thêm "…" khi không vừa 2 dòng: còn bị cắt thì thu nhỏ tiếp
+    const fullTitle = title.split(/\s+/).filter(Boolean).join(' ');
     do {
         ctx.font = `700 ${titleSize}px Outfit, Inter, 'Segoe UI', sans-serif`;
         titleLines = wrapLines(ctx, title, 1000, 2);
         titleSize -= 4;
-    } while (titleSize > 40 && titleLines.some(l => ctx.measureText(l).width > 1000));
+    } while (titleSize > 40 && (titleLines.join(' ') !== fullTitle || titleLines.some(l => ctx.measureText(l).width > 1000)));
     titleSize += 4;
     const titleLineH = titleSize * 1.12;
 

@@ -94,7 +94,13 @@ notifyButton.classList.toggle('hide', !('Notification' in window) || Notificatio
 notifyButton.addEventListener('click', async () => {
     const permission = await Notification.requestPermission();
     notifyButton.classList.add('hide');
-    if (permission !== 'granted') showError('Trình duyệt chưa cho phép thông báo. Trang vẫn tự cập nhật mỗi 30 giây.');
+    // Chỉ là lời nhắn: không dùng showError (ẩn cả bảng trạng thái tới lần cập nhật sau)
+    if (permission !== 'granted') {
+        const note = document.createElement('p');
+        note.className = 'track-note';
+        note.textContent = 'Trình duyệt chưa cho phép thông báo. Trang vẫn tự cập nhật mỗi 30 giây.';
+        notifyButton.closest('.track-actions').after(note);
+    }
 });
 
 refresh();

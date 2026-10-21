@@ -20,7 +20,8 @@ function track_dir($kind)
 {
     $dir = __DIR__ . '/data/' . $kind . '/';
     if (!is_dir($dir)) {
-        mkdir($dir, 0755, true);
+        // Không tạo được (thư mục không có quyền ghi): các hàm dưới tự báo thất bại, không in cảnh báo lẫn vào JSON
+        @mkdir($dir, 0755, true);
     }
     return $dir;
 }
@@ -41,13 +42,17 @@ function track_create_key($id)
     if (!track_valid_id($id)) {
         return null;
     }
-    $file = track_dir('owners') . $id . '.json';
-    if (file_exists($file)) {
+    // Tạo file mới hoặc thất bại nếu đã có ('x'): hai lần lưu cùng lúc không thể cùng nhận mã
+    $fp = @fopen(track_dir('owners') . $id . '.json', 'x');
+    if (!$fp) {
         return null;
     }
     $key = bin2hex(random_bytes(16));
-    file_put_contents($file, json_encode(['hash' => hash('sha256', $key), 'created' => gmdate('c')]), LOCK_EX);
-    return $key;
+    $json = json_encode(['hash' => hash('sha256', $key), 'created' => gmdate('c')]);
+    $ok = fwrite($fp, $json) === strlen($json);
+    fclose($fp);
+    // Không ghi được mã thì không trả về (mã trả về mà không lưu thì link theo dõi không bao giờ chạy)
+    return $ok ? $key : null;
 }
 
 function track_has_key($id)
@@ -67,13 +72,21 @@ function track_check_key($id, $key)
 function track_load($id)
 {
     $file = track_dir('opens') . $id . '.json';
-    $data = is_file($file) ? json_decode(file_get_contents($file), true) : null;
+    $raw = '';
+    // Khóa đọc: track_record đang xóa rồi ghi lại file thì chờ, không đọc phải file rỗng (số lần mở về 0)
+    if (is_file($file) && ($fp = fopen($file, 'r'))) {
+        flock($fp, LOCK_SH);
+        $raw = stream_get_contents($fp);
+        flock($fp, LOCK_UN);
+        fclose($fp);
+    }
+    $data = $raw ? json_decode($raw, true) : null;
     return is_array($data) ? $data : track_empty();
 }
 
 function track_record($id, $event, $device)
 {
-    $fp = fopen(track_dir('opens') . $id . '.json', 'c+');
+    $fp = @fopen(track_dir('opens') . $id . '.json', 'c+');
     if (!$fp) {
         return false;
     }

@@ -4,3 +4,7 @@ node_modules/
 # Bản build: GitHub Actions tự build và triển khai mỗi lần push lên main.
 # Chạy trên XAMPP thì build tại máy bằng "npm run build" (thư mục vẫn có ở máy, chỉ không đưa lên git).
 dist/
+
+# Dữ liệu báo mở quà khi chạy builder bằng "npm run dev" (API ghi vào src/static): không đưa lên git
+src/static/api/data/*
+!src/static/api/data/.htaccess

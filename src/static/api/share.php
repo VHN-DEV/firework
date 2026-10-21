@@ -12,7 +12,7 @@ header('Content-Type: text/html; charset=utf-8');
 const SITE_NAME = 'Trình diễn Pháo hoa';
 const SITE_DESCRIPTION = 'Tự thiết kế và gửi tặng những màn pháo hoa lung linh kèm lời chúc cho người thân yêu: sinh nhật, tốt nghiệp, năm mới, kỷ niệm...';
 
-$id = isset($_GET['c']) ? preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['c']) : '';
+$id = isset($_GET['c']) && is_string($_GET['c']) ? preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['c']) : '';
 $configsDir = __DIR__ . '/../configs/';
 $file = $configsDir . $id . '.json';
 
@@ -24,7 +24,8 @@ $siteUrl = ($https ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $root;
 
 $config = ($id !== '' && is_file($file)) ? json_decode(file_get_contents($file), true) : null;
 if (!is_array($config) || !isset($config['events']) || !is_array($config['events'])) {
-    header('Location: ' . $siteUrl, true, 302);
+    // Đường dẫn tương đối: không dựng từ Host do người gửi yêu cầu tự đặt
+    header('Location: ../', true, 302);
     exit;
 }
 
@@ -41,8 +42,12 @@ function replace_placeholders($text) {
     }, $text);
 }
 
-$title = replace_placeholders(!empty($config['seoTitle']) ? $config['seoTitle'] : (!empty($config['title']) ? $config['title'] : SITE_NAME));
-$parts = array_filter([replace_placeholders($config['subtitle'] ?? ''), $config['author'] ?? '']);
+// Chỉ nhận chữ: kịch bản sửa tay có thể ghi sai kiểu (mảng...)
+$text = function ($key) use ($config) {
+    return isset($config[$key]) && is_string($config[$key]) ? $config[$key] : '';
+};
+$title = replace_placeholders($text('seoTitle') !== '' ? $text('seoTitle') : ($text('title') !== '' ? $text('title') : SITE_NAME));
+$parts = array_filter([replace_placeholders($text('subtitle')), $text('author')]);
 // Mô tả tự nhập trong builder ("Mô tả khi chia sẻ"), không có thì ghép dòng phụ và người thực hiện
 $description = !empty($config['seoDescription']) && is_string($config['seoDescription'])
     ? replace_placeholders($config['seoDescription'])

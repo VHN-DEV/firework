@@ -19,13 +19,21 @@ if (!$data) {
     exit;
 }
 
-$filename = isset($data['filename']) ? $data['filename'] : '';
+$filename = isset($data['filename']) && is_string($data['filename']) ? $data['filename'] : '';
 $config = isset($data['config']) ? $data['config'] : null;
 
 if (empty($filename) || !$config) {
     echo json_encode(['success' => false, 'message' => 'Thiếu tên file hoặc nội dung cấu hình.']);
     exit;
 }
+// Kịch bản phải là một đối tượng có danh sách phát bắn (danh sách kịch bản, trang chia sẻ đều dựa vào đó)
+if (!is_array($config) || !isset($config['events']) || !is_array($config['events'])) {
+    echo json_encode(['success' => false, 'message' => 'Nội dung kịch bản không hợp lệ.']);
+    exit;
+}
+// "Riêng tư" chỉ dành cho kịch bản mẫu có sẵn trên máy chủ, không nhận từ trình duyệt (ai cũng gửi được để khóa
+// kịch bản của người khác)
+unset($config['status']);
 
 // Sanitize filename: only allow alphanumeric, underscores, and dashes
 $filename = preg_replace('/[^a-zA-Z0-9_-]/', '', $filename);
@@ -42,9 +50,10 @@ if (!is_dir($targetDir)) {
 }
 
 $filePath = $targetDir . $filename . '.json';
+$isNew = !file_exists($filePath);
 
 // Check if existing file is private
-if (file_exists($filePath)) {
+if (!$isNew) {
     $existingContent = json_decode(file_get_contents($filePath), true);
     if (isset($existingContent['status']) && $existingContent['status'] === 'private') {
         echo json_encode(['success' => false, 'message' => 'Kịch bản này là riêng tư và không thể ghi đè.']);
@@ -52,9 +61,15 @@ if (file_exists($filePath)) {
     }
 }
 
-// Save the file
+// Ghi ra file tạm rồi đổi tên: lỗi giữa chừng (hết chỗ, dữ liệu không mã hóa được) không làm hỏng kịch bản đang có
 $jsonContent = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-if (file_put_contents($filePath, $jsonContent)) {
+$tmpPath = $targetDir . '.' . $filename . '.' . bin2hex(random_bytes(4)) . '.tmp';
+$saved = $jsonContent !== false && file_put_contents($tmpPath, $jsonContent, LOCK_EX) === strlen($jsonContent)
+    && rename($tmpPath, $filePath);
+if (!$saved && is_file($tmpPath)) {
+    unlink($tmpPath);
+}
+if ($saved) {
     // Ảnh xem trước khi chia sẻ link (builder vẽ sẵn, dạng data:image/jpeg;base64,...): configs/<tên>.jpg
     if (!empty($data['shareImage']) && is_string($data['shareImage'])
         && preg_match('#^data:image/jpeg;base64,([A-Za-z0-9+/=]+)$#', $data['shareImage'], $m)) {
@@ -65,8 +80,9 @@ if (file_put_contents($filePath, $jsonContent)) {
         }
     }
     $response = ['success' => true, 'message' => 'Đã lưu kịch bản thành công!', 'filename' => $filename];
-    // Kịch bản mới: tạo mã theo dõi mở quà, chỉ trả về lần này (trình soạn của người gửi giữ lại)
-    $trackKey = track_create_key($filename);
+    // Kịch bản mới: tạo mã theo dõi mở quà, chỉ trả về lần này (trình soạn của người gửi giữ lại). Kịch bản đã có từ
+    // trước mà chưa có mã (lưu trước khi có tính năng này) thì không cấp, kẻo người khác lưu đè là lấy được mã.
+    $trackKey = $isNew ? track_create_key($filename) : null;
     if ($trackKey) {
         $response['trackKey'] = $trackKey;
     }

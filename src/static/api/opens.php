@@ -21,7 +21,7 @@ if (!is_array($body)) {
 }
 
 if ($action === 'record') {
-    $id = strtolower((string) (isset($body['id']) ? $body['id'] : ''));
+    $id = isset($body['id']) && is_string($body['id']) ? strtolower($body['id']) : '';
     $event = isset($body['event']) ? $body['event'] : '';
     $device = isset($body['device']) && in_array($body['device'], TRACK_DEVICES, true) ? $body['device'] : 'desktop';
     if (!track_valid_id($id) || !in_array($event, TRACK_EVENTS, true)) {
@@ -44,8 +44,8 @@ if ($action === 'status') {
     $items = isset($body['items']) && is_array($body['items']) ? array_slice($body['items'], 0, 100) : [];
     $result = [];
     foreach ($items as $item) {
-        $id = strtolower((string) (isset($item['id']) ? $item['id'] : ''));
-        $key = (string) (isset($item['key']) ? $item['key'] : '');
+        $id = is_array($item) && isset($item['id']) && is_string($item['id']) ? strtolower($item['id']) : '';
+        $key = is_array($item) && isset($item['key']) && is_string($item['key']) ? $item['key'] : '';
         if (!track_check_key($id, $key)) {
             $result[] = ['id' => $id, 'ok' => false];
             continue;
