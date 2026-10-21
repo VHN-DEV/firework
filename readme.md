@@ -30,7 +30,8 @@
 - `npm run build`: build vào thư mục `dist` (chạy trên XAMPP tại `http://localhost/firework/dist/`).
 - `npm test`: build rồi chạy kiểm thử tự động (hơn 60 bước: trình phát, link tặng, hộp quà, hẹn giờ, nhạc nền, lời nhắn,
   màn kết, mọi loại pháo và kiểu bắn, builder lưu/mở/chia sẻ, dòng thời gian theo giây, hoàn tác và bản nháp, xếp pháo
-  theo nhịp nhạc với bài nhạc biết trước đáp án, xuất video có hình và tiếng, báo mở quà, trang Điều khoản/Bảo mật).
+  theo nhịp nhạc với bài nhạc biết trước đáp án, xuất video có hình và tiếng, người nhận chụp khoảnh khắc, chia sẻ và tạo
+  video, báo mở quà, trang Điều khoản/Bảo mật).
   Cần PHP (lệnh `php`, hoặc biến `PHP_BIN`) và Google Chrome (biến `CHROME_PATH` nếu không ở chỗ mặc định).
   `npm run test:e2e` chạy kiểm thử trên bản build sẵn có.
 - Mỗi lần push lên `main`, GitHub Actions (`.github/workflows/deploy.yml`) tự cài thư viện, build, chạy kiểm thử;
@@ -58,6 +59,14 @@ Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và 
   - **Thu phóng**: phóng to hay thu nhỏ toàn bộ pháo hoa.
   - **Toàn màn hình**, **Giảm chớp sáng** (cho người nhạy cảm với ánh sáng nhấp nháy), **Ẩn nút điều khiển**.
 - **Âm lượng**: Bật/tắt âm thanh bằng biểu tượng loa 🔈 ở thanh điều khiển trên cùng.
+- **Chụp khoảnh khắc, chia sẻ, tạo video** (hai nút tròn ở góc dưới phải khi xem):
+  - 📷 (hoặc phím `C`): chụp khung hình đang hiện (ảnh nền, pháo, chữ) thành ảnh JPEG để lưu hoặc gửi; các ảnh đã chụp
+    xem lại trong bảng chia sẻ.
+  - Chia sẻ (cũng có ở màn kết): sao chép link hoặc gửi qua Facebook, Messenger, Zalo, Telegram, WhatsApp, X, Threads,
+    LinkedIn, Email, tin nhắn, bảng chia sẻ của máy. **Tạo video** quay lại màn trình diễn (khổ dọc 9:16 cho TikTok,
+    Reels, Shorts; ngang 16:9; vuông 1:1) kèm nhạc và thiệp lời chúc; nút TikTok, Instagram mở thẳng video dọc.
+  - Ảnh và video làm ngay trên máy người xem. Người tạo tắt được trong builder (nhóm "Khi người nhận xem", kịch bản lưu
+    `receiverShare: false`).
 
 ## Cấu trúc thư mục
 
@@ -72,8 +81,10 @@ Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và 
     theo ngày);
   - `audio.js` (tiếng pháo, nhạc nền), `start-frames.js` (khung mở quà), `captions.js` (lời nhắn), `utils.js`.
 - `src/assets/js/builder.js`: trình soạn; kèm `beat-sync.js` (xếp pháo theo nhịp), `timeline.js`, `timeline-track.js`
-  (dòng thời gian theo giây), `templates.js` (mẫu theo dịp), `recorder.js` (quay video), `gift-tracking.js` (báo mở
-  quà), `share-image.js` (ảnh khi chia sẻ).
+  (dòng thời gian theo giây), `templates.js` (mẫu theo dịp), `recorder.js` (ghép khung hình, quay video),
+  `video-export.js` (khung quay video), `share-targets.js` (chia sẻ link lên mạng xã hội), `gift-tracking.js` (báo mở
+  quà), `share-image.js` (ảnh khi chia sẻ). Trình phát dùng `viewer-share.js` (người nhận chụp khoảnh khắc, chia sẻ,
+  tạo video) cùng các module video, chia sẻ này.
 - `src/assets/scss/`: giao diện; `src/assets/audio/`, `src/assets/img/`: âm thanh, hình ảnh.
 - `src/static/`: chép nguyên vào bản build: `api/` (PHP: lưu, chia sẻ, tải lên, báo mở quà), `configs/` (kịch bản).
 - `src/static/library/`: kho nhạc (`music/`) và kho ảnh (`images/`) có sẵn trong builder; thêm bài, ảnh mới theo hướng dẫn

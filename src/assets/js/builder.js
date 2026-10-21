@@ -57,6 +57,8 @@ const state = {
     viewer: {},
     // Người xem chạm vào trời thì bắn pháo (tắt: chỉ xem)
     tapToLaunch: true,
+    // Người nhận chụp khoảnh khắc, tạo video, chia sẻ link (tắt: quà riêng tư)
+    receiverShare: true,
     // Bầu trời đêm: trang trí (danh sách), sao ('' / 'few' / 'many'), trăng ({ phase: 'auto' | 0-7, x, y } hoặc null)
     decor: [],
     stars: '',
@@ -260,6 +262,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('viewer-controls')?.addEventListener('change', (e) => setViewerOption('hideControls', e.target.checked ? false : ''));
     document.getElementById('tap-to-launch')?.addEventListener('change', (e) => {
         state.tapToLaunch = e.target.checked;
+        renderViewer();
+    });
+    document.getElementById('receiver-share')?.addEventListener('change', (e) => {
+        state.receiverShare = e.target.checked;
         renderViewer();
     });
     document.getElementById('water-life')?.addEventListener('change', (e) => {
@@ -696,6 +702,7 @@ function createNewScript() {
         renderScene();
         state.viewer = {};
         state.tapToLaunch = true;
+        state.receiverShare = true;
         renderViewer();
         state.decor = [];
         state.stars = '';
@@ -1152,6 +1159,9 @@ const HELP_TIPS = {
         + 'màn hình đúng lúc người xem chạm; iPhone không hỗ trợ toàn màn hình cho trang web nên giữ nguyên.',
     tapToLaunch: 'Bật (mặc định): người xem chạm hoặc bấm vào bầu trời là bắn thêm một quả pháo, vui cho trẻ nhỏ và người thích tự tay '
         + 'bắn. Tắt: chạm vào trời không bắn thêm pháo, màn trình diễn giữ đúng như bạn sắp đặt (vẫn chạm được các nút tạm dừng, âm thanh, cài đặt).',
+    receiverShare: 'Bật (mặc định): góc dưới màn trình diễn có nút 📷 để người nhận chụp lại khoảnh khắc đẹp (hoặc bấm phím C) và nút '
+        + 'chia sẻ để gửi link qua Facebook, Messenger, Zalo..., tự quay video dọc đăng TikTok, Reels, Shorts. Ảnh và video làm ngay trên máy '
+        + 'người nhận, không tải lên máy chủ. Người khác mở link được chia sẻ cũng được tính khi bạn bật báo mở quà. Tắt nếu quà chỉ dành riêng cho người nhận.',
     viewerControls: 'Mặc định các nút tạm dừng, âm thanh, cài đặt ẩn đi cho trọn khung hình (đưa chuột hoặc chạm góc trên để mở). '
         + 'Bật mục này để các nút luôn hiện.',
     stars: 'Sao lấp lánh nhẹ trên bầu trời, mờ dần sát chân trời và trôi chậm cùng trăng. Có ảnh nền thành phố thì sao chỉ ở phần trời phía trên.',
@@ -2547,6 +2557,7 @@ function getFinalConfig() {
         waterLife: state.water && !state.waterLife ? false : undefined,
         viewer: Object.keys(state.viewer).length ? { ...state.viewer } : undefined,
         tapToLaunch: state.tapToLaunch ? undefined : false,
+        receiverShare: state.receiverShare ? undefined : false,
         decor: state.decor.length ? [...state.decor] : undefined,
         stars: state.stars || undefined,
         moon: state.moon ? { ...state.moon } : undefined,
@@ -3059,6 +3070,7 @@ function settingsSummaries() {
             state.viewer.fullscreen && 'Toàn màn hình',
             state.viewer.hideControls === false && 'Hiện nút',
             !state.tapToLaunch && 'Khóa chạm bắn pháo',
+            !state.receiverShare && 'Khóa chia sẻ',
             state.reduceFlashing && 'Giảm chớp sáng'
         ].filter(Boolean).join(' · '),
         basics: value('title') || 'Chưa có tiêu đề',
@@ -3279,6 +3291,8 @@ function renderViewer() {
     if (controls) controls.checked = v.hideControls === false;
     const tap = document.getElementById('tap-to-launch');
     if (tap) tap.checked = state.tapToLaunch;
+    const receiverShare = document.getElementById('receiver-share');
+    if (receiverShare) receiverShare.checked = state.receiverShare;
     scheduleSettingsSummaries();
 }
 
@@ -4716,6 +4730,7 @@ function loadConfigIntoState(config, filename) {
     state.waterLife = config.waterLife !== false;
     state.viewer = normalizeViewer(config.viewer);
     state.tapToLaunch = config.tapToLaunch !== false;
+    state.receiverShare = config.receiverShare !== false;
     renderViewer();
     renderScene();
     state.decor = normalizeDecor(config.decor);
