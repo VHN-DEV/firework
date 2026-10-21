@@ -57,6 +57,11 @@ printCopyrightNotice('Trình diễn Pháo hoa');
 if (IS_PREVIEW || IS_RECORD || new URLSearchParams(window.location.search).get('config')) {
     document.querySelector('meta[name="robots"]')?.setAttribute('content', 'noindex, follow');
 }
+// Chất lượng "Tự động": mức bắt đầu theo cấu hình máy, autoTuner hạ/nâng khi đang xem
+const QUALITY_AUTO = 'auto';
+const AUTO_QUALITY_START = IS_HIGH_END_DEVICE ? QUALITY_HIGH : QUALITY_NORMAL;
+let autoQuality = AUTO_QUALITY_START;
+const validQuality = value => (value === QUALITY_AUTO || ['1', '2', '3'].includes(String(value)) ? String(value) : QUALITY_AUTO);
 let burstConfig = null;
 let burstCounter = 0;
 
@@ -131,7 +136,8 @@ const store = {
         // Lưu ý rằng các giá trị cấu hình được sử dụng cho <select> phải là chuỗi, trừ khi chuyển đổi giá trị thành chuỗi theo cách thủ công
         // tại thời điểm kết xuất và phân tích cú pháp khi thay đổi.
         config: {
-            quality: String(IS_HIGH_END_DEVICE ? QUALITY_HIGH : QUALITY_NORMAL), // Mặc định dựa trên cấu hình phần cứng thiết bị
+            // Tự động theo máy (xem autoQuality); khung quay video luôn ở mức Cao
+            quality: IS_RECORD ? String(QUALITY_HIGH) : QUALITY_AUTO,
             customText: '',
             shell: [
                 'Nổ lách tách',
@@ -193,11 +199,11 @@ const store = {
             switch (schemaVersion) {
                 // Kích thước pháo đã lưu từ bản cũ bỏ qua: menu không còn mục này nên không đổi lại được
                 case '1.1':
-                    config.quality = data.quality;
+                    config.quality = validQuality(data.quality);
                     config.skyLighting = data.skyLighting;
                     break;
                 case '1.2':
-                    config.quality = data.quality;
+                    config.quality = validQuality(data.quality);
                     config.skyLighting = data.skyLighting;
                     config.scaleFactor = data.scaleFactor || getDefaultScaleFactor();
                     if (typeof data.reduceFlashing === 'boolean') config.reduceFlashing = data.reduceFlashing;
@@ -286,6 +292,7 @@ function configDidUpdate() {
     const config = store.state.config;
 
     setQuality(qualitySelector());
+    applyQualityLimits();
 
     if (skyLightingSelector() === SKY_LIGHT_NONE) {
         appNodes.stageContainer.style.backgroundColor = '#000';
@@ -302,8 +309,8 @@ const isRunning = (state = store.state) => !state.paused && !state.menuOpen;
 const soundEnabledSelector = (state = store.state) => state.soundEnabled;
 // Liệu bất kỳ âm thanh nào có được phép hay không, có tính đến nhiều yếu tố.
 const canPlaySoundSelector = (state = store.state) => isRunning(state) && soundEnabledSelector(state);
-// Chuyển đổi chất lượng thành số.
-const qualitySelector = () => +store.state.config.quality;
+// Chất lượng đang dùng (số 1-3): chọn "Tự động" thì theo autoQuality
+const qualitySelector = () => (store.state.config.quality === QUALITY_AUTO ? autoQuality : +store.state.config.quality);
 // Người xem tự bật, hoặc người tạo bật sẵn cho cả màn trình diễn (kịch bản có reduceFlashing)
 const reduceFlashingSelector = () => !!(store.state.config.reduceFlashing || (burstConfig && burstConfig.reduceFlashing));
 // Các module hạt pháo, âm thanh đọc cài đặt của trình phát qua state.js
@@ -369,7 +376,9 @@ const scaleFactorSelector = () => store.state.config.scaleFactor;
 const helpContent = {
     quality: {
         header: 'Chất lượng',
-        body: 'Chất lượng đồ họa tổng thể. Nếu hình ảnh chuyển động không mượt mà, hãy thử giảm chất lượng xuống. Chất lượng cao làm tăng đáng kể số lượng tia lửa được hiển thị và có thể gây giật lag.'
+        body: 'Tự động (khuyên dùng): bắt đầu theo cấu hình máy, nếu thấy giật thì tự hạ bậc, mượt trở lại thì nâng lên. '
+            + 'Cao: vẽ đầy đủ, không giới hạn gì, hợp máy mạnh. Vừa: bớt tia lửa lúc pháo dày đặc nhất, vẽ ở độ nét vừa phải. '
+            + 'Thấp: nhẹ nhất cho máy yếu, không có khói pháo.'
     },
     skyLighting: {
         header: 'Ánh sáng bầu trời',
@@ -1155,10 +1164,12 @@ async function init() {
     }
 
     setOptionsForSelect(appNodes.quality, [
+        { label: 'Tự động', value: QUALITY_AUTO },
         { label: 'Thấp', value: QUALITY_LOW },
         { label: 'Vừa', value: QUALITY_NORMAL },
         { label: 'Cao', value: QUALITY_HIGH }
     ]);
+    renderQualityLabel();
 
     setOptionsForSelect(appNodes.skyLighting, [
         { label: 'Tắt', value: SKY_LIGHT_NONE },
@@ -2055,6 +2066,81 @@ function updateGlobals(timeStep, lag) {
 }
 
 
+// Chất lượng khi xem: Tự động (mặc định) hoặc Thấp / Vừa / Cao. Mức Cao vẽ đầy đủ không giới hạn gì; Vừa, Thấp giới
+// hạn số tia lửa lúc dày đặc nhất và độ phân giải vẽ để máy yếu vẫn mượt (Thấp còn tắt khói như trước).
+const QUALITY_LIMITS = {
+    [QUALITY_HIGH]: { sparks: Infinity, dpr: Infinity },
+    [QUALITY_NORMAL]: { sparks: IS_MOBILE ? 9000 : 18000, dpr: 2 },
+    [QUALITY_LOW]: { sparks: IS_MOBILE ? 5000 : 9000, dpr: 1.5 }
+};
+const QUALITY_NAMES = { [QUALITY_LOW]: 'Thấp', [QUALITY_NORMAL]: 'Vừa', [QUALITY_HIGH]: 'Cao' };
+
+function applyQualityLimits() {
+    const limits = QUALITY_LIMITS[quality] || QUALITY_LIMITS[QUALITY_HIGH];
+    Spark.budget = limits.sparks;
+    // Khung quay video giữ đúng độ phân giải video
+    if (IS_RECORD) return;
+    const dpr = Math.min(limits.dpr, window.devicePixelRatio || 1);
+    if (stages.some(stage => stage.dpr !== dpr)) {
+        stages.forEach(stage => { stage.dpr = dpr; });
+        handleResize();
+    }
+}
+
+// "Tự động": bắt đầu theo cấu hình máy; lúc đang có pháo mà giật kéo dài (dưới ~26 khung/giây trong 4 giây) thì hạ một
+// bậc, mượt lâu (trên ~50 khung/giây) thì nâng lại, không vượt mức ban đầu. Mỗi lần hạ, lần nâng sau phải chờ lâu hơn.
+const autoTuner = {
+    last: 0,
+    sum: 0,
+    count: 0,
+    since: 0,
+    bad: 0,
+    good: 0,
+    drops: 0,
+    cooldownUntil: 0,
+
+    frame(now) {
+        const dt = this.last ? now - this.last : 0;
+        this.last = now;
+        // Chỉ đo khung hình lúc có pháo; bỏ khung sau khi chuyển tab, tạm dừng (khoảng cách lớn bất thường)
+        if (store.state.config.quality !== QUALITY_AUTO || IS_RECORD || !Spark.count || dt <= 0 || dt > 250) return;
+        if (!this.count) this.since = now;
+        this.sum += dt;
+        this.count++;
+        if (now - this.since < 2000) return;
+        const avg = this.sum / this.count;
+        this.sum = 0;
+        this.count = 0;
+        if (now < this.cooldownUntil) return;
+        if (avg > 38) {
+            this.good = 0;
+            if (++this.bad >= 2 && autoQuality > QUALITY_LOW) this.change(autoQuality - 1, now, true);
+        } else if (avg < 20) {
+            this.bad = 0;
+            if (++this.good >= 5 * (1 + this.drops) && autoQuality < AUTO_QUALITY_START) this.change(autoQuality + 1, now, false);
+        } else {
+            this.bad = 0;
+            this.good = 0;
+        }
+    },
+
+    change(level, now, drop) {
+        autoQuality = level;
+        if (drop) this.drops++;
+        this.bad = 0;
+        this.good = 0;
+        this.cooldownUntil = now + 4000;
+        configDidUpdate();
+        renderQualityLabel();
+    }
+};
+
+// Ô chọn chất lượng ghi rõ mức "Tự động" đang dùng
+function renderQualityLabel() {
+    const option = appNodes.quality && appNodes.quality.querySelector(`option[value="${QUALITY_AUTO}"]`);
+    if (option) option.textContent = `Tự động (${QUALITY_NAMES[autoQuality]})`;
+}
+
 // Bỏ phần tử thứ i: đưa phần tử cuối vào chỗ của nó thay vì splice (splice dồn cả mảng, hàng nghìn tia lửa tắt mỗi
 // khung thành hàng triệu thao tác). Vòng cập nhật chạy ngược nên phần tử cuối đã được cập nhật trong khung này.
 function removeAt(list, i) {
@@ -2064,6 +2150,7 @@ function removeAt(list, i) {
 
 function update(frameTime, lag) {
     if (!isRunning()) return;
+    autoTuner.frame(performance.now());
     // Kịch bản khớp nhịp: chờ nhạc kêu rồi pháo mới bay tiếp
     if (syncShow.holds(frameTime)) return;
 
@@ -2078,7 +2165,7 @@ function update(frameTime, lag) {
     const smokeOn = Smoke.active();
     Decor.sync(sceneSelector(), frameW, frameH);
     Decor.update(timeStep);
-    Smoke.update(timeStep);
+    Smoke.update(timeStep, !burstConfig || !SMOKE_LEVELS[burstConfig.smoke]);
 
     const starDrag = 1 - (1 - Star.airDrag) * speed;
     const starDragHeavy = 1 - (1 - Star.airDragHeavy) * speed;

@@ -143,11 +143,18 @@ export const Spark = {
     active: createParticleCollection(),
     _pool: [],
 
+    // Số tia lửa đang bay và ngân sách theo mức chất lượng (Cao: không giới hạn). Lúc pháo dày đặc nhất có thể hơn
+    // 20.000 tia: vượt ngân sách thì tia mới thưa dần theo tỉ lệ, không cắt đột ngột.
+    count: 0,
+    budget: Infinity,
+
     _new() {
         return {};
     },
 
     add(x, y, color, angle, speed, life) {
+        if (this.count > this.budget && Math.random() > Math.pow(this.budget / this.count, 3)) return null;
+        this.count++;
         const instance = this._pool.pop() || this._new();
 
         instance.x = x;
@@ -168,6 +175,7 @@ export const Spark = {
 
     // Phương thức công khai để dọn dẹp và trả lại một phiên bản trở lại nhóm.
     returnInstance(instance) {
+        this.count--;
         // Thêm trở lại hồ bơi.
         this._pool.push(instance);
     }

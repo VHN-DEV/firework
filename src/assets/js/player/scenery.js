@@ -14,7 +14,7 @@
 
 import MyMath from '../MyMath.js';
 import { IS_MOBILE } from './env.js';
-import { horizon, reduceFlashing } from './state.js';
+import { horizon, reduceFlashing, isLowQuality } from './state.js';
 import { moonIllumination } from './moon.js';
 
 // Độ phân giải lớp mặt nước so với điểm ảnh CSS (bóng phản chiếu vốn mờ, gợn sóng); điện thoại thấp hơn cho nhẹ máy
@@ -996,6 +996,7 @@ export const Decor = {
     height: 0,
     clock: 0,
     drawn: false,
+    frame: 0,
 
     // scene: { decor: ['lanterns', 'balloons', 'planes'], stars: '' | 'few' | 'many', moon: { fraction, x, y } | null,
     // background } hoặc null; cssW, cssH: kích thước khung. Đổi cảnh hoặc cỡ khung thì rải lại.
@@ -1153,6 +1154,8 @@ export const Decor = {
             this.drawn = false;
             return;
         }
+        // Chất lượng Thấp: sao, trăng, đèn trời trôi rất chậm nên vẽ lại cách một khung hình
+        if (isLowQuality && this.drawn && (++this.frame & 1)) return;
         this.drawn = true;
         const k = W / this.width;
         const calm = reduceFlashing();

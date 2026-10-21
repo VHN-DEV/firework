@@ -159,9 +159,10 @@ export const Smoke = {
         });
     },
 
-    update(timeStep) {
-        // Vừa tắt khói (đổi kịch bản trong builder, hạ chất lượng xuống Thấp): bỏ ngay khói đang có
-        if (!smokeLevel()) {
+    // scriptOff: kịch bản không có khói (vd vừa tắt trong builder) thì bỏ ngay khói đang có. Tắt vì chất lượng Thấp
+    // (tự động hạ giữa chừng) thì không sinh khói mới, khói đang có vẫn tan dần.
+    update(timeStep, scriptOff) {
+        if (!smokeLevel() && (scriptOff || !puffs.length)) {
             if (puffs.length || lights.length) this.clear();
             return;
         }

@@ -275,6 +275,27 @@ export async function run(browser, base, { check }) {
         const low = await smokeCover(page);
         check('khói pháo: máy đặt chất lượng Thấp thì không có khói', low === 0, low.toFixed(3));
         await page.close();
+
+        // Chất lượng: mặc định Tự động; mức Thấp vẽ tối đa ×1,5 trên màn DPR 3 (Cao thì đủ độ phân giải)
+        for (const [stored, ratio] of [[null, 3], ['1', 1.5]]) {
+            page = await openPage(browser);
+            await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 3 });
+            await page.evaluateOnNewDocument(q => {
+                if (q) localStorage.setItem('cm_fireworks_data', JSON.stringify({ schemaVersion: '1.2', data: { quality: q, skyLighting: '2', scaleFactor: 1 } }));
+                else localStorage.removeItem('cm_fireworks_data');
+            }, stored);
+            await page.goto(base + '/index.html?config=zz_e2e_smoke', { waitUntil: 'networkidle0' });
+            await page.click('.btn-start');
+            await waitForShow(page).catch(() => {});
+            const q = await page.evaluate(() => ({
+                value: document.querySelector('.quality-ui').value,
+                label: document.querySelector('.quality-ui option[value="auto"]').textContent,
+                ratio: document.getElementById('trails-canvas').width / document.getElementById('trails-canvas').clientWidth
+            }));
+            check(stored ? 'chất lượng Thấp: vẽ tối đa ×1,5 trên màn DPR 3' : 'chất lượng mặc định "Tự động", máy mạnh vẽ đủ độ phân giải',
+                (stored ? q.value === '1' : q.value === 'auto' && /^Tự động \(/.test(q.label)) && Math.abs(q.ratio - ratio) < 0.01, JSON.stringify(q));
+            await page.close();
+        }
     } finally {
         removeConfig('zz_e2e_card');
         removeConfig('zz_e2e_gift');
