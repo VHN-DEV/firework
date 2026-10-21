@@ -12,7 +12,7 @@
   "showBackground": false,
   "smoke": "light",
   "music": {
-    "url": "./uploads/music/graduation_nguyen_van/pomp-and-circumstance-trio.mp3",
+    "url": "./library/music/pomp-and-circumstance-trio.mp3",
     "name": "Pomp and Circumstance No. 1 (Trio) – Elgar · U.S. Marine Band",
     "volume": 0.85,
     "start": 0,

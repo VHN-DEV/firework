@@ -1,0 +1,77 @@
+[
+  {
+    "id": "banh-sinh-nhat",
+    "file": "banh-sinh-nhat.jpg",
+    "name": "Bánh sinh nhật",
+    "tags": [
+      "Sinh nhật"
+    ]
+  },
+  {
+    "id": "trai-tim",
+    "file": "trai-tim.jpg",
+    "name": "Trái tim",
+    "tags": [
+      "Tình yêu",
+      "Kỷ niệm"
+    ]
+  },
+  {
+    "id": "nhan-cuoi",
+    "file": "nhan-cuoi.jpg",
+    "name": "Nhẫn cưới",
+    "tags": [
+      "Đám cưới"
+    ]
+  },
+  {
+    "id": "mu-tot-nghiep",
+    "file": "mu-tot-nghiep.jpg",
+    "name": "Mũ tốt nghiệp",
+    "tags": [
+      "Tốt nghiệp"
+    ]
+  },
+  {
+    "id": "bo-hoa",
+    "file": "bo-hoa.jpg",
+    "name": "Bó hoa",
+    "tags": [
+      "8/3",
+      "20/10",
+      "20/11"
+    ]
+  },
+  {
+    "id": "bao-li-xi",
+    "file": "bao-li-xi.jpg",
+    "name": "Bao lì xì",
+    "tags": [
+      "Tết"
+    ]
+  },
+  {
+    "id": "cay-thong-noel",
+    "file": "cay-thong-noel.jpg",
+    "name": "Cây thông Noel",
+    "tags": [
+      "Giáng sinh"
+    ]
+  },
+  {
+    "id": "gau-bong",
+    "file": "gau-bong.jpg",
+    "name": "Gấu bông",
+    "tags": [
+      "Quà tặng"
+    ]
+  },
+  {
+    "id": "cup-vo-dich",
+    "file": "cup-vo-dich.jpg",
+    "name": "Cúp vô địch",
+    "tags": [
+      "Thành công"
+    ]
+  }
+]

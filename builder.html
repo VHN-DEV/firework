@@ -250,6 +250,12 @@
                             <div class="field music-field">
                                 <label>Nhạc nền<button type="button" class="help-tip" data-help="music" aria-label="Giải thích">?</button></label>
                                 <div id="music-empty" class="music-empty">
+                                    <button type="button" id="btn-music-library" class="music-upload music-library-btn"
+                                        onclick="openLibrary('music')">
+                                        <i class="fas fa-compact-disc"></i>
+                                        <span><strong>Chọn từ kho nhạc</strong><small>Có sẵn cho sinh nhật, Tết, đám cưới,
+                                                tốt nghiệp...</small></span>
+                                    </button>
                                     <button type="button" id="btn-music-upload" class="music-upload"
                                         onclick="document.getElementById('music-file').click()">
                                         <i class="fas fa-music"></i>
@@ -268,6 +274,8 @@
                                     <div class="music-head">
                                         <span class="music-disc"><i class="fas fa-compact-disc"></i></span>
                                         <span id="music-name" class="music-name"></span>
+                                        <button type="button" class="icon-btn" onclick="openLibrary('music')"
+                                            title="Chọn bài khác trong kho nhạc"><i class="fas fa-compact-disc"></i></button>
                                         <button type="button" class="icon-btn danger" onclick="removeMusic()"
                                             title="Bỏ nhạc nền"><i class="fas fa-trash"></i></button>
                                     </div>
@@ -752,6 +760,23 @@
                 <button class="btn secondary" onclick="hideModal('beat-modal')">Hủy</button>
                 <button id="btn-beat-apply" class="btn primary" onclick="applyBeatShow()" disabled>
                     <i class="fas fa-wand-magic-sparkles"></i> Xếp pháo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kho nhạc / kho ảnh có sẵn (library/*/index.json) -->
+    <div id="library-modal" class="modal hide">
+        <div class="modal-content large library-modal">
+            <div class="modal-header">
+                <h3 id="library-title"><i class="fas fa-compact-disc"></i> Kho nhạc</h3>
+                <button class="btn icon" onclick="closeLibrary()" title="Đóng">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+            <div class="library-body">
+                <div id="library-tags" class="library-tags" role="group" aria-label="Lọc theo dịp"></div>
+                <div id="library-list" class="library-list"></div>
+                <small id="library-note" class="field-hint"></small>
             </div>
         </div>
     </div>

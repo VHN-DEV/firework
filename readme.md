@@ -48,7 +48,7 @@
 Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và tính năng chính:
 
 - **Tự do tương tác**: Bạn có thể nhấp chuột hoặc chạm (trên màn hình cảm ứng) vào bất cứ đâu trên màn hình bầu trời đêm để tự bắn một quả pháo hoa.
-- **Tạo màn trình diễn riêng**: Mở trình soạn kịch bản (`builder.html`, nút "Tạo kịch bản pháo hoa") để chọn loại pháo, chữ trên trời, nhạc nền, lời chúc, khói pháo (Tắt / Nhẹ / Dày) rồi chia sẻ link.
+- **Tạo màn trình diễn riêng**: Mở trình soạn kịch bản (`builder.html`, nút "Tạo kịch bản pháo hoa") để chọn loại pháo, chữ trên trời, nhạc nền (tự tải lên hoặc chọn từ kho nhạc có sẵn), ảnh (kho ảnh), lời chúc, khói pháo (Tắt / Nhẹ / Dày) rồi chia sẻ link.
 - **Cài đặt** (nút bánh răng ⚙️ ở góc trên bên phải, hoặc phím `O`): chỉ gồm các tùy chọn khi xem, mỗi mục có nút "?" giải thích:
   - **Chất lượng**: Thấp / Vừa / Cao (hạ xuống nếu máy bị giật).
   - **Ánh sáng bầu trời**: Tắt / Mờ / Bình thường.
@@ -71,6 +71,8 @@ Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và 
   quà), `share-image.js` (ảnh khi chia sẻ).
 - `src/assets/scss/`: giao diện; `src/assets/audio/`, `src/assets/img/`: âm thanh, hình ảnh.
 - `src/static/`: chép nguyên vào bản build: `api/` (PHP: lưu, chia sẻ, tải lên, báo mở quà), `configs/` (kịch bản).
+- `src/static/library/`: kho nhạc (`music/`) và kho ảnh (`images/`) có sẵn trong builder; thêm bài, ảnh mới theo hướng dẫn
+  trong `src/static/library/README.md`.
 - `tests/e2e/`: kiểm thử tự động.
 
 ## Bản quyền & giấy phép

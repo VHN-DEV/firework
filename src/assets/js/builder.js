@@ -1402,6 +1402,8 @@ function renderInspector() {
                     <span>${event.imageUrl ? 'Đổi ảnh khác' : 'Chọn ảnh từ thiết bị'}</span>
                 </div>
                 <input type="file" id="image-file-${event.id}" class="hide" accept="image/*" onchange="handleImageUpload(${event.id}, this)">
+                <button type="button" class="btn secondary small library-pick" onclick="openLibrary('images', ${event.id})">
+                    <i class="fas fa-images"></i><span>Chọn từ kho ảnh</span></button>
             </div>
             <div>
                 <label>Khung ảnh</label>
@@ -1841,6 +1843,135 @@ function setMusic(music) {
     renderMusic();
 }
 
+// ---------------------------------------------------------------------------
+// Kho nhạc, kho ảnh có sẵn: library/music/index.json, library/images/index.json (thêm bài, ảnh: xem library/README.md)
+// ---------------------------------------------------------------------------
+const LIBRARY_KINDS = {
+    music: { title: '<i class="fas fa-compact-disc"></i> Kho nhạc', note: 'Nhạc trong kho thuộc phạm vi công cộng, dùng tự do. Bấm ▶ để nghe thử.' },
+    images: { title: '<i class="fas fa-images"></i> Kho ảnh', note: 'Bấm vào ảnh để dùng cho pháo ảnh này. Muốn dùng ảnh riêng thì bấm "Chọn ảnh từ thiết bị".' }
+};
+const library = { kind: 'music', eventId: null, tag: '', items: {}, audio: null, playingId: null };
+
+async function loadLibrary(kind) {
+    if (!library.items[kind]) {
+        const res = await fetch(`library/${kind}/index.json`, { cache: 'no-cache' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        library.items[kind] = await res.json();
+    }
+    return library.items[kind];
+}
+
+async function openLibrary(kind, eventId) {
+    Object.assign(library, { kind, eventId: eventId ?? null, tag: '' });
+    document.getElementById('library-title').innerHTML = LIBRARY_KINDS[kind].title;
+    document.getElementById('library-note').textContent = LIBRARY_KINDS[kind].note;
+    document.getElementById('library-tags').innerHTML = '';
+    const list = document.getElementById('library-list');
+    list.className = `library-list is-${kind}`;
+    list.innerHTML = '<div class="spinner"></div>';
+    showModal('library-modal');
+    try {
+        await loadLibrary(kind);
+        renderLibrary();
+    } catch (e) {
+        list.innerHTML = `<p class="library-empty">Không tải được ${kind === 'music' ? 'kho nhạc' : 'kho ảnh'}. Thử lại sau.</p>`;
+    }
+}
+
+function closeLibrary() {
+    stopLibraryPreview();
+    hideModal('library-modal');
+}
+
+function setLibraryTag(tag) {
+    library.tag = tag;
+    renderLibrary();
+}
+
+function libraryUrl(item) {
+    return `./library/${library.kind}/${item.file}`;
+}
+
+function renderLibrary() {
+    const items = library.items[library.kind] || [];
+    const tags = [...new Set(items.flatMap(item => item.tags || []))];
+    document.getElementById('library-tags').innerHTML = ['', ...tags].map(tag => `
+        <button type="button" class="template-chip${library.tag === tag ? ' active' : ''}" onclick="setLibraryTag('${escapeHtml(tag)}')">
+            ${tag ? escapeHtml(tag) : 'Tất cả'}</button>`).join('');
+    const shown = items.filter(item => !library.tag || (item.tags || []).includes(library.tag));
+    const list = document.getElementById('library-list');
+    if (library.kind === 'music') {
+        const current = state.music && normalizeAssetPath(state.music.url);
+        list.innerHTML = shown.map(item => {
+            const inUse = current === normalizeAssetPath(libraryUrl(item));
+            const minutes = Math.floor((item.duration || 0) / 60);
+            const seconds = String(Math.round((item.duration || 0) % 60)).padStart(2, '0');
+            return `
+            <div class="library-track${inUse ? ' in-use' : ''}">
+                <button type="button" class="library-play" onclick="toggleLibraryPreview('${escapeHtml(item.id)}')"
+                    title="Nghe thử" aria-label="Nghe thử ${escapeHtml(item.name)}"><i class="fas fa-${library.playingId === item.id ? 'pause' : 'play'}"></i></button>
+                <div class="library-track-info">
+                    <strong>${escapeHtml(item.name)}</strong>
+                    <span>${escapeHtml(item.artist || '')}${item.duration ? ` · ${minutes}:${seconds}` : ''}</span>
+                    <span class="library-track-tags">${(item.tags || []).map(t => `<em>${escapeHtml(t)}</em>`).join('')}</span>
+                </div>
+                <button type="button" class="btn ${inUse ? 'secondary' : 'primary'} small" onclick="chooseLibraryItem('${escapeHtml(item.id)}')">
+                    ${inUse ? '<i class="fas fa-check"></i> Đang dùng' : 'Dùng'}</button>
+            </div>`;
+        }).join('') || '<p class="library-empty">Chưa có bài nào.</p>';
+    } else {
+        const event = state.events.find(e => e.id === library.eventId);
+        const current = event && event.imageUrl && normalizeAssetPath(event.imageUrl);
+        list.innerHTML = shown.map(item => `
+            <button type="button" class="library-image${current === normalizeAssetPath(libraryUrl(item)) ? ' in-use' : ''}"
+                onclick="chooseLibraryItem('${escapeHtml(item.id)}')" title="${escapeHtml(item.name)}">
+                <img src="${escapeHtml(libraryUrl(item))}" alt="" loading="lazy">
+                <span>${escapeHtml(item.name)}</span>
+            </button>`).join('') || '<p class="library-empty">Chưa có ảnh nào.</p>';
+    }
+}
+
+function toggleLibraryPreview(id) {
+    const item = (library.items.music || []).find(i => i.id === id);
+    if (!item) return;
+    const wasPlaying = library.playingId === id;
+    stopLibraryPreview();
+    if (!wasPlaying) {
+        stopPreviewMusic();
+        library.audio = new Audio(libraryUrl(item));
+        library.audio.addEventListener('ended', stopLibraryPreview);
+        library.audio.play().catch(() => notify('Không phát được bài này.', 'error'));
+        library.playingId = id;
+    }
+    renderLibrary();
+}
+
+function stopLibraryPreview() {
+    if (library.audio) {
+        library.audio.pause();
+        library.audio = null;
+    }
+    if (library.playingId) {
+        library.playingId = null;
+        if (!document.getElementById('library-modal').classList.contains('hide')) renderLibrary();
+    }
+}
+
+function chooseLibraryItem(id) {
+    const item = (library.items[library.kind] || []).find(i => i.id === id);
+    if (!item) return;
+    if (library.kind === 'music') {
+        setMusic({ url: libraryUrl(item), name: `${item.name} – ${item.artist}` });
+        refreshMiniPreview();
+        notify(`Đã chọn nhạc nền "${item.name}".`, 'success');
+    } else if (state.events.some(e => e.id === library.eventId)) {
+        updateEvent(library.eventId, 'imageUrl', libraryUrl(item));
+        renderInspector();
+        notify(`Đã dùng ảnh "${item.name}".`, 'success');
+    }
+    closeLibrary();
+}
+
 function removeMusic() {
     state.music = null;
     previewMusicOn = false;
@@ -2275,8 +2406,9 @@ function currentSnapshot() {
 }
 
 // Kịch bản trống (chưa có tiêu đề, tên file, tối đa 1 phát bắn) thì không cần giữ nháp
+// Chưa đặt tên, chưa có tiêu đề, tối đa một phát bắn và chưa chọn nhạc: không cần lưu nháp
 function isBlankSnapshot(data) {
-    return !data.filename && !(data.title ?? data.config.title).trim() && data.config.events.length <= 1;
+    return !data.filename && !(data.title ?? data.config.title).trim() && data.config.events.length <= 1 && !data.config.music;
 }
 
 function saveDraft(snapshot) {
@@ -4458,7 +4590,8 @@ Object.assign(window, {
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
     togglePreviewMusic, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
-    hideModal, setStartFrame, undo, redo, setOpenMode, setSmoke, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
+    hideModal, setStartFrame, undo, redo, setOpenMode, setSmoke, openLibrary, closeLibrary, setLibraryTag,
+    toggleLibraryPreview, chooseLibraryItem, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
     openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, prepareVideo, stopVideo, downloadVideo, shareVideo,
     restartVideo, setTimelineView, zoomTrack, copyTrackingLink, enableOpenNotifications, checkGiftOpens
 });

@@ -1,0 +1,96 @@
+[
+  {
+    "id": "pomp-and-circumstance-trio",
+    "file": "pomp-and-circumstance-trio.mp3",
+    "name": "Pomp and Circumstance (Trio)",
+    "artist": "Edward Elgar · United States Marine Band",
+    "duration": 118,
+    "tags": [
+      "Tốt nghiệp",
+      "Trang trọng"
+    ],
+    "license": "Phạm vi công cộng",
+    "source": "https://commons.wikimedia.org/wiki/File:ELGAR_Pomp_and_Circumstance_in_D,_Opus_39,_No._1_-_United_States_Marine_Band.mp3"
+  },
+  {
+    "id": "happy-birthday",
+    "file": "happy-birthday.mp3",
+    "name": "Happy Birthday to You",
+    "artist": "Pracchia-78",
+    "duration": 80,
+    "tags": [
+      "Sinh nhật",
+      "Vui tươi"
+    ],
+    "license": "Phạm vi công cộng",
+    "source": "https://commons.wikimedia.org/wiki/File:Happy_Birthday_to_You.ogg"
+  },
+  {
+    "id": "radetzky-march",
+    "file": "radetzky-march.mp3",
+    "name": "Radetzky March",
+    "artist": "Johann Strauss I · United States Marine Band",
+    "duration": 153,
+    "tags": [
+      "Tết",
+      "Sinh nhật",
+      "Rộn ràng"
+    ],
+    "license": "Phạm vi công cộng",
+    "source": "https://commons.wikimedia.org/wiki/File:USMC_Band_-_Radetzky_March.mp3"
+  },
+  {
+    "id": "auld-lang-syne",
+    "file": "auld-lang-syne.mp3",
+    "name": "Auld Lang Syne",
+    "artist": "United States Marine Band",
+    "duration": 134,
+    "tags": [
+      "Năm mới",
+      "Tết",
+      "Chia tay"
+    ],
+    "license": "Phạm vi công cộng",
+    "source": "https://commons.wikimedia.org/wiki/File:%22Auld_Lang_Syne%22_performed_by_the_United_States_Marine_Band.mp3"
+  },
+  {
+    "id": "wedding-march",
+    "file": "wedding-march.mp3",
+    "name": "Wedding March",
+    "artist": "John Philip Sousa · United States Marine Band",
+    "duration": 120,
+    "tags": [
+      "Đám cưới",
+      "Trang trọng"
+    ],
+    "license": "Phạm vi công cộng",
+    "source": "https://commons.wikimedia.org/wiki/File:Sousa%27s_%22Wedding_March%22_-_United_States_Marine_Band_(2019).mp3"
+  },
+  {
+    "id": "clair-de-lune",
+    "file": "clair-de-lune.mp3",
+    "name": "Clair de Lune",
+    "artist": "Claude Debussy · U.S. Air Force Band of Flight",
+    "duration": 151,
+    "tags": [
+      "Tình yêu",
+      "Kỷ niệm",
+      "Nhẹ nhàng"
+    ],
+    "license": "Phạm vi công cộng",
+    "source": "https://commons.wikimedia.org/wiki/File:Clair_de_Lune_-_Wright_Brass_-_United_States_Air_Force_Band_of_Flight.mp3"
+  },
+  {
+    "id": "jingle-bells",
+    "file": "jingle-bells.mp3",
+    "name": "Jingle Bells",
+    "artist": "U.S. Air Force Band of Mid-America",
+    "duration": 119,
+    "tags": [
+      "Giáng sinh",
+      "Vui tươi"
+    ],
+    "license": "Phạm vi công cộng",
+    "source": "https://commons.wikimedia.org/wiki/File:Jingle_Bells_(2020)_-_Starlifter_and_Roots_in_Blue_-_United_States_Air_Force_Band_of_Mid-America.mp3"
+  }
+]
