@@ -62,10 +62,19 @@ Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và 
 
 ## Cấu trúc thư mục
 
-- `index.html` - Tập tin chính của ứng dụng.
-- `assets/styles/style.css` - Chứa các định dạng kiểu dáng và font chữ cho giao diện người dùng.
-- `assets/scripts/script.js` - Chứa toàn bộ mã logic mô phỏng động lực học và vẽ pháo hoa.
-- `assets/` - Chứa các tài nguyên hình ảnh (`images/`), phông chữ, CSS (`styles/`) và các tập lệnh (`scripts/`) bổ sung.
+- `index.html`, `builder.html`, `theo-doi.html`, `privacy.html`, `terms.html`: các trang (Vite build ra `dist/`).
+- `src/assets/js/script.js`: trình phát (cài đặt, menu, khung mở quà, hẹn giờ, khớp nhịp nhạc, quay video, vòng lặp
+  vẽ). Lõi pháo hoa tách trong `src/assets/js/player/`:
+  - `env.js`, `state.js`: môi trường, hằng số, trạng thái dùng chung (cỡ sân khấu, chất lượng, tốc độ, cài đặt);
+  - `particles.js` (hạt, tia lửa), `effects.js` (hiệu ứng nổ), `shapes.js` (pháo hình, chữ), `colors.js`;
+  - `shell.js` (quả pháo), `shells.js` (các loại pháo), `launch-styles.js` (kiểu bắn), `image-burst.js` (pháo ảnh);
+  - `audio.js` (tiếng pháo, nhạc nền), `start-frames.js` (khung mở quà), `captions.js` (lời nhắn), `utils.js`.
+- `src/assets/js/builder.js`: trình soạn; kèm `beat-sync.js` (xếp pháo theo nhịp), `timeline.js`, `timeline-track.js`
+  (dòng thời gian theo giây), `templates.js` (mẫu theo dịp), `recorder.js` (quay video), `gift-tracking.js` (báo mở
+  quà), `share-image.js` (ảnh khi chia sẻ).
+- `src/assets/scss/`: giao diện; `src/assets/audio/`, `src/assets/img/`: âm thanh, hình ảnh.
+- `src/static/`: chép nguyên vào bản build: `api/` (PHP: lưu, chia sẻ, tải lên, báo mở quà), `configs/` (kịch bản).
+- `tests/e2e/`: kiểm thử tự động.
 
 ## Bản quyền & giấy phép
 
