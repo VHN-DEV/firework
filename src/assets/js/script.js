@@ -524,7 +524,10 @@ function renderApp(state) {
 
     // Hiển thị/ẩn nền
     appNodes.backgroundImage.classList.toggle('show', state.config.showBackground);
-    appNodes.reduceFlashing.checked = state.config.reduceFlashing;
+    // Kịch bản bật sẵn giảm chớp sáng: công tắc hiện bật và khóa lại (như nút trên màn mở quà)
+    const flashForced = !!(burstConfig && burstConfig.reduceFlashing);
+    appNodes.reduceFlashing.checked = flashForced || state.config.reduceFlashing;
+    appNodes.reduceFlashing.disabled = flashForced;
     renderReduceFlashingToggle();
     appNodes.scaleFactor.value = (state.config.scaleFactor || 1).toFixed(2);
 
@@ -569,7 +572,8 @@ function getConfigFromDOM() {
     return {
         quality: appNodes.quality.value,
         skyLighting: appNodes.skyLighting.value,
-        reduceFlashing: appNodes.reduceFlashing.checked,
+        // Đang khóa theo kịch bản: giữ lựa chọn riêng của người xem
+        reduceFlashing: appNodes.reduceFlashing.disabled ? store.state.config.reduceFlashing : appNodes.reduceFlashing.checked,
         hideControls: appNodes.hideControls.checked,
         // Lưu trữ giá trị dưới dạng số.
         scaleFactor: parseFloat(appNodes.scaleFactor.value)

@@ -316,18 +316,16 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshMiniPreview();
     });
 
-    bgFile?.addEventListener('change', (e) => {
+    bgFile?.addEventListener('change', async (e) => {
         const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            state.background = event.target.result;
-            if (bgPreview) bgPreview.src = state.background;
-            refreshMiniPreview();
-        };
-        reader.readAsDataURL(file);
         // Chọn lại đúng file đó lần sau vẫn nhận
         e.target.value = '';
+        if (!file) return;
+        const url = await storeImageFile(file, 2560);
+        if (!url) return;
+        state.background = url;
+        if (bgPreview) bgPreview.src = url;
+        refreshMiniPreview();
     });
 
     document.getElementById('loop')?.addEventListener('change', syncLoopState);
@@ -1626,7 +1624,7 @@ function renderInspector() {
     const contentSection = contentIcon ? section('content', contentIcon, 'Nội dung', '', specific) : '';
 
     if (isPause) {
-        panel.innerHTML = header + basicSection;
+        panel.innerHTML = header + typeSection + basicSection;
         panel.scrollTop = keepScroll;
         return;
     }
@@ -4224,41 +4222,45 @@ function shrinkImageToDataUrl(file, maxSide) {
     });
 }
 
+// Ảnh người dùng chọn (ảnh nền, ảnh khi chia sẻ): bản có máy chủ PHP tải lên uploads/ (giữ nguyên chất lượng), kịch
+// bản chỉ ghi đường dẫn; trang tĩnh lưu kịch bản trong trình duyệt (chỉ vài MB) nên thu nhỏ còn cạnh dài maxSide.
+// Lỗi thì báo và trả về null.
+async function storeImageFile(file, maxSide) {
+    if (isStaticEnv) {
+        try {
+            return await shrinkImageToDataUrl(file, maxSide);
+        } catch (e) {
+            notify('Không đọc được file ảnh này.', 'error');
+            return null;
+        }
+    }
+    showLoading('Đang tải ảnh lên...');
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('filename', getUploadFolder());
+    try {
+        const response = await fetch('api/upload_image.php', { method: 'POST', body: formData });
+        const data = await response.json();
+        hideLoading();
+        if (!data.success) {
+            notify('Lỗi: ' + data.message, 'error');
+            return null;
+        }
+        return data.url;
+    } catch (e) {
+        hideLoading();
+        notify('Lỗi kết nối khi tải ảnh.', 'error');
+        return null;
+    }
+}
+
 async function handleSeoImageUpload(input) {
     const file = input.files[0];
     input.value = '';
     if (!file) return;
 
-    let imageUrl;
-    if (isStaticEnv) {
-        // Trang tĩnh lưu kịch bản trong trình duyệt (chỉ vài MB): thu nhỏ ảnh trước khi lưu
-        try {
-            imageUrl = await shrinkImageToDataUrl(file, 1600);
-        } catch (e) {
-            notify('Không đọc được file ảnh này.', 'error');
-            return;
-        }
-    } else {
-        const scenarioName = getUploadFolder();
-        showLoading('Đang tải ảnh lên...');
-        const formData = new FormData();
-        formData.append('image', file);
-        formData.append('filename', scenarioName);
-        try {
-            const response = await fetch('api/upload_image.php', { method: 'POST', body: formData });
-            const data = await response.json();
-            hideLoading();
-            if (!data.success) {
-                notify('Lỗi: ' + data.message, 'error');
-                return;
-            }
-            imageUrl = data.url;
-        } catch (e) {
-            hideLoading();
-            notify('Lỗi kết nối khi tải ảnh.', 'error');
-            return;
-        }
-    }
+    const imageUrl = await storeImageFile(file, 1600);
+    if (!imageUrl) return;
 
     Object.assign(state.seo, { mode: 'custom', image: imageUrl, imagePosition: 50 });
     detectSeoImageAxis();

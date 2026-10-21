@@ -1,7 +1,7 @@
 {
   "title": "CHÚC MỪNG SINH 🎉 NHẬT 🎉",
-  "subtitle": "Một kiệt tác ánh sáng dành tặng [TÊN NGƯỜI NHẬN]",
-  "author": "Đạo diễn: [TÊN NGƯỜI TẶNG]",
+  "subtitle": "Một kiệt tác ánh sáng dành tặng bạn",
+  "author": "Đạo diễn: Trình diễn Pháo hoa",
   "loop": true,
   "status": "private",
   "events": [
@@ -60,7 +60,7 @@
     },
     {
       "burst": 3,
-      "text": "[TÊN NGƯỜI NHẬN]",
+      "text": "SINH NHẬT VUI VẺ",
       "shell": "Văn bản",
       "color": "Blue",
       "x": 50,

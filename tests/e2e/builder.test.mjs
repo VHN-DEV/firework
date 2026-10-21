@@ -178,6 +178,15 @@ export async function run(browser, base, { check }) {
         await sleep(300);
         const rowsAfter = await page.$$eval('.shot-row', rows => rows.length);
         check('nhân bản phát bắn: bản sao hiện ngay trong danh sách', rowsAfter === rowsBefore + 1, `${rowsBefore} → ${rowsAfter}`);
+
+        // Đổi bản sao sang "Tạm dừng" rồi đổi lại được loại pháo khác
+        const pick = name => page.evaluate(n => [...document.querySelectorAll('#inspector .shell-grid .shell-option')].find(b => b.textContent.trim().endsWith(n))?.click(), name);
+        await pick('Tạm dừng');
+        await sleep(300);
+        await pick('Hoa cúc');
+        await sleep(300);
+        const backFromPause = await page.$eval('#inspector .shell-option.selected', b => b.textContent.trim()).catch(() => '');
+        check('phát "Tạm dừng" vẫn đổi lại được loại pháo khác', backFromPause.endsWith('Hoa cúc'), backFromPause);
         check('builder không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
         await page.close();

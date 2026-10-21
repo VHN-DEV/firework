@@ -4176,6 +4176,8 @@ select.is-invalid {
     .library-tags {
         flex-wrap: nowrap;
         overflow-x: auto;
+        // Có overflow thì chiều cao tối thiểu thành 0: trong cột flex của hộp thoại bị co mất hẳn
+        flex-shrink: 0;
         margin: 0 -1rem;
         padding: 0 1rem;
         scrollbar-width: none;
