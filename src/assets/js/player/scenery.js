@@ -105,31 +105,39 @@ function floatLanternSprite() {
 // Tọa độ theo điểm ảnh CSS; vật trên nước dùng x và d (0 mép nước xa, 1 sát người xem): xa thì nhỏ và trôi chậm.
 // ---------------------------------------------------------------------------
 
-// Khúc gỗ nhiều dáng: thẳng, có cành gãy, cong vồng, gốc còn rễ, cành khô còn lá. Gỗ nổi chìm chừng một nửa: phần dưới
-// mặt nước ngả màu nước và mờ dần, sát mặt nước sẫm ướt. Ảnh ghi wl (hàng mặt nước), top (mặt trên thân, chỗ cò đậu),
-// perch (cò đậu được không).
+// Khúc gỗ nhiều dáng: thẳng, có cành gãy, gỗ trôi bạc màu cong vồng, gốc còn rễ, cành khô còn lá. Thân vẽ từng điểm
+// ảnh: đổ bóng theo hình trụ (mặt trên sáng, mặt dưới tối), thớ vỏ chạy dọc thân, vết nứt sâu, rêu xanh loang trên mặt
+// trên, rong sẫm sát mép nước. Gỗ nổi chìm chừng một nửa: phần dưới mặt nước ngả màu nước, mờ dần. Ảnh ghi wl (hàng mặt
+// nước), top (mặt trên thân, chỗ cò đậu), perch (cò đậu được không); vẽ sẵn gấp đôi cho nét.
 const LOG_KINDS = 5;
 
 function logSprite(variant) {
-    const key = 'log' + variant;
-    if (sprites[key]) return sprites[key];
+    return built('log' + variant, () => buildLog(variant));
+}
+
+function* buildLog(variant) {
+    const S = 2;
     const W = 200;
     const H = 52;
-    const wl = 32;
+    const wl = 34;
     const c = document.createElement('canvas');
-    c.width = W;
-    c.height = H;
+    c.width = W * S;
+    c.height = H * S;
     const g = c.getContext('2d');
     let seed = 11 + variant * 97;
     const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-    const bark = ['#4a3020', '#3e2a1c', '#55392a', '#463022', '#3d2c20'][variant];
-    const lit = ['#6b4a2e', '#5f4330', '#77553a', '#6a4b33', '#5c4634'][variant];
+    const noise = makeNoise(31 + variant * 53);
+    // Gỗ trôi lâu ngày (dáng cong vồng) bạc thành xám; còn lại vỏ nâu sẫm
+    const drift = variant === 2;
+    const dark = drift ? [86, 82, 74] : [50, 33, 22];
+    const light = drift ? [172, 164, 150] : [124, 90, 58];
+    const barkCss = drift ? '#6e675c' : '#47301f';
     // Trục thân: [x, tâm y, bán kính]
     const spine = [];
     const from = variant === 3 ? 34 : 8;
     const to = variant === 3 ? 168 : 190;
-    for (let i = 0; i <= 24; i++) {
-        const t = i / 24;
+    for (let i = 0; i <= 40; i++) {
+        const t = i / 40;
         const x = from + (to - from) * t;
         let y = 31;
         let r = 11 - t * 1.5;
@@ -143,22 +151,25 @@ function logSprite(variant) {
             y = 31 - Math.sin(Math.PI * t * 0.8) * 2;
             r = 5 - t * 2.6;
         }
+        // Thân không tròn đều: hơi phình, thắt dọc thân
+        r *= 1 + (noise(t * 6, 0.5) - 0.5) * 0.14;
         spine.push([x, y, r]);
     }
-    const trunk = (inset, color) => {
-        g.fillStyle = color;
-        g.beginPath();
-        spine.forEach(([x, y, r], i) => (i ? g.lineTo(x, y - r + inset) : g.moveTo(x, y - r + inset)));
-        for (let i = spine.length - 1; i >= 0; i--) {
-            const [x, y, r] = spine[i];
-            g.lineTo(x, y + r - inset);
-        }
-        g.closePath();
-        g.fill();
+    const at = x => {
+        if (x < from || x > to) return null;
+        const f = (x - from) / (to - from) * 40;
+        const i = Math.min(39, Math.floor(f));
+        const u = f - i;
+        return [spine[i][1] + (spine[i + 1][1] - spine[i][1]) * u, spine[i][2] + (spine[i + 1][2] - spine[i][2]) * u];
     };
-    const limb = (x1, y1, x2, y2, w1, w2, color) => {
+    // Cành gãy, rễ, nhánh con: khối trụ nhỏ đổ bóng (mặt trên sáng)
+    const limb = (x1, y1, x2, y2, w1, w2) => {
         const a = Math.atan2(y2 - y1, x2 - x1) + Math.PI / 2;
-        g.fillStyle = color;
+        const grad = g.createLinearGradient(x1 + Math.cos(a) * w1, y1 + Math.sin(a) * w1, x1 - Math.cos(a) * w1, y1 - Math.sin(a) * w1);
+        grad.addColorStop(0, `rgb(${dark.join(',')})`);
+        grad.addColorStop(0.6, `rgb(${light.map((v, i) => (v + dark[i]) / 2 | 0).join(',')})`);
+        grad.addColorStop(1, `rgb(${dark.map(v => v * 0.8 | 0).join(',')})`);
+        g.fillStyle = grad;
         g.beginPath();
         g.moveTo(x1 + Math.cos(a) * w1, y1 + Math.sin(a) * w1);
         g.lineTo(x2 + Math.cos(a) * w2, y2 + Math.sin(a) * w2);
@@ -166,100 +177,159 @@ function logSprite(variant) {
         g.lineTo(x1 - Math.cos(a) * w1, y1 - Math.sin(a) * w1);
         g.closePath();
         g.fill();
+        // Đầu cành gãy lởm chởm, lộ gỗ sáng
+        g.fillStyle = drift ? '#b9b0a0' : '#9a7448';
+        g.beginPath();
+        g.ellipse(x2, y2, w2 * 1.05, w2 * 0.7, a, 0, Math.PI * 2);
+        g.fill();
     };
-    // Cành gãy chĩa lên, rễ, nhánh con
-    if (variant === 0) limb(60, 22, 46, 3, 3, 1.5, bark);
+    g.scale(S, S);
+    if (variant === 0) limb(60, 22, 46, 3, 3, 1.5);
     if (variant === 1) {
-        limb(66, 23, 50, 4, 3.5, 1.6, bark);
-        limb(128, 23, 146, 8, 3, 1.4, bark);
-        limb(96, 24, 100, 14, 2.2, 1.8, bark);
+        limb(66, 23, 50, 4, 3.5, 1.6);
+        limb(128, 23, 146, 8, 3, 1.4);
+        limb(96, 24, 100, 14, 2.2, 1.8);
     }
     if (variant === 3) {
-        for (let i = 0; i < 7; i++) {
-            const a = Math.PI * (0.55 + i * 0.13);
-            limb(38, 31 + rnd() * 6 - 3, 38 + Math.cos(a) * (18 + rnd() * 12), 31 + Math.sin(a) * (14 + rnd() * 10) * (i % 2 ? 1 : -0.8), 2.6, 0.8, bark);
+        for (let i = 0; i < 8; i++) {
+            const a = Math.PI * (0.52 + i * 0.12);
+            limb(38, 31 + rnd() * 6 - 3, 38 + Math.cos(a) * (18 + rnd() * 12), 31 + Math.sin(a) * (14 + rnd() * 10) * (i % 2 ? 1 : -0.8), 2.6, 0.7);
         }
     }
     if (variant === 4) {
         [[40, -1, 14], [82, 1, 18], [120, -1, 12], [150, 1, 10]].forEach(([x, side, len]) => {
             const tipX = x + side * len * 0.5;
-            limb(x, 29, tipX, 29 - len, 1.4, 0.5, bark);
-            // Vài chiếc lá khô còn bám
-            g.fillStyle = ['#5d6a3a', '#6e5a32'][x % 2];
-            g.beginPath();
-            g.ellipse(tipX, 29 - len, 2.6, 1.3, side * 0.6, 0, Math.PI * 2);
-            g.fill();
+            limb(x, 29, tipX, 29 - len, 1.3, 0.4);
+            const fx = x + side * len * 0.32;
+            const fy = 29 - len * 0.62;
+            limb(fx, fy, fx + side * 5, fy - 4, 0.6, 0.25);
+            [[tipX, 29 - len], [fx + side * 5, fy - 4]].forEach(([lx, ly]) => {
+                for (let j = 0; j < 4; j++) {
+                    g.fillStyle = ['#5d6a3a', '#6e5a32', '#7a6a3a', '#4f5e34'][(rnd() * 4) | 0];
+                    g.save();
+                    g.translate(lx, ly);
+                    g.rotate(-Math.PI / 2 + (rnd() - 0.5) * 2.4);
+                    g.beginPath();
+                    g.ellipse(2.2, 0, 2.4, 0.8, 0, 0, Math.PI * 2);
+                    g.fill();
+                    g.restore();
+                }
+            });
         });
     }
-    trunk(0, bark);
-    // Mặt trên hứng sáng (ánh trăng, ánh pháo)
-    g.globalAlpha = 0.85;
-    g.fillStyle = lit;
-    g.beginPath();
-    spine.forEach(([x, y, r], i) => (i ? g.lineTo(x, y - r + 1) : g.moveTo(x, y - r + 1)));
-    for (let i = spine.length - 1; i >= 0; i--) {
-        const [x, y, r] = spine[i];
-        g.lineTo(x, y - r * 0.25);
-    }
-    g.closePath();
-    g.fill();
-    g.globalAlpha = 1;
-    // Vỏ cây: các vết nứt dọc thân, mắt gỗ
-    g.strokeStyle = 'rgba(24, 15, 8, 0.55)';
-    g.lineWidth = variant === 4 ? 0.8 : 1.6;
-    for (let i = 0; i < 9; i++) {
-        const p = spine[1 + ((rnd() * (spine.length - 4)) | 0)];
-        const len = 12 + rnd() * 26;
-        const dy = (rnd() - 0.5) * p[2] * 1.1;
-        g.beginPath();
-        g.moveTo(p[0], p[1] + dy);
-        g.lineTo(Math.min(to - 4, p[0] + len), p[1] + dy + (rnd() - 0.5) * 2);
-        g.stroke();
-    }
-    if (variant !== 4) {
-        g.fillStyle = 'rgba(30, 18, 10, 0.7)';
-        for (let i = 0; i < 2; i++) {
-            const p = spine[4 + ((rnd() * 14) | 0)];
-            g.beginPath();
-            g.ellipse(p[0], p[1] - p[2] * 0.3, 2.6, 1.6, 0, 0, Math.PI * 2);
-            g.fill();
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    // Thân: từng điểm ảnh (vẽ riêng rồi đặt đè lên cành, khỏi đọc ngược ảnh từ canvas vốn chậm)
+    const img = g.createImageData(W * S, H * S);
+    const d = img.data;
+    const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+    const capped = variant <= 1 || variant === 3;
+    for (let py = 0; py < H * S; py++) {
+        if (py % 8 === 7) yield;
+        const Y = (py + 0.5) / S;
+        for (let px = 0; px < W * S; px++) {
+            const X = (px + 0.5) / S;
+            const sp = at(X);
+            if (!sp) continue;
+            const [cy, r] = sp;
+            // Đầu khúc gỗ: đầu trái gãy tròn, đầu phải tròn (trừ khúc có mặt cắt)
+            let lim = 1;
+            if (X < from + r) lim = Math.sqrt(Math.max(0, 1 - ((from + r - X) / r) ** 2));
+            if (!capped && X > to - r) lim = Math.sqrt(Math.max(0, 1 - ((X - (to - r)) / r) ** 2));
+            const v = (Y - cy) / r;
+            if (Math.abs(v) > lim) continue;
+            // Thớ vỏ chạy dọc thân, vết nứt sâu, rêu trên mặt trên, rong sát mép nước
+            const grain = fbm(noise, X / 24, v * r / 1.4 + 3, 4);
+            const fine = noise(X / 9, v * r / 0.55 + 11);
+            let col = mix(dark, light, 0.18 + 0.7 * grain);
+            if (fine < 0.2) col = col.map(c0 => c0 * (drift ? 0.7 : 0.55));
+            if (drift && fine > 0.82) col = col.map(c0 => Math.min(255, c0 * 1.12));
+            const moss = fbm(noise, X / 15 + 40, v * 2 + 9, 3);
+            if (!drift && v < -0.2 && moss > 0.58) col = mix(col, [60, 92, 46], Math.min(1, (moss - 0.58) * 5) * 0.8);
+            if (Y > wl - 3.5 && Y < wl + 1.5) col = mix(col, [38, 54, 34], 0.4);
+            // Hình trụ: mặt trên hứng sáng, mặt dưới tối, sát viền tối hơn
+            const round = Math.sqrt(Math.max(0, 1 - v * v));
+            const shade = (0.25 + 0.72 * Math.pow((1 - v) / 2, 1.3)) * (0.5 + 0.5 * round)
+                + 0.3 * Math.exp(-(((v + 0.5) / 0.2) ** 2)) * (drift ? 0.6 : 1);
+            const i = (py * W * S + px) * 4;
+            d[i] = Math.min(255, col[0] * shade);
+            d[i + 1] = Math.min(255, col[1] * shade);
+            d[i + 2] = Math.min(255, col[2] * shade);
+            d[i + 3] = 255;
         }
     }
-    // Mặt cắt ở đầu khúc gỗ: vân gỗ
-    if (variant <= 1 || variant === 3) {
-        const [x, y, r] = spine[spine.length - 1];
-        g.fillStyle = '#b58a57';
-        g.beginPath();
-        g.ellipse(x, y, r * 0.55, r, 0, 0, Math.PI * 2);
-        g.fill();
-        g.strokeStyle = '#7d5532';
-        g.lineWidth = 1.1;
-        [0.7, 0.4].forEach(f => {
+    const body = document.createElement('canvas');
+    body.width = W * S;
+    body.height = H * S;
+    body.getContext('2d').putImageData(img, 0, 0);
+    g.drawImage(body, 0, 0);
+    g.scale(S, S);
+    // Mắt gỗ: chỗ lõm sẫm có vân tròn
+    if (variant !== 4) {
+        for (let i = 0; i < 2; i++) {
+            const x = from + (to - from) * (0.2 + rnd() * 0.6);
+            const [cy, r] = at(x);
+            const ky = cy - r * (0.25 + rnd() * 0.3);
+            g.fillStyle = 'rgba(26, 16, 9, 0.45)';
             g.beginPath();
-            g.ellipse(x, y, r * 0.55 * f, r * f, 0, 0, Math.PI * 2);
+            g.ellipse(x, ky, 1.5, 0.9, 0, 0, Math.PI * 2);
+            g.fill();
+            g.strokeStyle = drift ? 'rgba(200, 192, 176, 0.25)' : 'rgba(150, 110, 70, 0.3)';
+            g.lineWidth = 0.45;
+            g.beginPath();
+            g.ellipse(x, ky, 2.6, 1.5, 0, 0, Math.PI * 2);
+            g.stroke();
+        }
+    }
+    // Mặt cắt ở đầu khúc gỗ: vỏ viền ngoài, vân năm, vết nứt tỏa từ lõi
+    if (capped) {
+        const [x, y, r] = spine[spine.length - 1];
+        g.fillStyle = barkCss;
+        g.beginPath();
+        g.ellipse(x, y, r * 0.58, r, 0, 0, Math.PI * 2);
+        g.fill();
+        const face = g.createRadialGradient(x - r * 0.12, y - r * 0.2, 0, x, y, r);
+        face.addColorStop(0, '#c99c64');
+        face.addColorStop(1, '#8a6238');
+        g.fillStyle = face;
+        g.beginPath();
+        g.ellipse(x, y, r * 0.5, r * 0.88, 0, 0, Math.PI * 2);
+        g.fill();
+        g.strokeStyle = 'rgba(96, 62, 32, 0.6)';
+        g.lineWidth = 0.55;
+        [0.72, 0.5, 0.3].forEach(f => {
+            g.beginPath();
+            g.ellipse(x, y, r * 0.5 * f, r * 0.88 * f, 0, 0, Math.PI * 2);
             g.stroke();
         });
+        g.strokeStyle = 'rgba(60, 36, 18, 0.7)';
+        for (let i = 0; i < 3; i++) {
+            const a = rnd() * Math.PI * 2;
+            g.beginPath();
+            g.moveTo(x, y);
+            g.lineTo(x + Math.cos(a) * r * 0.45, y + Math.sin(a) * r * 0.8);
+            g.stroke();
+        }
     }
+    g.setTransform(1, 0, 0, 1, 0, 0);
     // Sát mặt nước: dải ướt sẫm; dưới mặt nước: ngả màu nước, mờ dần theo độ sâu
     g.globalCompositeOperation = 'source-atop';
-    g.fillStyle = 'rgba(0, 0, 0, 0.38)';
-    g.fillRect(0, wl - 4, W, 4);
+    g.fillStyle = 'rgba(0, 0, 0, 0.32)';
+    g.fillRect(0, (wl - 3) * S, W * S, 3 * S);
     g.fillStyle = 'rgba(14, 30, 58, 0.72)';
-    g.fillRect(0, wl, W, H - wl);
+    g.fillRect(0, wl * S, W * S, (H - wl) * S);
     g.globalCompositeOperation = 'destination-in';
-    const sink = g.createLinearGradient(0, 0, 0, H);
+    const sink = g.createLinearGradient(0, 0, 0, H * S);
     sink.addColorStop(0, 'rgba(0, 0, 0, 1)');
     sink.addColorStop(wl / H, 'rgba(0, 0, 0, 1)');
-    sink.addColorStop(wl / H + 0.02, 'rgba(0, 0, 0, 0.5)');
+    sink.addColorStop(wl / H + 0.02, 'rgba(0, 0, 0, 0.55)');
     sink.addColorStop(1, 'rgba(0, 0, 0, 0)');
     g.fillStyle = sink;
-    g.fillRect(0, 0, W, H);
+    g.fillRect(0, 0, W * S, H * S);
     g.globalCompositeOperation = 'source-over';
-    const mid = spine[12];
-    c.wl = wl;
-    c.top = mid[1] - mid[2];
+    const mid = spine[20];
+    c.wl = wl * S;
+    c.top = (mid[1] - mid[2]) * S;
     c.perch = variant !== 4;
-    sprites[key] = c;
     return c;
 }
 
@@ -953,6 +1023,8 @@ const WaterLife = {
     },
 
     // Khúc gỗ nổi: chìm chừng một nửa, bóng phần nổi in xuống nước, bọt lấp lánh dọc chỗ tiếp nước, gợn quanh thân
+    // Khúc gỗ nổi: phần nổi thẳng, phần chìm từng lát lệch theo sóng (nước khúc xạ); bóng phần nổi in xuống nước gợn theo
+    // sóng; vệt ướt lấp lánh dọc mép nước; bị dòng nước đẩy dạt qua đá thì nghiêng mình theo
     drawLog(ctx, log, k, topCss, depthCss, time, river) {
         const s = this.scale(log.d);
         const sprite = logSprite(log.variant);
@@ -961,18 +1033,14 @@ const WaterLife = {
         const wlOff = h * sprite.wl / sprite.height;
         const y = this.surfaceY(log.d, topCss, depthCss) + Math.sin(log.phase) * 0.5 * s;
         const left = log.x - w;
-        ctx.save();
-        ctx.globalAlpha = 0.24;
-        ctx.translate(left, y);
-        ctx.scale(1, -0.7);
-        ctx.drawImage(sprite, 0, 0, sprite.width, sprite.wl, 0, -wlOff, w, wlOff);
-        ctx.restore();
+        drawReflection(ctx, sprite, left, y, w, wlOff, 0.24, time, log.seed, s);
         drawFlowMarks(ctx, left + w / 2, y, w * 0.5, s, k, time, log.seed, river, 0.35);
         ctx.save();
         ctx.translate(left + w / 2, y);
-        ctx.rotate(Math.sin(log.phase * 0.7) * 0.015);
+        ctx.rotate(Math.sin(log.phase * 0.7) * 0.015 + Math.max(-0.05, Math.min(0.05, (log.vd || 0) * 600)));
         ctx.globalAlpha = 0.97;
-        ctx.drawImage(sprite, -w / 2, -wlOff, w, h);
+        ctx.drawImage(sprite, 0, 0, sprite.width, sprite.wl, -w / 2, -wlOff, w, wlOff);
+        drawSubmerged(ctx, sprite, -w / 2, 0, w, h - wlOff, time, log.seed, s);
         ctx.restore();
         ctx.fillStyle = 'rgb(205, 222, 255)';
         for (let i = 0; i < 6; i++) {
@@ -1399,10 +1467,56 @@ function sinkBelow(g, W, H, wl, keep = 0.5) {
     g.globalCompositeOperation = 'source-over';
 }
 
-// Cụm đá giữa dòng: vài tảng tròn xám, mặt trên hứng sáng, rêu xanh. Khung 60 x 34, mặt nước ở hàng 24.
+// Ảnh vẽ từng điểm ảnh (khúc gỗ, đá, gò đất) tốn vài chục mili giây mỗi ảnh nên dựng thành từng đoạn: cần ngay thì
+// dựng một mạch, còn lại dựng dần lúc máy rảnh (warmWaterSprites) để vật mới trôi vào không làm khựng khung hình
+function built(key, make) {
+    if (!sprites[key]) {
+        const job = make();
+        let step = job.next();
+        while (!step.done) step = job.next();
+        sprites[key] = step.value;
+    }
+    return sprites[key];
+}
+
+let waterWarm = false;
+function warmWaterSprites() {
+    if (waterWarm) return;
+    waterWarm = true;
+    const list = [];
+    for (let v = 0; v < LOG_KINDS; v++) list.push(['log' + v, () => buildLog(v)]);
+    for (let v = 0; v < 3; v++) list.push(['rock' + v, () => buildRock(v)]);
+    for (let v = 0; v < 2; v++) list.push(['mound' + v, () => buildMound(v)]);
+    let item = null;
+    let job = null;
+    const step = () => {
+        const until = performance.now() + 5;
+        while (performance.now() < until) {
+            if (!job) {
+                item = list.find(([key]) => !sprites[key]);
+                if (!item) return;
+                job = item[1]();
+            }
+            const result = job.next();
+            if (result.done) {
+                if (!sprites[item[0]]) sprites[item[0]] = result.value;
+                job = null;
+            }
+        }
+        schedule();
+    };
+    const schedule = () => (window.requestIdleCallback ? window.requestIdleCallback(step, { timeout: 200 }) : setTimeout(step, 16));
+    schedule();
+}
+
+// Cụm đá giữa dòng vẽ từng điểm ảnh: mỗi tảng méo tự nhiên (bán kính gồ ghề theo nhiễu), đổ bóng theo mặt cong (mặt
+// trên trái hứng sáng), vân đá hoa cương lấm tấm, mảng sáng tối, vết nứt mảnh, rêu trên đỉnh, chân đá ướt sẫm. Khung
+// 60 x 34, mặt nước ở hàng 24; vẽ sẵn gấp đôi cho nét.
 function rockSprite(variant) {
-    const key = 'rock' + variant;
-    if (sprites[key]) return sprites[key];
+    return built('rock' + variant, () => buildRock(variant));
+}
+
+function* buildRock(variant) {
     const S = 2;
     const W = 60;
     const H = 34;
@@ -1411,53 +1525,72 @@ function rockSprite(variant) {
     c.width = W * S;
     c.height = H * S;
     const g = c.getContext('2d');
-    g.scale(S, S);
+    const noise = makeNoise(91 + variant * 17);
     const stones = [
         [[30, 22, 15, 12], [16, 25, 9, 7], [45, 25, 10, 8]],
         [[24, 21, 13, 13], [40, 23, 12, 9], [12, 26, 6, 5], [52, 26, 6, 4]],
         [[30, 20, 18, 11], [50, 25, 7, 5]]
     ][variant % 3];
-    stones.forEach(([x, y, rx, ry], i) => {
-        const tone = ['#7d7262', '#8a7f6d', '#6f6656', '#837866'][i % 4];
-        const grad = g.createLinearGradient(0, y - ry, 0, y + ry);
-        grad.addColorStop(0, tone);
-        grad.addColorStop(1, '#332c24');
-        g.fillStyle = grad;
-        g.beginPath();
-        g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
-        g.fill();
-        // Mặt trên hứng ánh trăng, ánh pháo
-        g.fillStyle = 'rgba(255, 240, 215, 0.2)';
-        g.beginPath();
-        g.ellipse(x - rx * 0.2, y - ry * 0.55, rx * 0.6, ry * 0.3, 0, 0, Math.PI * 2);
-        g.fill();
-        // Rêu
-        g.fillStyle = 'rgba(70, 110, 60, 0.75)';
-        g.beginPath();
-        g.ellipse(x + rx * 0.25, y - ry * 0.72, rx * 0.35, ry * 0.16, 0.2, 0, Math.PI * 2);
-        g.fill();
-        // Vết nứt
-        g.strokeStyle = 'rgba(20, 20, 24, 0.5)';
-        g.lineWidth = 0.6;
-        g.beginPath();
-        g.moveTo(x - rx * 0.3, y - ry * 0.3);
-        g.lineTo(x - rx * 0.05, y + ry * 0.1);
-        g.lineTo(x + rx * 0.1, y + ry * 0.4);
-        g.stroke();
-    });
-    sinkBelow(g, W, H, wl, 0.55);
+    const tones = [[125, 114, 98], [138, 127, 109], [111, 102, 86], [131, 120, 102]];
+    const img = g.createImageData(W * S, H * S);
+    const d = img.data;
+    for (let py = 0; py < H * S; py++) {
+        if (py % 8 === 7) yield;
+        const Y = (py + 0.5) / S;
+        for (let px = 0; px < W * S; px++) {
+            const X = (px + 0.5) / S;
+            // Tảng nào chứa điểm này (tảng sau đè tảng trước)
+            let hit = null;
+            stones.forEach(([sx, sy, rx, ry], i) => {
+                const dx = (X - sx) / rx;
+                const dy = (Y - sy) / ry;
+                const ang = Math.atan2(dy, dx);
+                const rr = 1 + (noise(Math.cos(ang) * 1.4 + i * 5, Math.sin(ang) * 1.4 + i * 3) - 0.5) * 0.36;
+                const dist = Math.sqrt(dx * dx + dy * dy) / rr;
+                if (dist <= 1) hit = { i, dx: dx / rr, dy: dy / rr, dist };
+            });
+            if (!hit) continue;
+            const nz = Math.sqrt(Math.max(0, 1 - hit.dist * hit.dist));
+            const lambert = Math.min(1, Math.max(0, -0.42 * hit.dx - 0.7 * hit.dy + 0.58 * nz));
+            const shade = 0.3 + 0.85 * lambert;
+            const tone = tones[hit.i % 4];
+            const patch = fbm(noise, X / 7 + hit.i * 13, Y / 7, 4);
+            let col = tone.map(v => v * (0.78 + 0.44 * patch));
+            const grain = noise(X / 0.9 + 50, Y / 0.9 + 20);
+            if (grain > 0.84) col = col.map(v => v + 26);
+            else if (grain < 0.12) col = col.map(v => v * 0.72);
+            if (Math.abs(fbm(noise, X / 10 + 70, Y / 10 + 30, 3) - 0.5) < 0.016) col = col.map(v => v * 0.55);
+            const moss = fbm(noise, X / 5 + 90, Y / 5 + 40, 3);
+            if (hit.dy < -0.3 && moss > 0.55) {
+                const m = Math.min(1, (moss - 0.55) * 5) * 0.85;
+                col = [col[0] + (64 - col[0]) * m, col[1] + (98 - col[1]) * m, col[2] + (52 - col[2]) * m];
+            }
+            if (Y > wl - 3) col = col.map(v => v * 0.68);
+            const i = (py * W * S + px) * 4;
+            d[i] = Math.min(255, col[0] * shade);
+            d[i + 1] = Math.min(255, col[1] * shade);
+            d[i + 2] = Math.min(255, col[2] * shade);
+            d[i + 3] = 255;
+        }
+    }
+    g.putImageData(img, 0, 0);
+    sinkBelow(g, W * S, H * S, wl * S, 0.55);
     c.wl = wl * S;
     const peak = stones.reduce((a, b) => (b[1] - b[3] < a[1] - a[3] ? b : a));
     c.top = (peak[1] - peak[3] + 1) * S;
     c.perchX = peak[0] / W - 0.5;
-    sprites[key] = c;
     return c;
 }
 
-// Gò đất giữa dòng: doi đất thấp phủ cỏ, mép có lau sậy. Khung 120 x 44, mặt nước ở hàng 34.
+// Gò đất giữa dòng vẽ từng điểm ảnh: mép trên gồ ghề, đỉnh phủ cỏ dày (mép cỏ lởm chởm), sườn đất có hạt, sỏi lấm tấm,
+// sườn trái hứng sáng; sát mặt nước là dải bùn ướt sẫm có ánh lấp lánh; dưới nước ngả màu nước. Lau sậy cao vẽ riêng
+// mỗi khung hình (đung đưa theo gió, xem drawRock): ảnh ghi reeds (vị trí gốc, độ cao, màu) theo đơn vị của khung 120 x 44.
+// Mặt nước ở hàng 34. Vẽ sẵn gấp đôi cho nét.
 function moundSprite(variant) {
-    const key = 'mound' + variant;
-    if (sprites[key]) return sprites[key];
+    return built('mound' + variant, () => buildMound(variant));
+}
+
+function* buildMound(variant) {
     const S = 2;
     const W = 120;
     const H = 44;
@@ -1466,52 +1599,122 @@ function moundSprite(variant) {
     c.width = W * S;
     c.height = H * S;
     const g = c.getContext('2d');
-    g.scale(S, S);
     let seed = 41 + variant * 13;
     const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-    const peak = variant ? 20 : 17;
-    const earth = g.createLinearGradient(0, peak, 0, wl + 6);
-    earth.addColorStop(0, '#5b4a35');
-    earth.addColorStop(1, '#2f251b');
-    g.fillStyle = earth;
-    g.beginPath();
-    g.moveTo(3, wl + 4);
-    g.bezierCurveTo(18, wl - 6, 34, peak + 2, 58, peak);
-    g.bezierCurveTo(80, peak - 1, 100, wl - 8, 117, wl + 4);
-    g.closePath();
-    g.fill();
-    // Đất, sỏi lấm tấm ở sườn
-    g.fillStyle = 'rgba(120, 100, 75, 0.35)';
-    for (let i = 0; i < 14; i++) g.fillRect(14 + rnd() * 92, wl - 8 + rnd() * 9, 1.4, 1);
-    // Cỏ phủ trên đỉnh
-    const ridge = x => wl + 4 - (wl + 4 - peak) * Math.pow(Math.sin(Math.PI * (x - 3) / 114), 0.8);
-    for (let x = 12; x < 108; x += 1.4) {
-        const y = ridge(x);
-        const h = 1.5 + rnd() * 4;
-        g.fillStyle = ['#3f6a3a', '#4d7c42', '#58884a', '#355a32'][(rnd() * 4) | 0];
-        g.fillRect(x, y - h, 1.1, h + 2.5);
-    }
-    // Lau sậy một bên, bông nâu
-    const reedX = variant ? 88 : 24;
-    for (let i = 0; i < 6; i++) {
-        const x = reedX + i * 2.4 + rnd() * 1.5;
-        const top = ridge(x) - 10 - rnd() * 9;
-        g.strokeStyle = '#4a6a36';
-        g.lineWidth = 0.8;
-        g.beginPath();
-        g.moveTo(x, ridge(x) + 1);
-        g.quadraticCurveTo(x + 1, (top + ridge(x)) / 2, x + (rnd() - 0.3) * 3, top);
-        g.stroke();
-        if (i % 2 === 0) {
-            g.fillStyle = '#6b4a2c';
-            g.fillRect(x - 0.6, top + 1, 1.6, 4);
+    const noise = makeNoise(77 + variant * 29);
+    const peak = variant ? 12 : 10;
+    // Mép trên: dáng gò lệch một bên (một sườn dốc, một sườn thoải), gồ ghề theo nhiễu
+    const skew = variant ? -1 : 1;
+    const profile = X => {
+        const t = (X - 3) / 114;
+        if (t <= 0 || t >= 1) return Infinity;
+        const tt = Math.pow(t, skew > 0 ? 0.8 : 1.25);
+        const hump = Math.pow(Math.sin(Math.PI * tt), 0.6) * (1 + 0.1 * Math.sin(t * 9 + variant * 2));
+        return wl + 4 - (wl + 4 - peak) * hump + (fbm(noise, X / 12, 1.7, 3) - 0.5) * 6 * Math.sin(Math.PI * t);
+    };
+    const img = g.createImageData(W * S, H * S);
+    const d = img.data;
+    for (let px = 0; px < W * S; px++) {
+        if (px % 16 === 15) yield;
+        const X = (px + 0.5) / S;
+        const top = profile(X);
+        if (top === Infinity) continue;
+        // Độ dốc của dáng gò (đo trên đoạn rộng, bỏ qua gồ ghề nhỏ) để sườn không sọc dọc
+        const slope = Math.max(-1.2, Math.min(1.2, (profile(Math.min(116, X + 5)) - profile(Math.max(4, X - 5))) / 10));
+        // Cỏ thành từng bụi, xen chỗ đất trống
+        const cover = fbm(noise, X / 9 + 4, 1, 3);
+        const grassDepth = cover < 0.4 ? 0.8 : 1.5 + 6 * (cover - 0.4);
+        for (let py = 0; py < H * S; py++) {
+            const Y = (py + 0.5) / S;
+            if (Y < top) continue;
+            const depth = Y - top;
+            const above = wl - Y;
+            const soilN = fbm(noise, X / 8, Y / 4.5, 4);
+            let col = [70 + 36 * soilN, 55 + 30 * soilN, 38 + 22 * soilN];
+            // Lớp đất xếp tầng, sườn dốc hứng sáng lộ cát sáng màu
+            col = col.map(v => v * (1 + Math.sin(Y * 1.3 + fbm(noise, X / 14, Y / 8 + 5, 2) * 6) * 0.08));
+            if (slope < -0.25 && depth > 2.5) {
+                const sand = Math.min(1, (-slope - 0.25) * 1.5) * (0.4 + 0.6 * fbm(noise, X / 5 + 50, Y / 4, 2));
+                col = [col[0] + (132 - col[0]) * sand, col[1] + (112 - col[1]) * sand, col[2] + (82 - col[2]) * sand];
+            }
+            // Sườn thấp dần thì sẫm và ẩm hơn
+            const low = Math.min(1, Math.max(0, 1 - above / (wl - peak)));
+            col = col.map(v => v * (1 - 0.3 * low));
+            // Sỏi lấm tấm trên sườn
+            const pebble = noise(X / 1.4 + 60, Y / 1.4 + 3);
+            if (depth > 3 && above > 2 && pebble > 0.93) col = pebble > 0.965 ? [100, 94, 84] : [42, 37, 31];
+            // Đỉnh phủ cỏ, mép cỏ lởm chởm
+            if (depth < grassDepth) {
+                const gN = noise(X / 2.2 + 9, Y / 1.6);
+                col = [42 + 34 * gN, 74 + 38 * gN, 36 + 20 * gN];
+            }
+            // Bùn ướt sát mặt nước, có ánh lấp lánh
+            if (above < 3 && above > -1) {
+                col = [col[0] * 0.55, col[1] * 0.52, col[2] * 0.55];
+                if (noise(X / 1.2 + 31, Y * 2) > 0.86) col = [150, 160, 175];
+            }
+            // Sườn trái (dốc lên) hứng ánh trăng, sườn phải khuất sáng; càng sâu vào trong càng tối
+            const lit = (0.85 - slope * 0.25) * (0.75 + 0.25 * Math.max(0, 1 - depth / 10));
+            const i = (py * W * S + px) * 4;
+            d[i] = Math.min(255, col[0] * lit);
+            d[i + 1] = Math.min(255, col[1] * lit);
+            d[i + 2] = Math.min(255, col[2] * lit);
+            d[i + 3] = 255;
         }
     }
-    sinkBelow(g, W, H, wl, 0.45);
+    g.putImageData(img, 0, 0);
+    g.scale(S, S);
+    // Bụi cỏ nhô khỏi mép trên: mỗi bụi vài lá cong cao thấp khác nhau, chỗ đất trống không có
+    for (let X = 8; X < 112; X += 2.5 + rnd() * 4) {
+        const top = profile(X);
+        const cover = fbm(noise, X / 9 + 4, 1, 3);
+        if (top === Infinity || cover < 0.4) continue;
+        const tall = (2 + 7 * (cover - 0.4)) * (0.6 + 0.4 * Math.sin(Math.PI * (X - 3) / 114));
+        const blades = 3 + ((rnd() * 5) | 0);
+        for (let j = 0; j < blades; j++) {
+            const bx = X + (rnd() - 0.5) * 2.5;
+            const h = tall * (0.5 + rnd() * 0.6);
+            const lean = (rnd() - 0.35) * 2.6;
+            g.strokeStyle = ['#3f6a3a', '#4d7c42', '#5d8c4c', '#355a32', '#6a8a4a'][(rnd() * 5) | 0];
+            g.lineWidth = 0.5 + rnd() * 0.4;
+            g.beginPath();
+            g.moveTo(bx, profile(bx) + 1);
+            g.quadraticCurveTo(bx + lean * 0.3, profile(bx) - h * 0.6, bx + lean, profile(bx) - h);
+            g.stroke();
+        }
+    }
+    // Vài hòn sỏi tròn nằm sát mép nước
+    for (let i = 0; i < 6; i++) {
+        const x = 12 + rnd() * 96;
+        if (profile(x) > wl - 1) continue;
+        const r = 0.9 + rnd() * 1.6;
+        const pebble = g.createRadialGradient(x - r * 0.3, wl - r * 0.9, 0, x, wl - r * 0.4, r * 1.2);
+        pebble.addColorStop(0, '#8e877a');
+        pebble.addColorStop(1, '#3a352e');
+        g.fillStyle = pebble;
+        g.beginPath();
+        g.ellipse(x, wl - r * 0.45, r * 1.3, r * 0.85, 0, 0, Math.PI * 2);
+        g.fill();
+    }
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    sinkBelow(g, W * S, H * S, wl * S, 0.45);
+    // Lau sậy một bên gò (vẽ mỗi khung hình cho đung đưa)
+    const reedX = variant ? 86 : 22;
+    const reeds = [];
+    for (let i = 0; i < 9; i++) {
+        const x = reedX + i * 1.8 + rnd() * 1.6;
+        const base = profile(x) + 1.5;
+        if (base === Infinity) continue;
+        reeds.push({
+            x, base, h: 10 + rnd() * 11, lean: (rnd() - 0.4) * 2, phase: rnd() * Math.PI * 2,
+            color: ['#4a6a36', '#57773e', '#3e5c30'][i % 3], cattail: i % 3 === 0
+        });
+    }
+    c.reeds = reeds;
+    c.logicalW = W;
     c.wl = wl * S;
     c.top = (peak + 1.5) * S;
     c.perchX = (variant ? 50 : 66) / W - 0.5;
-    sprites[key] = c;
     return c;
 }
 
@@ -1543,6 +1746,32 @@ function drawWakeTrail(ctx, x, y, half, s, k, time, seed, dir, strength) {
         ctx.beginPath();
         ctx.ellipse(cx, cy, r, r * 0.3, 0, mid - span, mid + span);
         ctx.stroke();
+    }
+}
+
+// Bóng phần nổi của vật (gỗ, đá, gò đất) in xuống nước: lật ngược, ngắn lại, từng lát gợn lệch theo sóng
+function drawReflection(ctx, sprite, x, y, w, wlOff, alpha, time, seed, s) {
+    const rows = 4;
+    const dh = wlOff * 0.72 / rows;
+    const sh = sprite.wl / rows;
+    ctx.globalAlpha = alpha;
+    for (let i = 0; i < rows; i++) {
+        const dx = Math.sin(time * 0.003 + i * 1.9 + seed * 7) * 1.2 * s * (i + 1) / rows;
+        ctx.save();
+        ctx.translate(x + dx, y + (i + 1) * dh);
+        ctx.scale(1, -1);
+        ctx.drawImage(sprite, 0, sprite.wl - (i + 1) * sh, sprite.width, sh, 0, 0, w, dh + 0.3);
+        ctx.restore();
+    }
+}
+
+// Phần chìm dưới nước: từng lát lệch nhẹ theo sóng (nước khúc xạ) nên không đứng im như ảnh dán
+function drawSubmerged(ctx, sprite, x, y, w, below, time, seed, s) {
+    const slices = 5;
+    const sub = sprite.height - sprite.wl;
+    for (let i = 0; i < slices; i++) {
+        const dx = Math.sin(time * 0.004 + i * 1.3 + seed * 9) * 0.9 * s;
+        ctx.drawImage(sprite, 0, sprite.wl + sub * i / slices, sprite.width, sub / slices, x + dx, y + below * i / slices, w, below / slices + 0.3);
     }
 }
 
@@ -1640,6 +1869,7 @@ export const Water = {
         // Chất lượng 480p trở xuống: vẽ lại cách một khung hình
         if (isLowQuality && this.drawn && (++this.frame & 1)) return;
         this.drawn = true;
+        warmWaterSprites();
 
         const k = W / cssW;
         const top = Math.round(level * H);
@@ -1904,15 +2134,46 @@ export const Water = {
         const w = rock.size * s;
         const h = w * sprite.height / sprite.width;
         const wlOff = h * sprite.wl / sprite.height;
-        ctx.save();
-        ctx.globalAlpha = 0.3;
-        ctx.translate(rock.x - w / 2, y);
-        ctx.scale(1, -0.75);
-        ctx.drawImage(sprite, 0, 0, sprite.width, sprite.wl, 0, -wlOff, w, wlOff);
-        ctx.restore();
+        const x0 = rock.x - w / 2;
+        drawReflection(ctx, sprite, x0, y, w, wlOff, 0.3, time, rock.seed, s);
         drawFlowMarks(ctx, rock.x, y, w * 0.46, s, k, time, rock.seed, river, 1);
         ctx.globalAlpha = 1;
-        ctx.drawImage(sprite, rock.x - w / 2, y - wlOff, w, h);
+        ctx.drawImage(sprite, 0, 0, sprite.width, sprite.wl, x0, y - wlOff, w, wlOff);
+        drawSubmerged(ctx, sprite, x0, y, w, h - wlOff, time, rock.seed, s);
+        if (!sprite.reeds) return;
+        // Gò đất: lau sậy đung đưa theo gió (mỗi cây một nhịp), bông lau nâu; nước vỗ nhẹ dọc chân gò
+        const u = w / sprite.logicalW;
+        const y0 = y - wlOff;
+        ctx.lineCap = 'round';
+        sprite.reeds.forEach(reed => {
+            const bx = x0 + reed.x * u;
+            const by = y0 + reed.base * u;
+            const sway = (Math.sin(time * 0.0014 + reed.phase) * 1.4 + Math.sin(time * 0.0033 + reed.phase * 2) * 0.5 + reed.lean) * u;
+            const len = reed.h * u;
+            ctx.globalAlpha = 0.95;
+            ctx.strokeStyle = reed.color;
+            ctx.lineWidth = Math.max(1 / k, 0.7 * u);
+            ctx.beginPath();
+            ctx.moveTo(bx, by);
+            ctx.quadraticCurveTo(bx + sway * 0.25, by - len * 0.6, bx + sway, by - len);
+            ctx.stroke();
+            if (reed.cattail) {
+                ctx.save();
+                ctx.translate(bx + sway * 0.8, by - len * 0.85);
+                ctx.rotate(Math.atan2(sway, len) * 0.9);
+                ctx.fillStyle = '#6b4a2c';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 0.9 * u, 2.4 * u, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        });
+        ctx.fillStyle = 'rgb(205, 222, 255)';
+        for (let i = 0; i < 9; i++) {
+            const fx = x0 + w * (0.12 + i * 0.095) + Math.sin(time * 0.0021 + i * 1.7 + rock.seed * 5) * 1.5 * u;
+            ctx.globalAlpha = 0.14 + 0.18 * (0.5 + 0.5 * Math.sin(time * 0.0035 + i * 2.3 + rock.seed * 3));
+            ctx.fillRect(fx, y - 0.4 * u, (2.5 + (i % 3) * 1.5) * u, Math.max(1 / k, 0.5 * u));
+        }
     },
 
     // Đá, gò đất giữa dòng: rải lại khi bật/tắt, đổi kiểu nước hoặc cỡ khung; cách xa nhau cho vật trôi có lối đi
