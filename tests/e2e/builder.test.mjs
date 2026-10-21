@@ -20,8 +20,8 @@ export async function run(browser, base, { check }) {
         check('builder mới mở: có dải "Tạo nhanh theo dịp"', await page.$eval('#template-strip', e => !e.classList.contains('hide')));
 
         // Nút "?" giải thích: bấm thì hiện, không bật/tắt công tắc chứa nó, Esc để đóng
-        // "Tự động lặp lại" nằm trong nhóm "Khung cảnh & hiệu ứng" (đang gấp): mở nhóm trước
-        await page.evaluate(() => { document.querySelector('.settings-group[data-group="scene"]').open = true; });
+        // "Tự động lặp lại" nằm trong nhóm "Màn mở quà & màn kết" (đang gấp): mở nhóm trước
+        await page.evaluate(() => { document.querySelector('.settings-group[data-group="gift"]').open = true; });
         const loopBefore = await page.$eval('#loop', i => i.checked);
         await page.click('.help-tip[data-help="loop"]');
         await sleep(200);

@@ -1367,7 +1367,7 @@ const helpTooltip = {
 // ---------------------------------------------------------------------------
 
 // Mục nào đang mở/thu gọn (giữ nguyên khi chuyển sang phát bắn khác)
-const openSections = { type: false, basic: true, position: true, color: true, sound: false, advanced: false };
+const openSections = { type: false, content: true, basic: true, position: true, color: true, sound: false, advanced: false };
 
 function rememberSection(el) {
     openSections[el.dataset.section] = el.open;
@@ -1582,7 +1582,11 @@ function renderInspector() {
             </div>
             ${isPause ? '' : numberField(event, 'delay', isSyncMode() ? 'Nổ sau (ms)' : 'Trễ (ms)', { step: 100, min: 0, max: 60000, help: 'delay' })}
         </div>
-        ${specific}`);
+        ${isPause ? specific : ''}`);
+
+    // Chữ, ảnh, lời nhắn: mục "Nội dung" riêng ngay dưới loại pháo (thời gian nghỉ của Tạm dừng vẫn ở "Thời điểm")
+    const contentIcon = { 'Văn bản': 'font', 'Hình ảnh': 'image', 'Lời nhắn': 'comment-dots' }[event.shell];
+    const contentSection = contentIcon ? section('content', contentIcon, 'Nội dung', '', specific) : '';
 
     if (isPause) {
         panel.innerHTML = header + basicSection;
@@ -1641,7 +1645,7 @@ function renderInspector() {
 
     // Lời nhắn chỉ cần thời điểm, nội dung và màu chữ
     if (isCaption) {
-        panel.innerHTML = header + typeSection + basicSection + colorSection;
+        panel.innerHTML = header + typeSection + contentSection + basicSection + colorSection;
         panel.scrollTop = keepScroll;
         return;
     }
@@ -1720,8 +1724,8 @@ function renderInspector() {
         </div>
         <small class="field-hint">${launchStyle.hint}</small>`, 'launchStyle');
 
-    // Vị trí (chỉnh nhiều nhất) ngay dưới loại pháo để không phải cuộn mới tới; kiểu bắn ít đổi nên xuống dưới
-    panel.innerHTML = header + typeSection + positionSection + basicSection + launchSection + colorSection + soundSection + advancedSection;
+    // Nội dung và vị trí (chỉnh nhiều nhất) ngay dưới loại pháo để không phải cuộn mới tới; kiểu bắn ít đổi nên xuống dưới
+    panel.innerHTML = header + typeSection + contentSection + positionSection + basicSection + launchSection + colorSection + soundSection + advancedSection;
     panel.scrollTop = keepScroll;
     initXYPad(event);
     paintImageThumb(event);
@@ -3029,8 +3033,7 @@ function settingsSummaries() {
         state.decor.map(kind => DECOR_NAMES[kind]).join(', '),
         state.smoke === 'light' ? 'Khói nhẹ' : state.smoke === 'heavy' ? 'Khói dày' : '',
         state.water ? `${state.waterStyle === 'river' ? 'Sông' : 'Hồ'} ${state.water === 'third' ? '1/3' : 'nửa'} màn hình` : '',
-        state.water && { lanterns: 'hoa đăng', petals: 'cánh hoa' }[state.floating],
-        checked('loop') ? 'Lặp lại' : 'Chạy một lượt'
+        state.water && { lanterns: 'hoa đăng', petals: 'cánh hoa' }[state.floating]
     ].filter(Boolean);
     const filename = value('filename');
     return {
@@ -3043,11 +3046,10 @@ function settingsSummaries() {
             state.reduceFlashing && 'Giảm chớp sáng'
         ].filter(Boolean).join(' · '),
         basics: value('title') || 'Chưa có tiêu đề',
-        gift: [frame.name, recipient && `Gửi ${recipient}`, state.openAt && 'Hẹn giờ'].filter(Boolean).join(' · '),
+        gift: [frame.name, recipient && `Gửi ${recipient}`, checked('loop') ? 'Lặp lại' : 'Chạy một lượt', state.openAt && 'Hẹn giờ'].filter(Boolean).join(' · '),
         sound: music ? musicName + (music.sync ? ' · khớp nhịp' : '') : 'Chưa có nhạc',
-        scene: scene.join(' · '),
-        share: state.seo.mode === 'custom' ? 'Ảnh của bạn' : 'Thiệp tự động',
-        file: filename ? filename + '.json' : 'Đặt khi lưu'
+        scene: scene.join(' · ') || 'Không có',
+        share: [filename && filename + '.json', state.seo.mode === 'custom' ? 'Ảnh của bạn' : 'Thiệp tự động'].filter(Boolean).join(' · ')
     };
 }
 

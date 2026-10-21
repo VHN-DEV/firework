@@ -211,11 +211,18 @@
                                 <textarea id="intro-message" rows="2" maxlength="160"
                                     placeholder="Một màn pháo hoa được làm riêng để dành tặng bạn."></textarea>
                             </div>
+                            <label class="switch-row" for="loop">
+                                <span>
+                                    <strong>Tự động lặp lại<button type="button" class="help-tip" data-help="loop" aria-label="Giải thích">?</button></strong>
+                                    <small>Chạy hết thì quay lại đợt đầu</small>
+                                </span>
+                                <input type="checkbox" id="loop" class="switch" checked>
+                            </label>
                             <div class="field">
                                 <label for="outro-message">Lời chúc ở màn kết<button type="button" class="help-tip" data-help="outroMessage" aria-label="Giải thích">?</button></label>
                                 <textarea id="outro-message" rows="2" maxlength="200"
                                     placeholder="Để trống sẽ dùng Dòng phụ"></textarea>
-                                <small class="field-hint">Màn kết hiện khi tắt "Tự động lặp lại", kèm nút Xem lại.</small>
+                                <small class="field-hint">Màn kết hiện khi tắt "Tự động lặp lại" ở trên, kèm nút Xem lại.</small>
                             </div>
                             <label class="switch-row" for="schedule-toggle">
                                 <span>
@@ -431,14 +438,6 @@
                                     </label>
                                 </div>
                             </div>
-
-                            <label class="switch-row" for="loop">
-                                <span>
-                                    <strong>Tự động lặp lại<button type="button" class="help-tip" data-help="loop" aria-label="Giải thích">?</button></strong>
-                                    <small>Chạy hết thì quay lại đợt đầu</small>
-                                </span>
-                                <input type="checkbox" id="loop" class="switch" checked>
-                            </label>
                         </div>
                     </details>
                     <details class="settings-group" data-group="viewer">
@@ -501,6 +500,14 @@
                     <details class="settings-group" data-group="share">
                         <summary><i class="fas fa-share-nodes"></i><span class="summary-title">Chia sẻ & SEO</span><span class="summary-hint" data-summary="share"></span></summary>
                         <div class="settings-group-body">
+                            <div class="field">
+                                <label for="filename">Tên file kịch bản<button type="button" class="help-tip" data-help="filename" aria-label="Giải thích">?</button></label>
+                                <div class="input-with-ext">
+                                    <input type="text" id="filename" placeholder="vd: sinh_nhat_me">
+                                    <span>.json</span>
+                                </div>
+                                <small class="field-hint">Thành link chia sẻ. Chỉ dùng chữ không dấu, số, gạch nối, gạch dưới.</small>
+                            </div>
                             <!-- Chia sẻ & SEO: những gì hiện ra khi gửi link qua Facebook, Zalo, Messenger... -->
                             <div class="seo-section">
                                 <div class="seo-card" aria-label="Xem trước khi gửi link">
@@ -553,19 +560,6 @@
                                     <input type="file" id="seo-image-file" class="hide" accept="image/*">
                                     <small id="seo-image-hint" class="field-hint">Ảnh 1200×630 được tạo lại mỗi lần bấm Lưu.</small>
                                 </div>
-                            </div>
-                        </div>
-                    </details>
-                    <details class="settings-group" data-group="file">
-                        <summary><i class="fas fa-file-code"></i><span class="summary-title">Tên file kịch bản</span><span class="summary-hint" data-summary="file"></span></summary>
-                        <div class="settings-group-body">
-                            <div class="field">
-                                <label for="filename">Tên file kịch bản<button type="button" class="help-tip" data-help="filename" aria-label="Giải thích">?</button></label>
-                                <div class="input-with-ext">
-                                    <input type="text" id="filename" placeholder="vd: sinh_nhat_me">
-                                    <span>.json</span>
-                                </div>
-                                <small class="field-hint">Chỉ dùng chữ không dấu, số, gạch nối, gạch dưới.</small>
                             </div>
                         </div>
                     </details>
