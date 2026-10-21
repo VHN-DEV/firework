@@ -506,23 +506,62 @@ input[type="range"] {
     }
 }
 
-// Bảng biểu tượng chèn vào pháo chữ
-.emoji-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
-    gap: 0.25rem;
+// Bảng biểu tượng chèn vào pháo chữ: cột nhóm bên trái, lưới biểu tượng của nhóm bên phải
+.emoji-picker {
+    display: flex;
+    height: 290px;
     margin-top: 0.4rem;
-    padding: 0.4rem;
     border: 1px solid $b-line;
     border-radius: $b-radius-sm;
     background: $b-panel-2;
+    overflow: hidden;
 
     button {
-        height: 36px;
         border: none;
-        border-radius: 8px;
         background: none;
         font-size: 1.25rem;
+        line-height: 1;
+    }
+}
+
+.emoji-tabs {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    border-right: 1px solid $b-line;
+    background: $b-raised;
+    overflow-y: auto;
+
+    button {
+        flex: 1 0 auto;
+        width: 40px;
+        min-height: 26px;
+        font-size: 1.05rem;
+        opacity: 0.6;
+
+        &:hover {
+            opacity: 1;
+        }
+
+        &.active {
+            opacity: 1;
+            background: rgba($b-accent, 0.25);
+            box-shadow: inset 3px 0 0 $b-accent;
+        }
+    }
+}
+
+.emoji-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+    grid-auto-rows: 36px;
+    gap: 0.15rem;
+    padding: 0.35rem;
+    overflow-y: auto;
+
+    button {
+        border-radius: 8px;
 
         &:hover {
             background: rgba($b-accent, 0.18);

@@ -11,6 +11,7 @@ import { OCCASIONS, buildTemplate } from './templates.js';
 import { analyzeMusic, buildBeatShow, KEEP_SHELLS } from './beat-sync.js';
 import { eventTimes, layoutBursts, isPauseEvent, BURST_MS } from './timeline.js';
 import { createTimelineTrack } from './timeline-track.js';
+import { EMOJI_GROUPS } from './text-emojis.js';
 import {
     getOwnerKeys, saveOwnerKey, removeOwnerKey, fetchOpenStatus, trackingUrl, formatWhen, lastEvent, describeOpenStatus
 } from './gift-tracking.js';
@@ -697,9 +698,30 @@ function duplicateEvent(id) {
 // Giá trị dùng khi người dùng xóa trống các ô bắt buộc (thiếu "Đợt" thì phát bắn không bao giờ được bắn)
 const REQUIRED_NUMBER_DEFAULTS = { burst: 1, x: 50, y: 50, size: 1, delay: 0 };
 
-// Biểu tượng chèn nhanh vào pháo chữ: chọn loại có mảng màu rõ, nổ trên trời vẫn nhận ra hình
-const TEXT_EMOJIS = ['❤️', '💖', '💕', '💝', '🌹', '🌸', '🌻', '🌷', '⭐', '🌟', '✨', '🌙', '☀️', '🎆', '🎇', '🎉',
-    '🎂', '🎁', '🎈', '🎓', '🏆', '🥇', '💍', '👑', '🍀', '🧧', '🏮', '🐉', '🐱', '🐶', '😊', '😍', '🥰', '😘', '👍', '🇻🇳'];
+// Nhóm biểu tượng đang xem trong bảng chọn, giữ lại khi chuyển sang phát bắn khác
+let emojiGroup = 0;
+
+// Mở/đóng bảng chọn biểu tượng của pháo chữ. Lưới chỉ dựng khi mở vì có nhóm vài trăm biểu tượng.
+function toggleEmojiPicker() {
+    const picker = document.getElementById('emoji-picker');
+    if (!picker) return;
+    if (picker.classList.toggle('hide')) return;
+    showEmojiGroup(emojiGroup);
+}
+
+function showEmojiGroup(index) {
+    emojiGroup = index;
+    document.querySelectorAll('#emoji-picker .emoji-tabs button').forEach((tab, i) => tab.classList.toggle('active', i === index));
+    const grid = document.querySelector('#emoji-picker .emoji-grid');
+    grid.innerHTML = EMOJI_GROUPS[index].emojis.map(e => `<button type="button">${e}</button>`).join('');
+    grid.scrollTop = 0;
+}
+
+// Bấm vào lưới: lấy biểu tượng của nút được bấm
+function pickTextEmoji(id, e) {
+    const button = e.target.closest('button');
+    if (button) insertTextEmoji(id, button.textContent);
+}
 
 // Chèn biểu tượng vào chỗ con trỏ trong ô chữ, không vượt quá giới hạn ký tự của ô
 function insertTextEmoji(id, emoji) {
@@ -713,7 +735,8 @@ function insertTextEmoji(id, emoji) {
         return;
     }
     input.value = value;
-    input.focus();
+    // Không cuộn khung chỉnh sửa, để bảng biểu tượng đứng yên khi chọn tiếp
+    input.focus({ preventScroll: true });
     input.setSelectionRange(start + emoji.length, start + emoji.length);
     updateEvent(id, 'text', value);
 }
@@ -1360,10 +1383,13 @@ function renderInspector() {
                 <div class="input-with-btn">
                     <input type="text" id="f-text" value="${escapeHtml(event.text)}" placeholder="VD: HAPPY BIRTHDAY" maxlength="60"
                         oninput="updateEvent(${event.id}, 'text', this.value)">
-                    <button type="button" title="Chèn biểu tượng" onclick="document.getElementById('emoji-grid').classList.toggle('hide')">😊</button>
+                    <button type="button" title="Chèn biểu tượng" onclick="toggleEmojiPicker()">😊</button>
                 </div>
-                <div id="emoji-grid" class="emoji-grid hide">
-                    ${TEXT_EMOJIS.map(e => `<button type="button" onclick="insertTextEmoji(${event.id}, '${e}')">${e}</button>`).join('')}
+                <div id="emoji-picker" class="emoji-picker hide">
+                    <div class="emoji-tabs">
+                        ${EMOJI_GROUPS.map((g, i) => `<button type="button" title="${g.name}" onclick="showEmojiGroup(${i})">${g.icon}</button>`).join('')}
+                    </div>
+                    <div class="emoji-grid" onclick="pickTextEmoji(${event.id}, event)"></div>
                 </div>
                 <small class="field-hint">Có thể dùng [YEAR], [LUNAR_YEAR], [SINCE:2000]. Biểu tượng nổ ra giữ màu gốc của nó.</small>
             </div>`;
@@ -4426,7 +4452,7 @@ function playMiniPreviewOnce() {
 Object.assign(window, {
     toggleMiniPreview, togglePreviewDevice, toggleFullscreenMiniPreview, playMiniPreviewOnce, restartMiniPreview,
     createNewScript, selectEvent, closeInspector, addEventFromUI, addBurst, removeEvent, duplicateEvent, updateEvent,
-    handleShellChange, insertTextEmoji, changeBurst, toggleEventColor, addColorToEvent, addCustomColor, removeColorFromEvent,
+    handleShellChange, toggleEmojiPicker, showEmojiGroup, pickTextEmoji, changeBurst, toggleEventColor, addColorToEvent, addCustomColor, removeColorFromEvent,
     rememberSection, editScript, duplicateScript, deleteScript, previewScript, copyShareLink, copyScriptLink,
     openScriptsModal, exportConfig, previewConfig, saveConfig, toggleSidebar, toggleMoreMenu, showModal,
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
