@@ -396,7 +396,7 @@ let skyCache = { config: undefined, background: undefined, key: '', scene: null 
 function sceneSelector() {
     const background = !!store.state.config.showBackground;
     if (skyCache.config === burstConfig && skyCache.background === background) return skyCache.scene;
-    const key = burstConfig ? JSON.stringify([burstConfig.decor, burstConfig.stars, burstConfig.moon, background]) : '';
+    const key = burstConfig ? JSON.stringify([burstConfig.decor, burstConfig.stars, burstConfig.moon, burstConfig.clouds, background]) : '';
     if (burstConfig && key === skyCache.key) {
         skyCache.config = burstConfig;
         return skyCache.scene;
@@ -412,7 +412,8 @@ function sceneSelector() {
         const moon = m && typeof m === 'object'
             ? { fraction: phase ? phase.fraction : moonFraction(new Date()), x: clampPercent(m.x, 78), y: clampPercent(m.y, 80) }
             : null;
-        if (decor.length || stars || moon) scene = { decor, stars, moon, background };
+        const clouds = ['few', 'many'].includes(burstConfig.clouds) ? burstConfig.clouds : '';
+        if (decor.length || stars || moon || clouds) scene = { decor, stars, moon, clouds, background };
     }
     skyCache = { config: burstConfig, background, key, scene };
     return scene;
@@ -2598,7 +2599,7 @@ function render(speed) {
 
     // Khói pháo: vẽ cả khi vừa tắt để xóa lớp khói còn lại
     Smoke.render(smokeCtx, smokeCanvas.width / (stageW || 1), currentSkyColor, reduceFlashingSelector());
-    Decor.render(decoCtx);
+    Decor.render(decoCtx, currentSkyColor);
 
     // Có mặt nước: pháo, tia lửa chỉ vẽ phía trên mép nước (rơi tới mặt nước thì tắt)
     const waterline = height * horizonSelector();

@@ -311,7 +311,7 @@ export async function run(browser, base, { check }) {
             for (let y = 0; y < c.height; y++) {
                 for (let x = 0; x < c.width; x++) {
                     const i = (y * c.width + x) * 4;
-                    if (d[i] > 225 && d[i + 1] > 220 && d[i + 3] > 240) { moonX += x; moonY += y; moon++; } else if (d[i + 3] > 40) stars++;
+                    if (d[i] > 225 && d[i + 1] > 220 && d[i + 3] > 240) { moonX += x; moonY += y; moon++; } else if (d[i + 3] > 20 && d[i] > 150) stars++;
                 }
             }
             return { x: moonX / moon / c.width, y: moonY / moon / c.height, moon, stars };
@@ -319,6 +319,27 @@ export async function run(browser, base, { check }) {
         check('trăng tròn hiện đúng chỗ đã chọn (25% ngang, 70% độ cao)',
             sky.moon > 300 && Math.abs(sky.x - 0.25) < 0.05 && Math.abs(sky.y - 0.3) < 0.06, JSON.stringify(sky));
         check('sao lấp lánh trên trời', sky.stars > 100, sky.stars);
+
+        // Trăng tròn làm bầu trời sáng lên (trăng non thì không); mây trôi trên trời, mây che trăng thì tối lại
+        const skyGlow = cfg => page.evaluate(async cfg => {
+            window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin);
+            await new Promise(r => setTimeout(r, 1800));
+            const c = document.getElementById('deco-canvas');
+            const d = c.getContext('2d').getImageData(0, 0, c.width, Math.round(c.height * 0.5)).data;
+            let blue = 0;
+            let cloud = 0;
+            for (let i = 0; i < d.length; i += 16) {
+                blue += d[i + 2] * d[i + 3] / 255;
+                if (d[i + 3] > 60 && d[i + 2] > 40 && d[i + 2] < 140 && Math.abs(d[i] - d[i + 1]) < 20) cloud++;
+            }
+            return { blue: blue / (d.length / 16), cloud: cloud / (d.length / 16) };
+        }, cfg);
+        const fullMoon = await skyGlow({ loop: true, events: [], moon: { phase: 4, x: 50, y: 70 } });
+        const newMoon = await skyGlow({ loop: true, events: [], moon: { phase: 0, x: 50, y: 70 } });
+        const cloudy = await skyGlow({ loop: true, events: [], clouds: 'many' });
+        check('trăng tròn làm bầu trời sáng lên, trăng non thì không', fullMoon.blue > newMoon.blue * 3 && fullMoon.blue > 8,
+            JSON.stringify({ full: fullMoon.blue.toFixed(1), new: newMoon.blue.toFixed(1) }));
+        check('mây trôi trên trời', cloudy.cloud > 0.02, cloudy.cloud.toFixed(3));
         await page.close();
 
         // Người nhận mở link tặng trên máy đã đặt chất lượng thấp: bản lưu cũ "Thấp" (1) thành 480p (xem nhanh không đọc cài đặt đã lưu)

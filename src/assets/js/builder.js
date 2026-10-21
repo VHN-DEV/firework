@@ -69,6 +69,8 @@ const state = {
     // Bầu trời đêm: trang trí (danh sách), sao ('' / 'few' / 'many'), trăng ({ phase: 'auto' | 0-7, x, y } hoặc null)
     decor: [],
     stars: '',
+    // Mây trôi trên trời ('' / 'few' / 'many')
+    clouds: '',
     moon: null,
     background: null,
     // Nhạc nền { url, name, volume (0-1), start (giây) } và âm lượng tiếng pháo (0-1)
@@ -718,6 +720,7 @@ function createNewScript() {
         renderViewer();
         state.decor = [];
         state.stars = '';
+        state.clouds = '';
         state.moon = null;
         renderSky();
 
@@ -1187,9 +1190,13 @@ const HELP_TIPS = {
         + 'người nhận, không tải lên máy chủ. Người khác mở link được chia sẻ cũng được tính khi bạn bật báo mở quà. Tắt nếu quà chỉ dành riêng cho người nhận.',
     viewerControls: 'Mặc định các nút tạm dừng, âm thanh, cài đặt ẩn đi cho trọn khung hình (đưa chuột hoặc chạm góc trên để mở). '
         + 'Bật mục này để các nút luôn hiện.',
-    stars: 'Sao lấp lánh nhẹ trên bầu trời, mờ dần sát chân trời và trôi chậm cùng trăng. Có ảnh nền thành phố thì sao chỉ ở phần trời phía trên.',
+    stars: 'Sao lấp lánh nhẹ trên bầu trời, mờ dần sát chân trời và trôi chậm cùng trăng. Có ảnh nền thành phố thì sao chỉ ở phần trời phía trên. '
+        + 'Trăng càng sáng thì sao càng mờ, như ngoài đời.',
+    clouds: 'Mây đêm trôi chậm theo gió: mây gần chân trời nhỏ, dẹt, trôi chậm; mây trên cao to và trôi nhanh hơn. Mây che sao, trăng phía sau; '
+        + 'có trăng thì thân mây sáng lên, viền trên ánh bạc (gần trăng càng sáng); mây che trăng thì cả bầu trời tối lại. Pháo nổ rọi sáng mây.',
     moon: '<strong>Theo ngày xem</strong>: trăng đúng pha của hôm người nhận mở (tính theo chu kỳ 29,53 ngày; rằm thì trăng tròn). '
         + '<strong>Tự chọn</strong>: chọn 1 trong 8 pha. Trăng trôi chậm theo một cung, phản chiếu xuống mặt nước nếu có. '
+        + 'Ánh trăng làm cả bầu trời sáng xanh lên: trăng càng tròn càng sáng, trăng non gần như không; mây che trăng thì tối lại. '
         + 'Độ cao tính từ chân trời (0) tới đỉnh khung (100).',
     smoke: 'Như pháo hoa thật: mỗi quả nổ để lại một đám khói trắng, đường bay lên có vệt khói mảnh. Khói nở dần, trôi theo gió rồi tan, '
         + 'và được những quả nổ sau rọi màu. <strong>Nhẹ</strong>: thoáng qua. <strong>Dày</strong>: đám khói đặc, lâu tan. '
@@ -2583,6 +2590,7 @@ function getFinalConfig() {
         receiverShare: state.receiverShare ? undefined : false,
         decor: state.decor.length ? [...state.decor] : undefined,
         stars: state.stars || undefined,
+        clouds: state.clouds || undefined,
         moon: state.moon ? { ...state.moon } : undefined,
         background: state.background,
         music: state.music ? { ...state.music } : undefined,
@@ -3100,6 +3108,7 @@ function settingsSummaries() {
     const scene = [
         state.showBackground && 'Ảnh nền',
         { few: 'Ít sao', many: 'Nhiều sao' }[state.stars],
+        { few: 'Ít mây', many: 'Nhiều mây' }[state.clouds],
         !moon ? '' : moon.phase === 'auto' ? 'Trăng theo ngày' : `${MOON_PHASES[moon.phase].emoji} ${MOON_PHASES[moon.phase].name}`,
         state.decor.map(kind => DECOR_NAMES[kind]).join(', '),
         state.smoke === 'light' ? 'Khói nhẹ' : state.smoke === 'heavy' ? 'Khói dày' : '',
@@ -3195,6 +3204,12 @@ function setStars(level) {
     refreshMiniPreview();
 }
 
+function setClouds(level) {
+    state.clouds = level;
+    renderSky();
+    refreshMiniPreview();
+}
+
 // mode: '' không có trăng, 'auto' theo ngày người nhận xem, 'pick' tự chọn pha
 function setMoonMode(mode) {
     if (!mode) state.moon = null;
@@ -3228,6 +3243,7 @@ function renderSky() {
     const moon = state.moon;
     const mode = !moon ? '' : moon.phase === 'auto' ? 'auto' : 'pick';
     mark('.sky-stars [data-stars]', 'stars', state.stars || '');
+    mark('.sky-clouds [data-clouds]', 'clouds', state.clouds || '');
     mark('.sky-moon [data-moon]', 'moon', mode);
     mark('.scene-decor [data-decor]', 'decor', kind => state.decor.includes(kind));
     const phases = document.getElementById('moon-phases');
@@ -4779,6 +4795,7 @@ function loadConfigIntoState(config, filename, { migrate = true } = {}) {
     renderScene();
     state.decor = normalizeDecor(config.decor);
     state.stars = ['few', 'many'].includes(config.stars) ? config.stars : '';
+    state.clouds = ['few', 'many'].includes(config.clouds) ? config.clouds : '';
     state.moon = normalizeMoon(config.moon);
     renderSky();
     state.background = config.background || null;
@@ -5109,7 +5126,7 @@ Object.assign(window, {
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
     togglePreviewSound, previewAsRecipient, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
-    hideModal, setStartFrame, undo, redo, setOpenMode, setSmoke, setViewerOption, setWater, setWaterStyle, setFloating, setStars, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
+    hideModal, setStartFrame, undo, redo, setOpenMode, setSmoke, setViewerOption, setWater, setWaterStyle, setFloating, setStars, setClouds, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
     toggleLibraryPreview, chooseLibraryItem, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
     openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, createVideo, downloadVideo, shareVideo,
     restartVideo, setTimelineView, zoomTrack, copyTrackingLink, enableOpenNotifications, checkGiftOpens,

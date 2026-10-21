@@ -363,6 +363,15 @@
                             </div>
 
                             <div class="field">
+                                <label>Mây<button type="button" class="help-tip" data-help="clouds" aria-label="Giải thích">?</button></label>
+                                <div class="segmented sky-clouds" role="group" aria-label="Mây">
+                                    <button type="button" data-clouds="" onclick="setClouds('')">Không</button>
+                                    <button type="button" data-clouds="few" onclick="setClouds('few')">Ít</button>
+                                    <button type="button" data-clouds="many" onclick="setClouds('many')">Nhiều</button>
+                                </div>
+                            </div>
+
+                            <div class="field">
                                 <label>Trăng<button type="button" class="help-tip" data-help="moon" aria-label="Giải thích">?</button></label>
                                 <div class="segmented sky-moon" role="group" aria-label="Trăng">
                                     <button type="button" data-moon="" onclick="setMoonMode('')">Không</button>
@@ -1060,8 +1069,9 @@
                     <h4><i class="fas fa-mountain-sun"></i> Khung cảnh & hiệu ứng</h4>
                     <ul>
                         <li><strong>Ảnh nền:</strong> cảnh thành phố về đêm; bấm vào ảnh để thay bằng ảnh của bạn.</li>
-                        <li><strong>Sao, trăng:</strong> sao lấp lánh ít hoặc nhiều; trăng đúng pha của hôm người nhận xem,
-                            hoặc tự chọn 1 trong 8 pha và vị trí. Trăng trôi chậm theo một cung.</li>
+                        <li><strong>Sao, trăng, mây:</strong> sao lấp lánh ít hoặc nhiều; trăng đúng pha của hôm người nhận
+                            xem, hoặc tự chọn 1 trong 8 pha và vị trí; trăng càng tròn bầu trời càng sáng. Mây trôi theo gió,
+                            che trăng thì trời tối lại, viền mây ánh bạc khi trăng tỏ.</li>
                         <li><strong>Trang trí:</strong> 🏮 đèn trời, 🎈 khinh khí cầu, ✈️ máy bay; chọn được nhiều thứ.</li>
                         <li><strong>Khói pháo:</strong> như pháo thật, mỗi quả nổ để lại khói trắng trôi theo gió, được
                             những quả sau rọi màu. "Nhẹ" thoáng qua, "Dày" đặc và lâu tan. Người xem đặt chất lượng 480p trở xuống
