@@ -2706,7 +2706,9 @@ function render(speed) {
         style: burstConfig && burstConfig.waterStyle === 'river' ? 'river' : 'lake',
         floating: burstConfig && ['lanterns', 'petals'].includes(burstConfig.floating) ? burstConfig.floating : '',
         calm: reduceFlashingSelector(),
-        life: !burstConfig || burstConfig.waterLife !== false
+        life: !burstConfig || burstConfig.waterLife !== false,
+        plants: !burstConfig || burstConfig.waterPlants !== false,
+        rocks: !burstConfig || burstConfig.waterRocks !== false
     });
 }
 

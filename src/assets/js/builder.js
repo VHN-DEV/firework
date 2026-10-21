@@ -54,6 +54,10 @@ const state = {
     floating: '',
     // Chim, cá, khúc gỗ trên mặt nước
     waterLife: true,
+    // Lá bèo trên mặt nước
+    waterPlants: true,
+    // Đá, gò đất giữa dòng
+    waterRocks: true,
     // Cách xem đặt sẵn: quality ('1'-'3'), skyLighting ('0', '1'), scaleFactor, hideControls (false), fullscreen (true)
     viewer: {},
     // Người xem chạm vào trời thì bắn pháo (tắt: chỉ xem)
@@ -272,6 +276,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('receiver-share')?.addEventListener('change', (e) => {
         state.receiverShare = e.target.checked;
         renderViewer();
+    });
+    document.getElementById('water-plants')?.addEventListener('change', (e) => {
+        state.waterPlants = e.target.checked;
+        refreshMiniPreview();
+    });
+    document.getElementById('water-rocks')?.addEventListener('change', (e) => {
+        state.waterRocks = e.target.checked;
+        refreshMiniPreview();
     });
     document.getElementById('water-life')?.addEventListener('change', (e) => {
         state.waterLife = e.target.checked;
@@ -705,6 +717,8 @@ function createNewScript() {
         state.waterStyle = 'lake';
         state.floating = '';
         state.waterLife = true;
+        state.waterPlants = true;
+        state.waterRocks = true;
         renderScene();
         state.viewer = {};
         state.tapToLaunch = true;
@@ -1155,8 +1169,14 @@ const HELP_TIPS = {
         + 'thấy đèn đỏ, xanh ở hai đầu cánh và đèn chớp. Chỉ để trang trí, không ảnh hưởng tới các phát bắn; bật Giảm chớp sáng thì đèn không chớp.',
     floating: '<strong>Hoa đăng</strong>: đèn hoa sen thả nước, ánh nến in bóng xuống nước. <strong>Cánh hoa</strong>: cánh hoa hồng, trắng '
         + 'lác đác trên mặt nước. Kiểu "Sông chảy" thì chúng trôi theo dòng, "Hồ tĩnh lặng" thì gần như đứng yên, dập dềnh.',
-    waterLife: 'Cho mặt nước sống động: thỉnh thoảng một con cò trắng bay xuống đậu lên khúc gỗ hoặc đáp xuống nước rồi bay đi, '
-        + 'cá vọt lên khỏi mặt nước làm sóng lan và tia nước bắn lên. Kiểu "Sông chảy" có thêm khúc gỗ trôi theo dòng.',
+    waterPlants: 'Lá bèo nằm phẳng trên mặt nước, thỉnh thoảng có hoa súng hồng, mặt nước gợn quanh lá. '
+        + 'Hồ tĩnh lặng thì mọc thành từng đám, gần như đứng yên; sông chảy thì trôi theo dòng.',
+    waterRocks: 'Vài tảng đá, gò đất phủ cỏ lau giữa dòng. Kiểu "Sông chảy" thì nước dồn vào đá, rẽ ra hai bên, cuộn bọt trôi đi; '
+        + 'khúc gỗ, lá bèo, hoa đăng, vịt tự lách qua.',
+    waterLife: 'Cho mặt nước sống động: đàn vịt trời bay tới, bơi quạt chân để lại vệt sóng, chổng đuôi kiếm ăn rồi cất cánh; '
+        + 'cá mè, cá chép, cá trắm, đàn cá con nhảy khỏi mặt nước; cá đớp mồi làm sóng lăn tăn; '
+        + 'thỉnh thoảng một con cò trắng bay xuống đậu lên khúc gỗ hoặc đáp xuống nước rồi bay đi, '
+        + 'Kiểu "Sông chảy" có thêm khúc gỗ trôi theo dòng, mỗi khúc một dáng.',
     viewerQuality: 'Như trang xem phim: số càng lớn hình càng nét nhưng càng nặng máy. <strong>Tự động</strong> (khuyên dùng): theo màn hình '
         + 'và sức máy người xem, giật thì tự hạ xuống. Từ <strong>1080p</strong> (Full HD) trở lên vẽ đầy đủ mọi hiệu ứng, hợp khi biết '
         + 'người nhận dùng máy mạnh; <strong>720p</strong> bớt tia lửa lúc pháo dày đặc nhất; <strong>480p</strong> trở xuống nhẹ nhất, '
@@ -2566,6 +2586,8 @@ function getFinalConfig() {
         waterStyle: state.water && state.waterStyle === 'river' ? 'river' : undefined,
         floating: state.water && state.floating ? state.floating : undefined,
         waterLife: state.water && !state.waterLife ? false : undefined,
+        waterPlants: state.water && !state.waterPlants ? false : undefined,
+        waterRocks: state.water && !state.waterRocks ? false : undefined,
         viewer: Object.keys(state.viewer).length ? { ...state.viewer } : undefined,
         tapToLaunch: state.tapToLaunch ? undefined : false,
         receiverShare: state.receiverShare ? undefined : false,
@@ -3289,6 +3311,10 @@ function renderScene() {
     document.getElementById('water-options')?.classList.toggle('hide', !state.water);
     const life = document.getElementById('water-life');
     if (life) life.checked = state.waterLife;
+    const plants = document.getElementById('water-plants');
+    if (plants) plants.checked = state.waterPlants;
+    const rocks = document.getElementById('water-rocks');
+    if (rocks) rocks.checked = state.waterRocks;
     // Thước dọc của khung xem nhanh: độ cao 0 là mặt nước
     const level = { third: 2 / 3, half: 0.5 }[state.water] || 1;
     const rulerY = document.getElementById('mini-ruler-y');
@@ -4754,6 +4780,8 @@ function loadConfigIntoState(config, filename, { migrate = true } = {}) {
     state.waterStyle = config.waterStyle === 'river' ? 'river' : 'lake';
     state.floating = ['lanterns', 'petals'].includes(config.floating) ? config.floating : '';
     state.waterLife = config.waterLife !== false;
+    state.waterPlants = config.waterPlants !== false;
+    state.waterRocks = config.waterRocks !== false;
     state.viewer = normalizeViewer(config.viewer);
     state.tapToLaunch = config.tapToLaunch !== false;
     state.receiverShare = config.receiverShare !== false;

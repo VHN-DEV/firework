@@ -100,71 +100,166 @@ function floatLanternSprite() {
 }
 
 // ---------------------------------------------------------------------------
-// Cuộc sống trên mặt nước: khúc gỗ trôi (sông), cò trắng bay xuống đậu lên khúc gỗ hoặc đáp xuống nước, cá nhảy.
+// Cuộc sống trên mặt nước: khúc gỗ trôi (sông), cò trắng bay xuống đậu lên khúc gỗ hoặc đáp xuống nước, đàn vịt trời
+// bơi, lặn kiếm ăn, các loại cá nhảy, vòng sóng cá đớp mồi.
 // Tọa độ theo điểm ảnh CSS; vật trên nước dùng x và d (0 mép nước xa, 1 sát người xem): xa thì nhỏ và trôi chậm.
 // ---------------------------------------------------------------------------
-function logSprite() {
-    if (sprites.log) return sprites.log;
+
+// Khúc gỗ nhiều dáng: thẳng, có cành gãy, cong vồng, gốc còn rễ, cành khô còn lá. Gỗ nổi chìm chừng một nửa: phần dưới
+// mặt nước ngả màu nước và mờ dần, sát mặt nước sẫm ướt. Ảnh ghi wl (hàng mặt nước), top (mặt trên thân, chỗ cò đậu),
+// perch (cò đậu được không).
+const LOG_KINDS = 5;
+
+function logSprite(variant) {
+    const key = 'log' + variant;
+    if (sprites[key]) return sprites[key];
+    const W = 200;
+    const H = 52;
+    const wl = 32;
     const c = document.createElement('canvas');
-    c.width = 180;
-    c.height = 40;
+    c.width = W;
+    c.height = H;
     const g = c.getContext('2d');
-    const body = (x, y, w, h, r) => {
+    let seed = 11 + variant * 97;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const bark = ['#4a3020', '#3e2a1c', '#55392a', '#463022', '#3d2c20'][variant];
+    const lit = ['#6b4a2e', '#5f4330', '#77553a', '#6a4b33', '#5c4634'][variant];
+    // Trục thân: [x, tâm y, bán kính]
+    const spine = [];
+    const from = variant === 3 ? 34 : 8;
+    const to = variant === 3 ? 168 : 190;
+    for (let i = 0; i <= 24; i++) {
+        const t = i / 24;
+        const x = from + (to - from) * t;
+        let y = 31;
+        let r = 11 - t * 1.5;
+        if (variant === 1) r = 10 - t;
+        if (variant === 2) {
+            y = 33 - Math.sin(Math.PI * t) * 9;
+            r = 9.5 - t;
+        }
+        if (variant === 3) r = 15 - t * 5;
+        if (variant === 4) {
+            y = 31 - Math.sin(Math.PI * t * 0.8) * 2;
+            r = 5 - t * 2.6;
+        }
+        spine.push([x, y, r]);
+    }
+    const trunk = (inset, color) => {
+        g.fillStyle = color;
         g.beginPath();
-        g.moveTo(x + r, y);
-        g.lineTo(x + w - r, y);
-        g.quadraticCurveTo(x + w, y, x + w, y + r);
-        g.lineTo(x + w, y + h - r);
-        g.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        g.lineTo(x + r, y + h);
-        g.quadraticCurveTo(x, y + h, x, y + h - r);
-        g.lineTo(x, y + r);
-        g.quadraticCurveTo(x, y, x + r, y);
+        spine.forEach(([x, y, r], i) => (i ? g.lineTo(x, y - r + inset) : g.moveTo(x, y - r + inset)));
+        for (let i = spine.length - 1; i >= 0; i--) {
+            const [x, y, r] = spine[i];
+            g.lineTo(x, y + r - inset);
+        }
+        g.closePath();
         g.fill();
     };
-    // Cành gãy chĩa lên
-    g.fillStyle = '#3f2a1b';
-    g.beginPath();
-    g.moveTo(58, 12);
-    g.lineTo(44, 1);
-    g.lineTo(49, 0);
-    g.lineTo(66, 11);
-    g.fill();
-    g.fillStyle = '#4a3020';
-    body(4, 9, 164, 24, 11);
-    g.fillStyle = '#6b4a2e';
-    body(6, 10, 160, 9, 5);
-    // Vỏ cây
-    g.strokeStyle = 'rgba(28, 17, 9, 0.55)';
-    g.lineWidth = 2;
-    [[18, 15, 40], [70, 14, 34], [118, 16, 30], [30, 24, 46], [96, 25, 40], [140, 22, 18]].forEach(([x, y, w]) => {
+    const limb = (x1, y1, x2, y2, w1, w2, color) => {
+        const a = Math.atan2(y2 - y1, x2 - x1) + Math.PI / 2;
+        g.fillStyle = color;
         g.beginPath();
-        g.moveTo(x, y);
-        g.lineTo(x + w, y);
+        g.moveTo(x1 + Math.cos(a) * w1, y1 + Math.sin(a) * w1);
+        g.lineTo(x2 + Math.cos(a) * w2, y2 + Math.sin(a) * w2);
+        g.lineTo(x2 - Math.cos(a) * w2, y2 - Math.sin(a) * w2);
+        g.lineTo(x1 - Math.cos(a) * w1, y1 - Math.sin(a) * w1);
+        g.closePath();
+        g.fill();
+    };
+    // Cành gãy chĩa lên, rễ, nhánh con
+    if (variant === 0) limb(60, 22, 46, 3, 3, 1.5, bark);
+    if (variant === 1) {
+        limb(66, 23, 50, 4, 3.5, 1.6, bark);
+        limb(128, 23, 146, 8, 3, 1.4, bark);
+        limb(96, 24, 100, 14, 2.2, 1.8, bark);
+    }
+    if (variant === 3) {
+        for (let i = 0; i < 7; i++) {
+            const a = Math.PI * (0.55 + i * 0.13);
+            limb(38, 31 + rnd() * 6 - 3, 38 + Math.cos(a) * (18 + rnd() * 12), 31 + Math.sin(a) * (14 + rnd() * 10) * (i % 2 ? 1 : -0.8), 2.6, 0.8, bark);
+        }
+    }
+    if (variant === 4) {
+        [[40, -1, 14], [82, 1, 18], [120, -1, 12], [150, 1, 10]].forEach(([x, side, len]) => {
+            const tipX = x + side * len * 0.5;
+            limb(x, 29, tipX, 29 - len, 1.4, 0.5, bark);
+            // Vài chiếc lá khô còn bám
+            g.fillStyle = ['#5d6a3a', '#6e5a32'][x % 2];
+            g.beginPath();
+            g.ellipse(tipX, 29 - len, 2.6, 1.3, side * 0.6, 0, Math.PI * 2);
+            g.fill();
+        });
+    }
+    trunk(0, bark);
+    // Mặt trên hứng sáng (ánh trăng, ánh pháo)
+    g.globalAlpha = 0.85;
+    g.fillStyle = lit;
+    g.beginPath();
+    spine.forEach(([x, y, r], i) => (i ? g.lineTo(x, y - r + 1) : g.moveTo(x, y - r + 1)));
+    for (let i = spine.length - 1; i >= 0; i--) {
+        const [x, y, r] = spine[i];
+        g.lineTo(x, y - r * 0.25);
+    }
+    g.closePath();
+    g.fill();
+    g.globalAlpha = 1;
+    // Vỏ cây: các vết nứt dọc thân, mắt gỗ
+    g.strokeStyle = 'rgba(24, 15, 8, 0.55)';
+    g.lineWidth = variant === 4 ? 0.8 : 1.6;
+    for (let i = 0; i < 9; i++) {
+        const p = spine[1 + ((rnd() * (spine.length - 4)) | 0)];
+        const len = 12 + rnd() * 26;
+        const dy = (rnd() - 0.5) * p[2] * 1.1;
+        g.beginPath();
+        g.moveTo(p[0], p[1] + dy);
+        g.lineTo(Math.min(to - 4, p[0] + len), p[1] + dy + (rnd() - 0.5) * 2);
         g.stroke();
-    });
+    }
+    if (variant !== 4) {
+        g.fillStyle = 'rgba(30, 18, 10, 0.7)';
+        for (let i = 0; i < 2; i++) {
+            const p = spine[4 + ((rnd() * 14) | 0)];
+            g.beginPath();
+            g.ellipse(p[0], p[1] - p[2] * 0.3, 2.6, 1.6, 0, 0, Math.PI * 2);
+            g.fill();
+        }
+    }
     // Mặt cắt ở đầu khúc gỗ: vân gỗ
-    g.fillStyle = '#b58a57';
-    g.beginPath();
-    g.ellipse(164, 21, 7, 12, 0, 0, Math.PI * 2);
-    g.fill();
-    g.strokeStyle = '#7d5532';
-    g.lineWidth = 1.2;
-    [8, 4.5].forEach(r => {
+    if (variant <= 1 || variant === 3) {
+        const [x, y, r] = spine[spine.length - 1];
+        g.fillStyle = '#b58a57';
         g.beginPath();
-        g.ellipse(164, 21, r * 0.55, r, 0, 0, Math.PI * 2);
-        g.stroke();
-    });
-    // Nửa dưới chìm trong nước: mờ dần
+        g.ellipse(x, y, r * 0.55, r, 0, 0, Math.PI * 2);
+        g.fill();
+        g.strokeStyle = '#7d5532';
+        g.lineWidth = 1.1;
+        [0.7, 0.4].forEach(f => {
+            g.beginPath();
+            g.ellipse(x, y, r * 0.55 * f, r * f, 0, 0, Math.PI * 2);
+            g.stroke();
+        });
+    }
+    // Sát mặt nước: dải ướt sẫm; dưới mặt nước: ngả màu nước, mờ dần theo độ sâu
+    g.globalCompositeOperation = 'source-atop';
+    g.fillStyle = 'rgba(0, 0, 0, 0.38)';
+    g.fillRect(0, wl - 4, W, 4);
+    g.fillStyle = 'rgba(14, 30, 58, 0.72)';
+    g.fillRect(0, wl, W, H - wl);
     g.globalCompositeOperation = 'destination-in';
-    const sink = g.createLinearGradient(0, 0, 0, 40);
+    const sink = g.createLinearGradient(0, 0, 0, H);
     sink.addColorStop(0, 'rgba(0, 0, 0, 1)');
-    sink.addColorStop(0.55, 'rgba(0, 0, 0, 1)');
-    sink.addColorStop(0.8, 'rgba(0, 0, 0, 0.25)');
+    sink.addColorStop(wl / H, 'rgba(0, 0, 0, 1)');
+    sink.addColorStop(wl / H + 0.02, 'rgba(0, 0, 0, 0.5)');
     sink.addColorStop(1, 'rgba(0, 0, 0, 0)');
     g.fillStyle = sink;
-    g.fillRect(0, 0, 180, 40);
-    sprites.log = c;
+    g.fillRect(0, 0, W, H);
+    g.globalCompositeOperation = 'source-over';
+    const mid = spine[12];
+    c.wl = wl;
+    c.top = mid[1] - mid[2];
+    c.perch = variant !== 4;
+    sprites[key] = c;
     return c;
 }
 
@@ -258,32 +353,188 @@ function egretSprite(pose) {
     return c;
 }
 
-function fishSprite() {
-    if (sprites.fish) return sprites.fish;
+// Vịt trời (nhìn nghiêng, quay sang phải): vịt đực đầu xanh cổ khoang trắng, vịt mái nâu lốm đốm. Tư thế: bơi, chổng
+// đuôi kiếm ăn, cánh giơ lên, cụp xuống. Mặt nước ở hàng 20 (bơi, chổng đuôi).
+function duckSprite(kind, pose) {
+    const key = `duck_${kind}_${pose}`;
+    if (sprites[key]) return sprites[key];
+    const S = 2;
     const c = document.createElement('canvas');
-    c.width = 34;
-    c.height = 16;
+    c.width = 40 * S;
+    c.height = 28 * S;
     const g = c.getContext('2d');
-    const silver = g.createLinearGradient(0, 2, 0, 14);
-    silver.addColorStop(0, '#7f93a6');
-    silver.addColorStop(0.45, '#e4ecf3');
-    silver.addColorStop(1, '#a9b8c6');
-    g.fillStyle = silver;
+    g.scale(S, S);
+    const male = kind === 'male';
+    const body = male ? '#8e908a' : '#7d6347';
+    const wing = male ? '#6c6b66' : '#5f4832';
+    const head = male ? '#2f6c4a' : '#7a6046';
+    const bill = male ? '#d6c04a' : '#d8873a';
+    const blob = (x, y, rx, ry, color, rot = 0) => {
+        g.fillStyle = color;
+        g.beginPath();
+        g.ellipse(x, y, rx, ry, rot, 0, Math.PI * 2);
+        g.fill();
+    };
+    const poly = (points, color) => {
+        g.fillStyle = color;
+        g.beginPath();
+        points.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+        g.closePath();
+        g.fill();
+    };
+    const speculum = (x, y) => {
+        g.fillStyle = '#4a6fc0';
+        g.fillRect(x, y, 5, 1.2);
+    };
+    if (pose === 'swim') {
+        poly([[8, 16], [2, 12.5], [8.5, 19]], male ? '#2a2a2a' : '#5b4430');
+        if (male) blob(4.6, 12.4, 1.2, 1.2, '#2a2a2a');
+        blob(18, 17, 11, 5, body);
+        if (male) blob(26, 16, 5, 4.6, '#6e3f2a');
+        blob(17, 15, 7, 2.8, wing);
+        speculum(14, 15.2);
+        blob(28, 12.5, 2.6, 3.4, head);
+        blob(29.5, 9.5, 4, 3.3, head);
+        if (male) {
+            g.strokeStyle = '#f2f2ee';
+            g.lineWidth = 0.9;
+            g.beginPath();
+            g.arc(28.2, 13.8, 2.4, Math.PI * 0.15, Math.PI * 0.95);
+            g.stroke();
+        } else {
+            g.fillStyle = 'rgba(40, 26, 14, 0.5)';
+            [[12, 18], [16, 19], [21, 18.5], [14, 16.6]].forEach(([x, y]) => g.fillRect(x, y, 2.2, 0.9));
+            g.fillStyle = 'rgba(40, 26, 14, 0.6)';
+            g.fillRect(27.5, 8.6, 5, 0.9);
+        }
+        poly([[33, 9.2], [38, 10.4], [33, 11.4]], bill);
+        blob(31, 8.6, 0.7, 0.7, '#151515');
+    } else if (pose === 'dabble') {
+        // Chúc đầu xuống nước kiếm ăn: chỉ còn nửa sau chổng lên
+        g.save();
+        g.translate(20, 19);
+        g.rotate(-0.95);
+        blob(0, 0, 9, 4.6, body);
+        blob(-1, -1.5, 6, 2.6, wing);
+        g.restore();
+        poly([[15, 9], [12, 3], [17.5, 8]], male ? '#2a2a2a' : '#5b4430');
+        if (male) blob(12.3, 3.4, 1.1, 1.1, '#2a2a2a');
+    } else {
+        // Bay: cổ vươn thẳng, thân thon
+        blob(19, 14, 10, 3.6, body);
+        if (male) blob(26, 13.6, 4, 3.4, '#6e3f2a');
+        poly([[9.5, 13], [4, 11.5], [4.5, 15.5]], male ? '#2a2a2a' : '#5b4430');
+        blob(30.5, 12.6, 3.2, 2.6, head);
+        if (male) {
+            g.fillStyle = '#f2f2ee';
+            g.fillRect(28, 12, 0.9, 2.6);
+        }
+        poly([[33, 11.8], [37.5, 12.8], [33, 13.8]], bill);
+        if (pose === 'up') {
+            poly([[15, 13], [24, 13], [18, 1.5], [12.5, 2.5]], wing);
+            speculum(15, 8);
+        } else {
+            poly([[15, 15], [24, 15], [19, 26.5], [13.5, 25.5]], wing);
+            speculum(16, 19);
+        }
+    }
+    if (pose === 'swim' || pose === 'dabble') {
+        g.globalCompositeOperation = 'destination-in';
+        const sink = g.createLinearGradient(0, 0, 0, 28);
+        sink.addColorStop(0, 'rgba(0, 0, 0, 1)');
+        sink.addColorStop(20 / 28, 'rgba(0, 0, 0, 1)');
+        sink.addColorStop(21.5 / 28, 'rgba(0, 0, 0, 0)');
+        g.fillStyle = sink;
+        g.fillRect(0, 0, 40, 28);
+    }
+    sprites[key] = c;
+    return c;
+}
+
+// Các loại cá: cá mè bạc, cá chép vàng cam, cá trắm xanh rêu, cá con (nhảy cả đàn). Vẽ sẵn gấp đôi cho nét.
+const FISH_LOOKS = {
+    silver: { w: 34, h: 16, back: '#7f93a6', side: '#e4ecf3', belly: '#a9b8c6', fin: '#9fb0c0', eye: '#1d242c' },
+    carp: { w: 40, h: 20, back: '#8e3f1c', side: '#e88a38', belly: '#f6cf7a', fin: '#d2602a', eye: '#2a1a10', scales: true, barbel: true },
+    grass: { w: 46, h: 16, back: '#3e4a30', side: '#8f9670', belly: '#d6d4b4', fin: '#5a6444', eye: '#1c2016' },
+    minnow: { w: 18, h: 8, back: '#6f8496', side: '#dfe8f0', belly: '#b9c6d2', fin: '#9fb0c0', eye: '#1d242c', stripe: true }
+};
+
+// Cỡ trên màn hình (điểm ảnh CSS ở d = 0), thời gian một cú nhảy, độ cao, quãng xa
+const FISH_TYPES = {
+    silver: { size: 26, life: [650, 900], lift: [16, 28], reach: [16, 28] },
+    carp: { size: 32, life: [800, 1050], lift: [20, 32], reach: [14, 24] },
+    grass: { size: 38, life: [700, 900], lift: [12, 20], reach: [22, 34] },
+    minnow: { size: 11, life: [340, 460], lift: [6, 11], reach: [10, 16] }
+};
+
+function fishSprite(type) {
+    const key = 'fish_' + type;
+    if (sprites[key]) return sprites[key];
+    const look = FISH_LOOKS[type];
+    const { w, h } = look;
+    const S = 2;
+    const c = document.createElement('canvas');
+    c.width = w * S;
+    c.height = h * S;
+    const g = c.getContext('2d');
+    g.scale(S, S);
+    const cy = h / 2;
+    const tail = w * 0.26;
+    const rx = (w - tail) / 2 - 0.5;
+    const ry = h * 0.3;
+    const bx = tail + rx + 0.5;
+    // Đuôi, vây lưng
+    g.fillStyle = look.fin;
     g.beginPath();
-    g.moveTo(9, 8);
-    g.lineTo(1, 2);
-    g.lineTo(3, 8);
-    g.lineTo(1, 14);
+    g.moveTo(tail + 2, cy);
+    g.lineTo(1, cy - h * 0.4);
+    g.lineTo(tail * 0.45, cy);
+    g.lineTo(1, cy + h * 0.4);
     g.closePath();
     g.fill();
     g.beginPath();
-    g.ellipse(19, 8, 12, 4.6, 0, 0, Math.PI * 2);
+    g.moveTo(bx - rx * 0.35, cy - ry * 0.85);
+    g.lineTo(bx - rx * 0.05, cy - ry * 1.6);
+    g.lineTo(bx + rx * 0.3, cy - ry * 0.85);
+    g.closePath();
     g.fill();
-    g.fillStyle = '#1d242c';
+    // Thân: lưng sẫm, hông sáng, bụng nhạt
+    const skin = g.createLinearGradient(0, cy - ry, 0, cy + ry);
+    skin.addColorStop(0, look.back);
+    skin.addColorStop(0.45, look.side);
+    skin.addColorStop(1, look.belly);
+    g.fillStyle = skin;
     g.beginPath();
-    g.arc(26, 7, 1.2, 0, Math.PI * 2);
+    g.ellipse(bx, cy, rx, ry, 0, 0, Math.PI * 2);
     g.fill();
-    sprites.fish = c;
+    if (look.scales) {
+        g.strokeStyle = 'rgba(255, 225, 160, 0.35)';
+        g.lineWidth = 0.5;
+        for (let i = 0; i < 5; i++) {
+            for (let j = 0; j < 2; j++) {
+                g.beginPath();
+                g.arc(bx - rx * 0.55 + i * rx * 0.28, cy - ry * 0.25 + j * ry * 0.6, 1.4, -Math.PI / 2, Math.PI / 2);
+                g.stroke();
+            }
+        }
+    }
+    if (look.stripe) {
+        g.fillStyle = 'rgba(40, 50, 60, 0.55)';
+        g.fillRect(bx - rx * 0.8, cy - 0.4, rx * 1.6, 0.8);
+    }
+    g.fillStyle = look.eye;
+    g.beginPath();
+    g.arc(bx + rx * 0.62, cy - ry * 0.2, Math.max(0.7, h * 0.07), 0, Math.PI * 2);
+    g.fill();
+    if (look.barbel) {
+        g.strokeStyle = '#b06030';
+        g.lineWidth = 0.5;
+        g.beginPath();
+        g.moveTo(bx + rx * 0.95, cy + 1);
+        g.lineTo(bx + rx + 2.5, cy + 3.5);
+        g.stroke();
+    }
+    sprites[key] = c;
     return c;
 }
 
@@ -293,10 +544,11 @@ const WaterLife = {
     key: '',
     logs: [],
     birds: [],
+    ducks: [],
     fish: [],
     ripples: [],
     drops: [],
-    next: { log: 0, bird: 0, fish: 0 },
+    next: { log: 0, bird: 0, duck: 0, fish: 0, rise: 0 },
 
     // Trôi theo dòng (điểm ảnh CSS / ms), khớp với các vệt sáng của mặt nước
     flow(d, river) {
@@ -310,19 +562,26 @@ const WaterLife = {
     reset(river, cssW) {
         this.logs = [];
         this.birds = [];
+        this.ducks = [];
         this.fish = [];
         this.ripples = [];
         this.drops = [];
         const slow = IS_MOBILE ? 1.3 : 1;
-        // Mở màn đã có sẵn một khúc gỗ đang trôi và một con cò sắp bay tới
+        // Mở màn đã có sẵn một khúc gỗ đang trôi, một con cò và một đàn vịt sắp bay tới
         if (river) this.logs.push(this.makeLog(rand(0.18, 0.42) * cssW, rand(0.45, 0.8)));
         this.next = river
-            ? { log: rand(9000, 16000) * slow, bird: rand(1500, 3000), fish: rand(2500, 4500) }
-            : { log: Infinity, bird: rand(3000, 6000), fish: rand(3500, 6000) };
+            ? { log: rand(9000, 16000) * slow, bird: rand(1500, 3000), duck: rand(5000, 9000), fish: rand(2500, 4500), rise: rand(800, 2000) }
+            : { log: Infinity, bird: rand(3000, 6000), duck: rand(2500, 5000), fish: rand(3500, 6000), rise: rand(800, 2000) };
     },
 
     makeLog(x, d) {
-        return { x, d, len: rand(95, 135), phase: Math.random() * 6, bird: null };
+        return { x, d, variant: (Math.random() * LOG_KINDS) | 0, len: rand(95, 135), phase: Math.random() * 6, seed: Math.random(), bird: null };
+    },
+
+    // Mặt trên thân gỗ cao hơn mặt nước bao nhiêu (chỗ cò đậu)
+    logPerch(log, s) {
+        const sprite = logSprite(log.variant);
+        return log.len * s * (sprite.wl - sprite.top) / sprite.width;
     },
 
     surfaceY(d, topCss, depthCss) {
@@ -340,7 +599,13 @@ const WaterLife = {
         }
     },
 
-    update(dt, river, cssW, topCss, depthCss) {
+    // Vòng sóng nhỏ không có tia nước (cá đớp mồi, vịt quạt chân)
+    ring(x, d, size, life = 1400, delay = 0) {
+        this.ripples.push({ x, d, age: -delay, life, r0: 1.5 * this.scale(d) * size, size });
+    },
+
+    // rocks: đá, gò đất giữa dòng (vật trôi, vịt né)
+    update(dt, river, cssW, topCss, depthCss, rocks = []) {
         const slow = IS_MOBILE ? 1.3 : 1;
         // Khúc gỗ: trôi vào từ thượng nguồn (bên trái), ra khỏi khung thì bỏ
         this.next.log -= dt;
@@ -356,6 +621,8 @@ const WaterLife = {
         this.logs.forEach(log => {
             log.x += this.flow(log.d, river) * 0.9 * dt;
             log.phase += dt * 0.0015;
+            const half = log.len * this.scale(log.d) / 2;
+            steerAround(log, log.x - half, half, rocks, dt, depthCss);
         });
         this.logs = this.logs.filter(log => log.x - log.len * this.scale(log.d) < cssW + 30);
 
@@ -365,7 +632,7 @@ const WaterLife = {
             this.next.bird = (river ? rand(7000, 13000) : rand(9000, 16000)) * slow;
             if (this.birds.length < 2) {
                 const dir = Math.random() < 0.5 ? 1 : -1;
-                const free = this.logs.filter(log => !log.bird && log.x > cssW * 0.12 && log.x < cssW * 0.62);
+                const free = this.logs.filter(log => !log.bird && logSprite(log.variant).perch && log.x > cssW * 0.12 && log.x < cssW * 0.62);
                 const bird = {
                     state: 'fly', dir, x: dir > 0 ? -24 : cssW + 24, y: topCss * rand(0.25, 0.6),
                     flap: Math.random() * 300, rest: rand(5000, 10000)
@@ -387,7 +654,7 @@ const WaterLife = {
                 const d = bird.log ? bird.log.d : bird.d;
                 const s = this.scale(d);
                 const tx = bird.log ? bird.log.x - bird.log.len * s + bird.ox : bird.tx;
-                const ty = this.surfaceY(d, topCss, depthCss) - (bird.log ? 9 * s : 0);
+                const ty = this.surfaceY(d, topCss, depthCss) - (bird.log ? this.logPerch(bird.log, s) : 0);
                 if (!bird.log) bird.tx += this.flow(d, river) * 0.6 * dt;
                 const dx = tx - bird.x;
                 const dy = ty - bird.y;
@@ -409,9 +676,10 @@ const WaterLife = {
                 if (bird.log) {
                     const s = this.scale(bird.log.d);
                     bird.x = bird.log.x - bird.log.len * s + bird.ox;
-                    bird.y = this.surfaceY(bird.log.d, topCss, depthCss) - 9 * s + Math.sin(bird.log.phase) * 0.6 * s;
+                    bird.y = this.surfaceY(bird.log.d, topCss, depthCss) - this.logPerch(bird.log, s) + Math.sin(bird.log.phase) * 0.6 * s;
                 } else {
                     bird.x += (this.flow(bird.d, river) * 0.6 + bird.dir * 0.004) * dt;
+                    steerAround(bird, bird.x, 10 * this.scale(bird.d), rocks, dt, depthCss);
                     bird.y = this.surfaceY(bird.d, topCss, depthCss) + Math.sin(bird.flap * 0.002) * 0.5;
                 }
                 // Hết giờ nghỉ, hoặc khúc gỗ sắp trôi ra khỏi khung: bay đi
@@ -430,25 +698,142 @@ const WaterLife = {
         });
         this.birds = this.birds.filter(bird => !(bird.state === 'leave' && (bird.y < -40 || bird.x < -40 || bird.x > cssW + 40)));
 
-        // Cá nhảy: vọt lên khỏi mặt nước theo đường cong rồi lao xuống
+        // Vịt trời: cả đàn bay tới, đáp xuống trượt trên nước, bơi quạt chân để lại vệt sóng, thỉnh thoảng chổng đuôi
+        // kiếm ăn, rồi chạy trên mặt nước cất cánh bay đi
+        this.next.duck -= dt;
+        if (this.next.duck <= 0) {
+            this.next.duck = (river ? rand(16000, 26000) : rand(12000, 20000)) * slow;
+            if (!this.ducks.length) {
+                const dir = Math.random() < 0.5 ? 1 : -1;
+                const n = 2 + ((Math.random() * 3) | 0);
+                const d = rand(0.3, 0.8);
+                const tx = rand(0.25, 0.75) * cssW;
+                const y0 = topCss * rand(0.2, 0.5);
+                for (let i = 0; i < n; i++) {
+                    this.ducks.push({
+                        kind: i === 0 || Math.random() < 0.5 ? 'male' : 'female',
+                        state: 'fly', dir, x: (dir > 0 ? -30 : cssW + 30) - dir * i * rand(14, 22), y: y0 + rand(-8, 8),
+                        d: Math.min(0.95, d + rand(-0.06, 0.06)), tx: tx + (i - n / 2) * rand(14, 24), vx: 0, vy: 0,
+                        flap: rand(0, 200), stay: rand(14000, 26000), feed: rand(2000, 6000), dive: 0, paddle: rand(0, 900),
+                        turn: rand(4000, 9000)
+                    });
+                }
+            }
+        }
+        this.ducks.forEach(duck => {
+            duck.flap += dt;
+            const s = this.scale(duck.d);
+            const sy = this.surfaceY(duck.d, topCss, depthCss);
+            if (duck.state === 'fly') {
+                duck.tx += this.flow(duck.d, river) * 0.5 * dt;
+                const dx = duck.tx - duck.x;
+                const dy = sy - duck.y;
+                const dist = Math.hypot(dx, dy);
+                duck.dir = dx >= 0 ? 1 : -1;
+                const step = Math.min(dist, 0.14 * dt);
+                if (dist <= step + 0.5) {
+                    duck.state = 'swim';
+                    duck.y = sy;
+                    duck.vx = duck.dir * 0.05;
+                    this.splash(duck.x, duck.d, topCss, depthCss, 0.6);
+                } else {
+                    duck.x += dx / dist * step;
+                    duck.y += dy / dist * step;
+                }
+            } else if (duck.state === 'swim' || duck.state === 'dabble') {
+                duck.stay -= dt;
+                duck.turn -= dt;
+                if (duck.turn <= 0 || (duck.x < 30 && duck.dir < 0) || (duck.x > cssW - 30 && duck.dir > 0)) {
+                    duck.dir = duck.x < 30 ? 1 : duck.x > cssW - 30 ? -1 : -duck.dir;
+                    duck.turn = rand(4000, 9000);
+                }
+                // Lúc đáp trượt nhanh rồi chậm dần về tốc độ bơi; đang chúc đầu kiếm ăn thì đứng yên
+                const target = duck.state === 'dabble' ? 0 : duck.dir * 0.011;
+                duck.vx += (target - duck.vx) * Math.min(1, dt * 0.0015);
+                duck.x += (duck.vx + this.flow(duck.d, river) * 0.5) * dt;
+                steerAround(duck, duck.x, 12 * s, rocks, dt, depthCss);
+                duck.y = this.surfaceY(duck.d, topCss, depthCss) + Math.sin(duck.flap * 0.004) * 0.3 * s;
+                if (duck.state === 'swim') {
+                    duck.paddle -= dt;
+                    if (duck.paddle <= 0) {
+                        duck.paddle = rand(700, 1200);
+                        this.ring(duck.x - duck.dir * 5 * s, duck.d, 0.5, 1200);
+                    }
+                    duck.feed -= dt;
+                    if (duck.feed <= 0) {
+                        duck.state = 'dabble';
+                        duck.dive = rand(900, 1700);
+                        this.ring(duck.x, duck.d, 0.7, 1300);
+                    }
+                } else {
+                    duck.dive -= dt;
+                    if (duck.dive <= 0) {
+                        duck.state = 'swim';
+                        duck.feed = rand(3000, 7000);
+                        this.ring(duck.x, duck.d, 0.6, 1300);
+                    }
+                }
+                if (duck.stay <= 0 && duck.state === 'swim') {
+                    duck.state = 'leave';
+                    duck.vx = duck.dir * 0.11;
+                    duck.vy = -0.04;
+                    this.splash(duck.x, duck.d, topCss, depthCss, 0.6);
+                }
+            } else {
+                duck.x += duck.vx * dt;
+                duck.y += duck.vy * dt;
+                duck.vy = Math.max(-0.1, duck.vy - 0.00005 * dt);
+            }
+        });
+        this.ducks = this.ducks.filter(duck => !(duck.state === 'leave' && (duck.y < -40 || duck.x < -40 || duck.x > cssW + 40)));
+
+        // Cá nhảy: vọt lên khỏi mặt nước theo đường cong rồi lao xuống; cá con nhảy cả đàn, con này nối con kia
         this.next.fish -= dt;
         if (this.next.fish <= 0) {
             this.next.fish = (river ? rand(3000, 7000) : rand(5000, 10000)) * slow;
+            const r = Math.random();
+            const type = r < 0.35 ? 'silver' : r < 0.6 ? 'carp' : r < 0.75 ? 'grass' : 'minnow';
+            const kind = FISH_TYPES[type];
             const d = rand(0.25, 0.9);
             const s = this.scale(d);
-            const fish = { x: rand(0.1, 0.9) * cssW, d, t: 0, life: rand(650, 900), h: rand(16, 28) * s, dx: (Math.random() < 0.5 ? -1 : 1) * rand(16, 28) * s };
-            this.fish.push(fish);
-            this.splash(fish.x, d, topCss, depthCss, 0.8);
+            const dir = Math.random() < 0.5 ? -1 : 1;
+            let x = rand(0.1, 0.9) * cssW;
+            // Không nhảy ngay chỗ có đá, gò đất
+            for (let i = 0; i < 5 && rocks.some(r => Math.abs(r.x - x) < r.size * this.scale(r.d) * 0.7 && Math.abs(r.d - d) < 0.15); i++) {
+                x = rand(0.1, 0.9) * cssW;
+            }
+            const count = type === 'minnow' ? 3 + ((Math.random() * 3) | 0) : 1;
+            for (let i = 0; i < count; i++) {
+                this.fish.push({
+                    type, d, x: x + dir * i * rand(5, 9) * s, t: -i * rand(90, 160), started: false,
+                    life: rand(...kind.life), h: rand(...kind.lift) * s, dx: dir * rand(...kind.reach) * s
+                });
+            }
         }
         this.fish.forEach(fish => {
             fish.t += dt;
             fish.x += this.flow(fish.d, river) * dt;
+            const size = fish.type === 'minnow' ? 0.4 : fish.type === 'silver' ? 0.8 : 1.1;
+            if (fish.t >= 0 && !fish.started) {
+                fish.started = true;
+                this.splash(fish.x, fish.d, topCss, depthCss, size * 0.9);
+            }
             if (fish.t >= fish.life && !fish.done) {
                 fish.done = true;
-                this.splash(fish.x + fish.dx, fish.d, topCss, depthCss, 1);
+                this.splash(fish.x + fish.dx, fish.d, topCss, depthCss, size);
             }
         });
         this.fish = this.fish.filter(fish => !fish.done);
+
+        // Cá đớp mồi: vòng sóng nhỏ lan ra đây đó trên mặt nước
+        this.next.rise -= dt;
+        if (this.next.rise <= 0) {
+            this.next.rise = rand(1200, 3200) * slow;
+            const d = rand(0.15, 0.95);
+            const x = rand(0.05, 0.95) * cssW;
+            this.ring(x, d, 0.6, 1800);
+            this.ring(x, d, 0.4, 1800, 260);
+        }
 
         this.ripples.forEach(r => {
             r.age += dt;
@@ -463,82 +848,139 @@ const WaterLife = {
         this.drops = this.drops.filter(p => p.y <= p.base || p.vy < 0);
     },
 
-    draw(ctx, k, topCss, depthCss, time) {
-        ctx.setTransform(k, 0, 0, k, 0, 0);
+    // Vòng sóng (dưới mọi vật). Lớp đã nhân k: tọa độ điểm ảnh CSS.
+    drawUnder(ctx, k, topCss, depthCss) {
         ctx.globalCompositeOperation = 'source-over';
-        // Vòng sóng
         ctx.lineWidth = 1 / k;
+        ctx.strokeStyle = 'rgb(205, 222, 255)';
         this.ripples.forEach(r => {
             if (r.age < 0) return;
             const p = r.age / r.life;
             const s = this.scale(r.d);
-            const rx = r.r0 + p * 30 * s;
+            const rx = r.r0 + p * 30 * s * (r.size ?? 1);
             ctx.globalAlpha = (1 - p) * 0.5;
-            ctx.strokeStyle = 'rgb(205, 222, 255)';
             ctx.beginPath();
             ctx.ellipse(r.x, this.surfaceY(r.d, topCss, depthCss), rx, rx * 0.28, 0, 0, Math.PI * 2);
             ctx.stroke();
         });
-        // Vật trên mặt nước, xa vẽ trước
-        const things = [
-            ...this.logs.map(log => ({ d: log.d, log })),
-            ...this.birds.filter(b => b.state === 'perch' || b.state === 'swim').map(bird => ({ d: bird.log ? bird.log.d + 0.0001 : bird.d, bird }))
-        ].sort((a, b) => a.d - b.d);
-        things.forEach(({ log, bird }) => {
-            if (log) {
-                const s = this.scale(log.d);
-                const w = log.len * s;
-                const h = w * 40 / 180;
-                const y = this.surfaceY(log.d, topCss, depthCss) + Math.sin(log.phase) * 0.6 * s;
-                const sprite = logSprite();
-                // Bóng in xuống nước
-                ctx.save();
-                ctx.globalAlpha = 0.22;
-                ctx.translate(log.x - w, y + h * 0.25);
-                ctx.scale(1, -0.6);
-                ctx.drawImage(sprite, 0, -h, w, h);
-                ctx.restore();
-                ctx.save();
-                ctx.globalAlpha = 0.95;
-                ctx.translate(log.x - w / 2, y);
-                ctx.rotate(Math.sin(log.phase * 0.7) * 0.02);
-                ctx.drawImage(sprite, -w / 2, -h * 0.62, w, h);
-                ctx.restore();
-            } else {
-                this.drawBird(ctx, bird, bird.log ? 'stand' : 'swim', this.scale(bird.log ? bird.log.d : bird.d));
-            }
-        });
-        // Cá đang nhảy
-        const fishImg = fishSprite();
+    },
+
+    // Vật nằm trên mặt nước, để vẽ chung với bèo, đá, hoa đăng... theo tầm xa
+    things(ctx, k, topCss, depthCss, time, river) {
+        return [
+            ...this.logs.map(log => ({ d: log.d, draw: () => this.drawLog(ctx, log, k, topCss, depthCss, time, river) })),
+            ...this.birds.filter(b => b.state === 'perch' || b.state === 'swim').map(bird => ({
+                d: bird.log ? bird.log.d + 0.0001 : bird.d,
+                draw: () => this.drawBird(ctx, bird, bird.log ? 'stand' : 'swim', this.scale(bird.log ? bird.log.d : bird.d))
+            })),
+            ...this.ducks.filter(duck => duck.state === 'swim' || duck.state === 'dabble').map(duck => ({
+                d: duck.d, draw: () => this.drawDuck(ctx, duck, duck.state, this.scale(duck.d), k)
+            }))
+        ];
+    },
+
+    // Cá đang nhảy, tia nước, cò và vịt đang bay (trên mọi vật)
+    drawOver(ctx, k, topCss, depthCss) {
         this.fish.forEach(fish => {
+            if (fish.t < 0) return;
             const p = Math.min(1, fish.t / fish.life);
             const lift = 4 * fish.h * p * (1 - p);
             const x = fish.x + fish.dx * p;
             const y = this.surfaceY(fish.d, topCss, depthCss) - lift;
             const angle = Math.atan2(-4 * fish.h * (1 - 2 * p), fish.dx);
             const s = this.scale(fish.d);
+            const img = fishSprite(fish.type);
+            const w = FISH_TYPES[fish.type].size * s;
+            const h = w * img.height / img.width;
             ctx.save();
             ctx.globalAlpha = 0.95;
             ctx.translate(x, y);
             ctx.rotate(angle);
-            ctx.drawImage(fishImg, -13 * s, -6.1 * s, 26 * s, 12.2 * s);
+            ctx.drawImage(img, -w / 2, -h / 2, w, h);
             ctx.restore();
         });
-        // Tia nước
         ctx.fillStyle = 'rgb(225, 236, 255)';
         this.drops.forEach(p => {
             ctx.globalAlpha = 0.8;
             ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
         });
-        // Cò đang bay (trên trời và lúc sà xuống)
         this.birds.forEach(bird => {
             if (bird.state !== 'fly' && bird.state !== 'leave') return;
             const pose = bird.state === 'fly' && bird.near ? 'glide' : Math.floor(bird.flap / 130) % 2 ? 'up' : 'down';
             const d = bird.log ? bird.log.d : bird.d ?? 0.5;
             this.drawBird(ctx, bird, pose, this.scale(d) * 1.05);
         });
+        this.ducks.forEach(duck => {
+            if (duck.state !== 'fly' && duck.state !== 'leave') return;
+            this.drawDuck(ctx, duck, Math.floor(duck.flap / 85) % 2 ? 'up' : 'down', this.scale(duck.d), k);
+        });
         ctx.globalAlpha = 1;
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
+    },
+
+    // Khúc gỗ nổi: chìm chừng một nửa, bóng phần nổi in xuống nước, bọt lấp lánh dọc chỗ tiếp nước, gợn quanh thân
+    drawLog(ctx, log, k, topCss, depthCss, time, river) {
+        const s = this.scale(log.d);
+        const sprite = logSprite(log.variant);
+        const w = log.len * s;
+        const h = w * sprite.height / sprite.width;
+        const wlOff = h * sprite.wl / sprite.height;
+        const y = this.surfaceY(log.d, topCss, depthCss) + Math.sin(log.phase) * 0.5 * s;
+        const left = log.x - w;
+        ctx.save();
+        ctx.globalAlpha = 0.24;
+        ctx.translate(left, y);
+        ctx.scale(1, -0.7);
+        ctx.drawImage(sprite, 0, 0, sprite.width, sprite.wl, 0, -wlOff, w, wlOff);
+        ctx.restore();
+        drawFlowMarks(ctx, left + w / 2, y, w * 0.5, s, k, time, log.seed, river, 0.35);
+        ctx.save();
+        ctx.translate(left + w / 2, y);
+        ctx.rotate(Math.sin(log.phase * 0.7) * 0.015);
+        ctx.globalAlpha = 0.97;
+        ctx.drawImage(sprite, -w / 2, -wlOff, w, h);
+        ctx.restore();
+        ctx.fillStyle = 'rgb(205, 222, 255)';
+        for (let i = 0; i < 6; i++) {
+            const fx = left + w * (0.1 + i * 0.15) + Math.sin(time * 0.0017 + i * 1.7 + log.phase) * 2 * s;
+            ctx.globalAlpha = 0.18 + 0.2 * (0.5 + 0.5 * Math.sin(time * 0.003 + i * 2.1));
+            ctx.fillRect(fx, y - 0.4 * s, (3 + (i % 3) * 2) * s, Math.max(1 / k, 0.7 * s));
+        }
+    },
+
+    drawDuck(ctx, duck, pose, s, k) {
+        const sprite = duckSprite(duck.kind, pose);
+        const w = 24 * s;
+        const h = w * 28 / 40;
+        const onWater = pose === 'swim' || pose === 'dabble';
+        // Đang bơi: vệt sóng chữ V phía sau
+        if (pose === 'swim' && Math.abs(duck.vx) > 0.004) {
+            const rear = duck.x - duck.dir * 6 * s;
+            const len = 24 * s;
+            const grad = ctx.createLinearGradient(rear, 0, rear - duck.dir * len, 0);
+            grad.addColorStop(0, 'rgba(205, 222, 255, 0.32)');
+            grad.addColorStop(1, 'rgba(205, 222, 255, 0)');
+            ctx.globalAlpha = 1;
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 1 / k;
+            ctx.beginPath();
+            ctx.moveTo(rear, duck.y);
+            ctx.lineTo(rear - duck.dir * len, duck.y - len * 0.14);
+            ctx.moveTo(rear, duck.y);
+            ctx.lineTo(rear - duck.dir * len, duck.y + len * 0.14);
+            ctx.stroke();
+        }
+        ctx.save();
+        ctx.globalAlpha = 0.95;
+        ctx.translate(duck.x, duck.y);
+        if (duck.dir < 0) ctx.scale(-1, 1);
+        const anchorY = onWater ? 20 / 28 : 0.5;
+        ctx.drawImage(sprite, -w / 2, -h * anchorY, w, h);
+        if (onWater) {
+            ctx.globalAlpha = 0.22;
+            ctx.scale(1, -0.7);
+            ctx.drawImage(sprite, -w / 2, -h * anchorY, w, h);
+        }
+        ctx.restore();
     },
 
     drawBird(ctx, bird, pose, s) {
@@ -562,6 +1004,344 @@ const WaterLife = {
     }
 };
 
+// ---------------------------------------------------------------------------
+// Bờ đất ở mép nước và lá bèo
+// ---------------------------------------------------------------------------
+
+// Bờ đá kiểu tranh điểm ảnh (như Kingdom Two Crowns): phiến đá be to, bo tròn, xếp hai hàng so le, mép trên sáng, đáy
+// tối, khe sẫm (tông đêm); mép trên phủ rêu cỏ, chân bờ có bụi cỏ mọc sát nước. over: phần cỏ nhô lên trên mặt bờ (điểm ảnh của lớp vẽ).
+let bankCache = { key: '', canvas: null, over: 0 };
+
+function bankSprite(W, bankPx, k) {
+    const key = `${W}_${bankPx}_${k.toFixed(3)}`;
+    if (bankCache.key === key) return bankCache;
+    const over = Math.max(2, Math.round(5 * k));
+    const c = document.createElement('canvas');
+    c.width = W;
+    c.height = bankPx + over;
+    const g = c.getContext('2d');
+    let seed = 29;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const p = Math.max(1, Math.round(k));
+    const y0 = over;
+    g.fillStyle = 'rgb(30, 26, 23)';
+    g.fillRect(0, y0, W, bankPx);
+    const slab = (x, y, w, h, r) => {
+        g.beginPath();
+        g.moveTo(x + r, y);
+        g.lineTo(x + w - r, y);
+        g.quadraticCurveTo(x + w, y, x + w, y + r);
+        g.lineTo(x + w, y + h - r);
+        g.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        g.lineTo(x + r, y + h);
+        g.quadraticCurveTo(x, y + h, x, y + h - r);
+        g.lineTo(x, y + r);
+        g.quadraticCurveTo(x, y, x + r, y);
+        g.fill();
+    };
+    const rowH = bankPx / 2;
+    for (let r = 0; r < 2; r++) {
+        let x = -rnd() * 14 * k - r * 8 * k;
+        while (x < W) {
+            const w = (12 + rnd() * 18) * k;
+            const tone = 82 + rnd() * 24 - r * 12;
+            const sx = Math.round(x + p);
+            const sy = Math.round(y0 + r * rowH + p * 0.5);
+            const sw = Math.max(p, Math.round(w - 1.5 * p));
+            const sh = Math.max(p, Math.round(rowH - p));
+            g.fillStyle = `rgb(${(tone + 10) | 0}, ${tone | 0}, ${(tone - 14) | 0})`;
+            slab(sx, sy, sw, sh, Math.min(sh / 2, 3 * k));
+            g.fillStyle = 'rgba(255, 240, 215, 0.18)';
+            g.fillRect(sx + p, sy, Math.max(p, sw - 2 * p), p);
+            g.fillStyle = 'rgba(0, 0, 0, 0.28)';
+            g.fillRect(sx + p, sy + sh - p, Math.max(p, sw - 2 * p), p);
+            // Vài vết lõm, đốm trên mặt đá
+            if (rnd() < 0.5) {
+                g.fillStyle = 'rgba(30, 24, 20, 0.35)';
+                g.fillRect(Math.round(sx + sw * (0.2 + rnd() * 0.5)), Math.round(sy + sh * 0.45), Math.max(p, Math.round(2 * k)), p);
+            }
+            x += w;
+        }
+    }
+    // Rêu cỏ phủ mép trên, cỏ nhô lên trời
+    g.fillStyle = 'rgb(36, 58, 34)';
+    g.fillRect(0, y0, W, Math.max(p, Math.round(1.6 * k)));
+    g.fillStyle = 'rgb(58, 86, 48)';
+    g.fillRect(0, y0, W, p);
+    const greens = ['rgb(40, 66, 38)', 'rgb(52, 80, 44)', 'rgb(64, 94, 52)'];
+    for (let x = 0; x < W; x += (2 + rnd() * 9) * k) {
+        if (rnd() < 0.45) continue;
+        const blades = 2 + ((rnd() * 4) | 0);
+        for (let b = 0; b < blades; b++) {
+            const h = Math.round((1.5 + rnd() * 3.5) * k);
+            g.fillStyle = greens[(rnd() * 3) | 0];
+            g.fillRect(Math.round(x + b * p * 1.5), y0 - h, p, h + p);
+        }
+    }
+    // Chân bờ: mép ướt sẫm, vài bụi cỏ nước mọc sát mặt nước
+    g.fillStyle = 'rgb(16, 14, 14)';
+    g.fillRect(0, y0 + bankPx - p, W, p);
+    for (let x = rnd() * 80 * k; x < W; x += (60 + rnd() * 110) * k) {
+        const width = (10 + rnd() * 16) * k;
+        for (let bx = 0; bx < width; bx += p * 1.4) {
+            const h = Math.round(bankPx * (0.35 + rnd() * 0.6) * (1 - Math.abs(bx / width - 0.5)));
+            g.fillStyle = ['rgb(58, 92, 46)', 'rgb(74, 108, 54)', 'rgb(46, 76, 40)'][(rnd() * 3) | 0];
+            g.fillRect(Math.round(x + bx), y0 + bankPx - h, p, h);
+        }
+    }
+    bankCache = { key, canvas: c, over };
+    return bankCache;
+}
+
+// Lá bèo (lá súng) nằm phẳng trên nước (nhìn chếch nên dẹt), có khe hình nêm; kiểu 3 có hoa súng hồng
+function padSprite(variant) {
+    const key = 'pad' + variant;
+    if (sprites[key]) return sprites[key];
+    const S = 3;
+    const c = document.createElement('canvas');
+    c.width = 24 * S;
+    c.height = 10 * S;
+    const g = c.getContext('2d');
+    g.scale(S, S);
+    const notch = [0.3, 1.9, 2.6, 1.1][variant];
+    g.beginPath();
+    g.ellipse(12, 5, 11, 4.2, 0, notch + 0.35, notch - 0.35 + Math.PI * 2);
+    g.lineTo(12, 5);
+    g.closePath();
+    const leaf = g.createLinearGradient(0, 1, 0, 9);
+    leaf.addColorStop(0, ['#3f7a45', '#4a8a4c', '#386e40', '#437f47'][variant]);
+    leaf.addColorStop(1, '#1f4a2c');
+    g.fillStyle = leaf;
+    g.fill();
+    g.strokeStyle = 'rgba(150, 200, 130, 0.45)';
+    g.lineWidth = 0.6;
+    g.beginPath();
+    g.ellipse(12, 5, 10.6, 3.9, 0, 0.25, Math.PI - 0.25);
+    g.stroke();
+    g.strokeStyle = 'rgba(20, 50, 30, 0.6)';
+    g.lineWidth = 0.4;
+    for (let i = 0; i < 5; i++) {
+        const a = notch + 0.9 + i * 1.05;
+        g.beginPath();
+        g.moveTo(12, 5);
+        g.lineTo(12 + Math.cos(a) * 9, 5 + Math.sin(a) * 3.4);
+        g.stroke();
+    }
+    if (variant === 3) {
+        [[-2.4, '#e9a3bf'], [2.4, '#e9a3bf'], [0, '#f4c3d6']].forEach(([dx, color]) => {
+            g.fillStyle = color;
+            g.beginPath();
+            g.ellipse(13 + dx, 3.6, 1.8, 2.6, dx * 0.25, 0, Math.PI * 2);
+            g.fill();
+        });
+        g.fillStyle = '#f0d070';
+        g.fillRect(12.4, 2.8, 1.2, 1.2);
+    }
+    sprites[key] = c;
+    return c;
+}
+
+// Phần chìm dưới nước của ảnh vẽ sẵn (đá, gò đất): sát mặt nước sẫm ướt, dưới nước ngả màu nước, mờ dần
+function sinkBelow(g, W, H, wl, keep = 0.5) {
+    g.globalCompositeOperation = 'source-atop';
+    g.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    g.fillRect(0, wl - 2.5, W, 2.5);
+    g.fillStyle = 'rgba(14, 30, 58, 0.72)';
+    g.fillRect(0, wl, W, H - wl);
+    g.globalCompositeOperation = 'destination-in';
+    const sink = g.createLinearGradient(0, 0, 0, H);
+    sink.addColorStop(0, 'rgba(0, 0, 0, 1)');
+    sink.addColorStop(wl / H, 'rgba(0, 0, 0, 1)');
+    sink.addColorStop(Math.min(1, wl / H + 0.03), `rgba(0, 0, 0, ${keep})`);
+    sink.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    g.fillStyle = sink;
+    g.fillRect(0, 0, W, H);
+    g.globalCompositeOperation = 'source-over';
+}
+
+// Cụm đá giữa dòng: vài tảng tròn xám, mặt trên hứng sáng, rêu xanh. Khung 60 x 34, mặt nước ở hàng 24.
+function rockSprite(variant) {
+    const key = 'rock' + variant;
+    if (sprites[key]) return sprites[key];
+    const S = 2;
+    const W = 60;
+    const H = 34;
+    const wl = 24;
+    const c = document.createElement('canvas');
+    c.width = W * S;
+    c.height = H * S;
+    const g = c.getContext('2d');
+    g.scale(S, S);
+    const stones = [
+        [[30, 22, 15, 12], [16, 25, 9, 7], [45, 25, 10, 8]],
+        [[24, 21, 13, 13], [40, 23, 12, 9], [12, 26, 6, 5], [52, 26, 6, 4]],
+        [[30, 20, 18, 11], [50, 25, 7, 5]]
+    ][variant % 3];
+    stones.forEach(([x, y, rx, ry], i) => {
+        const tone = ['#7d7262', '#8a7f6d', '#6f6656', '#837866'][i % 4];
+        const grad = g.createLinearGradient(0, y - ry, 0, y + ry);
+        grad.addColorStop(0, tone);
+        grad.addColorStop(1, '#332c24');
+        g.fillStyle = grad;
+        g.beginPath();
+        g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+        g.fill();
+        // Mặt trên hứng ánh trăng, ánh pháo
+        g.fillStyle = 'rgba(255, 240, 215, 0.2)';
+        g.beginPath();
+        g.ellipse(x - rx * 0.2, y - ry * 0.55, rx * 0.6, ry * 0.3, 0, 0, Math.PI * 2);
+        g.fill();
+        // Rêu
+        g.fillStyle = 'rgba(70, 110, 60, 0.75)';
+        g.beginPath();
+        g.ellipse(x + rx * 0.25, y - ry * 0.72, rx * 0.35, ry * 0.16, 0.2, 0, Math.PI * 2);
+        g.fill();
+        // Vết nứt
+        g.strokeStyle = 'rgba(20, 20, 24, 0.5)';
+        g.lineWidth = 0.6;
+        g.beginPath();
+        g.moveTo(x - rx * 0.3, y - ry * 0.3);
+        g.lineTo(x - rx * 0.05, y + ry * 0.1);
+        g.lineTo(x + rx * 0.1, y + ry * 0.4);
+        g.stroke();
+    });
+    sinkBelow(g, W, H, wl, 0.55);
+    c.wl = wl * S;
+    sprites[key] = c;
+    return c;
+}
+
+// Gò đất giữa dòng: doi đất thấp phủ cỏ, mép có lau sậy. Khung 120 x 44, mặt nước ở hàng 34.
+function moundSprite(variant) {
+    const key = 'mound' + variant;
+    if (sprites[key]) return sprites[key];
+    const S = 2;
+    const W = 120;
+    const H = 44;
+    const wl = 34;
+    const c = document.createElement('canvas');
+    c.width = W * S;
+    c.height = H * S;
+    const g = c.getContext('2d');
+    g.scale(S, S);
+    let seed = 41 + variant * 13;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const peak = variant ? 20 : 17;
+    const earth = g.createLinearGradient(0, peak, 0, wl + 6);
+    earth.addColorStop(0, '#5b4a35');
+    earth.addColorStop(1, '#2f251b');
+    g.fillStyle = earth;
+    g.beginPath();
+    g.moveTo(3, wl + 4);
+    g.bezierCurveTo(18, wl - 6, 34, peak + 2, 58, peak);
+    g.bezierCurveTo(80, peak - 1, 100, wl - 8, 117, wl + 4);
+    g.closePath();
+    g.fill();
+    // Đất, sỏi lấm tấm ở sườn
+    g.fillStyle = 'rgba(120, 100, 75, 0.35)';
+    for (let i = 0; i < 14; i++) g.fillRect(14 + rnd() * 92, wl - 8 + rnd() * 9, 1.4, 1);
+    // Cỏ phủ trên đỉnh
+    const ridge = x => wl + 4 - (wl + 4 - peak) * Math.pow(Math.sin(Math.PI * (x - 3) / 114), 0.8);
+    for (let x = 12; x < 108; x += 1.4) {
+        const y = ridge(x);
+        const h = 1.5 + rnd() * 4;
+        g.fillStyle = ['#3f6a3a', '#4d7c42', '#58884a', '#355a32'][(rnd() * 4) | 0];
+        g.fillRect(x, y - h, 1.1, h + 2.5);
+    }
+    // Lau sậy một bên, bông nâu
+    const reedX = variant ? 88 : 24;
+    for (let i = 0; i < 6; i++) {
+        const x = reedX + i * 2.4 + rnd() * 1.5;
+        const top = ridge(x) - 10 - rnd() * 9;
+        g.strokeStyle = '#4a6a36';
+        g.lineWidth = 0.8;
+        g.beginPath();
+        g.moveTo(x, ridge(x) + 1);
+        g.quadraticCurveTo(x + 1, (top + ridge(x)) / 2, x + (rnd() - 0.3) * 3, top);
+        g.stroke();
+        if (i % 2 === 0) {
+            g.fillStyle = '#6b4a2c';
+            g.fillRect(x - 0.6, top + 1, 1.6, 4);
+        }
+    }
+    sinkBelow(g, W, H, wl, 0.45);
+    c.wl = wl * S;
+    sprites[key] = c;
+    return c;
+}
+
+// Nước chảy qua vật đứng yên (đá, gò đất) hoặc trôi chậm hơn dòng (gỗ, lá bèo, hoa đăng...): sóng dồn ôm phía thượng nguồn
+// (bên trái), hai vệt nước rẽ ra và bọt trôi đi phía hạ nguồn, xoáy nhỏ sau đá. Hồ thì chỉ có vòng sóng lăn tăn lan
+// quanh vật. strength: 1 đá, gò đất; 0,2-0,4 vật trôi. Tọa độ điểm ảnh CSS (lớp đã nhân k).
+function drawFlowMarks(ctx, x, y, half, s, k, time, seed, river, strength) {
+    const thin = 1 / k;
+    ctx.lineWidth = thin;
+    ctx.strokeStyle = 'rgb(205, 222, 255)';
+    for (let i = 0; i < 2; i++) {
+        const p = (time * (river ? 0.0005 : 0.00032) + seed + i * 0.5) % 1;
+        const rx = half * (1.02 + p * (river ? 0.45 : 0.8)) + 2.5 * s;
+        ctx.globalAlpha = (1 - p) * (river ? 0.13 : 0.2) * (0.6 + strength * 0.4);
+        ctx.beginPath();
+        ctx.ellipse(x, y, rx, rx * 0.2 + 1.2 * s, 0, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    if (!river) return;
+    const spread = half * 0.2 + 1.4 * s;
+    ctx.strokeStyle = 'rgb(225, 236, 255)';
+    ctx.globalAlpha = (0.22 + 0.14 * Math.sin(time * 0.006 + seed * 9)) * (0.4 + strength * 0.6);
+    ctx.lineWidth = Math.max(thin, 1.1 * s * strength);
+    ctx.beginPath();
+    ctx.ellipse(x, y, half + 1.5 * s, spread + 0.6 * s, 0, Math.PI * 0.6, Math.PI * 1.4);
+    ctx.stroke();
+    const len = half * (0.7 + strength * 0.9) + 14 * s;
+    const grad = ctx.createLinearGradient(x + half * 0.7, 0, x + half + len, 0);
+    grad.addColorStop(0, `rgba(205, 222, 255, ${0.1 + 0.3 * strength})`);
+    grad.addColorStop(1, 'rgba(205, 222, 255, 0)');
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = thin;
+    ctx.beginPath();
+    [-1, 1].forEach(side => {
+        ctx.moveTo(x + half * 0.7, y + side * spread * 0.6);
+        ctx.quadraticCurveTo(x + half + len * 0.3, y + side * spread * 1.4, x + half + len, y + side * spread * (2.2 + strength * 1.4));
+    });
+    ctx.stroke();
+    ctx.fillStyle = 'rgb(215, 230, 255)';
+    const n = Math.round(3 + strength * 6);
+    for (let i = 0; i < n; i++) {
+        const p = (time * 0.0004 * (1 + hash(seed * 31 + i)) + hash(seed * 17 + i)) % 1;
+        const fx = x + half * 0.85 + p * len;
+        const fy = y + (hash(seed * 7 + i) - 0.5) * spread * 2.2 * (0.4 + p);
+        ctx.globalAlpha = (1 - p) * (0.2 + 0.35 * strength);
+        ctx.fillRect(fx, fy, (2 + hash(i + seed * 3) * 5) * s, Math.max(thin, 0.6 * s));
+    }
+    if (strength > 0.8) {
+        ctx.strokeStyle = 'rgb(205, 222, 255)';
+        for (let i = 0; i < 2; i++) {
+            const p = (time * 0.00035 + seed + i * 0.5) % 1;
+            const r = (2.5 + p * 3.5) * s;
+            const spin = time * 0.004 * (i ? 1 : -1);
+            ctx.globalAlpha = Math.sin(p * Math.PI) * 0.22;
+            ctx.beginPath();
+            ctx.ellipse(x + half + len * (0.15 + p * 0.45), y + (i ? 1 : -1) * spread * 1.3, r, r * 0.3, 0, spin, spin + Math.PI * 1.4);
+            ctx.stroke();
+        }
+    }
+}
+
+// Né đá, gò đất: vật đang ở gần (theo chiều ngang) mà cùng tầm xa (d) thì dạt dần ra phía trước hoặc phía sau vật cản
+function steerAround(item, x, half, rocks, dt, depthCss) {
+    for (const rock of rocks) {
+        const rockHalf = rock.size * WaterLife.scale(rock.d) / 2;
+        if (Math.abs(rock.x - x) > rockHalf + half + 40) continue;
+        const need = rockHalf * 0.5 / depthCss + 0.05;
+        const gap = item.d - rock.d;
+        if (Math.abs(gap) >= need) continue;
+        const side = gap === 0 ? (rock.d > 0.5 ? -1 : 1) : Math.sign(gap);
+        item.d = Math.min(0.97, Math.max(0.03, item.d + side * 0.0003 * dt));
+    }
+}
+
 export const Water = {
     drawn: false,
     frame: 0,
@@ -572,11 +1352,15 @@ export const Water = {
     dashKey: '',
     floats: [],
     floatKey: '',
+    plants: [],
+    plantKey: '',
+    rocks: [],
+    rockKey: '',
 
     // sources: các canvas cùng kích thước khung (vẽ theo điểm ảnh CSS cssW x cssH); background: phần tử ảnh nền;
     // style: 'lake' hồ tĩnh lặng | 'river' sông chảy; floating: '' | 'lanterns' hoa đăng | 'petals' cánh hoa;
-    // life: khúc gỗ trôi, cò, cá nhảy
-    render(ctx, { sources, background, sky, cssW, cssH, time, style, floating, calm, life }) {
+    // life: khúc gỗ trôi, cò, vịt trời, cá nhảy; plants: lá bèo; rocks: đá, gò đất giữa dòng
+    render(ctx, { sources, background, sky, cssW, cssH, time, style, floating, calm, life, plants, rocks: rocksOn }) {
         const level = horizon();
         const { width: W, height: H } = ctx.canvas;
         if (level >= 1 || !W || !H) {
@@ -594,6 +1378,14 @@ export const Water = {
         const horizonCss = level * cssH;
         const depthCss = depth / k;
         const fromCss = Math.max(0, horizonCss - depthCss);
+        // Bờ đất ở mép nước (kiểu Kingdom Two Crowns): pháo bắn lên từ mặt bờ. Mặt nước bắt đầu dưới chân bờ (surf);
+        // ngay dưới đó là bóng của bờ, rồi mới tới bóng bầu trời (reflTop)
+        const bankPx = Math.max(2, Math.round(Math.max(8, Math.min(16, cssH * 0.018)) * k));
+        const surf = Math.min(H, top + bankPx);
+        const reflTop = Math.min(H, surf + bankPx);
+        const reflDepth = H - reflTop;
+        const waterTopCss = surf / k;
+        const waterDepthCss = Math.max(1, (H - surf) / k);
 
         // 1. Bầu trời ngay trên mặt nước, lật ngược (dải cao bằng phần nước)
         if (!mirror) mirror = document.createElement('canvas');
@@ -646,8 +1438,8 @@ export const Water = {
         const strip = Math.max(1, Math.round((IS_MOBILE ? 6 : 4) * k));
         // Ghép kiểu lighten như các lớp trên trang: phần đen (lớp vệt pháo được phủ đen dần) không làm tối mặt nước
         ctx.globalCompositeOperation = 'lighten';
-        for (let y = 0, i = 0; y < depth; i++) {
-            const d = y / depth;
+        for (let y = 0, i = 0; y < reflDepth; i++) {
+            const d = y / reflDepth;
             const band = Math.max(strip, Math.round((strip + d * (river ? 9 : 5) * k * 2) / strip) * strip);
             const phase = hash(i) * Math.PI * 2;
             const speed = 0.0008 + hash(i + 50) * 0.0016;
@@ -656,20 +1448,20 @@ export const Water = {
             // Khe tối ngang, càng xa bờ càng nhiều: bóng trăng, bóng pháo vỡ thành từng lát
             const gap = hash(i + 99) < 0.1 + d * 0.3 ? 0.35 : 1;
             ctx.globalAlpha = (river ? 0.6 * (1 - d * 0.6) : 0.78 * (1 - d * 0.5)) * gap;
-            ctx.drawImage(mirror, 0, y, W, band, dx, top + y, W, band);
+            ctx.drawImage(mirror, 0, y, W, band, dx, reflTop + y, W, band);
             y += band;
         }
 
         // 4. Ánh sáng in thành vệt dọc xuống nước (trăng, pháo sáng kéo dài như ngoài đời)
         ctx.save();
         ctx.beginPath();
-        ctx.rect(0, top, W, depth);
+        ctx.rect(0, surf, W, H - surf);
         ctx.clip();
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = 0.16;
-        ctx.drawImage(mirror, 0, top + Math.round(3 * k));
+        ctx.drawImage(mirror, 0, reflTop + Math.round(3 * k));
         ctx.globalAlpha = 0.08;
-        ctx.drawImage(mirror, 0, top + Math.round(7 * k));
+        ctx.drawImage(mirror, 0, reflTop + Math.round(7 * k));
 
         // 5. Dải sóng dài mờ trôi chậm (kết cấu mặt nước), rồi vệt sóng ngắn lấp lánh; vệt nào nằm chỗ có ánh pháo thì
         //    sáng rực lên. Gần chân trời vệt nhỏ, dày; gần người xem vệt dài, thưa (phối cảnh).
@@ -679,14 +1471,14 @@ export const Water = {
         ctx.fillStyle = 'rgb(120, 150, 210)';
         this.swells.forEach(swell => {
             const x = (((swell.u * (cssW + 160) + this.flow * (river ? 0.25 + swell.d * 0.8 : 0.12)) % (cssW + 160)) - 80) * k;
-            const row = top + Math.round(swell.d * (depth - 1) + Math.sin(time * swell.speed + swell.phase) * 2 * k);
+            const row = surf + Math.round(swell.d * (H - surf - 1) + Math.sin(time * swell.speed + swell.phase) * 2 * k);
             const len = swell.len * (0.4 + swell.d) * k;
             ctx.globalAlpha = (calm ? 0.07 : 0.04 + 0.05 * (0.5 + 0.5 * Math.sin(time * swell.speed * 1.3 + swell.phase))) * (1 - swell.d * 0.4);
             ctx.fillRect(x, row, len, thin);
         });
         this.dashes.forEach(dash => {
             const x = (((dash.u * (cssW + 40) + this.flow * (river ? 0.4 + dash.d * 1.2 : 0.3)) % (cssW + 40)) - 20) * k;
-            const row = top + Math.round(dash.d * (depth - 1));
+            const row = surf + Math.round(dash.d * (H - surf - 1));
             const len = Math.max(1, dash.len * (0.5 + dash.d) * k);
             const twinkle = calm ? 0.6 : 0.2 + 0.8 * Math.pow(0.5 + 0.5 * Math.sin(time * dash.speed + dash.phase), 2);
             ctx.globalCompositeOperation = 'source-over';
@@ -695,71 +1487,81 @@ export const Water = {
             ctx.fillRect(x, row, len, thin);
             ctx.globalCompositeOperation = 'lighter';
             ctx.globalAlpha = twinkle;
-            ctx.drawImage(mirror, Math.max(0, x), row - top, len, 1, x, row, len, thin);
+            ctx.drawImage(mirror, Math.max(0, x), Math.max(0, row - reflTop), len, 1, x, row, len, thin);
         });
         ctx.restore();
 
-        // 6. Vật trôi trên nước: hoa đăng (tự phát sáng, in bóng), cánh hoa; xa bờ thì to và trôi nhanh hơn (gần người xem)
-        this.syncFloats(floating, river);
-        this.floats.forEach(item => {
-            item.u += (river ? item.speed * (0.3 + item.d) : item.speed * 0.08) * dt / cssW;
-            if (item.u > 1.05) item.u = -0.05;
-            if (item.u < -0.05) item.u = 1.05;
-            item.bob += dt * 0.0015;
-            const x = item.u * cssW * k;
-            const y = top + item.d * depth + Math.sin(item.bob) * k;
-            const s = (0.35 + item.d * 0.9) * k * (IS_MOBILE ? 0.85 : 1);
-            if (item.kind === 'lantern') {
-                // Bóng ánh nến kéo dài xuống nước
-                const glow = ctx.createRadialGradient(x, y + 6 * s, 0, x, y + 6 * s, 16 * s);
-                glow.addColorStop(0, `rgba(255, 180, 90, ${calm ? 0.3 : 0.25 + Math.sin(item.bob * 3) * 0.05})`);
-                glow.addColorStop(1, 'rgba(255, 150, 60, 0)');
-                ctx.globalAlpha = 1;
-                ctx.fillStyle = glow;
-                ctx.save();
-                ctx.translate(x, y + 6 * s);
-                ctx.scale(1, 1.8);
-                ctx.translate(-x, -(y + 6 * s));
-                ctx.fillRect(x - 16 * s, y + 6 * s - 16 * s, 32 * s, 32 * s);
-                ctx.restore();
-                const sprite = floatLanternSprite();
-                ctx.drawImage(sprite, x - 12 * s, y - 14 * s, 24 * s, 20 * s);
-            } else {
-                item.rot += dt * item.spin;
-                ctx.save();
-                ctx.translate(x, y);
-                ctx.rotate(item.rot);
-                ctx.globalAlpha = 0.85;
-                ctx.fillStyle = item.color;
-                ctx.beginPath();
-                ctx.ellipse(0, 0, 2.6 * s, 1.5 * s, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-        });
+        // 6. Bờ đất: bóng của bờ in ngay dưới chân bờ, rồi tới bờ (pháo rọi màu lên bờ)
+        const bank = bankSprite(W, bankPx, k);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.save();
+        ctx.globalAlpha = 0.4;
+        ctx.translate(0, surf);
+        ctx.scale(1, -1);
+        ctx.drawImage(bank.canvas, 0, bank.over, W, bankPx, 0, -bankPx, W, bankPx);
+        ctx.restore();
+        ctx.globalAlpha = 1;
+        ctx.drawImage(bank.canvas, 0, top - bank.over);
+        if (sky.r + sky.g + sky.b > 6) {
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = 0.5;
+            ctx.fillStyle = `rgb(${sky.r * 0.22 | 0}, ${sky.g * 0.22 | 0}, ${sky.b * 0.22 | 0})`;
+            ctx.fillRect(0, top, W, bankPx);
+            ctx.globalCompositeOperation = 'source-over';
+        }
 
-        // 7. Khúc gỗ trôi, cò đậu, cá nhảy
+        // 7. Vật trên mặt nước: lá bèo, hoa đăng, cánh hoa, đá, gò đất, khúc gỗ, cò, vịt. Vẽ chung theo tầm
+        //    xa (xa trước, gần sau); quanh mỗi vật mặt nước gợn lên, trên sông nước rẽ qua vật. Vật trôi né đá, gò đất.
+        //    Tọa độ điểm ảnh CSS.
+        const rocks = this.syncRocks(rocksOn, river, cssW);
+        const surfY = d => waterTopCss + d * waterDepthCss;
+        const floatScale = d => (0.35 + d * 0.9) * (IS_MOBILE ? 0.85 : 1);
+        this.syncPlants(plants, river, cssW);
+        this.syncFloats(floating, river);
+        // Sông thì trôi theo dòng (xa bờ người xem trôi nhanh hơn); hồ thì gần như đứng yên
+        const drift = (item, half, still) => {
+            item.u += (river ? item.speed * (0.3 + item.d) : item.speed * still) * dt / cssW;
+            if (item.u > 1.06) item.u = -0.06;
+            if (item.u < -0.06) item.u = 1.06;
+            steerAround(item, item.u * cssW, half, rocks, dt, waterDepthCss);
+        };
+        this.plants.forEach(item => {
+            item.bob += dt * 0.0012;
+            drift(item, 12 * floatScale(item.d), 0.02);
+        });
+        this.floats.forEach(item => {
+            item.bob += dt * 0.0015;
+            if (item.kind !== 'lantern') item.rot += dt * item.spin;
+            drift(item, (item.kind === 'lantern' ? 10 : 3) * floatScale(item.d), 0.08);
+        });
         if (life) {
             const key = `${river}_${Math.round(cssW)}_${Math.round(cssH)}_${level}`;
             if (key !== WaterLife.key) {
                 WaterLife.key = key;
                 WaterLife.reset(river, cssW);
             }
-            WaterLife.update(dt, river, cssW, horizonCss, depthCss);
-            WaterLife.draw(ctx, k, horizonCss, depthCss, time);
+            WaterLife.update(dt, river, cssW, waterTopCss, waterDepthCss, rocks);
         } else if (WaterLife.key) {
             WaterLife.key = '';
         }
+        ctx.setTransform(k, 0, 0, k, 0, 0);
+        ctx.globalCompositeOperation = 'source-over';
+        if (life) WaterLife.drawUnder(ctx, k, waterTopCss, waterDepthCss);
+        [
+            ...this.plants.map(item => ({
+                d: item.d, draw: () => this.drawPlant(ctx, item, item.u * cssW, surfY(item.d) + Math.sin(item.bob) * 0.5, floatScale(item.d), k, time, river)
+            })),
+            ...this.floats.map(item => ({
+                d: item.d, draw: () => this.drawFloat(ctx, item, item.u * cssW, surfY(item.d) + Math.sin(item.bob), floatScale(item.d), k, time, river, calm)
+            })),
+            ...rocks.map(rock => ({ d: rock.d, draw: () => this.drawRock(ctx, rock, surfY(rock.d), WaterLife.scale(rock.d), k, time, river) })),
+            ...(life ? WaterLife.things(ctx, k, waterTopCss, waterDepthCss, time, river) : [])
+        ].sort((a, b) => a.d - b.d).forEach(item => item.draw());
+        if (life) WaterLife.drawOver(ctx, k, waterTopCss, waterDepthCss);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-        // 8. Mép nước sáng mảnh
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
-        const line = ctx.createLinearGradient(0, 0, W, 0);
-        line.addColorStop(0, 'rgba(150, 180, 230, 0)');
-        line.addColorStop(0.5, 'rgba(150, 180, 230, 0.28)');
-        line.addColorStop(1, 'rgba(150, 180, 230, 0)');
-        ctx.fillStyle = line;
-        ctx.fillRect(0, top, W, Math.max(1, k));
     },
 
     // Rải lại các vệt sáng khi đổi kiểu nước hoặc cỡ khung
@@ -787,6 +1589,106 @@ export const Water = {
         }));
     },
 
+    // Lá bèo (lớp đã nhân k, tọa độ điểm ảnh CSS): gợn nước quanh lá
+    drawPlant(ctx, item, x, y, s, k, time, river) {
+        drawFlowMarks(ctx, x, y, 11 * s, s, k, time, item.seed, river, 0.15);
+        ctx.save();
+        ctx.translate(x, y);
+        if (item.flip) ctx.scale(-1, 1);
+        ctx.globalAlpha = 0.95;
+        ctx.drawImage(padSprite(item.variant), -12 * s, -5 * s, 24 * s, 10 * s);
+        ctx.restore();
+    },
+
+    // Hoa đăng (tự phát sáng, ánh nến in xuống nước, gợn nước quanh đế), cánh hoa
+    drawFloat(ctx, item, x, y, s, k, time, river, calm) {
+        if (item.kind === 'lantern') {
+            drawFlowMarks(ctx, x, y + 2 * s, 10 * s, s, k, time, item.seed, river, 0.2);
+            const glow = ctx.createRadialGradient(x, y + 6 * s, 0, x, y + 6 * s, 16 * s);
+            glow.addColorStop(0, `rgba(255, 180, 90, ${calm ? 0.3 : 0.25 + Math.sin(item.bob * 3) * 0.05})`);
+            glow.addColorStop(1, 'rgba(255, 150, 60, 0)');
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = glow;
+            ctx.save();
+            ctx.translate(x, y + 6 * s);
+            ctx.scale(1, 1.8);
+            ctx.translate(-x, -(y + 6 * s));
+            ctx.fillRect(x - 16 * s, y + 6 * s - 16 * s, 32 * s, 32 * s);
+            ctx.restore();
+            ctx.drawImage(floatLanternSprite(), x - 12 * s, y - 14 * s, 24 * s, 20 * s);
+        } else {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(item.rot);
+            ctx.globalAlpha = 0.85;
+            ctx.fillStyle = item.color;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 2.6 * s, 1.5 * s, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    },
+
+    // Đá, gò đất: bóng phần nổi in xuống nước, dòng nước dồn vào rồi rẽ qua
+    drawRock(ctx, rock, y, s, k, time, river) {
+        const sprite = rock.kind === 'rock' ? rockSprite(rock.variant) : moundSprite(rock.variant);
+        const w = rock.size * s;
+        const h = w * sprite.height / sprite.width;
+        const wlOff = h * sprite.wl / sprite.height;
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        ctx.translate(rock.x - w / 2, y);
+        ctx.scale(1, -0.75);
+        ctx.drawImage(sprite, 0, 0, sprite.width, sprite.wl, 0, -wlOff, w, wlOff);
+        ctx.restore();
+        drawFlowMarks(ctx, rock.x, y, w * 0.46, s, k, time, rock.seed, river, 1);
+        ctx.globalAlpha = 1;
+        ctx.drawImage(sprite, rock.x - w / 2, y - wlOff, w, h);
+    },
+
+    // Đá, gò đất giữa dòng: rải lại khi bật/tắt, đổi kiểu nước hoặc cỡ khung; cách xa nhau cho vật trôi có lối đi
+    syncRocks(on, river, cssW) {
+        const key = `${on}_${river}_${Math.round(cssW)}`;
+        if (key === this.rockKey) return this.rocks;
+        this.rockKey = key;
+        this.rocks = [];
+        if (!on) return this.rocks;
+        const count = river ? 2 + (Math.random() < 0.5 ? 1 : 0) : 1 + (Math.random() < 0.4 ? 1 : 0);
+        for (let tries = 0; this.rocks.length < count && tries < 40; tries++) {
+            const kind = Math.random() < 0.55 ? 'rock' : 'mound';
+            const rock = {
+                kind, variant: (Math.random() * (kind === 'rock' ? 3 : 2)) | 0, x: MyMath.random(0.12, 0.88) * cssW,
+                d: MyMath.random(0.25, 0.8), size: kind === 'rock' ? MyMath.random(55, 80) : MyMath.random(95, 135), seed: Math.random()
+            };
+            if (this.rocks.some(o => Math.abs(o.x - rock.x) < cssW * 0.2 && Math.abs(o.d - rock.d) < 0.3)) continue;
+            this.rocks.push(rock);
+        }
+        return this.rocks;
+    },
+
+    // Rải lại lá bèo khi bật/tắt, đổi kiểu nước hoặc cỡ khung: hồ thì mọc thành từng đám, sông thì từng nhóm nhỏ trôi
+    syncPlants(on, river, cssW) {
+        const key = `${on}_${river}_${Math.round(cssW)}`;
+        if (key === this.plantKey) return;
+        this.plantKey = key;
+        this.plants = [];
+        if (!on) return;
+        const scale = IS_MOBILE ? 0.6 : 1;
+        const clusters = Math.max(1, Math.round((river ? 5 : 6) * scale));
+        for (let c = 0; c < clusters; c++) {
+            const u = Math.random();
+            const d = MyMath.random(0.1, 0.85);
+            const n = river ? 2 + ((Math.random() * 2) | 0) : 3 + ((Math.random() * 4) | 0);
+            for (let i = 0; i < n; i++) {
+                this.plants.push({
+                    kind: 'pad', variant: Math.random() < 0.2 ? 3 : (Math.random() * 3) | 0, u: u + MyMath.random(-0.04, 0.04),
+                    d: Math.min(0.97, Math.max(0.04, d + MyMath.random(-0.08, 0.08))), speed: MyMath.random(0.008, 0.014),
+                    bob: Math.random() * 6, flip: Math.random() < 0.5, seed: Math.random()
+                });
+            }
+        }
+    },
+
     syncFloats(kind, river) {
         const key = `${kind}_${river}`;
         if (key === this.floatKey) return;
@@ -795,7 +1697,10 @@ export const Water = {
         if (kind === 'lanterns') {
             const count = IS_MOBILE ? 6 : 10;
             for (let i = 0; i < count; i++) {
-                this.floats.push({ kind: 'lantern', u: Math.random(), d: MyMath.random(0.12, 0.9), speed: MyMath.random(0.012, 0.022), bob: Math.random() * 6 });
+                this.floats.push({
+                    kind: 'lantern', u: Math.random(), d: MyMath.random(0.12, 0.9), speed: MyMath.random(0.012, 0.022), bob: Math.random() * 6,
+                    seed: Math.random()
+                });
             }
         } else if (kind === 'petals') {
             const count = IS_MOBILE ? 22 : 38;

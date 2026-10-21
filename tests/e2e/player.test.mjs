@@ -228,7 +228,7 @@ export async function run(browser, base, { check }) {
                 for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 60) n++;
                 return n / (d.length / 4);
             };
-            return { water: cov('water-canvas', 0.5, 1), sky: cov('water-canvas', 0, 0.5), deco: cov('deco-canvas'), sparksBelow: cov('trails-canvas', 0.52, 1) };
+            return { water: cov('water-canvas', 0.5, 1), sky: cov('water-canvas', 0, 0.48), deco: cov('deco-canvas'), sparksBelow: cov('trails-canvas', 0.52, 1) };
         });
         check('mặt nước: có bóng phản chiếu dưới mép nước, pháo không vẽ xuống nước',
             scene.water > 0.001 && scene.sky === 0 && scene.sparksBelow === 0, JSON.stringify(scene));
@@ -248,20 +248,48 @@ export async function run(browser, base, { check }) {
         // Sông chảy: có khúc gỗ trôi (màu gỗ nâu trên mặt nước); tắt "Chim, cá, khúc gỗ" thì không có
         const woodOnWater = () => page.evaluate(() => {
             const c = document.getElementById('water-canvas');
-            const d = c.getContext('2d').getImageData(0, Math.round(c.height / 2), c.width, Math.round(c.height / 2)).data;
+            const d = c.getContext('2d').getImageData(0, Math.round(c.height * 0.56), c.width, Math.round(c.height * 0.44)).data;
             let n = 0;
             for (let i = 0; i < d.length; i += 4) if (d[i] > 60 && d[i] > d[i + 1] + 15 && d[i + 1] > d[i + 2] + 8) n++;
             return n;
         });
         await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
-            { loop: true, events: [], water: 'half', waterStyle: 'river' });
+            { loop: true, events: [], water: 'half', waterStyle: 'river', waterRocks: false, waterPlants: false });
         await sleep(1500);
         const wood = await woodOnWater();
         await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
-            { loop: true, events: [], water: 'half', waterStyle: 'river', waterLife: false });
+            { loop: true, events: [], water: 'half', waterStyle: 'river', waterLife: false, waterRocks: false, waterPlants: false });
         await sleep(800);
         const noWood = await woodOnWater();
         check('sông chảy: có khúc gỗ trôi, tắt "Chim, cá, khúc gỗ" thì không còn', wood > 20 && noWood === 0, JSON.stringify({ wood, noWood }));
+        // Lá bèo (màu lá xanh trên mặt nước, dưới bờ); tắt thì không còn. Bờ đá màu đất ở mép nước.
+        const onWater = (from, to, test) => page.evaluate((from, to, test) => {
+            const c = document.getElementById('water-canvas');
+            const d = c.getContext('2d').getImageData(0, Math.round(c.height * from), c.width, Math.max(1, Math.round(c.height * (to - from)))).data;
+            const match = new Function('r', 'g', 'b', `return ${test}`);
+            let n = 0;
+            for (let i = 0; i < d.length; i += 4) if (match(d[i], d[i + 1], d[i + 2])) n++;
+            return n;
+        }, from, to, test);
+        const green = 'g > 50 && g > r + 15 && g > b + 5';
+        await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
+            { loop: true, events: [], water: 'half', waterLife: false, waterRocks: false });
+        await sleep(800);
+        const plants = await onWater(0.56, 1, green);
+        const bank = await onWater(0.5, 0.505, 'r > 25 && r >= g && g >= b');
+        await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
+            { loop: true, events: [], water: 'half', waterLife: false, waterPlants: false, waterRocks: false });
+        await sleep(800);
+        const noPlants = await onWater(0.56, 1, green);
+        // Đá, gò đất giữa dòng (đá xám, gò màu đất); tắt thì không còn
+        const stone = 'r > 40 && r < 170 && Math.abs(r - g) < 14 && Math.abs(g - b) < 16 || (r > 45 && r > g + 8 && g > b + 6)';
+        await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
+            { loop: true, events: [], water: 'half', waterStyle: 'river', waterLife: false, waterPlants: false });
+        await sleep(800);
+        const rocks = await onWater(0.56, 1, stone);
+        check('sông: có đá, gò đất giữa dòng (tắt lá bèo, sinh vật thì vẫn còn)', rocks > 100, rocks);
+        check('mặt nước: có bờ đá ở mép nước, lá bèo; tắt "Lá bèo" thì không còn', plants > 50 && noPlants === 0 && bank > 100,
+            JSON.stringify({ plants, noPlants, bank }));
         check('cảnh vật không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
         await page.close();
 
