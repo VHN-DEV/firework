@@ -702,7 +702,7 @@ function createNewScript() {
         // Bỏ nhạc nền
         state.music = null;
         state.effectsVolume = 1;
-        previewMusicOn = false;
+        stopPreviewMusic();
         renderMusic();
 
         // Add one default event
@@ -1164,7 +1164,9 @@ const HELP_TIPS = {
     timeline: 'Kịch bản gồm các <strong>đợt</strong> chạy lần lượt, mỗi đợt khoảng 3 giây. Các phát cùng đợt bắn cùng lúc, trừ khi đặt <strong>Trễ</strong>. '
         + 'Thêm phát <strong>Tạm dừng</strong> để kéo dài một đợt. Bấm vào một phát để chỉnh.',
     preview: 'Chạy chính trình phát thật nên giống hệt khi gửi đi. Đang chọn một phát thì chỉ bắn lặp phát đó. '
-        + 'Khung này không có tiếng pháo: bấm <i class="fas fa-music"></i> để nghe nhạc nền, hoặc <strong>Xem thử</strong> để nghe đầy đủ.',
+        + '<i class="fas fa-play"></i> chạy cả kịch bản từ đầu (tiêu đề, lời nhắn, màn kết). <i class="fas fa-volume-high"></i> bật tiếng pháo và nhạc nền. '
+        + '<i class="fas fa-gift"></i> xem như người nhận: thiệp hoặc hộp quà, chạm vào khung để mở. '
+        + 'Hẹn giờ (đồng hồ đếm ngược) và toàn màn hình khi mở quà chỉ xem được bằng <strong>Xem thử</strong>.',
     // Xếp pháo theo nhịp nhạc
     beatDensity: '<strong>Thưa</strong>: chủ yếu phách đầu mỗi ô nhịp. <strong>Vừa</strong>: thêm các phách khác ở đoạn sôi động. '
         + '<strong>Dày</strong>: thêm phát nhỏ giữa các phách ở đoạn cao trào; máy yếu có thể giật.',
@@ -2174,7 +2176,7 @@ function renderMusic() {
     const effects = Math.round(state.effectsVolume * 100);
     document.getElementById('effects-volume').value = effects;
     document.getElementById('out-effects-volume').textContent = effects + '%';
-    updateMusicPreviewButton();
+    updateSoundPreviewButton();
 }
 
 function setMusic(music) {
@@ -2316,7 +2318,7 @@ function chooseLibraryItem(id) {
 
 function removeMusic() {
     state.music = null;
-    previewMusicOn = false;
+    stopPreviewMusic();
     renderMusic();
 }
 
@@ -2399,7 +2401,7 @@ function setMusicFromUrl() {
 }
 
 // Nghe nhạc cùng khung xem nhanh: nhạc bắt đầu đúng lúc trình phát bắn đợt 1 (giống màn trình diễn thật)
-let previewMusicOn = false;
+let previewSoundOn = false;
 let previewMusicPlaying = false;
 let previewMusicStopTimer = null;
 let previewClockTimer = null;
@@ -2415,36 +2417,67 @@ function sendPreviewClock() {
     }, window.location.origin);
 }
 
-function updateMusicPreviewButton() {
-    const btn = document.getElementById('btn-music-mini');
+// Nút Âm thanh của khung xem nhanh: tiếng pháo (trong khung) và nhạc nền (builder phát, khớp với kịch bản)
+function updateSoundPreviewButton() {
+    const btn = document.getElementById('btn-sound-mini');
     if (!btn) return;
-    btn.classList.toggle('hide', !state.music);
-    btn.classList.toggle('active', previewMusicOn);
-    btn.title = previewMusicOn ? 'Tắt nhạc khi xem nhanh' : 'Nghe nhạc nền khi xem nhanh (chạy lại kịch bản từ đầu)';
+    btn.classList.toggle('active', previewSoundOn);
+    btn.querySelector('i').className = `fas fa-${previewSoundOn ? 'volume-high' : 'volume-xmark'}`;
+    btn.title = previewSoundOn
+        ? 'Tắt âm thanh khi xem nhanh'
+        : `Bật âm thanh khi xem nhanh (tiếng pháo${state.music ? ' và nhạc nền, chạy lại từ đầu cho khớp nhạc' : ''})`;
 }
 
-function togglePreviewMusic() {
-    if (!state.music) return;
-    previewMusicOn = !previewMusicOn;
-    updateMusicPreviewButton();
-    if (!previewMusicOn) {
+// Safari chỉ cho phát nhạc về sau nếu đã play() ngay trong lúc người dùng bấm
+function unlockPreviewMusic() {
+    const audio = getMusicAudio();
+    if (!state.music || !audio || !audio.paused) return;
+    audio.muted = true;
+    audio.play()
+        .then(() => { if (!previewMusicPlaying) audio.pause(); })
+        .catch(() => {})
+        .finally(() => { audio.muted = false; });
+}
+
+function togglePreviewSound() {
+    previewSoundOn = !previewSoundOn;
+    updateSoundPreviewButton();
+    if (!previewSoundOn) {
         stopPreviewMusic();
+        sendPreview(false);
         return;
     }
-    // Safari chỉ cho phát nhạc về sau nếu đã play() ngay trong lúc người dùng bấm
-    const audio = getMusicAudio();
-    if (audio.paused) {
-        audio.muted = true;
-        audio.play()
-            .then(() => { if (!previewMusicPlaying) audio.pause(); })
-            .catch(() => {})
-            .finally(() => { audio.muted = false; });
+    // Không có nhạc nền: chỉ bật tiếng pháo, không cần chạy lại
+    if (!state.music) {
+        sendPreview(false);
+        return;
     }
+    unlockPreviewMusic();
     // Chạy cả kịch bản từ đầu để nhạc khớp nhịp
     if (state.activeEventId) closeInspector();
     if (previewMode === 'idle') previewMode = 'once';
     updateMiniInfo();
-    sendPreview(true);
+    sendPreview(true, { intro: true });
+}
+
+// Xem như người nhận: màn mở quà (thiệp chào / hộp quà), chạm mở thì chạy từ đầu kèm tiêu đề, âm thanh, rồi màn kết
+function previewAsRecipient() {
+    if (state.events.length === 0) return;
+    if (state.activeEventId) {
+        state.activeEventId = null;
+        showActiveEvent(null);
+        renderInspector();
+    }
+    stopPreviewMusic();
+    if (!previewSoundOn) {
+        previewSoundOn = true;
+        updateSoundPreviewButton();
+    }
+    unlockPreviewMusic();
+    previewMode = 'once';
+    const info = document.getElementById('mini-preview-info');
+    if (info) info.innerText = 'Chạm vào khung xem nhanh để mở quà như người nhận';
+    sendPreview(true, { startFrame: true });
 }
 
 function startPreviewMusic() {
@@ -3500,7 +3533,7 @@ function applyBeatShow() {
     scheduleCheckpoint();
     // Nghe thử ngay (đang trong lúc bấm nên trình duyệt cho phát nhạc)
     if (state.miniPreviewEnabled) {
-        if (!previewMusicOn) togglePreviewMusic();
+        if (!previewSoundOn) togglePreviewSound();
         else playMiniPreviewOnce();
     }
     notify(`Đã xếp ${show.shots} phát pháo theo nhịp ${formatNumber(beatAnalysis.bpm)} BPM. `
@@ -4819,7 +4852,7 @@ function loadConfigIntoState(config, filename) {
     state.music = config.music && typeof config.music.url === 'string' ? { ...config.music } : null;
     const effectsVolume = Number(config.effectsVolume);
     state.effectsVolume = config.effectsVolume !== undefined && Number.isFinite(effectsVolume) ? Math.max(0, Math.min(1, effectsVolume)) : 1;
-    previewMusicOn = false;
+    stopPreviewMusic();
     renderMusic();
 
     document.getElementById('show-background').checked = state.showBackground;
@@ -4930,7 +4963,8 @@ function getPreviewFrame() {
 }
 
 // Gửi kịch bản hiện tại sang trình phát. restart = true: chạy lại ngay từ đợt đầu.
-function sendPreview(restart) {
+// extra.intro: chạy từ đầu kèm tiêu đề mở đầu; extra.startFrame: hiện màn mở quà, chờ chạm mở như người nhận
+function sendPreview(restart, extra = {}) {
     clearTimeout(previewRefreshTimer);
     const frame = getPreviewFrame();
     if (!state.miniPreviewEnabled || !previewReady || !frame || !frame.contentWindow) return;
@@ -4948,7 +4982,11 @@ function sendPreview(restart) {
     } else {
         config.loop = previewMode === 'loop';
     }
-    frame.contentWindow.postMessage({ type: 'firework-preview', config, restart }, window.location.origin);
+    const wholeScript = index === -1 && previewMode !== 'idle';
+    frame.contentWindow.postMessage({
+        type: 'firework-preview', config, restart, sound: previewSoundOn,
+        intro: !!extra.intro && wholeScript, startFrame: !!extra.startFrame && wholeScript
+    }, window.location.origin);
 }
 
 // Gom các thay đổi liên tiếp rồi mới gửi một lần. Đang xem riêng một phát bắn thì bắn lại ngay để thấy thay đổi,
@@ -4973,8 +5011,14 @@ window.addEventListener('message', (e) => {
     if (e.data.type === 'firework-preview-ready' && e.source === getPreviewFrame()?.contentWindow) {
         previewReady = true;
         sendPreview(true);
-    } else if (e.data.type === 'firework-preview-started' && previewMusicOn && !state.activeEventId) {
+    } else if (e.data.type === 'firework-preview-started' && previewSoundOn && !state.activeEventId) {
         startPreviewMusic();
+        if (previewMode === 'once') updateMiniInfo();
+    } else if (e.data.type === 'firework-preview-replay') {
+        playMiniPreviewOnce();
+    } else if (e.data.type === 'firework-preview-interactive') {
+        // Màn mở quà / màn kết đang hiện trong khung: cho chạm (mở quà, Xem lại)
+        document.getElementById('mini-preview-stage')?.classList.toggle('is-interactive', !!e.data.on);
     } else if (e.data.type === 'firework-preview-ended' && previewMode === 'once' && !state.activeEventId) {
         previewMode = 'idle';
         const info = document.getElementById('mini-preview-info');
@@ -5080,7 +5124,7 @@ function togglePreviewDevice() {
 // Chạy lại từ đầu (không lặp thì chạy một lượt)
 function restartMiniPreview() {
     if (previewMode === 'idle') playMiniPreviewOnce();
-    else sendPreview(true);
+    else sendPreview(true, { intro: true });
 }
 
 function toggleFullscreenMiniPreview() {
@@ -5114,7 +5158,7 @@ function playMiniPreviewOnce() {
     if (state.events.length === 0) return;
     previewMode = 'once';
     updateMiniInfo();
-    sendPreview(true);
+    sendPreview(true, { intro: true });
 }
 
 // Các hàm được gọi từ thuộc tính onclick/onchange trong HTML
@@ -5126,7 +5170,7 @@ Object.assign(window, {
     openScriptsModal, exportConfig, previewConfig, saveConfig, toggleSidebar, toggleMoreMenu, showModal,
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
-    togglePreviewMusic, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
+    togglePreviewSound, previewAsRecipient, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
     hideModal, setStartFrame, undo, redo, setOpenMode, setSmoke, setViewerOption, setWater, setWaterStyle, setFloating, setStars, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
     toggleLibraryPreview, chooseLibraryItem, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
     openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, prepareVideo, stopVideo, downloadVideo, shareVideo,

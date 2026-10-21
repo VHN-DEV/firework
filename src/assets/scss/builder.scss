@@ -1939,6 +1939,11 @@ select.is-invalid {
         background: #000;
     }
 
+    // Màn mở quà / màn kết đang hiện: chạm được vào khung
+    .mini-preview-stage.is-interactive .mini-preview-frame {
+        pointer-events: auto;
+    }
+
     .mini-preview-ruler-x,
     .mini-preview-ruler-y {
         position: absolute;
@@ -4274,6 +4279,17 @@ select.is-invalid {
 
     .preview-title {
         white-space: nowrap;
+    }
+
+    // Màn rất hẹp (320px): bỏ chữ "Xem nhanh", giữ biểu tượng và nút "?" để đủ chỗ cho 7 nút
+    @media (max-width: 379px) {
+        .preview-title-text {
+            display: none;
+        }
+
+        .preview-actions .icon-btn {
+            width: 32px;
+        }
     }
 
     .help-tip {

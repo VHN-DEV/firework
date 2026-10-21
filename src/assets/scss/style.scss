@@ -612,6 +612,11 @@ body {
     }
 }
 
+// Bản xem nhanh trong builder: màn kết không cần lời mời tạo màn pháo hoa
+.is-preview .end-screen__create {
+    display: none;
+}
+
 // Khung quay video (builder > Xuất video): chỉ còn bầu trời; nút "Bắt đầu quay" ở giữa trước khi quay
 .is-record-mode {
     .controls,

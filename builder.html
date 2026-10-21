@@ -650,14 +650,16 @@
             <aside class="studio-panel">
                 <section id="mini-preview" class="preview-card">
                     <div class="preview-header">
-                        <span class="preview-title"><i class="fas fa-eye"></i> Xem nhanh<button type="button" class="help-tip" data-help="preview" aria-label="Giải thích">?</button></span>
+                        <span class="preview-title"><i class="fas fa-eye"></i><span class="preview-title-text"> Xem nhanh</span><button type="button" class="help-tip" data-help="preview" aria-label="Giải thích">?</button></span>
                         <div class="preview-actions">
                             <button id="btn-play-mini" class="icon-btn hide" onclick="playMiniPreviewOnce()"
                                 title="Chạy kịch bản một lượt"><i class="fas fa-play"></i></button>
                             <button class="icon-btn" onclick="restartMiniPreview()" title="Chạy lại từ đầu"><i
                                     class="fas fa-rotate-right"></i></button>
-                            <button id="btn-music-mini" class="icon-btn hide" onclick="togglePreviewMusic()"
-                                title="Nghe nhạc nền khi xem nhanh"><i class="fas fa-music"></i></button>
+                            <button id="btn-sound-mini" class="icon-btn" onclick="togglePreviewSound()"
+                                title="Bật âm thanh khi xem nhanh"><i class="fas fa-volume-xmark"></i></button>
+                            <button id="btn-gift-mini" class="icon-btn" onclick="previewAsRecipient()"
+                                title="Xem như người nhận: màn mở quà, tiêu đề, âm thanh, màn kết"><i class="fas fa-gift"></i></button>
                             <button id="btn-device-mini" class="icon-btn" onclick="togglePreviewDevice()"
                                 title="Đang xem như trên máy tính - bấm để xem như trên điện thoại"><i
                                     class="fas fa-desktop"></i></button>
@@ -670,7 +672,7 @@
                     <div class="mini-preview-canvas-container">
                         <!-- Chạy chính trình phát thật (index.html?preview=1) để xem nhanh giống hệt khi trình diễn -->
                         <div id="mini-preview-stage" class="mini-preview-stage">
-                            <iframe id="mini-preview-frame" class="mini-preview-frame"
+                            <iframe id="mini-preview-frame" class="mini-preview-frame" allow="autoplay; fullscreen"
                                 title="Xem nhanh màn trình diễn"></iframe>
                             <div id="mini-ruler-x" class="mini-preview-ruler-x"></div>
                             <div id="mini-ruler-y" class="mini-preview-ruler-y"></div>

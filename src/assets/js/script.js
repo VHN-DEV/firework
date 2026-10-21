@@ -931,7 +931,7 @@ function showEndScreen() {
         finishRecording(true);
         return;
     }
-    if (IS_PREVIEW || IS_HEADER || !burstConfig || burstConfig.loop) return;
+    if (IS_HEADER || !burstConfig || burstConfig.loop) return;
     reportGiftEvent('finish', burstConfig);
     const screen = appNodes.endScreen;
     screen.querySelector('.end-screen__title').textContent = burstConfig.title || 'Cảm ơn bạn đã xem!';
@@ -939,9 +939,22 @@ function showEndScreen() {
         String(replacePlaceholders(burstConfig.outroMessage || '')).trim() || burstConfig.subtitle || '';
     screen.querySelector('.end-screen__from').textContent = burstConfig.author || '';
     screen.classList.remove('hide');
+    if (IS_PREVIEW) previewInteractive(true);
+}
+
+// Bản xem nhanh: builder chỉ cho chạm vào khung khi đang có màn mở quà hoặc màn kết (bình thường chạm nhầm sẽ bắn pháo)
+function previewInteractive(on) {
+    window.parent.postMessage({ type: 'firework-preview-interactive', on }, window.location.origin);
 }
 
 function replayShow() {
+    // Bản xem nhanh: builder chạy lại cả kịch bản (kèm nhạc nếu đang bật âm thanh)
+    if (IS_PREVIEW) {
+        appNodes.endScreen.classList.add('hide');
+        previewInteractive(false);
+        window.parent.postMessage({ type: 'firework-preview-replay' }, window.location.origin);
+        return;
+    }
     clearTimeout(endScreenTimer);
     appNodes.endScreen.classList.add('hide');
     pendingLaunchTimers.forEach(clearTimeout);
@@ -2095,8 +2108,8 @@ function updateGlobals(timeStep, lag) {
         }
     }
 
-    // tự động phóng đạn
-    if (store.state.config.autoLaunch) {
+    // tự động phóng đạn (bản xem nhanh đang hiện màn mở quà thì chờ)
+    if (store.state.config.autoLaunch && !previewWaitingOpen) {
         syncShow.update(timeStep);
         autoLaunchTime -= timeStep;
         if (autoLaunchTime <= 0) {
@@ -2610,10 +2623,59 @@ function setLoadingStatus(status) {
     appNodes.loadingStatus.textContent = status;
 }
 
+// Bản xem nhanh: đang hiện màn mở quà, chờ người tạo chạm mở như người nhận
+let previewWaitingOpen = false;
+let previewFrameToken = 0;
+
+// Dựng lại màn mở quà của kịch bản (thiệp chào hoặc hộp quà) trong bản xem nhanh. Chạm mở thì màn trình diễn chạy từ
+// đầu như khi người nhận mở link: tiêu đề mở đầu, pháo, màn kết.
+function showPreviewStartFrame(config) {
+    const token = ++previewFrameToken;
+    const screen = appNodes.startScreen;
+    screen.className = 'start-screen';
+    document.querySelectorAll('.confetti-layer').forEach(el => el.remove());
+    renderReduceFlashingToggle(config);
+    const frame = START_FRAMES[config.startFrame] || START_FRAMES.card;
+    const { trigger, open, firstLaunchDelay } = frame.mount(screen, config);
+    screen.classList.add('is-ready');
+    previewWaitingOpen = true;
+    previewInteractive(true);
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (token !== previewFrameToken) return;
+        soundManager.resumeAll();
+        open().then(() => {
+            if (token !== previewFrameToken) return;
+            screen.classList.add('hide');
+            previewWaitingOpen = false;
+            previewInteractive(false);
+            burstCounter = 0;
+            syncShow.reset();
+            autoLaunchTime = firstLaunchDelay;
+            previewRestartPending = true;
+            clearCaptions();
+            showTitleOverlay(config);
+        });
+    }, { once: true });
+}
+
+function hidePreviewStartFrame() {
+    previewFrameToken++;
+    previewWaitingOpen = false;
+    appNodes.startScreen.className = 'start-screen remove';
+    document.querySelectorAll('.confetti-layer').forEach(el => el.remove());
+}
+
 if (IS_PREVIEW) {
     // Bản xem nhanh trong builder: không có màn hình chờ, và chưa nhận kịch bản thì không bắn pháo ngẫu nhiên
     appNodes.startScreen.classList.add('remove');
+    document.documentElement.classList.add('is-preview');
     burstConfig = { events: [] };
+    // Trình duyệt chặn tiếng trong khung (vd Safari): chạm vào khung một lần là có tiếng
+    document.addEventListener('pointerdown', () => {
+        if (store.state.soundEnabled) soundManager.resumeAll();
+    }, true);
 
     let previewVersion = 0;
     window.addEventListener('message', async (e) => {
@@ -2632,7 +2694,17 @@ if (IS_PREVIEW) {
         if (version !== previewVersion) return;
 
         burstConfig = config;
+        // Âm thanh theo nút Âm thanh của builder: tiếng pháo (nhạc nền do builder phát)
+        soundManager.setEffectsVolume(config.effectsVolume ?? 1);
+        if (typeof msg.sound === 'boolean' && msg.sound !== store.state.soundEnabled) {
+            store.setState({ soundEnabled: msg.sound });
+        }
+        if (msg.sound) soundManager.preload(getRequiredSoundTypes(config));
         if (msg.restart) {
+            clearTimeout(endScreenTimer);
+            appNodes.endScreen.classList.add('hide');
+            hidePreviewStartFrame();
+            if (!msg.startFrame) previewInteractive(false);
             // Chạy lại từ đợt 1 ngay lập tức, bỏ các phát bắn còn đang chờ của kịch bản trước
             pendingLaunchTimers.forEach(clearTimeout);
             pendingLaunchTimers.clear();
@@ -2641,6 +2713,10 @@ if (IS_PREVIEW) {
             autoLaunchTime = 0;
             previewRestartPending = true;
             clearCaptions();
+            document.querySelectorAll('.config-overlay').forEach(el => el.remove());
+            if (msg.startFrame) showPreviewStartFrame(config);
+            // Chạy kịch bản từ đầu: tiêu đề mở đầu như khi người nhận vừa mở quà
+            else if (msg.intro) showTitleOverlay(config);
         } else if (syncShow.state === 'running' && isMusicSynced(config)) {
             // Sửa kịch bản giữa chừng: xếp lại lịch, chạy tiếp từ vị trí hiện tại
             syncShow.schedule(config, true);

@@ -126,6 +126,27 @@ export async function run(browser, base, { check }) {
             frame: document.querySelector('#start-frame-grid .shell-option.selected')?.textContent.trim()
         }));
         check('mở lại kịch bản đã lưu', reopened.recipient === 'E2E Test' && reopened.frame.endsWith('Hộp quà'), JSON.stringify(reopened));
+
+        // Xem nhanh như người nhận: nút quà hiện đúng hộp quà, chạm mở trong khung thì chạy từ đầu kèm tiêu đề
+        const preview = () => page.frames().find(f => f.url().includes('preview=1'));
+        await page.click('#btn-gift-mini');
+        await sleep(1000);
+        const gift = await preview().evaluate(() => ({
+            shown: !document.querySelector('.start-screen').classList.contains('remove'),
+            title: document.querySelector('.gift-stage__title').textContent
+        }));
+        const clickable = await page.$eval('#mini-preview-stage', e => e.classList.contains('is-interactive'));
+        check('xem nhanh như người nhận: hiện hộp quà, cho chạm vào khung', gift.shown && gift.title === 'Gửi E2E Test' && clickable, JSON.stringify(gift));
+        // Khung thu nhỏ bằng CSS transform: quy đổi tọa độ hộp quà ra tọa độ trang
+        const inner = await preview().$eval('.gift-box', b => { const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: innerWidth }; });
+        const outer = await page.$eval('#mini-preview-frame', f => { const r = f.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width }; });
+        await page.mouse.click(outer.x + inner.x * outer.w / inner.w, outer.y + inner.y * outer.w / inner.w);
+        await sleep(2500);
+        const opened = await preview().evaluate(() => ({
+            hidden: document.querySelector('.start-screen').classList.contains('hide'),
+            title: document.querySelector('.config-overlay h1')?.textContent || ''
+        }));
+        check('chạm hộp quà trong khung xem nhanh: mở quà, chạy từ đầu kèm tiêu đề', opened.hidden && opened.title.length > 0, JSON.stringify(opened));
         check('builder không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
         await page.close();
