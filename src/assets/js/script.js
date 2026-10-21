@@ -1994,7 +1994,8 @@ function handlePointerStart(event) {
     if (updateSpeedFromEvent(event)) {
         isUpdatingSpeed = true;
     }
-    else if (event.onCanvas) {
+    // Người tạo có thể khóa chạm bắn pháo (kịch bản tapToLaunch: false): chạm vào trời không bắn thêm pháo
+    else if (event.onCanvas && !(burstConfig && burstConfig.tapToLaunch === false)) {
         launchShellFromConfig(event);
     }
 }

@@ -183,6 +183,24 @@ export async function run(browser, base, { check }) {
         check('khói pháo không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
         await page.close();
 
+        // Chạm vào trời bắn pháo; kịch bản khóa (tapToLaunch: false) thì chạm không bắn
+        const tapLit = async tapToLaunch => {
+            const p = await openPage(browser);
+            await p.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+            await p.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
+                { loop: true, events: [], tapToLaunch });
+            await sleep(500);
+            const { width, height } = p.viewport();
+            await p.mouse.click(width / 2, height * 0.4);
+            await sleep(1500);
+            const lit = await litPixels(p);
+            await p.close();
+            return lit;
+        };
+        const tapOn = await tapLit(undefined);
+        const tapOff = await tapLit(false);
+        check('chạm vào trời bắn pháo; kịch bản khóa chạm bắn pháo thì không bắn', tapOn > 0 && tapOff === 0, JSON.stringify({ tapOn, tapOff }));
+
         // ---- Cảnh vật: mặt nước phản chiếu (pháo không vẽ dưới mép nước), đèn trời, khinh khí cầu
         page = await openPage(browser);
         await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });

@@ -89,6 +89,10 @@ export async function run(browser, base, { check }) {
         await page.evaluate(() => [...document.querySelectorAll('.launch-grid .shell-option')].find(b => b.textContent.includes('Đạn tàng hình')).click());
         await sleep(300);
 
+        // Khóa chạm bắn pháo (nhóm "Khi người nhận xem")
+        await page.evaluate(() => document.getElementById('tap-to-launch').click());
+        const tapSummary = await page.$eval('[data-summary="viewer"]', e => e.textContent);
+
         // Lưu qua API PHP
         await page.evaluate(() => saveConfig());
         await page.waitForFunction(() => !document.getElementById('share-modal').classList.contains('hide'), { timeout: 20000 }).catch(() => {});
@@ -97,6 +101,8 @@ export async function run(browser, base, { check }) {
         const cfg = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null;
         check('lưu kịch bản qua API', cfg && cfg.recipient === 'E2E Test' && cfg.startFrame === 'gift' && cfg.events[0].launchStyle === 'stealth',
             cfg ? JSON.stringify({ r: cfg.recipient, f: cfg.startFrame, l: cfg.events[0].launchStyle }) : 'không có file');
+        check('tắt "Chạm màn hình để bắn pháo": lưu tapToLaunch: false, tóm tắt nhóm ghi rõ',
+            cfg && cfg.tapToLaunch === false && tapSummary.includes('Khóa chạm bắn pháo'), JSON.stringify({ tap: cfg && cfg.tapToLaunch, tapSummary }));
         check('lưu kèm ảnh xem trước khi chia sẻ', fs.existsSync(path.join(DIST, 'configs', `${ID}.jpg`)));
 
         // Trang chia sẻ có tiêu đề cho mạng xã hội và chuyển tới màn trình diễn
@@ -123,9 +129,10 @@ export async function run(browser, base, { check }) {
         await sleep(1500);
         const reopened = await page.evaluate(() => ({
             recipient: document.getElementById('recipient').value,
-            frame: document.querySelector('#start-frame-grid .shell-option.selected')?.textContent.trim()
+            frame: document.querySelector('#start-frame-grid .shell-option.selected')?.textContent.trim(),
+            tap: document.getElementById('tap-to-launch').checked
         }));
-        check('mở lại kịch bản đã lưu', reopened.recipient === 'E2E Test' && reopened.frame.endsWith('Hộp quà'), JSON.stringify(reopened));
+        check('mở lại kịch bản đã lưu', reopened.recipient === 'E2E Test' && reopened.frame.endsWith('Hộp quà') && reopened.tap === false, JSON.stringify(reopened));
 
         // Xem nhanh như người nhận: nút quà hiện đúng hộp quà, chạm mở trong khung thì chạy từ đầu kèm tiêu đề
         const preview = () => page.frames().find(f => f.url().includes('preview=1'));

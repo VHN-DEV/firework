@@ -51,6 +51,8 @@ const state = {
     waterLife: true,
     // Cách xem đặt sẵn: quality ('1'-'3'), skyLighting ('0', '1'), scaleFactor, hideControls (false), fullscreen (true)
     viewer: {},
+    // Người xem chạm vào trời thì bắn pháo (tắt: chỉ xem)
+    tapToLaunch: true,
     // Bầu trời đêm: trang trí (danh sách), sao ('' / 'few' / 'many'), trăng ({ phase: 'auto' | 0-7, x, y } hoặc null)
     decor: [],
     stars: '',
@@ -252,6 +254,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('viewer-scale')?.addEventListener('change', (e) => setViewerOption('scaleFactor', e.target.value ? Number(e.target.value) : ''));
     document.getElementById('viewer-fullscreen')?.addEventListener('change', (e) => setViewerOption('fullscreen', e.target.checked || ''));
     document.getElementById('viewer-controls')?.addEventListener('change', (e) => setViewerOption('hideControls', e.target.checked ? false : ''));
+    document.getElementById('tap-to-launch')?.addEventListener('change', (e) => {
+        state.tapToLaunch = e.target.checked;
+        renderViewer();
+    });
     document.getElementById('water-life')?.addEventListener('change', (e) => {
         state.waterLife = e.target.checked;
         refreshMiniPreview();
@@ -685,6 +691,7 @@ function createNewScript() {
         state.waterLife = true;
         renderScene();
         state.viewer = {};
+        state.tapToLaunch = true;
         renderViewer();
         state.decor = [];
         state.stars = '';
@@ -1139,6 +1146,8 @@ const HELP_TIPS = {
         + 'không tràn khung. Đặt cỡ cố định thì mọi máy dùng cùng cỡ.',
     viewerFullscreen: 'Người nhận chạm "Mở quà" (hoặc hộp quà) là màn trình diễn vào toàn màn hình luôn. Trình duyệt chỉ cho bật toàn '
         + 'màn hình đúng lúc người xem chạm; iPhone không hỗ trợ toàn màn hình cho trang web nên giữ nguyên.',
+    tapToLaunch: 'Bật (mặc định): người xem chạm hoặc bấm vào bầu trời là bắn thêm một quả pháo, vui cho trẻ nhỏ và người thích tự tay '
+        + 'bắn. Tắt: chạm vào trời không bắn thêm pháo, màn trình diễn giữ đúng như bạn sắp đặt (vẫn chạm được các nút tạm dừng, âm thanh, cài đặt).',
     viewerControls: 'Mặc định các nút tạm dừng, âm thanh, cài đặt ẩn đi cho trọn khung hình (đưa chuột hoặc chạm góc trên để mở). '
         + 'Bật mục này để các nút luôn hiện.',
     stars: 'Sao lấp lánh nhẹ trên bầu trời, mờ dần sát chân trời và trôi chậm cùng trăng. Có ảnh nền thành phố thì sao chỉ ở phần trời phía trên.',
@@ -2532,6 +2541,7 @@ function getFinalConfig() {
         floating: state.water && state.floating ? state.floating : undefined,
         waterLife: state.water && !state.waterLife ? false : undefined,
         viewer: Object.keys(state.viewer).length ? { ...state.viewer } : undefined,
+        tapToLaunch: state.tapToLaunch ? undefined : false,
         decor: state.decor.length ? [...state.decor] : undefined,
         stars: state.stars || undefined,
         moon: state.moon ? { ...state.moon } : undefined,
@@ -3043,6 +3053,7 @@ function settingsSummaries() {
             state.viewer.scaleFactor !== undefined && `Thu phóng ${Math.round(state.viewer.scaleFactor * 100)}%`,
             state.viewer.fullscreen && 'Toàn màn hình',
             state.viewer.hideControls === false && 'Hiện nút',
+            !state.tapToLaunch && 'Khóa chạm bắn pháo',
             state.reduceFlashing && 'Giảm chớp sáng'
         ].filter(Boolean).join(' · '),
         basics: value('title') || 'Chưa có tiêu đề',
@@ -3261,6 +3272,8 @@ function renderViewer() {
     if (fullscreen) fullscreen.checked = v.fullscreen === true;
     const controls = document.getElementById('viewer-controls');
     if (controls) controls.checked = v.hideControls === false;
+    const tap = document.getElementById('tap-to-launch');
+    if (tap) tap.checked = state.tapToLaunch;
     scheduleSettingsSummaries();
 }
 
@@ -4844,6 +4857,7 @@ function loadConfigIntoState(config, filename) {
     state.floating = ['lanterns', 'petals'].includes(config.floating) ? config.floating : '';
     state.waterLife = config.waterLife !== false;
     state.viewer = normalizeViewer(config.viewer);
+    state.tapToLaunch = config.tapToLaunch !== false;
     renderViewer();
     renderScene();
     state.decor = normalizeDecor(config.decor);
