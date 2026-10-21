@@ -2495,7 +2495,8 @@ const smooth01 = (a, b, x) => {
 // Ảnh mây: vẽ thưa (mây mềm nên phóng to vẫn mịn) rồi kéo giãn ra cỡ w x h điểm ảnh CSS. Vài khối dày làm lõi, nhiễu
 // nhiều lớp làm dày mỏng không đều, mép xơ, có lỗ hở. kind 'layer': dải mây dẹt, mỏng (thường gần chân trời).
 // Mỗi mây có hai biến thể (nhiễu lệch nhau) để hòa dần từ dạng này sang dạng kia: mây biến hình chậm.
-// Hàm sinh: dựng từng đoạn vài hàng (yield) để chia nhỏ việc tính ra nhiều lượt máy rảnh, không làm khựng khung hình.
+// Hàm sinh: dựng từng đoạn vài hàng (yield) để chia nhỏ việc tính ra nhiều lượt máy rảnh, không làm khựng khung hình;
+// xong dạng đầu thì trả ra ảnh (yield) để vẽ được ngay, dạng sau dựng tiếp rồi thêm vào cùng ảnh đó.
 // body: thân mây (mặt trên sáng hơn); rim: chỗ mây mỏng ở mép sáng bạc khi có trăng; alpha: độ dày (để tính che trăng).
 const CLOUD_TEX = 0.6;
 
@@ -2525,6 +2526,7 @@ function* buildCloud(w, h, seed, kind) {
         return c;
     };
     const maps = [];
+    const result = { maps, tw, th };
     for (let variant = 0; variant < 2; variant++) {
         const off = variant * 17.3;
         // Độ dày mây từng điểm: hình cụm (hoặc dải) bị uốn nhẹ theo nhiễu cho mép xơ; nhiễu chỉ gặm mép, lõi vẫn đặc
@@ -2588,8 +2590,9 @@ function* buildCloud(w, h, seed, kind) {
             }
         }
         maps.push({ body: toCanvas(body), rim: toCanvas(rim), alpha });
+        if (variant === 0) yield result;
     }
-    return { maps, tw, th };
+    return result;
 }
 
 const STAR_COLORS = ['255, 255, 255', '210, 225, 255', '255, 240, 215', '190, 210, 255'];
@@ -2614,6 +2617,9 @@ export const Decor = {
     // clouds: '' | 'few' | 'many', background } hoặc null; cssW, cssH: kích thước khung. Đổi cảnh hoặc cỡ khung thì rải lại.
     sync(scene, cssW, cssH) {
         if (scene === this.scene && Math.abs(cssW - this.width) < 2 && Math.abs(cssH - this.height) < 2) return;
+        // Chỉ đổi cỡ khung hoặc chỉnh mục khác thì giữ nguyên đám mây đang trôi (không dựng lại, không hiện lại từ đầu)
+        const keep = scene && scene.clouds && this.scene && scene.clouds === this.scene.clouds && this.width > 0 ? this.clouds : null;
+        const oldW = this.width;
         this.scene = scene;
         this.width = cssW;
         this.height = cssH;
@@ -2661,37 +2667,64 @@ export const Decor = {
             };
             this.moonLight = moonIllumination(scene.moon.fraction);
         }
-        if (scene.clouds) {
+        if (keep) {
+            keep.forEach(cloud => {
+                cloud.x *= cssW / oldW;
+                cloud.y = this.cloudY(cloud.alt);
+            });
+            this.clouds = keep;
+        } else if (scene.clouds) {
             const count = { few: IS_MOBILE ? 3 : 4, many: IS_MOBILE ? 5 : 8 }[scene.clouds] || 0;
             this.wind = (Math.random() < 0.5 ? -1 : 1) * MyMath.random(0.004, 0.009);
             for (let i = 0; i < count; i++) this.clouds.push(this.cloud(((i + Math.random() * 0.7) / count) * cssW));
             // Xa (gần chân trời) vẽ trước
             this.clouds.sort((a, b) => a.alt - b.alt);
-            this.warmClouds();
+            this.buildClouds();
         }
     },
 
-    // Dựng sẵn ảnh mây lúc máy rảnh (người xem còn ở màn mở quà), chia nhỏ từng đoạn vài mili giây để không khựng khung
-    // hình; mây dựng xong thì hiện dần
+    // Mây có sẵn trên trời ngay từ khung hình đầu: dựng ngay dạng đầu của từng mây (dạng sau dựng dần lúc máy rảnh rồi
+    // mới hòa vào). Máy chậm không kịp dựng hết thì mây chưa dựng xếp ngoài mép đầu gió, trôi dần vào khung.
+    buildClouds() {
+        const until = performance.now() + 150;
+        this.clouds.forEach(cloud => {
+            cloud.job = buildCloud(cloud.w, cloud.h, cloud.seed, cloud.kind);
+            while (!cloud.sprites && performance.now() < until) this.stepCloud(cloud);
+        });
+        let edge = 0;
+        this.clouds.forEach(cloud => {
+            if (cloud.sprites) return;
+            edge += MyMath.random(40, 160);
+            cloud.x = this.wind > 0 ? -cloud.w / 2 - edge : this.width + cloud.w / 2 + edge;
+            edge += cloud.w * 0.7;
+        });
+        this.warmClouds();
+    },
+
+    stepCloud(cloud) {
+        const result = cloud.job.next();
+        if (result.value && !cloud.sprites) cloud.sprites = result.value;
+        if (result.done) {
+            cloud.job = null;
+            cloud.full = this.clock;
+        }
+    },
+
+    // Dựng nốt ảnh mây lúc máy rảnh, chia nhỏ từng đoạn vài mili giây để không khựng khung hình: mây chưa có ảnh trước
+    // (đang chờ ngoài mép), rồi tới dạng sau của từng mây
     warmClouds() {
         const list = this.clouds;
-        let cloud = null;
-        let job = null;
         const step = deadline => {
             if (this.clouds !== list) return;
             const until = performance.now() + 5;
             while (performance.now() < until || (deadline && deadline.timeRemaining && deadline.timeRemaining() > 3)) {
-                if (!job) {
-                    cloud = list.find(item => !item.sprites);
-                    if (!cloud) return;
-                    job = buildCloud(cloud.w, cloud.h, cloud.seed, cloud.kind);
-                }
-                const result = job.next();
-                if (result.done) {
-                    cloud.sprites = result.value;
-                    cloud.born = this.clock;
-                    job = null;
-                }
+                const cloud = list.find(item => item.job && !item.sprites) || list.find(item => item.job);
+                if (!cloud) return;
+                const ready = !!cloud.sprites;
+                this.stepCloud(cloud);
+                // Lỡ dựng xong khi đang ở trong khung (khung vừa nới rộng) thì hiện dần
+                const seen = cloud.x + cloud.w / 2 > 0 && cloud.x - cloud.w / 2 < this.width;
+                if (!ready && cloud.sprites && seen) cloud.born = this.clock;
             }
             schedule();
         };
@@ -2707,15 +2740,21 @@ export const Decor = {
         const w = (kind === 'layer' ? MyMath.random(260, 460) : MyMath.random(180, 330)) * size;
         const h = w * (kind === 'layer' ? MyMath.random(0.2, 0.28) : MyMath.random(0.4, 0.52)) * (0.85 + 0.3 * alt);
         return {
-            x, alt, w, h, kind, y: this.groundY() * (0.06 + 0.55 * (1 - alt)),
+            x, alt, w, h, kind, y: this.cloudY(alt),
             vx: this.wind * (0.5 + alt), density: MyMath.random(0.65, 0.95), seed: 1 + ((Math.random() * 2147483000) | 0),
-            morph: MyMath.random(1 / 70000, 1 / 40000) * Math.PI * 2, phase: Math.random() * Math.PI * 2, sprites: null, born: 0
+            morph: MyMath.random(1 / 70000, 1 / 40000) * Math.PI * 2, phase: Math.random() * Math.PI * 2, sprites: null,
+            job: null, born: -Infinity, full: 0
         };
     },
 
-    // Hai dạng của mây đang hòa vào nhau bao nhiêu (0 dạng đầu - 1 dạng sau)
+    cloudY(alt) {
+        return this.groundY() * (0.06 + 0.55 * (1 - alt));
+    },
+
+    // Hai dạng của mây đang hòa vào nhau bao nhiêu (0 dạng đầu - 1 dạng sau); dạng sau vừa dựng xong thì hòa vào từ từ
     cloudMix(cloud) {
-        return 0.5 + 0.5 * Math.sin(this.clock * cloud.morph + cloud.phase);
+        if (!cloud.sprites || cloud.sprites.maps.length < 2) return 0;
+        return Math.min(1, (this.clock - cloud.full) / 4000) * (0.5 + 0.5 * Math.sin(this.clock * cloud.morph + cloud.phase));
     },
 
     // Mây che trăng bao nhiêu (0 trăng tỏ - 1 bị che hẳn)
@@ -2728,7 +2767,7 @@ export const Decor = {
             const ty = Math.floor((my - (cloud.y - cloud.h / 2)) / cloud.h * th);
             if (tx < 0 || ty < 0 || tx >= tw || ty >= th) return;
             const mix = this.cloudMix(cloud);
-            const a = (maps[0].alpha[ty * tw + tx] * (1 - mix) + maps[1].alpha[ty * tw + tx] * mix) / 255;
+            const a = (maps[0].alpha[ty * tw + tx] * (1 - mix) + (mix ? maps[1].alpha[ty * tw + tx] * mix : 0)) / 255;
             clear *= 1 - a * cloud.density * this.cloudFade(cloud);
         });
         return 1 - clear;
@@ -2914,7 +2953,7 @@ export const Decor = {
         // pháo nổ rọi sáng mây
         const flash = glow ? Math.min(1, (glow.r + glow.g + glow.b) / 300) : 0;
         this.clouds.forEach(cloud => {
-            // Mây dựng sẵn lúc máy rảnh (warmClouds); chưa xong thì chưa vẽ
+            // Mây chưa có ảnh (máy chậm, đang chờ ngoài mép khung) thì chưa vẽ
             if (!cloud.sprites) return;
             const { maps } = cloud.sprites;
             const x = cloud.x - cloud.w / 2;
@@ -2922,7 +2961,7 @@ export const Decor = {
             const fade = this.cloudFade(cloud);
             const mix = this.cloudMix(cloud);
             // Hai dạng hòa vào nhau (hơi bù độ dày lúc giữa chừng)
-            const parts = [[maps[0], Math.pow(1 - mix, 0.6)], [maps[1], Math.pow(mix, 0.6)]];
+            const parts = mix ? [[maps[0], Math.pow(1 - mix, 0.6)], [maps[1], Math.pow(mix, 0.6)]] : [[maps[0], 1]];
             let near = 0;
             if (this.moon) {
                 const dx = cloud.x - (this.moon.x + drift.x);
