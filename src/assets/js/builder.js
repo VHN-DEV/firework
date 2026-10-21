@@ -12,6 +12,8 @@ import { analyzeMusic, buildBeatShow, KEEP_SHELLS } from './beat-sync.js';
 import { eventTimes, layoutBursts, isPauseEvent, BURST_MS } from './timeline.js';
 import { createTimelineTrack } from './timeline-track.js';
 import { EMOJI_GROUPS } from './text-emojis.js';
+import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill';
+import flagFontUrl from 'country-flag-emoji-polyfill/dist/TwemojiCountryFlags.woff2?url';
 import {
     getOwnerKeys, saveOwnerKey, removeOwnerKey, fetchOpenStatus, trackingUrl, formatWhen, lastEvent, describeOpenStatus
 } from './gift-tracking.js';
@@ -22,6 +24,8 @@ import backgroundImgUrl from '../img/background.webp';
 // Assign to window for global access
 window.fscreen = fscreen;
 printCopyrightNotice('Trình diễn Pháo hoa – Builder');
+// Windows không có cờ trong font emoji: khai báo font cờ riêng (đã đặt đầu font-family của trang)
+polyfillCountryFlagEmojis('Twemoji Country Flags', flagFontUrl);
 
 /**
  * Firework Script Builder Logic - Enhanced
@@ -36,6 +40,9 @@ const state = {
     showBackground: false,
     // Khói pháo: '' tắt, 'light' nhẹ, 'heavy' dày
     smoke: '',
+    // Cảnh vật: mặt nước ('' không, 'third' 1/3, 'half' nửa màn hình), trang trí ('lanterns', 'balloons', 'both')
+    water: '',
+    decor: '',
     background: null,
     // Nhạc nền { url, name, volume (0-1), start (giây) } và âm lượng tiếng pháo (0-1)
     music: null,
@@ -224,6 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     renderSchedule();
     renderSmoke();
+    renderScene();
 
     // Dải mẫu theo dịp ẩn khi bắt đầu tự soạn
     document.getElementById('title')?.addEventListener('input', updateTemplateStrip);
@@ -638,6 +646,9 @@ function createNewScript() {
 
         state.smoke = '';
         renderSmoke();
+        state.water = '';
+        state.decor = '';
+        renderScene();
 
         // Reset background
         state.showBackground = false;
@@ -1046,6 +1057,11 @@ const HELP_TIPS = {
     seoImage: 'Ảnh 1200×630 hiện khi gửi link. <strong>Thiệp tự động</strong>: vẽ từ tiêu đề và màu pháo. '
         + '<strong>Ảnh của bạn</strong>: tải ảnh lên, chọn có chèn chữ và chỗ cắt ảnh. Ảnh được tạo lại mỗi lần bấm Lưu.',
     background: 'Cảnh thành phố về đêm phía dưới bầu trời. Bật lên rồi bấm vào ảnh để thay bằng ảnh của bạn.',
+    water: 'Nâng đường chân trời lên 1/3 hoặc nửa màn hình: pháo bắn lên từ mép nước, phía dưới là mặt nước phản chiếu pháo, '
+        + 'khói, đèn trời và ảnh nền (ảnh nền đứng trên mép nước). Độ cao 0 của mỗi phát bắn là mặt nước, nên bố cục cũ vẫn giữ nguyên, '
+        + 'chỉ thu gọn vào phần trời.',
+    decor: '<strong>Đèn trời</strong>: những chiếc đèn lồng giấy chập chờn bay lên chậm. <strong>Khinh khí cầu</strong>: vài khinh khí cầu '
+        + 'trôi ngang, thỉnh thoảng bừng sáng khi đốt lửa. Chỉ để trang trí, không ảnh hưởng tới các phát bắn.',
     smoke: 'Như pháo hoa thật: mỗi quả nổ để lại một đám khói trắng, đường bay lên có vệt khói mảnh. Khói nở dần, trôi theo gió rồi tan, '
         + 'và được những quả nổ sau rọi màu. <strong>Nhẹ</strong>: thoáng qua. <strong>Dày</strong>: đám khói đặc, lâu tan. '
         + 'Máy người xem đặt chất lượng Thấp thì không có khói để khỏi giật.',
@@ -2148,6 +2164,8 @@ function getFinalConfig() {
         loop: document.getElementById('loop').checked,
         showBackground: state.showBackground,
         smoke: state.smoke || undefined,
+        water: state.water || undefined,
+        decor: state.decor || undefined,
         background: state.background,
         music: state.music ? { ...state.music } : undefined,
         effectsVolume: state.effectsVolume < 1 ? state.effectsVolume : undefined,
@@ -2641,6 +2659,8 @@ function settingsSummaries() {
     const scene = [
         state.showBackground && 'Ảnh nền',
         state.smoke === 'light' ? 'Khói nhẹ' : state.smoke === 'heavy' ? 'Khói dày' : '',
+        state.water === 'third' ? 'Mặt nước 1/3' : state.water === 'half' ? 'Mặt nước nửa' : '',
+        { lanterns: 'Đèn trời', balloons: 'Khinh khí cầu', both: 'Đèn trời, khinh khí cầu' }[state.decor] || '',
         state.reduceFlashing && 'Giảm chớp sáng',
         checked('loop') ? 'Lặp lại' : 'Chạy một lượt'
     ].filter(Boolean);
@@ -2715,6 +2735,37 @@ function setSmoke(level) {
     state.smoke = level;
     renderSmoke();
     refreshMiniPreview();
+}
+
+// Mặt nước, trang trí bầu trời (nhóm "Khung cảnh & hiệu ứng")
+function setWater(level) {
+    state.water = level;
+    renderScene();
+    refreshMiniPreview();
+}
+
+function setDecor(kind) {
+    state.decor = kind;
+    renderScene();
+    refreshMiniPreview();
+}
+
+function renderScene() {
+    document.querySelectorAll('.scene-water [data-water]').forEach(btn => {
+        const on = btn.dataset.water === (state.water || '');
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-pressed', String(on));
+    });
+    document.querySelectorAll('.scene-decor [data-decor]').forEach(btn => {
+        const on = btn.dataset.decor === (state.decor || '');
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-pressed', String(on));
+    });
+    // Thước dọc của khung xem nhanh: độ cao 0 là mặt nước
+    const level = { third: 2 / 3, half: 0.5 }[state.water] || 1;
+    const rulerY = document.getElementById('mini-ruler-y');
+    if (rulerY) rulerY.style.height = level < 1 ? `calc(${level * 100}% + 10px)` : '';
+    scheduleSettingsSummaries();
 }
 
 function renderSmoke() {
@@ -4280,6 +4331,9 @@ function loadConfigIntoState(config, filename) {
     state.showBackground = !!config.showBackground;
     state.smoke = ['light', 'heavy'].includes(config.smoke) ? config.smoke : '';
     renderSmoke();
+    state.water = ['third', 'half'].includes(config.water) ? config.water : '';
+    state.decor = ['lanterns', 'balloons', 'both'].includes(config.decor) ? config.decor : '';
+    renderScene();
     state.background = config.background || null;
     state.music = config.music && typeof config.music.url === 'string' ? { ...config.music } : null;
     const effectsVolume = Number(config.effectsVolume);
@@ -4590,7 +4644,7 @@ Object.assign(window, {
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
     togglePreviewMusic, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
-    hideModal, setStartFrame, undo, redo, setOpenMode, setSmoke, openLibrary, closeLibrary, setLibraryTag,
+    hideModal, setStartFrame, undo, redo, setOpenMode, setSmoke, setWater, setDecor, openLibrary, closeLibrary, setLibraryTag,
     toggleLibraryPreview, chooseLibraryItem, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
     openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, prepareVideo, stopVideo, downloadVideo, shareVideo,
     restartVideo, setTimelineView, zoomTrack, copyTrackingLink, enableOpenNotifications, checkGiftOpens

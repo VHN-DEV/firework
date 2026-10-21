@@ -18,7 +18,7 @@ import {
 } from './player/env.js';
 import {
     setQuality, quality, isLowQuality, isHighQuality, stageW, stageH, setStageSize, setSimSpeed, simSpeed,
-    setReduceFlashing, setCanPlaySound, setSettings, setIsRunning, setSmokeLevel
+    setReduceFlashing, setCanPlaySound, setSettings, setIsRunning, setSmokeLevel, setHorizon
 } from './player/state.js';
 import {
     randomColor, makePistilColor, whiteOrGold, resolveSingleColor, resolveEventColor, COLOR_TUPLES,
@@ -26,7 +26,8 @@ import {
 } from './player/colors.js';
 import {
     getHeartPoints, getStarPoints, getSmileyPoints, getCatPoints, getTextParticles, getClover3Points,
-    getCloverPoints, getSaturnPoints, getSnowflakePoints, getLotusPoints, getButterflyPoints, getDiamondPoints
+    getCloverPoints, getSaturnPoints, getSnowflakePoints, getLotusPoints, getButterflyPoints, getDiamondPoints,
+    preloadFlagFont
 } from './player/shapes.js';
 import { normalizeAssetPath, replacePlaceholders } from './player/utils.js';
 import { Spark, Star, BurstFlash } from './player/particles.js';
@@ -35,6 +36,7 @@ import { shellNames, shellTypes, crysanthemumShell, ringShell, setRandomShell } 
 import { imageParticleCache, getProcessedImage, ImageBurst } from './player/image-burst.js';
 import { Shell } from './player/shell.js';
 import { Smoke, SMOKE_RESOLUTION } from './player/smoke.js';
+import { Water, Decor, WATER_RESOLUTION } from './player/scenery.js';
 import { START_FRAMES, frameText } from './player/start-frames.js';
 import { clearCaptions, showCaption } from './player/captions.js';
 
@@ -63,6 +65,14 @@ const mainStage = new Stage('main-canvas');
 // Lớp khói tự quản lý kích thước (độ phân giải thấp), không qua Stage
 const smokeCanvas = document.getElementById('smoke-canvas');
 const smokeCtx = smokeCanvas.getContext('2d');
+// Cảnh vật theo kịch bản: trang trí bầu trời (đèn trời, khinh khí cầu) và mặt nước phản chiếu
+const decoCanvas = document.getElementById('deco-canvas');
+const decoCtx = decoCanvas.getContext('2d');
+const waterCanvas = document.getElementById('water-canvas');
+const waterCtx = waterCanvas.getContext('2d');
+// Kích thước khung (điểm ảnh CSS)
+let frameW = 0;
+let frameH = 0;
 const stages = [
     trailsStage,
     mainStage
@@ -302,6 +312,19 @@ setIsRunning(() => isRunning());
 // Khói pháo theo kịch bản ("light" nhẹ, "heavy" dày); chất lượng Thấp thì tắt để máy yếu không giật
 const SMOKE_LEVELS = { light: 1, heavy: 2 };
 setSmokeLevel(() => (isLowQuality || !burstConfig ? 0 : SMOKE_LEVELS[burstConfig.smoke] || 0));
+// Mặt nước: đường chân trời (điểm phóng) nâng lên 1/3 hoặc nửa màn hình
+const WATER_LEVELS = { third: 2 / 3, half: 0.5 };
+const horizonSelector = () => (burstConfig && WATER_LEVELS[burstConfig.water]) || 1;
+setHorizon(horizonSelector);
+const DECOR_KINDS = ['lanterns', 'balloons', 'both'];
+const decorSelector = () => (burstConfig && DECOR_KINDS.includes(burstConfig.decor) ? burstConfig.decor : '');
+
+// Ảnh nền đứng trên mép nước khi có mặt nước
+function applyScenery(config) {
+    const level = (config && WATER_LEVELS[config.water]) || 1;
+    appNodes.backgroundImage.style.height = level < 1 ? `${level * 100}%` : '';
+    appNodes.backgroundImage.style.backgroundPosition = level < 1 ? 'center bottom' : '';
+}
 const shellNameSelector = () => {
     const shells = store.state.config.shell;
     if (Array.isArray(shells) && shells.length > 0) {
@@ -942,7 +965,7 @@ function startRecording() {
         bitrate,
         container: appNodes.stageContainer,
         background: appNodes.backgroundImage,
-        layers: [smokeCanvas, trailsStage.canvas, mainStage.canvas],
+        layers: [decoCanvas, smokeCanvas, trailsStage.canvas, mainStage.canvas, waterCanvas],
         texts: () => [...document.querySelectorAll('.config-overlay h1, .config-overlay h2, .config-overlay p, .caption-layer .caption')],
         audioContext: soundManager.ctx,
         audioNodes: [soundManager.effectsGain, musicPlayer.gain]
@@ -1016,6 +1039,7 @@ async function prepareBurstConfig(burstConfig, { showOverlay }) {
     if (burstConfig.showBackground !== undefined) {
         store.setState({ config: { ...store.state.config, showBackground: !!burstConfig.showBackground } });
     }
+    applyScenery(burstConfig);
 
     // Xử lý các placeholder trong text
     if (burstConfig.title) burstConfig.title = replacePlaceholders(burstConfig.title);
@@ -1046,6 +1070,8 @@ async function prepareBurstConfig(burstConfig, { showOverlay }) {
                 }
             }
         });
+        const flagFont = preloadFlagFont(burstConfig.events.map(e => e.text));
+        if (flagFont) imagePromises.push(flagFont);
         if (imagePromises.length > 0) {
             setLoadingStatus('Đang chuẩn bị hình ảnh...');
             await Promise.all(imagePromises);
@@ -1190,7 +1216,8 @@ function launchShellFromConfig(event) {
     if (event) {
         const scaleFactor = scaleFactorSelector();
         // Bắn chính xác vào vị trí click (đã điều chỉnh theo tỉ lệ zoom)
-        shell.launchAt(event.x / scaleFactor, event.y / scaleFactor);
+        // Chạm xuống mặt nước thì nổ ngay trên mép nước
+        shell.launchAt(event.x / scaleFactor, Math.min(event.y / scaleFactor, stageH * horizonSelector() - 40));
     } else {
         shell.launch(getRandomShellPositionH(), getRandomShellPositionV());
     }
@@ -1447,7 +1474,8 @@ function buildEventShot(event) {
     }
 
     const x = xVal / 100;
-    const y = (100 - yVal) / 100;
+    // Độ cao tính từ đường chân trời (đáy màn hình, hoặc mép nước khi có mặt nước)
+    const y = (100 - yVal) / 100 * horizonSelector();
 
     // Ghi đè các thuộc tính nâng cao từ event nếu có.
     // Áp dụng TRƯỚC khi tạo Shell để số hạt, kích thước trên mobile và giới hạn góc bắn được tính đúng.
@@ -1496,7 +1524,7 @@ function launchEventShot(shot) {
 // Pháo bay lên tới độ cao điểm nổ (hoặc lên tới đỉnh, hoặc hết thời gian cháy) thì nổ.
 function estimateFlightTime(shot) {
     const { options } = shot;
-    const rise = (1 - shot.y) * stageH;
+    const rise = (horizonSelector() - shot.y) * stageH;
     const angle = options.launchAngle !== undefined ? (options.launchAngle - 90) * Math.PI / 180 : 0;
     const burstX = Math.sin(angle) * rise;
     const step = 1000 / 60;
@@ -1929,6 +1957,16 @@ function handleResize() {
     smokeCanvas.height = Math.round(containerH * SMOKE_RESOLUTION);
     smokeCanvas.style.width = containerW + 'px';
     smokeCanvas.style.height = containerH + 'px';
+    frameW = containerW;
+    frameH = containerH;
+    decoCanvas.width = containerW;
+    decoCanvas.height = containerH;
+    decoCanvas.style.width = containerW + 'px';
+    decoCanvas.style.height = containerH + 'px';
+    waterCanvas.width = Math.round(containerW * WATER_RESOLUTION);
+    waterCanvas.height = Math.round(containerH * WATER_RESOLUTION);
+    waterCanvas.style.width = containerW + 'px';
+    waterCanvas.style.height = containerH + 'px';
     // Tính đến quy mô
     const scaleFactor = scaleFactorSelector();
     setStageSize(containerW / scaleFactor, containerH / scaleFactor);
@@ -1998,6 +2036,8 @@ function update(frameTime, lag) {
     updateGlobals(timeStep, lag);
     ImageBurst.updateAll(timeStep);
     const smokeOn = Smoke.active();
+    Decor.sync(decorSelector(), frameW, frameH);
+    Decor.update(timeStep);
     Smoke.update(timeStep);
 
     const starDrag = 1 - (1 - Star.airDrag) * speed;
@@ -2177,6 +2217,19 @@ function render(speed) {
 
     // Khói pháo: vẽ cả khi vừa tắt để xóa lớp khói còn lại
     Smoke.render(smokeCtx, smokeCanvas.width / (stageW || 1), currentSkyColor, reduceFlashingSelector());
+    Decor.render(decoCtx);
+
+    // Có mặt nước: pháo, tia lửa chỉ vẽ phía trên mép nước (rơi tới mặt nước thì tắt)
+    const waterline = height * horizonSelector();
+    const clipped = waterline < height;
+    if (clipped) {
+        [trailsCtx, mainCtx].forEach(ctx => {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, 0, width, waterline);
+            ctx.clip();
+        });
+    }
 
     // Vẽ các đèn flash xếp hàng đợi
     // Chúng cũng phải được vẽ bằng cách sử dụng nguồn qua Safari. Có vẻ như việc hiển thị độ dốc bằng cách sử dụng ánh sáng sẽ vẽ các hộp đen lớn thay thế.
@@ -2251,6 +2304,11 @@ function render(speed) {
     ImageBurst.drawAll(mainCtx);
 
 
+    if (clipped) {
+        trailsCtx.restore();
+        mainCtx.restore();
+    }
+
     // Hiển thị thanh tốc độ nếu hiển thị
     if (speedBarOpacity) {
         const speedBarHeight = 6;
@@ -2263,6 +2321,16 @@ function render(speed) {
 
     trailsCtx.setTransform(1, 0, 0, 1, 0, 0);
     mainCtx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // Mặt nước phản chiếu mọi thứ phía trên (vẽ sau cùng để bắt kịp khung hình này)
+    Water.render(waterCtx, {
+        sources: [decoCanvas, smokeCanvas, trailsStage.canvas, mainStage.canvas],
+        background: store.state.config.showBackground ? appNodes.backgroundImage : null,
+        sky: currentSkyColor,
+        cssW: frameW,
+        cssH: frameH,
+        time: performance.now()
+    });
 }
 
 

@@ -83,7 +83,8 @@ body {
 }
 
 body {
-    font-family: 'Inter', system-ui, sans-serif;
+    // Font cờ chỉ dùng cho ký tự cờ, khai báo khi máy thiếu cờ (Windows), xem builder.js
+    font-family: 'Twemoji Country Flags', 'Inter', system-ui, sans-serif;
     font-size: 14px;
     background: $b-bg;
     background-image:
@@ -3240,7 +3241,8 @@ select.is-invalid {
 }
 
 .segmented.beat-density,
-.segmented.smoke-levels {
+.segmented.smoke-levels,
+.segmented.scene-water {
     grid-template-columns: repeat(3, 1fr);
 }
 

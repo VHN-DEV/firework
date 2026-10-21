@@ -7,6 +7,22 @@
 // Điểm của các pháo hình (trái tim, ngôi sao, bướm...) và chữ trên trời (kể cả biểu tượng cảm xúc giữ màu gốc).
 // Mỗi điểm là hướng bay của một hạt, trong khoảng -1..1.
 
+import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill';
+import flagFontUrl from 'country-flag-emoji-polyfill/dist/TwemojiCountryFlags.woff2?url';
+
+// Font emoji của Windows không có cờ (🇻🇳 hiện thành "VN"): trên máy thiếu cờ thì khai báo font cờ riêng.
+// Font chỉ áp dụng cho ký tự cờ nên đặt đầu danh sách font cũng không đổi các chữ khác.
+export const FLAG_FONT = 'Twemoji Country Flags';
+const flagFontNeeded = polyfillCountryFlagEmojis(FLAG_FONT, flagFontUrl);
+const TEXT_FONT = `"${FLAG_FONT}", Roboto, sans-serif`;
+const FLAG_RE = /\p{Regional_Indicator}/u;
+
+// Canvas chỉ vẽ bằng font đã tải xong: kịch bản có cờ thì tải font cờ trước khi trình diễn, không đợi tới phát bắn
+export function preloadFlagFont(texts) {
+    if (!flagFontNeeded || !texts.some(t => t && FLAG_RE.test(t))) return null;
+    return document.fonts.load(`bold 50px "${FLAG_FONT}"`, '🇻🇳').catch(() => {});
+}
+
 // ---- Tùy chỉnh Hình dạng ----
 const textCanvas = document.createElement('canvas');
 const textCtx = textCanvas.getContext('2d', { willReadFrequently: true });
@@ -26,12 +42,12 @@ export function getTextParticles(text, fontSize = 80, step = 3, ownColors = fals
     textCanvas.width = 1000; // Tăng chiều rộng để hỗ trợ văn bản dài hơn
     textCanvas.height = 200; // Tăng chiều cao
     textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
-    textCtx.font = `bold ${fontSize}px Roboto, sans-serif`;
+    textCtx.font = `bold ${fontSize}px ${TEXT_FONT}`;
     // Chữ quá dài so với khung vẽ thì thu nhỏ cỡ chữ, tránh bị cắt mất hai đầu
     const maxTextWidth = textCanvas.width - 20;
     const textWidth = textCtx.measureText(text).width;
     if (textWidth > maxTextWidth) {
-        textCtx.font = `bold ${Math.floor(fontSize * maxTextWidth / textWidth)}px Roboto, sans-serif`;
+        textCtx.font = `bold ${Math.floor(fontSize * maxTextWidth / textWidth)}px ${TEXT_FONT}`;
     }
     textCtx.fillStyle = 'white';
     textCtx.textAlign = 'center';
@@ -42,7 +58,8 @@ export function getTextParticles(text, fontSize = 80, step = 3, ownColors = fals
     // Vẽ lại bằng màu đen: chữ thường đổi màu theo, biểu tượng cảm xúc luôn vẽ bằng màu gốc nên giữ nguyên.
     // Nhờ vậy phần trắng của biểu tượng (⚽, 💬...) vẫn được nhận ra là biểu tượng.
     let darkData = null;
-    if (ownColors && /\p{Extended_Pictographic}/u.test(text)) {
+    // Cờ (cặp ký tự Regional_Indicator) không thuộc Extended_Pictographic nhưng cũng là biểu tượng màu
+    if (ownColors && /\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(text)) {
         textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
         textCtx.fillStyle = 'black';
         textCtx.fillText(text, textCanvas.width / 2, textCanvas.height / 2);

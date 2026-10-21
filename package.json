@@ -22,6 +22,7 @@
     "vite": "^6.4.2"
   },
   "dependencies": {
+    "country-flag-emoji-polyfill": "^0.1.10",
     "qrcode-generator": "^2.0.4"
   }
 }
