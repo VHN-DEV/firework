@@ -1553,7 +1553,8 @@ function renderInspector() {
         </div>
         <small class="field-hint">${launchStyle.hint}</small>`, 'launchStyle');
 
-    panel.innerHTML = header + typeSection + launchSection + basicSection + positionSection + colorSection + soundSection + advancedSection;
+    // Vị trí (chỉnh nhiều nhất) ngay dưới loại pháo để không phải cuộn mới tới; kiểu bắn ít đổi nên xuống dưới
+    panel.innerHTML = header + typeSection + positionSection + basicSection + launchSection + colorSection + soundSection + advancedSection;
     panel.scrollTop = keepScroll;
     initXYPad(event);
 }
