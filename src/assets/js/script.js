@@ -19,7 +19,7 @@ import {
 } from './player/env.js';
 import {
     setQuality, quality, isLowQuality, isHighQuality, stageW, stageH, setStageSize, setSimSpeed, simSpeed,
-    setReduceFlashing, setCanPlaySound, setSettings, setIsRunning, setSmokeLevel, setHorizon
+    setReduceFlashing, setCanPlaySound, setSoundEnabled, setSettings, setIsRunning, setSmokeLevel, setHorizon
 } from './player/state.js';
 import {
     randomColor, makePistilColor, whiteOrGold, resolveSingleColor, resolveEventColor, COLOR_TUPLES,
@@ -28,7 +28,7 @@ import {
 import {
     getHeartPoints, getStarPoints, getSmileyPoints, getCatPoints, getTextParticles, getClover3Points,
     getCloverPoints, getSaturnPoints, getSnowflakePoints, getLotusPoints, getButterflyPoints, getDiamondPoints,
-    preloadFlagFont
+    preloadFlagFont, reserveTextCache
 } from './player/shapes.js';
 import { normalizeAssetPath, replacePlaceholders } from './player/utils.js';
 import { Spark, Star, BurstFlash } from './player/particles.js';
@@ -228,6 +228,7 @@ const store = {
                             reduceFlashing: window.matchMedia('(prefers-reduced-motion: reduce)').matches
                         };
                         Object.keys(defaults).forEach(key => {
+                            if (key === 'quality' && data.quality === QUALITY_AUTO) return;
                             if (data[key] !== undefined && String(data[key]) !== String(defaults[key])) this.chosen.add(key);
                         });
                     }
@@ -352,6 +353,7 @@ const reduceFlashingSelector = () => !!(store.state.config.reduceFlashing || (bu
 // Các module hạt pháo, âm thanh đọc cài đặt của trình phát qua state.js
 setReduceFlashing(reduceFlashingSelector);
 setCanPlaySound(() => canPlaySoundSelector());
+setSoundEnabled(() => soundEnabledSelector());
 setSettings(() => store.state.config);
 setIsRunning(() => isRunning());
 // Khói pháo theo kịch bản ("light" nhẹ, "heavy" dày); chất lượng Thấp thì tắt để máy yếu không giật
@@ -365,11 +367,17 @@ setHorizon(horizonSelector);
 const DECOR_KINDS = ['lanterns', 'balloons', 'planes'];
 const DECOR_ALIASES = { lanterns: ['lanterns'], balloons: ['balloons'], both: ['lanterns', 'balloons'] };
 const clampPercent = (value, fallback) => (Number.isFinite(Number(value)) ? Math.max(0, Math.min(100, Number(value))) : fallback);
-let skyCache = { config: undefined, background: undefined, scene: null };
-// Tính lại khi đổi kịch bản hoặc bật/tắt ảnh nền; trăng "theo ngày" lấy pha của lúc người xem mở
+let skyCache = { config: undefined, background: undefined, key: '', scene: null };
+// Tính lại khi đổi kịch bản hoặc bật/tắt ảnh nền; trăng "theo ngày" lấy pha của lúc người xem mở. Bản xem nhanh nhận
+// kịch bản mới sau mỗi lần sửa: phần bầu trời không đổi thì giữ nguyên cảnh (không rải lại sao, đèn trời, máy bay).
 function sceneSelector() {
     const background = !!store.state.config.showBackground;
     if (skyCache.config === burstConfig && skyCache.background === background) return skyCache.scene;
+    const key = burstConfig ? JSON.stringify([burstConfig.decor, burstConfig.stars, burstConfig.moon, background]) : '';
+    if (burstConfig && key === skyCache.key) {
+        skyCache.config = burstConfig;
+        return skyCache.scene;
+    }
     let scene = null;
     if (burstConfig) {
         const decor = Array.isArray(burstConfig.decor)
@@ -383,7 +391,7 @@ function sceneSelector() {
             : null;
         if (decor.length || stars || moon) scene = { decor, stars, moon, background };
     }
-    skyCache = { config: burstConfig, background, scene };
+    skyCache = { config: burstConfig, background, key, scene };
     return scene;
 }
 
@@ -598,7 +606,8 @@ appNodes.closeMenuBtn.addEventListener('click', stopAndRun(() => {
 
 // Ngăn chặn các sự kiện chuột và chạm nổi bọt lên document (nơi Stage đang lắng nghe)
 const stopPropagation = (e) => e.stopPropagation();
-[appNodes.pauseBtn, appNodes.soundBtn, appNodes.settingsBtn, appNodes.closeMenuBtn, appNodes.btnStart].forEach(node => {
+[appNodes.pauseBtn, appNodes.soundBtn, appNodes.settingsBtn, appNodes.closeMenuBtn, appNodes.btnStart, appNodes.startScreen,
+    appNodes.endScreen.querySelector('.end-screen__content')].forEach(node => {
     if (!node) return;
     node.addEventListener('mousedown', stopPropagation);
     node.addEventListener('touchstart', stopPropagation);
@@ -725,11 +734,15 @@ async function loadBurstConfig() {
 }
 
 let startFrameMounted = false;
+let startFrameAbort = null;
 
-// Dựng khung bắt đầu theo kịch bản (chỉ một lần) và chờ người xem bấm để vào màn trình diễn
-function mountStartFrame(config) {
-    if (startFrameMounted) return;
+// Dựng khung bắt đầu theo kịch bản (chỉ một lần, trừ remount) và chờ người xem bấm để vào màn trình diễn
+function mountStartFrame(config, { remount = false } = {}) {
+    if (startFrameMounted && !remount) return;
     startFrameMounted = true;
+    // Dựng lại (hết giờ hẹn sau khi thiệp chung đã hiện): bỏ lời mời bấm của lần dựng trước
+    if (startFrameAbort) startFrameAbort.abort();
+    startFrameAbort = new AbortController();
     reportGiftEvent('view', config);
     renderReduceFlashingToggle(config);
     const frame = START_FRAMES[config && config.startFrame] || START_FRAMES.card;
@@ -748,11 +761,10 @@ function mountStartFrame(config) {
             toggleFullscreen();
         }
         beginShow(open, firstLaunchDelay);
-    }, { once: true });
+    }, { once: true, signal: startFrameAbort.signal });
 }
 
 function beginShow(open, firstLaunchDelay) {
-    configRequest.then(config => reportGiftEvent('open', config));
     // Mở khóa âm thanh ngay trong lúc người xem bấm (AudioContext và phần tử phát nhạc nền)
     soundManager.resumeAll();
     musicPlayer.unlock();
@@ -771,10 +783,21 @@ function beginShow(open, firstLaunchDelay) {
             appNodes.loadingInit.classList.remove('remove');
             setLoadingStatus('Đang châm ngòi');
         }
+        const start = () => {
+            // Mạng chậm: người xem bấm thiệp chào chung trước khi kịch bản tải xong, mà kịch bản hẹn giờ chưa tới thì
+            // quay về màn đếm ngược (startCountdown đã chạy lúc kịch bản tới)
+            if (countdownActive) {
+                appNodes.loadingInit.classList.add('remove');
+                appNodes.startScreen.classList.remove('hide');
+                return;
+            }
+            configRequest.then(config => reportGiftEvent('open', config));
+            init();
+        };
         ready.then(
-            init,
+            start,
             reason => {
-                init();
+                start();
                 return Promise.reject(reason);
             }
         );
@@ -887,7 +910,8 @@ function startCountdown(config) {
             // Đúng giờ: vào thẳng màn trình diễn, phát pháo đầu tiên bắn ngay
             beginShow(() => Promise.resolve(), 300);
         } else {
-            mountStartFrame(config);
+            // Thiệp chào chung đã dựng lúc mạng chậm (có khi đã bấm rồi): dựng lại theo kịch bản
+            mountStartFrame(config, { remount: true });
         }
     };
 
@@ -959,8 +983,7 @@ function replayShow() {
     }
     clearTimeout(endScreenTimer);
     appNodes.endScreen.classList.add('hide');
-    pendingLaunchTimers.forEach(clearTimeout);
-    pendingLaunchTimers.clear();
+    pendingLaunches = [];
     burstCounter = 0;
     syncShow.reset();
     autoLaunchTime = 800;
@@ -1146,12 +1169,13 @@ const viewerShare = setupViewerShare({
 
 // Kịch bản tạo bởi builder phiên bản cũ dùng tọa độ 0-1 thay vì 0-100 (mọi phát bắn dồn vào góc dưới trái).
 // Phát bắn nào có cả x và y trong khoảng 0-1 được đổi sang thang 0-100.
+// Chỉ khi mọi phát có tọa độ đều nằm trong 0-1: kịch bản mới có thể có phát sát góc (x=1, y=0) mà không phải thang cũ.
 function migrateLegacyCoordinates(events) {
-    events.forEach(e => {
-        if (typeof e.x === 'number' && typeof e.y === 'number' && e.x <= 1 && e.y <= 1) {
-            e.x *= 100;
-            e.y *= 100;
-        }
+    const positioned = events.filter(e => typeof e.x === 'number' && typeof e.y === 'number');
+    if (!positioned.length || !positioned.every(e => e.x <= 1 && e.y <= 1)) return;
+    positioned.forEach(e => {
+        e.x *= 100;
+        e.y *= 100;
     });
 }
 
@@ -1209,9 +1233,9 @@ async function prepareBurstConfig(burstConfig, { showOverlay }) {
             await Promise.all(imagePromises);
         }
         // Dựng sẵn hạt cho các phát pháo chữ (lúc người xem còn ở màn mở quà) để lúc nổ không bị khựng
-        burstConfig.events.forEach(event => {
-            if (event.text && event.shell !== 'Lời nhắn' && event.shell !== 'Tạm dừng') buildEventShot(event);
-        });
+        const textEvents = burstConfig.events.filter(event => event.text && event.shell !== 'Lời nhắn' && event.shell !== 'Tạm dừng');
+        reserveTextCache(new Set(textEvents.map(event => event.text)).size);
+        textEvents.forEach(event => buildEventShot(event));
     }
 
     if (!showOverlay) return burstConfig;
@@ -1540,8 +1564,9 @@ const sequences = [
 let isFirstSeq = true;
 const finaleCount = 32;
 let currentFinaleCount = 0;
-// Các phát bắn đang chờ hết thời gian trễ (delay), để hủy khi bản xem nhanh nhận kịch bản mới
-const pendingLaunchTimers = new Set();
+// Các phát bắn đang chờ hết thời gian trễ (delay, ms theo thời gian màn trình diễn: tạm dừng thì cũng dừng chờ).
+// Bỏ hết khi chạy lại từ đầu.
+let pendingLaunches = [];
 // Bản xem nhanh vừa được yêu cầu chạy lại từ đầu, chưa bắn đợt 1
 let previewRestartPending = false;
 
@@ -1877,6 +1902,8 @@ const syncShow = {
 function startSequence() {
     // Kiểm tra burst config nếu có
     if (burstConfig && burstConfig.events) {
+        // Bản xem nhanh chưa có phát nào (builder để trống khi đứng yên): chờ, không chạy nhạc, không hiện màn kết
+        if (IS_PREVIEW && !burstConfig.events.length) return 1000;
         // Kịch bản khớp nhịp nhạc: syncShow.update() bắn theo từng khung hình
         if (isMusicSynced(burstConfig)) {
             if (syncShow.state === 'idle') syncShow.schedule(burstConfig);
@@ -1936,11 +1963,7 @@ function startSequence() {
                 const launch = event.shell === 'Lời nhắn' ? () => showCaption(event) : () => launchEventShot(buildEventShot(event));
 
                 if (event.delay) {
-                    const timer = setTimeout(() => {
-                        pendingLaunchTimers.delete(timer);
-                        launch();
-                    }, event.delay);
-                    pendingLaunchTimers.add(timer);
+                    pendingLaunches.push({ left: Number(event.delay) || 0, launch });
                 } else {
                     launch();
                 }
@@ -2016,6 +2039,8 @@ function handlePointerStart(event) {
     if (appNodes.stageContainer.classList.contains('remove')) return;
     // Khung quay video: bấm nút "Bắt đầu quay" hay lỡ tay bấm vào khung không được bắn thêm pháo vào video
     if (IS_RECORD) return;
+    // Bản xem nhanh đang hiện màn mở quà: người nhận thật lúc này chưa thấy sân khấu
+    if (previewWaitingOpen) return;
     const btnSize = 50;
 
     if (event.y < btnSize) {
@@ -2063,6 +2088,8 @@ function handleKeydown(event) {
     if (/^(INPUT|SELECT|TEXTAREA)$/.test(event.target.tagName) && event.keyCode !== 27) {
         return;
     }
+    // Chưa vào màn trình diễn (màn mở quà, đếm ngược): P, O không được chạy ngầm phía sau
+    if (appNodes.stageContainer.classList.contains('remove')) return;
     // P
     if (event.keyCode === 80) {
         togglePause();
@@ -2162,6 +2189,17 @@ function updateGlobals(timeStep, lag) {
             autoLaunchTime = startSequence() * 1.25;
         }
     }
+
+    if (pendingLaunches.length) {
+        const due = [];
+        pendingLaunches = pendingLaunches.filter(item => {
+            item.left -= timeStep;
+            if (item.left > 0) return true;
+            due.push(item);
+            return false;
+        });
+        due.forEach(item => item.launch());
+    }
 }
 
 
@@ -2185,6 +2223,9 @@ function applyQualityLimits() {
         handleResize();
     }
 }
+
+// Thu phóng trình duyệt, kéo cửa sổ sang màn hình có mật độ điểm ảnh khác: vẽ lại theo mật độ mới cho pháo không nhòe
+window.addEventListener('resize', applyQualityLimits);
 
 // "Tự động": bắt đầu theo cấu hình máy; lúc đang có pháo mà giật kéo dài (dưới ~26 khung/giây trong 4 giây) thì hạ một
 // bậc, mượt lâu (trên ~50 khung/giây) thì nâng lại, không vượt mức ban đầu. Mỗi lần hạ, lần nâng sau phải chờ lâu hơn.
@@ -2447,6 +2488,9 @@ function render(speed) {
         }
     } else if (skyLightingSelector() !== SKY_LIGHT_NONE) {
         colorSky(speed);
+    } else if (currentSkyColor.r || currentSkyColor.g || currentSkyColor.b) {
+        // Vừa tắt ánh sáng bầu trời: mặt nước, khói đang đọc màu trời này
+        currentSkyColor.r = currentSkyColor.g = currentSkyColor.b = 0;
     }
 
     // Tính đến màn hình có độ phân giải cao và hệ số tỷ lệ tùy chỉnh.
@@ -2672,11 +2716,14 @@ function setLoadingStatus(status) {
 // Bản xem nhanh: đang hiện màn mở quà, chờ người tạo chạm mở như người nhận
 let previewWaitingOpen = false;
 let previewFrameToken = 0;
+let previewFrameAbort = null;
 
 // Dựng lại màn mở quà của kịch bản (thiệp chào hoặc hộp quà) trong bản xem nhanh. Chạm mở thì màn trình diễn chạy từ
 // đầu như khi người nhận mở link: tiêu đề mở đầu, pháo, màn kết.
 function showPreviewStartFrame(config) {
     const token = ++previewFrameToken;
+    if (previewFrameAbort) previewFrameAbort.abort();
+    previewFrameAbort = new AbortController();
     const screen = appNodes.startScreen;
     screen.className = 'start-screen';
     document.querySelectorAll('.confetti-layer').forEach(el => el.remove());
@@ -2703,11 +2750,12 @@ function showPreviewStartFrame(config) {
             clearCaptions();
             showTitleOverlay(config);
         });
-    }, { once: true });
+    }, { once: true, signal: previewFrameAbort.signal });
 }
 
 function hidePreviewStartFrame() {
     previewFrameToken++;
+    if (previewFrameAbort) previewFrameAbort.abort();
     previewWaitingOpen = false;
     appNodes.startScreen.className = 'start-screen remove';
     document.querySelectorAll('.confetti-layer').forEach(el => el.remove());
@@ -2753,8 +2801,7 @@ if (IS_PREVIEW) {
             hidePreviewStartFrame();
             if (!msg.startFrame) previewInteractive(false);
             // Chạy lại từ đợt 1 ngay lập tức, bỏ các phát bắn còn đang chờ của kịch bản trước
-            pendingLaunchTimers.forEach(clearTimeout);
-            pendingLaunchTimers.clear();
+            pendingLaunches = [];
             burstCounter = 0;
             syncShow.reset();
             autoLaunchTime = 0;
@@ -2808,7 +2855,12 @@ else if (IS_HEADER) {
 } else {
     // Đợi người xem mở khung bắt đầu của kịch bản (thiệp chào, hộp quà...), xem START_FRAMES.
     // Hẹn giờ mở quà chưa tới thì đếm ngược trước.
-    configRequest.then(config => (isLockedUntilLater(config) ? startCountdown(config) : mountStartFrame(config)));
+    configRequest.then(config => {
+        if (isLockedUntilLater(config)) startCountdown(config);
+        // Thiệp chào chung đã hiện (mạng chậm): vẫn báo đã mở link và hiện dòng "Người gửi sẽ biết..."
+        else if (startFrameMounted) reportGiftEvent('view', config);
+        else mountStartFrame(config);
+    });
     // Mạng chậm: không bắt người xem chờ mãi, dùng thiệp chào chung
     setTimeout(() => {
         if (!countdownActive) mountStartFrame(null);

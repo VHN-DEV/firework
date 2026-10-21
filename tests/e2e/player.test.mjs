@@ -201,6 +201,18 @@ export async function run(browser, base, { check }) {
         const tapOff = await tapLit(false);
         check('chạm vào trời bắn pháo; kịch bản khóa chạm bắn pháo thì không bắn', tapOn > 0 && tapOff === 0, JSON.stringify({ tapOn, tapOff }));
 
+        // Xem như người nhận trong bản xem nhanh: chạm ra ngoài hộp quà không bắn pháo phía sau màn mở quà
+        page = await openPage(browser);
+        await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true, startFrame: true }, location.origin),
+            { loop: true, startFrame: 'gift', events: [{ burst: 1, shell: 'Hoa cúc', x: 50, y: 60 }] });
+        await sleep(800);
+        await page.mouse.click(page.viewport().width * 0.12, page.viewport().height * 0.5);
+        await sleep(1500);
+        const behindGift = await litPixels(page);
+        check('màn mở quà đang hiện: chạm ra ngoài hộp quà không bắn pháo phía sau', behindGift === 0, behindGift);
+        await page.close();
+
         // ---- Cảnh vật: mặt nước phản chiếu (pháo không vẽ dưới mép nước), đèn trời, khinh khí cầu
         page = await openPage(browser);
         await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });

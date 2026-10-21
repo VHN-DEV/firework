@@ -39,6 +39,12 @@ function emojiParticleColor(r, g, b) {
 // Hạt của chữ đã dựng (vẽ chữ rồi đọc điểm ảnh tốn ~10 ms, chữ lặp lại hoặc kịch bản lặp thì dùng lại)
 const textParticleCache = new Map();
 const TEXT_CACHE_LIMIT = 60;
+let textCacheLimit = TEXT_CACHE_LIMIT;
+
+// Kịch bản có nhiều chữ hơn giới hạn: nới ra cho đủ, kẻo vòng lặp nào cũng dựng lại từng chữ
+export function reserveTextCache(count) {
+    textCacheLimit = Math.max(TEXT_CACHE_LIMIT, count + 20);
+}
 
 // ownColors: biểu tượng cảm xúc trong chữ (🎓, ❤️, 🎂...) giữ màu gốc của nó (điểm có thuộc tính color);
 // chữ thường vẫn theo màu của phát pháo. Kết quả dùng chung, không được sửa.
@@ -49,7 +55,7 @@ export function getTextParticles(text, fontSize = 80, step = 3, ownColors = fals
     const result = buildTextParticles(text, fontSize, step, ownColors);
     // Phông chữ chưa tải xong thì chữ vẽ bằng phông thay thế: không lưu, lần sau dựng lại
     if (!document.fonts || document.fonts.status === 'loaded') {
-        if (textParticleCache.size >= TEXT_CACHE_LIMIT) textParticleCache.delete(textParticleCache.keys().next().value);
+        if (textParticleCache.size >= textCacheLimit) textParticleCache.delete(textParticleCache.keys().next().value);
         textParticleCache.set(key, result);
     }
     return result;

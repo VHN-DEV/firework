@@ -61,6 +61,8 @@ function openGiftBox(screen, box) {
     return new Promise(resolve => {
         screen.classList.add('gift-opening');
         setTimeout(() => {
+            // Màn mở quà vừa được dựng lại (bản xem nhanh chạy lại giữa chừng): không bung nắp, pháo giấy, tiếng của lần cũ
+            if (!screen.classList.contains('gift-opening')) return;
             screen.classList.add('gift-open');
             const rect = box.getBoundingClientRect();
             launchConfetti(rect.left + rect.width / 2, rect.top + rect.height * 0.4);

@@ -8,7 +8,7 @@
 // giây đã chọn cùng đợt pháo đầu, nhỏ dần khi hết, báo vị trí đang phát cho kịch bản khớp nhịp).
 
 import MyMath from '../MyMath.js';
-import { canPlaySound, simSpeed } from './state.js';
+import { canPlaySound, soundEnabled, simSpeed } from './state.js';
 import { IS_PREVIEW } from './env.js';
 import { normalizeAssetPath } from './utils.js';
 
@@ -326,7 +326,7 @@ export function getRequiredSoundTypes(config) {
 // Tiếng "bụp" lúc hộp quà bung nắp kèm vài tiếng chuông lấp lánh, tổng hợp bằng Web Audio
 // (lúc này âm thanh pháo chưa tải xong và màn trình diễn chưa chạy)
 export function playGiftOpenSound() {
-    if (!canPlaySound()) return;
+    if (!soundEnabled()) return;
     try {
         const ctx = soundManager.ctx;
         const now = ctx.currentTime;

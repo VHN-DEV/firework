@@ -46,6 +46,13 @@ export function setCanPlaySound(check) {
     canPlaySound = check;
 }
 
+// Người xem có bật âm thanh không (kể cả lúc màn trình diễn chưa chạy, vd tiếng mở hộp quà)
+export let soundEnabled = () => true;
+
+export function setSoundEnabled(check) {
+    soundEnabled = check;
+}
+
 // Đang giảm chớp sáng không (người xem tự bật, hoặc kịch bản bật sẵn). Trình phát cắm hàm thật vào lúc khởi động.
 export let reduceFlashing = () => false;
 
