@@ -46,6 +46,9 @@ export function createTimelineTrack(root, api) {
     let height = RULER + wave + MIN_LANES * LANE + 12;
     let drag = null;
     let frame = null;
+    // Trạng thái vạch chạy đã vẽ: chỉ ghi lại khi đổi
+    let playheadLeft = '';
+    let playheadHidden = true;
     let playhead = null;
 
     const timeToX = ms => PAD + ms / 1000 * pps;
@@ -89,6 +92,8 @@ export function createTimelineTrack(root, api) {
         [...content.querySelectorAll('.track-marker, .track-playhead')].forEach(el => el.remove());
         content.insertAdjacentHTML('beforeend', markers.join('') + '<span class="track-playhead hide"></span>');
         playhead = content.querySelector('.track-playhead');
+        playheadLeft = '';
+        playheadHidden = true;
         drawBackground();
         if (!frame) frame = requestAnimationFrame(tick);
     }
@@ -182,12 +187,23 @@ export function createTimelineTrack(root, api) {
     }
 
     // Vạch chạy theo nhạc khi đang nghe nhạc cùng khung xem nhanh
+    // Đang xem danh sách thì dải bị ẩn (lớp hide): bỏ qua. Không đọc offsetParent, vì đọc nó mỗi khung hình bắt trình
+    // duyệt tính lại bố cục cả trang.
     function tick() {
         frame = requestAnimationFrame(tick);
-        if (!playhead || !root.isConnected || root.offsetParent === null) return;
+        if (!playhead || !root.isConnected || root.classList.contains('hide')) return;
         const position = api.musicPosition();
-        playhead.classList.toggle('hide', position === null);
-        if (position !== null) playhead.style.left = `${timeToX(position)}px`;
+        const hidden = position === null;
+        if (hidden !== playheadHidden) {
+            playheadHidden = hidden;
+            playhead.classList.toggle('hide', hidden);
+        }
+        if (hidden) return;
+        const left = `${timeToX(position)}px`;
+        if (left !== playheadLeft) {
+            playheadLeft = left;
+            playhead.style.left = left;
+        }
     }
 
     // Bám phách (nhạc đã phân tích), không thì theo bước 0,1 giây; giữ Alt để thả tự do

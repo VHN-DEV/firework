@@ -855,16 +855,19 @@ function getBurstEvents(burst) {
     return state.events.filter(e => (Number(e.burst) || 1) === burst);
 }
 
+// Một bộ định dạng dùng chung: toLocaleString tạo bộ định dạng mới mỗi lần gọi, vẽ danh sách dài rất chậm
+const NUMBER_FORMAT = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 });
+
 function formatDuration(ms) {
     const seconds = Math.round(ms / 100) / 10;
-    if (seconds < 60) return `${seconds.toLocaleString('vi-VN')} giây`;
+    if (seconds < 60) return `${NUMBER_FORMAT.format(seconds)} giây`;
     const minutes = Math.floor(seconds / 60);
     const rest = Math.round(seconds - minutes * 60);
     return rest ? `${minutes} phút ${rest} giây` : `${minutes} phút`;
 }
 
 function formatNumber(value) {
-    return Number(value ?? 0).toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+    return NUMBER_FORMAT.format(Number(value ?? 0));
 }
 
 function updateTimelineSummary() {
@@ -920,8 +923,11 @@ function formatMusicTime(ms) {
     return `${minutes}:${seconds}`;
 }
 
+// Số thứ tự (#) của từng phát, dựng một lần mỗi lần vẽ danh sách (tìm bằng indexOf cho từng dòng thì chậm)
+let shotNumbers = null;
+
 function renderShotRow(event, burstStart = 0) {
-    const index = state.events.indexOf(event) + 1;
+    const index = shotNumbers ? shotNumbers.get(event) : state.events.indexOf(event) + 1;
     const isPause = event.shell === 'Tạm dừng';
     const delayText = isSyncMode()
         ? formatMusicTime(burstStart + (Number(event.delay) || 0))
@@ -1017,11 +1023,13 @@ function renderEventList() {
     let html = '';
     const maxBurst = getMaxBurst();
     let burstStart = 0;
+    shotNumbers = new Map(state.events.map((e, i) => [e, i + 1]));
     for (let b = 1; b <= maxBurst; b++) {
         const events = getBurstEvents(b);
         html += renderBurstGroup(b, events, burstStart);
         burstStart += getBurstDuration(events);
     }
+    shotNumbers = null;
     container.innerHTML = html;
     // Danh sách thay đổi (thêm/xóa/nhân bản/đổi màu/loại pháo...) thì cập nhật bản xem nhanh
     refreshMiniPreview();
@@ -1049,9 +1057,20 @@ function addBurst() {
     addEventFromUI(getMaxBurst() + 1);
 }
 
+// Đổi phát đang chọn. Xem danh sách: chỉ đổi dòng được tô (vẽ lại cả danh sách dài thì khựng); xem theo giây: vẽ lại dải.
+function showActiveEvent(id) {
+    const list = document.getElementById('event-list');
+    if (timelineView === 'track' || !list.querySelector('.shot-row')) {
+        renderEventList();
+        return;
+    }
+    list.querySelectorAll('.shot-row.active').forEach(row => row.classList.remove('active'));
+    if (id) list.querySelector(`.shot-row[data-id="${id}"]`)?.classList.add('active');
+}
+
 function selectEvent(id) {
     state.activeEventId = id;
-    renderEventList();
+    showActiveEvent(id);
     if (timelineView === 'track' && track) track.reveal(id);
     renderInspector();
     updateMiniInfo();
@@ -1061,7 +1080,7 @@ function selectEvent(id) {
 
 function closeInspector() {
     state.activeEventId = null;
-    renderEventList();
+    showActiveEvent(null);
     renderInspector();
     updateMiniInfo();
     // Xem nhanh quay lại chạy cả kịch bản
@@ -3403,7 +3422,7 @@ function applyBeatShow() {
     }
     state.events = [];
     state.activeEventId = null;
-    show.events.forEach(event => addEvent(event));
+    show.events.forEach(event => addEvent(event, { render: false }));
     state.music.sync = true;
     state.music.bpm = beatAnalysis.bpm;
     // Màn trình diễn theo bài nhạc: chạy một lượt rồi hiện màn kết
@@ -4754,7 +4773,9 @@ function loadConfigIntoState(config, filename) {
                 ev.y = Math.round(ev.y * 1000) / 10;
             }
         });
-        config.events.forEach(ev => addEvent(ev));
+        // Vẽ danh sách một lần sau khi thêm đủ (vẽ lại sau mỗi phát thì kịch bản dài rất chậm)
+        config.events.forEach(ev => addEvent(ev, { render: false }));
+        renderEventList();
     } else {
         addEvent();
     }
