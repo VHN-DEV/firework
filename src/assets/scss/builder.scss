@@ -2212,6 +2212,14 @@ select.is-invalid {
     // Lưới chọn khung ảnh: ô nhỏ hơn
     &.frame-grid {
         grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+
+        // Biểu tượng khung là SVG nét viền, đổi màu theo trạng thái nút
+        .emoji svg {
+            display: block;
+            width: 1.4rem;
+            height: 1.4rem;
+            margin: 0.1rem 0;
+        }
     }
 }
 

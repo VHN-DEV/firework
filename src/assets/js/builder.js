@@ -131,15 +131,18 @@ const START_FRAMES = [
     { value: 'gift', name: 'Hộp quà', icon: '🎁', hint: 'Hộp quà rung rinh; chạm vào thì bung nắp, nổ tung ruy băng và pháo giấy rồi mới bắt đầu.' }
 ];
 
+// Biểu tượng khung vẽ bằng SVG nét viền: emoji không có hình bo góc hay "không khung" đúng nghĩa
+const frameIcon = shape => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true">${shape}</svg>`;
+
 const FRAME_TYPES = [
     // Phát bắn chưa chọn khung (frame trống) thực tế hiển thị không khung, nên cần một lựa chọn tương ứng
-    { name: 'Không khung', value: '', icon: '🖼️' },
-    { name: 'Trái tim', value: 'heart', icon: '❤️' },
-    { name: 'Ngôi sao', value: 'star', icon: '⭐' },
-    { name: 'Tròn', value: 'circle', icon: '⚪' },
-    { name: 'Bo góc', value: 'rounded', icon: '🔲' },
-    { name: 'Vuông', value: 'square', icon: '⬜' },
-    { name: 'Tam giác', value: 'triangle', icon: '🔺' }
+    { name: 'Không khung', value: '', icon: frameIcon('<rect x="3" y="3" width="18" height="18" stroke-dasharray="3 3"/>') },
+    { name: 'Trái tim', value: 'heart', icon: frameIcon('<path d="M12 20.5 4.2 12.9A4.9 4.9 0 0 1 12 6.6a4.9 4.9 0 0 1 7.8 6.3Z"/>') },
+    { name: 'Ngôi sao', value: 'star', icon: frameIcon('<path d="m12 2.5 2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5-4.8-4.6 6.6-.9Z"/>') },
+    { name: 'Tròn', value: 'circle', icon: frameIcon('<circle cx="12" cy="12" r="9"/>') },
+    { name: 'Bo góc', value: 'rounded', icon: frameIcon('<rect x="3" y="3" width="18" height="18" rx="5.5"/>') },
+    { name: 'Vuông', value: 'square', icon: frameIcon('<rect x="3" y="3" width="18" height="18"/>') },
+    { name: 'Tam giác', value: 'triangle', icon: frameIcon('<path d="M12 3.5 21.5 20h-19Z"/>') }
 ];
 
 // Thoát ký tự HTML trước khi chèn dữ liệu người dùng (chữ, màu, tên kịch bản...) vào innerHTML.
