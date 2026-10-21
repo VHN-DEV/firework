@@ -34,6 +34,7 @@ import { Spark, Star, BurstFlash } from './player/particles.js';
 import { soundManager, musicPlayer, playGiftOpenSound, getRequiredSoundTypes } from './player/audio.js';
 import { shellNames, shellTypes, crysanthemumShell, ringShell, setRandomShell } from './player/shells.js';
 import { imageParticleCache, getProcessedImage, ImageBurst } from './player/image-burst.js';
+import { imageCacheKey } from './player/image-frame.js';
 import { Shell } from './player/shell.js';
 import { Smoke, SMOKE_RESOLUTION } from './player/smoke.js';
 import { Water, Decor, WATER_RESOLUTION } from './player/scenery.js';
@@ -610,15 +611,15 @@ function randomFastShell() {
     return shellTypes[shellName];
 }
 
-window.preloadFireworkImage = (url, frame) => {
+window.preloadFireworkImage = (url, frame, crop) => {
     if (!url) return;
     const normalizedUrl = normalizeAssetPath(url);
-    const cacheKey = `${normalizedUrl}_${frame || ''}`;
+    const cacheKey = imageCacheKey(normalizedUrl, frame, crop);
     if (!imageParticleCache.has(cacheKey)) {
         const img = new Image();
         // img.crossOrigin = "Anonymous"; // Bỏ cái này nếu gặp lỗi CORS trên localhost
         img.onload = () => {
-            const processed = getProcessedImage(img, frame);
+            const processed = getProcessedImage(img, frame, crop);
             imageParticleCache.set(cacheKey, processed);
         };
         img.onerror = (e) => {
@@ -1075,12 +1076,12 @@ async function prepareBurstConfig(burstConfig, { showOverlay }) {
             
             if (event.shell === 'Hình ảnh' && event.imageUrl) {
                 const normalizedUrl = normalizeAssetPath(event.imageUrl);
-                const cacheKey = `${normalizedUrl}_${event.frame || ''}`;
+                const cacheKey = imageCacheKey(normalizedUrl, event.frame, event.crop);
                 if (!imageParticleCache.has(cacheKey)) {
                     const p = new Promise(resolve => {
                         const img = new Image();
                         img.onload = () => {
-                            const processed = getProcessedImage(img, event.frame);
+                            const processed = getProcessedImage(img, event.frame, event.crop);
                             imageParticleCache.set(cacheKey, processed);
                             resolve();
                         };
@@ -1230,6 +1231,7 @@ function launchShellFromConfig(event) {
         if (firstImgEvent) {
             shellProps.imageUrl = firstImgEvent.imageUrl;
             shellProps.frame = firstImgEvent.frame;
+            shellProps.crop = firstImgEvent.crop;
             shellProps.duration = firstImgEvent.duration;
             if (firstImgEvent.color) shellProps.color = resolveSingleColor(Array.isArray(firstImgEvent.color) ? firstImgEvent.color[0] : firstImgEvent.color);
         }
@@ -1449,6 +1451,7 @@ function buildEventShot(event) {
             shell: 'Hình ảnh',
             imageUrl: event.imageUrl,
             frame: event.frame,
+            crop: event.crop,
             shellSize: size,
             spreadSize: 300 + size * 100,
             // Thời gian ảnh hiện trên trời (ms)

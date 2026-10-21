@@ -7,77 +7,13 @@
 // Pháo "Hình ảnh": ảnh lớn dần và rõ dần trong khung (tròn, trái tim, ngôi sao...), viền khung nổ thành tia lửa.
 
 import MyMath from '../MyMath.js';
-import { PI_2, INVISIBLE, COLOR } from './env.js';
+import { INVISIBLE, COLOR } from './env.js';
 import { stageW, stageH, isLowQuality, quality, horizon } from './state.js';
 import { Star, Spark } from './particles.js';
 import { soundManager } from './audio.js';
+import { getFramePolygon, traceFramePath, cropRect } from './image-frame.js';
 
 export const imageParticleCache = new Map();
-
-// Khung ảnh: đa giác chuẩn hóa vừa khít hình vuông [-1, 1]. Dùng chung để cắt ảnh, vẽ viền sáng
-// và bắn hạt theo viền, nên ảnh, viền và pháo luôn khớp nhau.
-const framePolygonCache = new Map();
-
-function getFramePolygon(frame) {
-    if (framePolygonCache.has(frame)) return framePolygonCache.get(frame);
-    let points = [];
-    if (frame === 'circle') {
-        for (let i = 0; i < 120; i++) {
-            const t = i / 120 * PI_2;
-            points.push({ x: Math.cos(t), y: Math.sin(t) });
-        }
-    } else if (frame === 'square') {
-        points = [{ x: -1, y: -1 }, { x: 1, y: -1 }, { x: 1, y: 1 }, { x: -1, y: 1 }];
-    } else if (frame === 'rounded') {
-        // Vuông bo góc: bốn cung tròn ở bốn góc, đi theo chiều kim đồng hồ
-        const r = 0.3;
-        [[1, 1, 0], [-1, 1, 0.5], [-1, -1, 1], [1, -1, 1.5]].forEach(([sx, sy, start]) => {
-            for (let i = 0; i <= 10; i++) {
-                const t = (start + i / 20) * Math.PI;
-                points.push({ x: sx * (1 - r) + Math.cos(t) * r, y: sy * (1 - r) + Math.sin(t) * r });
-            }
-        });
-    } else if (frame === 'triangle') {
-        points = [{ x: 0, y: -1 }, { x: 1, y: 1 }, { x: -1, y: 1 }];
-    } else if (frame === 'heart') {
-        for (let i = 0; i < 160; i++) {
-            const t = i / 160 * PI_2;
-            points.push({
-                x: 16 * Math.pow(Math.sin(t), 3),
-                y: -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t))
-            });
-        }
-    } else if (frame === 'star') {
-        // Ngôi sao 5 cánh, cánh trên cùng hướng lên
-        for (let i = 0; i < 10; i++) {
-            const t = -Math.PI / 2 + i * Math.PI / 5;
-            const r = i % 2 === 0 ? 1 : 0.5;
-            points.push({ x: Math.cos(t) * r, y: Math.sin(t) * r });
-        }
-    } else {
-        return null;
-    }
-    // Căn giữa và phóng cho vừa khít hình vuông [-1, 1]
-    const xs = points.map(p => p.x);
-    const ys = points.map(p => p.y);
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minY = Math.min(...ys), maxY = Math.max(...ys);
-    const scale = 2 / Math.max(maxX - minX, maxY - minY);
-    points = points.map(p => ({ x: (p.x - (minX + maxX) / 2) * scale, y: (p.y - (minY + maxY) / 2) * scale }));
-    framePolygonCache.set(frame, points);
-    return points;
-}
-
-// Vẽ đường viền khung (không khung = hình chữ nhật của ảnh) quanh tâm (cx, cy)
-function traceFramePath(ctx, frame, cx, cy, halfW, halfH = halfW) {
-    const points = getFramePolygon(frame || 'square');
-    ctx.beginPath();
-    points.forEach((p, i) => {
-        if (i === 0) ctx.moveTo(cx + p.x * halfW, cy + p.y * halfH);
-        else ctx.lineTo(cx + p.x * halfW, cy + p.y * halfH);
-    });
-    ctx.closePath();
-}
 
 // `count` điểm cách đều nhau dọc theo viền khung (cùng đơn vị với getFramePolygon)
 const frameOutlineCache = new Map();
@@ -106,9 +42,10 @@ function sampleFrameOutline(frame, count) {
     return result;
 }
 
-// Chuẩn bị ảnh cho pháo. Có khung: cắt vuông phủ kín (ảnh dọc/ngang không bị kéo méo) rồi cắt theo khung.
-// Không khung: giữ nguyên tỉ lệ ảnh. Kèm một bản rất nhỏ, phóng to lên sẽ thành ảnh nhòe lúc mới hiện.
-export function getProcessedImage(img, frame = '') {
+// Chuẩn bị ảnh cho pháo: lấy phần ảnh người dùng chọn (crop, xem cropRect). Có khung: vùng vuông
+// (ảnh dọc/ngang không bị kéo méo) rồi cắt theo khung. Không khung: giữ nguyên tỉ lệ ảnh.
+// Kèm một bản rất nhỏ, phóng to lên sẽ thành ảnh nhòe lúc mới hiện.
+export function getProcessedImage(img, frame = '', crop = null) {
     const maxSide = 512;
     const iw = img.naturalWidth || img.width || maxSide;
     const ih = img.naturalHeight || img.height || maxSide;
@@ -127,8 +64,8 @@ export function getProcessedImage(img, frame = '') {
         traceFramePath(ctx, frame, w / 2, h / 2, w / 2);
         ctx.clip();
     }
-    const cover = Math.max(w / iw, h / ih);
-    ctx.drawImage(img, (w - iw * cover) / 2, (h - ih * cover) / 2, iw * cover, ih * cover);
+    const area = cropRect(iw, ih, frame, crop);
+    ctx.drawImage(img, area.x, area.y, area.w, area.h, 0, 0, w, h);
 
     const soft = document.createElement('canvas');
     soft.width = Math.max(1, Math.round(w / 20));

@@ -13,6 +13,7 @@ import { MOON_PHASES, moonFraction, moonPhaseIndex, moonIllumination } from './p
 import { eventTimes, layoutBursts, isPauseEvent, BURST_MS } from './timeline.js';
 import { createTimelineTrack } from './timeline-track.js';
 import { EMOJI_GROUPS } from './text-emojis.js';
+import { cropRect, traceFramePath } from './player/image-frame.js';
 import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill';
 import flagFontUrl from 'country-flag-emoji-polyfill/dist/TwemojiCountryFlags.woff2?url';
 import {
@@ -356,6 +357,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (document.getElementById('settings-panel').classList.contains('open')) return toggleSidebar();
         if (state.activeEventId) closeInspector();
     });
+
+    initCropper();
 
     // Initial event if empty
     if (state.events.length === 0) {
@@ -805,6 +808,10 @@ function updateEvent(id, field, value) {
         } else if (field === 'launchStyle') {
             // "Theo loại pháo" không lưu vào kịch bản
             event[field] = value || undefined;
+        } else if (field === 'imageUrl') {
+            // Đổi ảnh thì phần ảnh đã chọn của ảnh cũ không còn đúng
+            event.imageUrl = value;
+            event.crop = undefined;
         } else {
             event[field] = value;
         }
@@ -1441,12 +1448,16 @@ function renderInspector() {
             <div>
                 <label>Ảnh nổ pháo hoa</label>
                 <div class="image-upload-btn-large" onclick="document.getElementById('image-file-${event.id}').click()">
-                    ${event.imageUrl ? `<img src="${escapeHtml(normalizeAssetPath(event.imageUrl))}" class="full-thumb" alt="">` : '<i class="fas fa-cloud-arrow-up"></i>'}
+                    ${event.imageUrl ? '<canvas id="image-thumb" class="full-thumb"></canvas>' : '<i class="fas fa-cloud-arrow-up"></i>'}
                     <span>${event.imageUrl ? 'Đổi ảnh khác' : 'Chọn ảnh từ thiết bị'}</span>
                 </div>
                 <input type="file" id="image-file-${event.id}" class="hide" accept="image/*" onchange="handleImageUpload(${event.id}, this)">
-                <button type="button" class="btn secondary small library-pick" onclick="openLibrary('images', ${event.id})">
-                    <i class="fas fa-images"></i><span>Chọn từ kho ảnh</span></button>
+                <div class="image-actions">
+                    ${event.imageUrl ? `<button type="button" class="btn secondary small" onclick="openCropper(${event.id})">
+                        <i class="fas fa-crop-simple"></i><span>Chọn phần hiển thị</span></button>` : ''}
+                    <button type="button" class="btn secondary small library-pick" onclick="openLibrary('images', ${event.id})">
+                        <i class="fas fa-images"></i><span>Chọn từ kho ảnh</span></button>
+                </div>
             </div>
             <div>
                 <label>Khung ảnh</label>
@@ -1662,6 +1673,7 @@ function renderInspector() {
     panel.innerHTML = header + typeSection + positionSection + basicSection + launchSection + colorSection + soundSection + advancedSection;
     panel.scrollTop = keepScroll;
     initXYPad(event);
+    paintImageThumb(event);
 }
 
 // Điện thoại: ngăn chỉnh sửa bắt đầu ngay dưới khung xem nhanh để vừa chỉnh vừa thấy pháo
@@ -1800,6 +1812,7 @@ async function handleImageUpload(id, input) {
             updateEvent(id, 'imageUrl', dataUrl);
             renderInspector();
             hideLoading();
+            openCropper(id);
             notify('Đã tải ảnh lên (Lưu cục bộ dưới dạng DataURL)!', 'success');
         };
         reader.onerror = () => {
@@ -1826,6 +1839,7 @@ async function handleImageUpload(id, input) {
             updateEvent(id, 'imageUrl', data.url);
             renderInspector();
             notify('Tải ảnh lên thành công!', 'success');
+            openCropper(id);
         } else {
             notify('Lỗi: ' + data.message, 'error');
         }
@@ -1836,6 +1850,239 @@ async function handleImageUpload(id, input) {
 }
 
 window.handleImageUpload = handleImageUpload;
+
+// ---------------------------------------------------------------------------
+// CHỌN PHẦN ẢNH HIỂN THỊ (như đổi ảnh đại diện): kéo để dời ảnh, cuộn chuột / chụm hai ngón / thanh trượt để phóng to.
+// Lưu vào event.crop = { x, y, zoom } (xem cropRect trong player/image-frame.js), trình phát cắt ảnh đúng như vậy.
+// ---------------------------------------------------------------------------
+
+const CROP_MAX_ZOOM = 4;
+const cropper = { eventId: null, img: null, frame: '', crop: null, layout: null, pointers: new Map(), pinch: null };
+const cropImages = new Map();
+
+function loadCropImage(url) {
+    const src = normalizeAssetPath(url);
+    if (!cropImages.has(src)) {
+        cropImages.set(src, new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => {
+                cropImages.delete(src);
+                reject(new Error('Không đọc được ảnh'));
+            };
+            img.src = src;
+        }));
+    }
+    return cropImages.get(src);
+}
+
+// Vẽ đúng phần ảnh và khung sẽ hiện trên trời (giống getProcessedImage của trình phát)
+function drawCroppedImage(canvas, img, frame, crop, maxSide = 320) {
+    const area = cropRect(img.naturalWidth, img.naturalHeight, frame, crop);
+    const k = maxSide / Math.max(area.w, area.h);
+    canvas.width = Math.max(1, Math.round(area.w * k));
+    canvas.height = Math.max(1, Math.round(area.h * k));
+    const ctx = canvas.getContext('2d');
+    if (frame) {
+        traceFramePath(ctx, frame, canvas.width / 2, canvas.height / 2, canvas.width / 2);
+        ctx.clip();
+    }
+    ctx.drawImage(img, area.x, area.y, area.w, area.h, 0, 0, canvas.width, canvas.height);
+}
+
+// Ảnh thu nhỏ trong bảng chỉnh sửa
+function paintImageThumb(event) {
+    const canvas = document.getElementById('image-thumb');
+    if (!canvas || !event.imageUrl) return;
+    loadCropImage(event.imageUrl)
+        .then(img => canvas.isConnected && drawCroppedImage(canvas, img, event.frame, event.crop))
+        .catch(() => {});
+}
+
+async function openCropper(id) {
+    const event = state.events.find(e => e.id === id);
+    if (!event?.imageUrl) return;
+    let img;
+    try {
+        img = await loadCropImage(event.imageUrl);
+    } catch (e) {
+        notify('Không đọc được ảnh này.', 'error');
+        return;
+    }
+    Object.assign(cropper, { eventId: id, img, frame: event.frame || '', crop: { x: 0.5, y: 0.5, zoom: 1, ...event.crop } });
+    cropper.pointers.clear();
+    cropper.pinch = null;
+    showModal('crop-modal');
+    layoutCropper();
+    drawCropper();
+    document.getElementById('crop-canvas').focus();
+}
+
+function closeCropper() {
+    hideModal('crop-modal');
+    cropper.img = null;
+}
+
+// Khung cắt nằm giữa vùng vẽ, phần ảnh bên ngoài khung vẫn thấy nhưng tối đi
+function layoutCropper() {
+    const canvas = document.getElementById('crop-canvas');
+    const size = canvas.clientWidth;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    const { naturalWidth: iw, naturalHeight: ih } = cropper.img;
+    const aspect = cropper.frame ? 1 : iw / ih;
+    const box = size * 0.8;
+    const w = aspect >= 1 ? box : box * aspect;
+    const h = aspect >= 1 ? box / aspect : box;
+    cropper.layout = { size, dpr, w, h, left: (size - w) / 2, top: (size - h) / 2 };
+}
+
+function drawCropper() {
+    const canvas = document.getElementById('crop-canvas');
+    const { img, frame, layout: L } = cropper;
+    if (!img || !L) return;
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+    const area = cropRect(iw, ih, frame, cropper.crop);
+    // Tâm đã chạm mép ảnh thì giữ ở đó, kéo tiếp ra ngoài không bị dồn lại
+    cropper.crop.x = (area.x + area.w / 2) / iw;
+    cropper.crop.y = (area.y + area.h / 2) / ih;
+    const k = L.w / area.w;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(L.dpr, 0, 0, L.dpr, 0, 0);
+    ctx.clearRect(0, 0, L.size, L.size);
+    const drawImage = () => ctx.drawImage(img, L.left - area.x * k, L.top - area.y * k, iw * k, ih * k);
+    drawImage();
+    ctx.fillStyle = 'rgba(8, 10, 16, 0.65)';
+    ctx.fillRect(0, 0, L.size, L.size);
+    ctx.save();
+    traceFramePath(ctx, frame, L.left + L.w / 2, L.top + L.h / 2, L.w / 2, L.h / 2);
+    ctx.clip();
+    drawImage();
+    ctx.restore();
+    traceFramePath(ctx, frame, L.left + L.w / 2, L.top + L.h / 2, L.w / 2, L.h / 2);
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.stroke();
+    document.getElementById('crop-zoom').value = cropper.crop.zoom;
+}
+
+// Đổi độ phóng, giữ nguyên điểm ảnh đang nằm dưới (px, py) (mặc định: tâm khung)
+function setCropZoom(zoom, px, py) {
+    const { img, frame, layout: L, crop } = cropper;
+    if (!img) return;
+    zoom = Math.min(CROP_MAX_ZOOM, Math.max(1, zoom));
+    px = px ?? L.left + L.w / 2;
+    py = py ?? L.top + L.h / 2;
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+    const before = cropRect(iw, ih, frame, crop);
+    const u = before.x + (px - L.left) * before.w / L.w;
+    const v = before.y + (py - L.top) * before.h / L.h;
+    const w = before.w * crop.zoom / zoom;
+    const h = before.h * crop.zoom / zoom;
+    crop.x = (u - (px - L.left) * w / L.w + w / 2) / iw;
+    crop.y = (v - (py - L.top) * h / L.h + h / 2) / ih;
+    crop.zoom = zoom;
+    drawCropper();
+}
+
+function zoomCropper(delta) {
+    setCropZoom(cropper.crop.zoom + delta);
+}
+
+function moveCropper(dx, dy) {
+    const { img, frame, layout: L, crop } = cropper;
+    const area = cropRect(img.naturalWidth, img.naturalHeight, frame, crop);
+    crop.x -= dx * area.w / L.w / img.naturalWidth;
+    crop.y -= dy * area.h / L.h / img.naturalHeight;
+    drawCropper();
+}
+
+function resetCropper() {
+    cropper.crop = { x: 0.5, y: 0.5, zoom: 1 };
+    drawCropper();
+}
+
+function saveCropper() {
+    const { img, frame, crop } = cropper;
+    if (!img) return;
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+    const area = cropRect(iw, ih, frame, crop);
+    const center = cropRect(iw, ih, frame, null);
+    // Đúng vùng mặc định (giữa ảnh, không phóng) thì không lưu gì
+    const isDefault = Math.abs(area.x - center.x) < 1 && Math.abs(area.y - center.y) < 1 && Math.abs(area.w - center.w) < 1;
+    const round = v => Math.round(v * 1000) / 1000;
+    updateEvent(cropper.eventId, 'crop', isDefault ? undefined : { x: round(crop.x), y: round(crop.y), zoom: round(crop.zoom) });
+    renderInspector();
+    closeCropper();
+}
+
+function initCropper() {
+    const canvas = document.getElementById('crop-canvas');
+    if (!canvas) return;
+    const point = e => {
+        const rect = canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    };
+    const pinchState = () => {
+        const [a, b] = [...cropper.pointers.values()];
+        return { dist: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, zoom: cropper.crop.zoom };
+    };
+    canvas.addEventListener('pointerdown', e => {
+        canvas.setPointerCapture(e.pointerId);
+        cropper.pointers.set(e.pointerId, point(e));
+        cropper.pinch = cropper.pointers.size === 2 ? pinchState() : null;
+    });
+    canvas.addEventListener('pointermove', e => {
+        const last = cropper.pointers.get(e.pointerId);
+        if (!last || !cropper.img) return;
+        const now = point(e);
+        cropper.pointers.set(e.pointerId, now);
+        if (cropper.pinch) {
+            // Chụm hai ngón: phóng theo khoảng cách, dời theo điểm giữa hai ngón
+            const p = pinchState();
+            moveCropper(p.x - cropper.pinch.x, p.y - cropper.pinch.y);
+            setCropZoom(cropper.pinch.zoom * p.dist / Math.max(1, cropper.pinch.dist), p.x, p.y);
+            cropper.pinch.x = p.x;
+            cropper.pinch.y = p.y;
+        } else if (cropper.pointers.size === 1) {
+            moveCropper(now.x - last.x, now.y - last.y);
+        }
+    });
+    const release = e => {
+        cropper.pointers.delete(e.pointerId);
+        cropper.pinch = cropper.pointers.size === 2 ? pinchState() : null;
+    };
+    canvas.addEventListener('pointerup', release);
+    canvas.addEventListener('pointercancel', release);
+    canvas.addEventListener('wheel', e => {
+        e.preventDefault();
+        const p = point(e);
+        setCropZoom(cropper.crop.zoom * Math.exp(-e.deltaY * 0.0015), p.x, p.y);
+    }, { passive: false });
+    canvas.addEventListener('keydown', e => {
+        const step = e.shiftKey ? 20 : 5;
+        const moves = { ArrowLeft: [step, 0], ArrowRight: [-step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] };
+        if (moves[e.key]) moveCropper(...moves[e.key]);
+        else if (e.key === '+' || e.key === '=') zoomCropper(0.1);
+        else if (e.key === '-') zoomCropper(-0.1);
+        else return;
+        e.preventDefault();
+    });
+    document.getElementById('crop-zoom').addEventListener('input', e => setCropZoom(Number(e.target.value)));
+    document.getElementById('crop-modal').addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeCropper();
+    });
+    window.addEventListener('resize', () => {
+        if (!cropper.img) return;
+        layoutCropper();
+        drawCropper();
+    });
+}
 
 // ---------------------------------------------------------------------------
 // NHẠC NỀN
@@ -2011,6 +2258,9 @@ function chooseLibraryItem(id) {
         updateEvent(library.eventId, 'imageUrl', libraryUrl(item));
         renderInspector();
         notify(`Đã dùng ảnh "${item.name}".`, 'success');
+        closeLibrary();
+        openCropper(library.eventId);
+        return;
     }
     closeLibrary();
 }
@@ -4779,7 +5029,8 @@ Object.assign(window, {
     hideModal, setStartFrame, undo, redo, setOpenMode, setSmoke, setWater, setWaterStyle, setFloating, setStars, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
     toggleLibraryPreview, chooseLibraryItem, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
     openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, prepareVideo, stopVideo, downloadVideo, shareVideo,
-    restartVideo, setTimelineView, zoomTrack, copyTrackingLink, enableOpenNotifications, checkGiftOpens
+    restartVideo, setTimelineView, zoomTrack, copyTrackingLink, enableOpenNotifications, checkGiftOpens,
+    openCropper, closeCropper, zoomCropper, resetCropper, saveCropper
 });
 window.addEventListener('resize', resizeMiniStages);
 

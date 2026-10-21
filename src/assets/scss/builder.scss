@@ -1202,6 +1202,64 @@ select.is-invalid {
     }
 }
 
+// Chọn phần ảnh hiển thị của pháo ảnh
+.crop-modal {
+    max-width: 440px !important;
+}
+
+.crop-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 0;
+    padding: 1rem 1.5rem;
+    overflow-y: auto;
+
+    .field-hint {
+        text-align: center;
+    }
+}
+
+.crop-canvas {
+    width: min(100%, 360px, 52vh);
+    aspect-ratio: 1;
+    border-radius: $b-radius-sm;
+    background: #05060a;
+    cursor: grab;
+    touch-action: none;
+
+    &:active {
+        cursor: grabbing;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $b-accent;
+        outline-offset: 2px;
+    }
+}
+
+.crop-zoom {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: min(100%, 360px);
+
+    input {
+        flex: 1;
+        min-width: 0;
+        accent-color: $b-accent;
+    }
+}
+
+.crop-footer {
+    gap: 0.5rem;
+
+    .btn:first-child {
+        margin-right: auto;
+    }
+}
+
 // Kho nhạc / kho ảnh
 .library-modal {
     max-width: 720px !important;
@@ -1348,6 +1406,18 @@ select.is-invalid {
 .library-pick {
     align-self: flex-start;
     margin-top: 0.5rem;
+}
+
+// Nút dưới ảnh của pháo ảnh: chọn phần hiển thị, chọn từ kho ảnh
+.image-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+
+    .library-pick {
+        margin-top: 0;
+    }
 }
 
 .music-url-row {

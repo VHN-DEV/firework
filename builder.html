@@ -837,6 +837,37 @@
         </div>
     </div>
 
+    <!-- Chọn phần ảnh hiển thị của pháo ảnh (như đổi ảnh đại diện) -->
+    <div id="crop-modal" class="modal hide">
+        <div class="modal-content large crop-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-crop-simple"></i> Chọn phần ảnh hiển thị</h3>
+                <button class="btn icon" onclick="closeCropper()" title="Đóng">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+            <div class="crop-body">
+                <canvas id="crop-canvas" class="crop-canvas" tabindex="0"
+                    aria-label="Kéo để chọn phần ảnh hiển thị, phím mũi tên để dời, phím + và - để phóng to, thu nhỏ"></canvas>
+                <div class="crop-zoom">
+                    <button type="button" class="btn icon" onclick="zoomCropper(-0.25)" title="Thu nhỏ">
+                        <i class="fas fa-magnifying-glass-minus"></i>
+                    </button>
+                    <input type="range" id="crop-zoom" min="1" max="4" step="0.01" value="1" aria-label="Độ phóng to">
+                    <button type="button" class="btn icon" onclick="zoomCropper(0.25)" title="Phóng to">
+                        <i class="fas fa-magnifying-glass-plus"></i>
+                    </button>
+                </div>
+                <small class="field-hint">Kéo ảnh để chọn phần nằm trong khung. Cuộn chuột, chụm hai ngón hoặc kéo thanh trượt để phóng to.</small>
+            </div>
+            <div class="modal-footer crop-footer">
+                <button class="btn secondary" onclick="resetCropper()"><i class="fas fa-rotate-left"></i> Đặt lại</button>
+                <button class="btn secondary" onclick="closeCropper()">Hủy</button>
+                <button class="btn primary" onclick="saveCropper()"><i class="fas fa-check"></i> Lưu</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Kho nhạc / kho ảnh có sẵn (library/*/index.json) -->
     <div id="library-modal" class="modal hide">
         <div class="modal-content large library-modal">

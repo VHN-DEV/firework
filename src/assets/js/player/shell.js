@@ -15,6 +15,7 @@ import { Star, BurstFlash } from './particles.js';
 import { soundManager } from './audio.js';
 import { normalizeAssetPath } from './utils.js';
 import { imageParticleCache, ImageBurst } from './image-burst.js';
+import { imageCacheKey } from './image-frame.js';
 import { Smoke } from './smoke.js';
 import {
     crossetteEffect, crackleEffect, floralEffect, fallingLeavesEffect, createParticleArc, createBurst
@@ -185,7 +186,7 @@ export class Shell {
         // Nếu là loại hình ảnh, ta tạo ImageBurst thay vì pháo hạt
         if (this.shell === 'Hình ảnh' && this.imageUrl) {
             const normalizedUrl = normalizeAssetPath(this.imageUrl);
-            const cacheKey = `${normalizedUrl}_${this.frame || ''}`;
+            const cacheKey = imageCacheKey(normalizedUrl, this.frame, this.crop);
             const img = imageParticleCache.get(cacheKey);
             if (img) {
                 // Lấy màu đầu tiên từ mảng color hoặc chính nó nếu là string
@@ -205,7 +206,7 @@ export class Shell {
                 return;
             } else {
                 console.warn('[Firework] Image not ready in Main simulation cache:', cacheKey);
-                window.preloadFireworkImage && window.preloadFireworkImage(this.imageUrl, this.frame);
+                window.preloadFireworkImage && window.preloadFireworkImage(this.imageUrl, this.frame, this.crop);
             }
         }
 
