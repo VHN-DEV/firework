@@ -12,6 +12,7 @@ phạm vi giấy phép độc quyền của dự án.
 | Font Awesome Free 6.5.1 | Fonticons, Inc. – [fontawesome.com](https://fontawesome.com) | Biểu tượng: CC BY 4.0 · Font: SIL OFL 1.1 · Mã: MIT | tải từ cdnjs trong builder |
 | Phông chữ Inter, Outfit, Roboto | Các tác giả trên [Google Fonts](https://fonts.google.com) | SIL OFL 1.1 / Apache 2.0 | tải từ Google Fonts |
 | Hiệu ứng âm thanh bổ sung | [BigSoundBank](https://bigsoundbank.com), [Pixabay](https://pixabay.com/sound-effects/) | Theo giấy phép của từng trang | `src/assets/audio/lift/lift-wick-*.mp3`, `lift-whoosh-*.mp3`, `src/assets/audio/whistle/*`, `src/assets/audio/burst/burst-out.mp3` |
+| Nhạc nền mẫu "Pomp and Circumstance" March No. 1, Op. 39 (đoạn Trio, cắt từ 1:22,5 tới 3:20,5) | Sáng tác: Edward Elgar · Trình diễn: United States Marine Band – [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:ELGAR_Pomp_and_Circumstance_in_D,_Opus_39,_No._1_-_United_States_Marine_Band.mp3) | Phạm vi công cộng (bản nhạc: tác giả mất năm 1934; bản thu: tác phẩm của chính phủ liên bang Hoa Kỳ) | `src/static/uploads/music/graduation_nguyen_van/pomp-and-circumstance-trio.mp3` (kịch bản mẫu `graduation_nguyen_van`) |
 
 Bản Việt hóa ban đầu của trình mô phỏng được chia sẻ bởi Jay Ramoliya.
 
