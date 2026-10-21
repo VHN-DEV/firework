@@ -3009,7 +3009,8 @@ function estimateVideoLength() {
     let total = 0;
     for (let b = 1; b <= getMaxBurst(); b++) total += getBurstDuration(getBurstEvents(b));
     // Kịch bản khớp nhịp phóng pháo đầu tiên sớm hơn nhạc khoảng 2,5 giây
-    return total / 1000 + 0.8 + (isSyncMode() ? 2.5 : 0) + VIDEO_TAIL_SECONDS;
+    // 1,5 giây trời đêm đầu video (chờ bộ mã hóa video khởi động) + 0,8 giây tới phát đầu tiên
+    return total / 1000 + 1.5 + 0.8 + (isSyncMode() ? 2.5 : 0) + VIDEO_TAIL_SECONDS;
 }
 
 function formatClock(seconds) {

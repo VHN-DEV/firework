@@ -988,6 +988,9 @@ function replayShow() {
 // Chờ trước phát pháo đầu tiên, và thời gian thiệp lời chúc ở cuối video (ms)
 const RECORD_LEAD = 800;
 const RECORD_END_CARD = 4000;
+// Bộ mã hóa video của trình duyệt có lúc mất 1-2 giây mới bắt đầu nhận khung hình: quay trước một đoạn trời đêm yên
+// tĩnh rồi mới vào màn trình diễn, để phần đứng hình (nếu có) chỉ là nền tối, không phải pháo hay tiêu đề
+const RECORD_WARMUP = 1500;
 
 const recording = {
     config: null,
@@ -1066,17 +1069,21 @@ function startRecording() {
         audioNodes: [soundManager.effectsGain, musicPlayer.gain]
     });
     recorder.start();
-    // Chạy lại từ đầu, đúng như khi người nhận vừa mở quà. Bỏ hẹn giờ màn kết của kịch bản rỗng lúc chờ quay.
-    clearTimeout(endScreenTimer);
-    burstConfig = recording.config;
-    burstCounter = 0;
-    syncShow.reset();
-    clearCaptions();
-    musicPlayer.restart();
-    autoLaunchTime = RECORD_LEAD;
-    showTitleOverlay(burstConfig);
     recording.progressTimer = setInterval(() => postToBuilder({ type: 'firework-record-progress', elapsed: recorder.elapsed() }), 500);
     postToBuilder({ type: 'firework-record-started' });
+    // Bỏ hẹn giờ màn kết của kịch bản rỗng lúc chờ quay
+    clearTimeout(endScreenTimer);
+    setTimeout(() => {
+        if (recording.finishing) return;
+        // Chạy lại từ đầu, đúng như khi người nhận vừa mở quà
+        burstConfig = recording.config;
+        burstCounter = 0;
+        syncShow.reset();
+        clearCaptions();
+        musicPlayer.restart();
+        autoLaunchTime = RECORD_LEAD;
+        showTitleOverlay(burstConfig);
+    }, RECORD_WARMUP);
 }
 
 // withCard: chạy hết màn trình diễn thì kết bằng thiệp lời chúc; dừng giữa chừng thì cắt luôn
@@ -1973,6 +1980,8 @@ function handlePointerStart(event) {
     activePointerCount++;
     // Chưa bắt đầu màn trình diễn: bỏ qua, tránh chạm vào góc màn hình chờ làm tạm dừng/mở menu ngầm
     if (appNodes.stageContainer.classList.contains('remove')) return;
+    // Khung quay video: bấm nút "Bắt đầu quay" hay lỡ tay bấm vào khung không được bắn thêm pháo vào video
+    if (IS_RECORD) return;
     const btnSize = 50;
 
     if (event.y < btnSize) {
