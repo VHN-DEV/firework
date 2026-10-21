@@ -93,6 +93,14 @@
                 <path
                     d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
             </symbol>
+            <symbol id="icon-camera" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3.2" />
+                <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" />
+            </symbol>
+            <symbol id="icon-share" viewBox="0 0 24 24">
+                <path
+                    d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z" />
+            </symbol>
             <symbol id="icon-sound-off" viewBox="0 0 24 24">
                 <path
                     d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
@@ -163,8 +171,83 @@
                 <p class="end-screen__from"></p>
                 <div class="end-screen__actions">
                     <button type="button" class="end-screen__replay">↻ Xem lại</button>
+                    <button type="button" class="end-screen__share">↗ Chia sẻ, tạo video</button>
                     <a class="end-screen__create" href="./builder.html">✨ Tạo màn pháo hoa của bạn</a>
                 </div>
+            </div>
+        </div>
+        <!-- Chụp khoảnh khắc: chớp sáng, ảnh vừa chụp kèm nút lưu/gửi -->
+        <div class="snap-flash" aria-hidden="true"></div>
+        <div class="snap-toast hide" role="status">
+            <img alt="Ảnh vừa chụp">
+            <div class="snap-toast__body">
+                <strong>Đã chụp khoảnh khắc</strong>
+                <div class="snap-toast__actions">
+                    <button type="button" class="snap-toast__save">⬇ Lưu ảnh</button>
+                    <button type="button" class="snap-toast__share">↗ Gửi</button>
+                    <button type="button" class="snap-toast__all">Xem tất cả</button>
+                </div>
+            </div>
+        </div>
+        <div class="viewer-toast hide" role="status" aria-live="polite"></div>
+        <!-- Bảng chia sẻ của người nhận: gửi link, tạo video, ảnh đã chụp -->
+        <div class="sheet share-sheet hide" role="dialog" aria-modal="true" aria-labelledby="share-sheet-title">
+            <div class="sheet__panel">
+                <div class="sheet__top">
+                    <h2 id="share-sheet-title" class="sheet__title">Chia sẻ màn pháo hoa</h2>
+                    <button type="button" class="sheet__close" aria-label="Đóng">
+                        <svg fill="white" width="22" height="22"><use href="#icon-close" xlink:href="#icon-close"></use></svg>
+                    </button>
+                </div>
+                <p class="sheet__group">Gửi link</p>
+                <div class="share-sheet__link">
+                    <input type="text" class="share-sheet__url" readonly aria-label="Link màn pháo hoa">
+                    <button type="button" class="share-sheet__copy">Sao chép</button>
+                </div>
+                <div class="share-grid"></div>
+                <p class="sheet__group">Video &amp; ảnh</p>
+                <button type="button" class="share-sheet__video">
+                    <span class="share-sheet__video-icon" aria-hidden="true">🎬</span>
+                    <span><strong>Tạo video</strong><small>Đăng TikTok, Instagram Reels, YouTube Shorts, Facebook Story...</small></span>
+                </button>
+                <div class="share-sheet__moments remove">
+                    <p class="sheet__hint">Khoảnh khắc đã chụp (<span class="share-sheet__count">0</span>)</p>
+                    <div class="moments"></div>
+                </div>
+                <p class="sheet__hint">Bấm 📷 ở góc dưới (hoặc phím C) để chụp lại những khoảnh khắc bạn thích. Ảnh và video
+                    làm ngay trên máy bạn, không tải lên đâu cả.</p>
+            </div>
+        </div>
+        <!-- Tạo video (như builder > Xuất video): chọn khổ, quay trong khung, xem lại rồi tải về hoặc chia sẻ -->
+        <div class="sheet video-sheet hide" role="dialog" aria-modal="true" aria-labelledby="video-sheet-title">
+            <div class="sheet__panel">
+                <div class="sheet__top">
+                    <h2 id="video-sheet-title" class="sheet__title">Tạo video</h2>
+                    <button type="button" class="sheet__close" aria-label="Đóng">
+                        <svg fill="white" width="22" height="22"><use href="#icon-close" xlink:href="#icon-close"></use></svg>
+                    </button>
+                </div>
+                <div class="video-sheet__setup">
+                    <p class="sheet__group">Khổ video</p>
+                    <div class="video-formats"></div>
+                    <p class="sheet__group">Chất lượng</p>
+                    <div class="video-qualities" role="group" aria-label="Chất lượng video">
+                        <button type="button" data-quality="fhd">Full HD <small>1080p</small></button>
+                        <button type="button" data-quality="hd">HD <small>720p, nhẹ hơn</small></button>
+                    </div>
+                    <ul class="video-notes"></ul>
+                </div>
+                <div class="video-sheet__stage remove">
+                    <div class="video-frame-box"></div>
+                    <div class="video-progress"><div class="video-progress__bar"></div></div>
+                    <p class="video-status"></p>
+                </div>
+                <div class="video-sheet__result remove">
+                    <video class="video-output" controls playsinline></video>
+                    <p class="video-info"></p>
+                    <p class="sheet__hint video-tip"></p>
+                </div>
+                <div class="sheet__actions"></div>
             </div>
         </div>
         <div class="loading-init remove">
@@ -199,6 +282,19 @@
                         <use href="#icon-settings" xlink:href="#icon-settings"></use>
                     </svg>
                 </div>
+            </div>
+            <!-- Người nhận: chụp khoảnh khắc (phím C), chia sẻ và tạo video (người tạo có thể tắt), xem viewer-share.js -->
+            <div class="moment-bar">
+                <button type="button" class="moment-bar__btn moment-bar__snap" title="Chụp khoảnh khắc (phím C)" aria-label="Chụp khoảnh khắc">
+                    <svg fill="white" width="22" height="22" aria-hidden="true">
+                        <use href="#icon-camera" xlink:href="#icon-camera"></use>
+                    </svg>
+                </button>
+                <button type="button" class="moment-bar__btn moment-bar__share" title="Chia sẻ, tạo video" aria-label="Chia sẻ, tạo video">
+                    <svg fill="white" width="22" height="22" aria-hidden="true">
+                        <use href="#icon-share" xlink:href="#icon-share"></use>
+                    </svg>
+                </button>
             </div>
             <div class="menu hide">
                 <div class="menu__inner-wrap">

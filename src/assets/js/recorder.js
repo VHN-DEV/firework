@@ -252,6 +252,15 @@ export function createFrameComposer({ width, height, container, background, laye
     return {
         canvas,
         paint,
+        // Chờ ảnh nền tải xong (ảnh chụp chỉ vẽ một khung, không đợi được khung sau như video)
+        load() {
+            backgroundImage();
+            const pending = [...images.values()].filter(image => !image.complete);
+            return Promise.all(pending.map(image => new Promise(resolve => {
+                image.addEventListener('load', resolve, { once: true });
+                image.addEventListener('error', resolve, { once: true });
+            })));
+        },
         // Thiệp lời chúc phủ lên các khung hình sau đó (hiện dần)
         setEndCard(card) {
             endCard = { ...card, start: performance.now() };

@@ -8,7 +8,8 @@ import fscreen from './fscreen@1.0.1.js';
 import { Stage, Ticker } from './Stage@0.1.4.js';
 import MyMath from './MyMath.js';
 import { printCopyrightNotice } from './copyright.js';
-import { createVideoRecorder, canRecordVideo, pickVideoMimeType } from './recorder.js';
+import { createFrameComposer, createVideoRecorder, canRecordVideo, pickVideoMimeType } from './recorder.js';
+import { setupViewerShare } from './viewer-share.js';
 import { getOwnerKeys } from './gift-tracking.js';
 import '../scss/style.scss';
 import {
@@ -713,6 +714,7 @@ const configRequest = !IS_PREVIEW && CONFIG_NAME
 async function loadBurstConfig() {
     const config = await configRequest;
     if (!config) return;
+    viewerShare.setConfig(config);
     try {
         burstConfig = await prepareBurstConfig(config, { showOverlay: true });
         soundManager.setEffectsVolume(burstConfig.effectsVolume ?? 1);
@@ -1049,10 +1051,7 @@ function startRecording() {
         height: height || mainStage.canvas.height,
         fps,
         bitrate,
-        container: appNodes.stageContainer,
-        background: appNodes.backgroundImage,
-        layers: [decoCanvas, smokeCanvas, trailsStage.canvas, mainStage.canvas, waterCanvas],
-        texts: () => [...document.querySelectorAll('.config-overlay h1, .config-overlay h2, .config-overlay p, .caption-layer .caption')],
+        ...frameSources(),
         audioContext: soundManager.ctx,
         audioNodes: [soundManager.effectsGain, musicPlayer.gain]
     });
@@ -1098,6 +1097,52 @@ async function finishRecording(withCard) {
 }
 
 appNodes.endScreen.querySelector('.end-screen__replay').addEventListener('click', replayShow);
+
+// Những gì có trên khung hình: ảnh nền, các lớp pháo (dưới lên trên), tiêu đề và lời nhắn (xem recorder.js)
+function frameSources() {
+    return {
+        container: appNodes.stageContainer,
+        background: appNodes.backgroundImage,
+        layers: [decoCanvas, smokeCanvas, trailsStage.canvas, mainStage.canvas, waterCanvas],
+        texts: () => [...document.querySelectorAll('.config-overlay h1, .config-overlay h2, .config-overlay p, .caption-layer .caption')]
+    };
+}
+
+// ---------------------------------------------------------------------------
+// NGƯỜI NHẬN CHỤP KHOẢNH KHẮC, CHIA SẺ, TẠO VIDEO (xem viewer-share.js)
+// ---------------------------------------------------------------------------
+
+// Ảnh chụp đúng độ phân giải canvas pháo; giữ lại bộ ghép để ảnh nền chỉ tải một lần
+let snapshotComposer = null;
+
+async function composeSnapshot() {
+    const { width, height } = mainStage.canvas;
+    if (!snapshotComposer || snapshotComposer.canvas.width !== width || snapshotComposer.canvas.height !== height) {
+        snapshotComposer = createFrameComposer({ width, height, ...frameSources() });
+    }
+    await snapshotComposer.load();
+    snapshotComposer.paint();
+    return snapshotComposer.canvas;
+}
+
+const viewerShare = setupViewerShare({
+    composeFrame: composeSnapshot,
+    describe() {
+        const config = burstConfig || {};
+        const title = replacePlaceholders(config.seoTitle) || config.title || 'Trình diễn Pháo hoa';
+        const description = replacePlaceholders(config.seoDescription) || [config.subtitle, config.author].filter(Boolean).join(' – ');
+        return { title, description };
+    },
+    pauseShow(paused) {
+        const was = store.state.paused;
+        togglePause(paused);
+        return was;
+    },
+    configName: CONFIG_NAME,
+    preview: IS_PREVIEW,
+    off: IS_RECORD || IS_HEADER,
+    reduceFlashing: reduceFlashingSelector
+});
 
 // Kịch bản tạo bởi builder phiên bản cũ dùng tọa độ 0-1 thay vì 0-100 (mọi phát bắn dồn vào góc dưới trái).
 // Phát bắn nào có cả x và y trong khoảng 0-1 được đổi sang thang 0-100.
@@ -2690,6 +2735,7 @@ if (IS_PREVIEW) {
         if (msg.type !== 'firework-preview') return;
 
         const version = ++previewVersion;
+        viewerShare.setConfig(msg.config);
         const config = await prepareBurstConfig(msg.config, { showOverlay: false });
         // Trong lúc đang tải ảnh, builder đã gửi một kịch bản mới hơn
         if (version !== previewVersion) return;
