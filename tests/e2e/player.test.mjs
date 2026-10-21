@@ -276,6 +276,24 @@ export async function run(browser, base, { check }) {
         check('khói pháo: máy đặt chất lượng Thấp thì không có khói', low === 0, low.toFixed(3));
         await page.close();
 
+        // Kịch bản đặt sẵn cách xem (viewer): áp cho người xem mới, không lưu thành cài đặt của họ
+        writeConfig('zz_e2e_viewer', { ...smokeShow(undefined), loop: false, viewer: { quality: '1', skyLighting: '1', scaleFactor: 0.75, hideControls: false } });
+        page = await openPage(browser);
+        await page.evaluateOnNewDocument(() => localStorage.removeItem('cm_fireworks_data'));
+        await page.goto(base + '/index.html?config=zz_e2e_viewer', { waitUntil: 'networkidle0' });
+        await page.click('.btn-start');
+        await waitForShow(page).catch(() => {});
+        const viewer = await page.evaluate(() => ({
+            quality: document.querySelector('.quality-ui').value, sky: document.querySelector('.sky-lighting').value,
+            scale: document.querySelector('.scaleFactor').value, controls: !document.querySelector('.controls').classList.contains('hide'),
+            stored: JSON.parse(localStorage.getItem('cm_fireworks_data') || 'null')
+        }));
+        check('kịch bản đặt sẵn cách xem: áp cho người xem mới, không lưu thành cài đặt của họ',
+            viewer.quality === '1' && viewer.sky === '1' && viewer.scale === '0.75' && viewer.controls
+            && (!viewer.stored || (viewer.stored.data.quality === 'auto' && viewer.stored.data.skyLighting === '2')), JSON.stringify(viewer));
+        await page.close();
+        removeConfig('zz_e2e_viewer');
+
         // Chất lượng: mặc định Tự động; mức Thấp vẽ tối đa ×1,5 trên màn DPR 3 (Cao thì đủ độ phân giải)
         for (const [stored, ratio] of [[null, 3], ['1', 1.5]]) {
             page = await openPage(browser);

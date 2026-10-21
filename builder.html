@@ -422,8 +422,8 @@
                                     <label>Vật trôi trên nước<button type="button" class="help-tip" data-help="floating" aria-label="Giải thích">?</button></label>
                                     <div class="segmented water-floating" role="group" aria-label="Vật trôi trên nước">
                                         <button type="button" data-floating="" onclick="setFloating('')">Không</button>
-                                        <button type="button" data-floating="lanterns" onclick="setFloating('lanterns')">🪷 Hoa đăng</button>
-                                        <button type="button" data-floating="petals" onclick="setFloating('petals')">🌸 Cánh hoa</button>
+                                        <button type="button" data-floating="lanterns" onclick="setFloating('lanterns')">🪷</button>
+                                        <button type="button" data-floating="petals" onclick="setFloating('petals')">🌸</button>
                                     </div>
                                     <label class="switch-row compact" for="water-life">
                                         <span>
@@ -435,19 +435,69 @@
                                 </div>
                             </div>
 
-                            <label class="switch-row" for="reduce-flashing">
-                                <span>
-                                    <strong>Giảm chớp sáng<button type="button" class="help-tip" data-help="reduceFlashing" aria-label="Giải thích">?</button></strong>
-                                    <small>Cho người nhạy cảm với ánh sáng nhấp nháy</small>
-                                </span>
-                                <input type="checkbox" id="reduce-flashing" class="switch">
-                            </label>
                             <label class="switch-row" for="loop">
                                 <span>
                                     <strong>Tự động lặp lại<button type="button" class="help-tip" data-help="loop" aria-label="Giải thích">?</button></strong>
                                     <small>Chạy hết thì quay lại đợt đầu</small>
                                 </span>
                                 <input type="checkbox" id="loop" class="switch" checked>
+                            </label>
+                        </div>
+                    </details>
+                    <details class="settings-group" data-group="viewer">
+                        <summary><i class="fas fa-display"></i><span class="summary-title">Khi người nhận xem</span><span class="summary-hint" data-summary="viewer"></span></summary>
+                        <div class="settings-group-body">
+                            <small class="field-hint viewer-lead">Cài đặt sẵn khi mở link. Người xem vẫn tự đổi được trong Cài đặt; mục họ đã tự chọn trước đó thì giữ theo họ.</small>
+                            <div class="field">
+                                <label>Chất lượng<button type="button" class="help-tip" data-help="viewerQuality" aria-label="Giải thích">?</button></label>
+                                <div class="segmented viewer-quality" role="group" aria-label="Chất lượng">
+                                    <button type="button" data-value="" onclick="setViewerOption('quality', '')">Tự động</button>
+                                    <button type="button" data-value="1" onclick="setViewerOption('quality', '1')">Thấp</button>
+                                    <button type="button" data-value="2" onclick="setViewerOption('quality', '2')">Vừa</button>
+                                    <button type="button" data-value="3" onclick="setViewerOption('quality', '3')">Cao</button>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label>Ánh sáng bầu trời<button type="button" class="help-tip" data-help="viewerSky" aria-label="Giải thích">?</button></label>
+                                <div class="segmented viewer-sky" role="group" aria-label="Ánh sáng bầu trời">
+                                    <button type="button" data-value="0" onclick="setViewerOption('skyLighting', '0')">Tắt</button>
+                                    <button type="button" data-value="1" onclick="setViewerOption('skyLighting', '1')">Mờ</button>
+                                    <button type="button" data-value="" onclick="setViewerOption('skyLighting', '')">Bình thường</button>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label for="viewer-scale">Thu phóng<button type="button" class="help-tip" data-help="viewerScale" aria-label="Giải thích">?</button></label>
+                                <select id="viewer-scale">
+                                    <option value="">Theo màn hình người xem</option>
+                                    <option value="0.5">50%</option>
+                                    <option value="0.62">62%</option>
+                                    <option value="0.75">75%</option>
+                                    <option value="0.9">90%</option>
+                                    <option value="1">100%</option>
+                                    <option value="1.5">150%</option>
+                                    <option value="2">200%</option>
+                                </select>
+                            </div>
+                            <label class="switch-row" for="viewer-fullscreen">
+                                <span>
+                                    <strong>Toàn màn hình khi mở quà<button type="button" class="help-tip" data-help="viewerFullscreen" aria-label="Giải thích">?</button></strong>
+                                    <small>Chạm mở quà là vào toàn màn hình (máy hỗ trợ)</small>
+                                </span>
+                                <input type="checkbox" id="viewer-fullscreen" class="switch">
+                            </label>
+                            <label class="switch-row" for="viewer-controls">
+                                <span>
+                                    <strong>Hiện nút điều khiển<button type="button" class="help-tip" data-help="viewerControls" aria-label="Giải thích">?</button></strong>
+                                    <small>Nút tạm dừng, âm thanh, cài đặt luôn hiện ở mép trên</small>
+                                </span>
+                                <input type="checkbox" id="viewer-controls" class="switch">
+                            </label>
+                            <label class="switch-row" for="reduce-flashing">
+                                <span>
+                                    <strong>Giảm chớp sáng<button type="button" class="help-tip" data-help="reduceFlashing" aria-label="Giải thích">?</button></strong>
+                                    <small>Cho người nhạy cảm với ánh sáng nhấp nháy</small>
+                                </span>
+                                <input type="checkbox" id="reduce-flashing" class="switch">
                             </label>
                         </div>
                     </details>
@@ -980,6 +1030,8 @@
                             trôi trên nước; bật "Chim, cá, khúc gỗ trôi" để có cò đậu, cá nhảy, gỗ trôi theo dòng.</li>
                         <li><strong>Bầu trời đêm:</strong> sao, trăng (đúng pha của hôm người nhận xem, hoặc tự chọn 1 trong 8 pha
                             và vị trí), đèn trời, khinh khí cầu, máy bay.</li>
+                        <li><strong>Khi người nhận xem:</strong> đặt sẵn chất lượng, ánh sáng bầu trời, thu phóng, hiện nút
+                            điều khiển, toàn màn hình khi mở quà. Người xem vẫn tự đổi được; mục họ đã tự chọn thì giữ theo họ.</li>
                         <li><strong>Giảm chớp sáng:</strong> cho người nhạy cảm với ánh sáng nhấp nháy (hạt không chớp tắt,
                             không có quầng chớp lúc nổ). Người xem cũng tự bật được bằng nút trên màn mở quà.</li>
                         <li><strong>Tên file:</strong> dùng để lưu và tạo link chia sẻ. Trùng tên sẽ tự thêm số.</li>

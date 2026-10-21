@@ -49,6 +49,8 @@ const state = {
     floating: '',
     // Chim, cá, khúc gỗ trên mặt nước
     waterLife: true,
+    // Cách xem đặt sẵn: quality ('1'-'3'), skyLighting ('0', '1'), scaleFactor, hideControls (false), fullscreen (true)
+    viewer: {},
     // Bầu trời đêm: trang trí (danh sách), sao ('' / 'few' / 'many'), trăng ({ phase: 'auto' | 0-7, x, y } hoặc null)
     decor: [],
     stars: '',
@@ -246,6 +248,10 @@ document.addEventListener('DOMContentLoaded', () => {
     renderSmoke();
     renderScene();
     renderSky();
+    renderViewer();
+    document.getElementById('viewer-scale')?.addEventListener('change', (e) => setViewerOption('scaleFactor', e.target.value ? Number(e.target.value) : ''));
+    document.getElementById('viewer-fullscreen')?.addEventListener('change', (e) => setViewerOption('fullscreen', e.target.checked || ''));
+    document.getElementById('viewer-controls')?.addEventListener('change', (e) => setViewerOption('hideControls', e.target.checked ? false : ''));
     document.getElementById('water-life')?.addEventListener('change', (e) => {
         state.waterLife = e.target.checked;
         refreshMiniPreview();
@@ -678,6 +684,8 @@ function createNewScript() {
         state.floating = '';
         state.waterLife = true;
         renderScene();
+        state.viewer = {};
+        renderViewer();
         state.decor = [];
         state.stars = '';
         state.moon = null;
@@ -1123,6 +1131,16 @@ const HELP_TIPS = {
         + 'lác đác trên mặt nước. Kiểu "Sông chảy" thì chúng trôi theo dòng, "Hồ tĩnh lặng" thì gần như đứng yên, dập dềnh.',
     waterLife: 'Cho mặt nước sống động: thỉnh thoảng một con cò trắng bay xuống đậu lên khúc gỗ hoặc đáp xuống nước rồi bay đi, '
         + 'cá vọt lên khỏi mặt nước làm sóng lan và tia nước bắn lên. Kiểu "Sông chảy" có thêm khúc gỗ trôi theo dòng.',
+    viewerQuality: '<strong>Tự động</strong> (khuyên dùng): theo máy người xem, giật thì tự hạ bậc. <strong>Cao</strong>: vẽ đầy đủ nhất, '
+        + 'hợp khi biết người nhận dùng máy mạnh. <strong>Thấp</strong>: nhẹ nhất, không có khói pháo. Người xem đã tự chọn mức khác thì giữ theo họ.',
+    viewerSky: 'Bầu trời sáng lên theo màu pháo khi pháo nổ. Chọn <strong>Mờ</strong> hoặc <strong>Tắt</strong> nếu muốn trời tối hơn, '
+        + 'vd khi bật ảnh nền thành phố.',
+    viewerScale: 'Phóng to hoặc thu nhỏ toàn bộ pháo hoa. <strong>Theo màn hình</strong>: điện thoại tự thu nhỏ một chút cho pháo lớn '
+        + 'không tràn khung. Đặt cỡ cố định thì mọi máy dùng cùng cỡ.',
+    viewerFullscreen: 'Người nhận chạm "Mở quà" (hoặc hộp quà) là màn trình diễn vào toàn màn hình luôn. Trình duyệt chỉ cho bật toàn '
+        + 'màn hình đúng lúc người xem chạm; iPhone không hỗ trợ toàn màn hình cho trang web nên giữ nguyên.',
+    viewerControls: 'Mặc định các nút tạm dừng, âm thanh, cài đặt ẩn đi cho trọn khung hình (đưa chuột hoặc chạm góc trên để mở). '
+        + 'Bật mục này để các nút luôn hiện.',
     stars: 'Sao lấp lánh nhẹ trên bầu trời, mờ dần sát chân trời và trôi chậm cùng trăng. Có ảnh nền thành phố thì sao chỉ ở phần trời phía trên.',
     moon: '<strong>Theo ngày xem</strong>: trăng đúng pha của hôm người nhận mở (tính theo chu kỳ 29,53 ngày; rằm thì trăng tròn). '
         + '<strong>Tự chọn</strong>: chọn 1 trong 8 pha. Trăng trôi chậm theo một cung, phản chiếu xuống mặt nước nếu có. '
@@ -2476,6 +2494,7 @@ function getFinalConfig() {
         waterStyle: state.water && state.waterStyle === 'river' ? 'river' : undefined,
         floating: state.water && state.floating ? state.floating : undefined,
         waterLife: state.water && !state.waterLife ? false : undefined,
+        viewer: Object.keys(state.viewer).length ? { ...state.viewer } : undefined,
         decor: state.decor.length ? [...state.decor] : undefined,
         stars: state.stars || undefined,
         moon: state.moon ? { ...state.moon } : undefined,
@@ -2974,7 +2993,6 @@ function settingsSummaries() {
         state.smoke === 'light' ? 'Khói nhẹ' : state.smoke === 'heavy' ? 'Khói dày' : '',
         state.water ? `${state.waterStyle === 'river' ? 'Sông' : 'Hồ'} ${state.water === 'third' ? '1/3' : 'nửa'} màn hình` : '',
         state.water && { lanterns: 'hoa đăng', petals: 'cánh hoa' }[state.floating],
-        state.reduceFlashing && 'Giảm chớp sáng',
         checked('loop') ? 'Lặp lại' : 'Chạy một lượt'
     ].filter(Boolean);
     const moon = state.moon;
@@ -2986,6 +3004,14 @@ function settingsSummaries() {
     const filename = value('filename');
     return {
         sky: sky.join(' · ') || 'Không có',
+        viewer: [
+            VIEWER_QUALITY_NAMES[state.viewer.quality] || 'Chất lượng tự động',
+            VIEWER_SKY_NAMES[state.viewer.skyLighting],
+            state.viewer.scaleFactor !== undefined && `Thu phóng ${Math.round(state.viewer.scaleFactor * 100)}%`,
+            state.viewer.fullscreen && 'Toàn màn hình',
+            state.viewer.hideControls === false && 'Hiện nút',
+            state.reduceFlashing && 'Giảm chớp sáng'
+        ].filter(Boolean).join(' · '),
         basics: value('title') || 'Chưa có tiêu đề',
         gift: [frame.name, recipient && `Gửi ${recipient}`, state.openAt && 'Hẹn giờ'].filter(Boolean).join(' · '),
         sound: music ? musicName + (music.sync ? ' · khớp nhịp' : '') : 'Chưa có nhạc',
@@ -3177,6 +3203,47 @@ function renderScene() {
     const rulerY = document.getElementById('mini-ruler-y');
     if (rulerY) rulerY.style.height = level < 1 ? `calc(${level * 100}% + 10px)` : '';
     scheduleSettingsSummaries();
+}
+
+// Cách xem đặt sẵn (nhóm "Khi người nhận xem"): chỉ lưu mục khác mặc định của trình phát
+const VIEWER_SKY_NAMES = { 0: 'Trời không sáng theo pháo', 1: 'Trời sáng mờ' };
+const VIEWER_QUALITY_NAMES = { 1: 'Chất lượng Thấp', 2: 'Chất lượng Vừa', 3: 'Chất lượng Cao' };
+
+function setViewerOption(key, value) {
+    if (value === '' || value === undefined || value === null) delete state.viewer[key];
+    else state.viewer[key] = value;
+    renderViewer();
+    refreshMiniPreview();
+}
+
+function renderViewer() {
+    const v = state.viewer;
+    [['.viewer-quality', v.quality], ['.viewer-sky', v.skyLighting]].forEach(([selector, value]) => {
+        document.querySelectorAll(`${selector} [data-value]`).forEach(btn => {
+            const on = btn.dataset.value === String(value ?? '');
+            btn.classList.toggle('active', on);
+            btn.setAttribute('aria-pressed', String(on));
+        });
+    });
+    const scale = document.getElementById('viewer-scale');
+    if (scale) scale.value = v.scaleFactor !== undefined ? String(v.scaleFactor) : '';
+    const fullscreen = document.getElementById('viewer-fullscreen');
+    if (fullscreen) fullscreen.checked = v.fullscreen === true;
+    const controls = document.getElementById('viewer-controls');
+    if (controls) controls.checked = v.hideControls === false;
+    scheduleSettingsSummaries();
+}
+
+// Kịch bản đọc vào: chỉ nhận giá trị hợp lệ
+function normalizeViewer(viewer) {
+    const v = viewer && typeof viewer === 'object' ? viewer : {};
+    const out = {};
+    if (['1', '2', '3'].includes(String(v.quality))) out.quality = String(v.quality);
+    if (['0', '1'].includes(String(v.skyLighting))) out.skyLighting = String(v.skyLighting);
+    if (Number(v.scaleFactor) >= 0.5 && Number(v.scaleFactor) <= 2) out.scaleFactor = Number(v.scaleFactor);
+    if (v.hideControls === false) out.hideControls = false;
+    if (v.fullscreen === true) out.fullscreen = true;
+    return out;
 }
 
 function renderSmoke() {
@@ -4746,6 +4813,8 @@ function loadConfigIntoState(config, filename) {
     state.waterStyle = config.waterStyle === 'river' ? 'river' : 'lake';
     state.floating = ['lanterns', 'petals'].includes(config.floating) ? config.floating : '';
     state.waterLife = config.waterLife !== false;
+    state.viewer = normalizeViewer(config.viewer);
+    renderViewer();
     renderScene();
     state.decor = normalizeDecor(config.decor);
     state.stars = ['few', 'many'].includes(config.stars) ? config.stars : '';
@@ -5063,7 +5132,7 @@ Object.assign(window, {
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
     togglePreviewMusic, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
-    hideModal, setStartFrame, undo, redo, setOpenMode, setSmoke, setWater, setWaterStyle, setFloating, setStars, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
+    hideModal, setStartFrame, undo, redo, setOpenMode, setSmoke, setViewerOption, setWater, setWaterStyle, setFloating, setStars, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
     toggleLibraryPreview, chooseLibraryItem, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
     openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, prepareVideo, stopVideo, downloadVideo, shareVideo,
     restartVideo, setTimelineView, zoomTrack, copyTrackingLink, enableOpenNotifications, checkGiftOpens,

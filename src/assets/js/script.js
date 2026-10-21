@@ -62,6 +62,9 @@ const QUALITY_AUTO = 'auto';
 const AUTO_QUALITY_START = IS_HIGH_END_DEVICE ? QUALITY_HIGH : QUALITY_NORMAL;
 let autoQuality = AUTO_QUALITY_START;
 const validQuality = value => (value === QUALITY_AUTO || ['1', '2', '3'].includes(String(value)) ? String(value) : QUALITY_AUTO);
+// Cài đặt khi xem mà kịch bản đặt sẵn được (VIEWER_KEYS) và phần được lưu lại cho người xem
+const VIEWER_KEYS = ['quality', 'skyLighting', 'scaleFactor', 'hideControls', 'reduceFlashing'];
+const PERSISTED_VIEWER_KEYS = ['quality', 'skyLighting', 'scaleFactor', 'reduceFlashing'];
 let burstConfig = null;
 let burstCounter = 0;
 
@@ -173,6 +176,12 @@ const store = {
         }
     },
 
+    // Mục người xem đã tự chọn trong Cài đặt (kịch bản đặt sẵn giá trị khác cũng không ghi đè), giá trị đã lưu của họ, và
+    // các mục đang mang giá trị kịch bản đặt sẵn (khi lưu thì ghi giá trị của người xem, không ghi giá trị kịch bản)
+    chosen: new Set(),
+    saved: {},
+    scriptKeys: new Set(),
+
     setState(nextState) {
         const prevState = this.state;
         this.state = Object.assign({}, this.state, nextState);
@@ -207,6 +216,20 @@ const store = {
                     config.skyLighting = data.skyLighting;
                     config.scaleFactor = data.scaleFactor || getDefaultScaleFactor();
                     if (typeof data.reduceFlashing === 'boolean') config.reduceFlashing = data.reduceFlashing;
+                    if (Array.isArray(data.chosen)) {
+                        data.chosen.forEach(key => this.chosen.add(key));
+                    } else {
+                        // Bản lưu cũ chưa ghi mục nào tự chọn: giá trị khác mặc định của máy thì coi như người xem đã tự chọn
+                        const defaults = {
+                            quality: String(IS_HIGH_END_DEVICE ? QUALITY_HIGH : QUALITY_NORMAL),
+                            skyLighting: SKY_LIGHT_NORMAL + '',
+                            scaleFactor: getDefaultScaleFactor(),
+                            reduceFlashing: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                        };
+                        Object.keys(defaults).forEach(key => {
+                            if (data[key] !== undefined && String(data[key]) !== String(defaults[key])) this.chosen.add(key);
+                        });
+                    }
                     break;
                 default:
                     throw new Error('version switch should be exhaustive');
@@ -219,16 +242,18 @@ const store = {
         // Bản xem nhanh, khung quay video (có thể giả lập điện thoại) không được ghi đè cài đặt thật của người dùng
         if (IS_PREVIEW || IS_RECORD) return;
         const config = this.state.config;
+        // Mục đang theo kịch bản: giữ giá trị của người xem
+        const value = key => (this.scriptKeys.has(key) && key in this.saved ? this.saved[key] : config[key]);
+        const data = {
+            quality: value('quality'),
+            skyLighting: value('skyLighting'),
+            scaleFactor: value('scaleFactor'),
+            reduceFlashing: value('reduceFlashing'),
+            chosen: [...this.chosen].filter(key => PERSISTED_VIEWER_KEYS.includes(key))
+        };
+        this.saved = data;
         try {
-            localStorage.setItem('cm_fireworks_data', JSON.stringify({
-                schemaVersion: '1.2',
-                data: {
-                    quality: config.quality,
-                    skyLighting: config.skyLighting,
-                    scaleFactor: config.scaleFactor,
-                    reduceFlashing: config.reduceFlashing
-                }
-            }));
+            localStorage.setItem('cm_fireworks_data', JSON.stringify({ schemaVersion: '1.2', data }));
         } catch (e) {
             // localStorage không khả dụng (chế độ ẩn danh, bị chặn...) - bỏ qua
         }
@@ -244,6 +269,8 @@ if (!IS_HEADER && !IS_PREVIEW && !IS_RECORD) {
         console.error('Không thể tải cấu hình đã lưu:', e);
     }
 }
+// Giá trị của người xem (đã lưu hoặc mặc định), để trả lại khi kịch bản thôi đặt sẵn
+VIEWER_KEYS.forEach(key => { store.saved[key] = store.state.config[key]; });
 
 // hành động
 // ---------
@@ -278,8 +305,16 @@ function toggleMenu(toggle) {
     }
 }
 
+// Mọi lần gọi đều từ thao tác của người xem trong Cài đặt (hoặc nút Giảm chớp sáng ở màn mở quà): mục nào đổi thì ghi
+// nhận là người xem tự chọn, kịch bản đặt sẵn giá trị khác cũng không ghi đè
 function updateConfig(nextConfig) {
     nextConfig = nextConfig || getConfigFromDOM();
+    VIEWER_KEYS.forEach(key => {
+        if (key in nextConfig && String(nextConfig[key]) !== String(store.state.config[key])) {
+            store.chosen.add(key);
+            store.scriptKeys.delete(key);
+        }
+    });
     store.setState({
         config: Object.assign({}, store.state.config, nextConfig)
     });
@@ -706,6 +741,10 @@ function mountStartFrame(config) {
         // Ngăn chặn sự kiện nổi bọt để tránh Stage nhận được tín hiệu bắn pháo hoa
         e.stopPropagation();
         e.preventDefault();
+        // Kịch bản muốn xem toàn màn hình: chỉ bật được ngay trong lúc người xem chạm (trình duyệt không cho tự bật)
+        if (config && config.viewer && config.viewer.fullscreen === true && !IS_PREVIEW && !IS_RECORD && !isFullscreen()) {
+            toggleFullscreen();
+        }
         beginShow(open, firstLaunchDelay);
     }, { once: true });
 }
@@ -1074,6 +1113,7 @@ async function prepareBurstConfig(burstConfig, { showOverlay }) {
         store.setState({ config: { ...store.state.config, showBackground: !!burstConfig.showBackground } });
     }
     applyScenery(burstConfig);
+    applyViewerDefaults(burstConfig.viewer);
 
     // Xử lý các placeholder trong text
     if (burstConfig.title) burstConfig.title = replacePlaceholders(burstConfig.title);
@@ -2139,6 +2179,36 @@ const autoTuner = {
 function renderQualityLabel() {
     const option = appNodes.quality && appNodes.quality.querySelector(`option[value="${QUALITY_AUTO}"]`);
     if (option) option.textContent = `Tự động (${QUALITY_NAMES[autoQuality]})`;
+}
+
+// Cách xem kịch bản đặt sẵn (builder, nhóm "Khi người nhận xem"). Chỉ áp cho mục người xem chưa tự chọn trong Cài đặt;
+// người xem vẫn đổi được. Kịch bản sau (bản xem nhanh nhận kịch bản mới) bỏ giá trị cũ rồi mới áp giá trị mới.
+const VIEWER_DEFAULTS = {
+    quality: v => (validQuality(v) === String(v) ? String(v) : null),
+    skyLighting: v => (['0', '1', '2'].includes(String(v)) ? String(v) : null),
+    scaleFactor: v => (Number(v) >= 0.5 && Number(v) <= 2 ? Number(Number(v).toFixed(2)) : null),
+    hideControls: v => (typeof v === 'boolean' ? v : null)
+};
+
+function applyViewerDefaults(viewer) {
+    const prev = store.state.config;
+    const next = {};
+    store.scriptKeys.forEach(key => { next[key] = store.saved[key]; });
+    store.scriptKeys.clear();
+    if (viewer && typeof viewer === 'object') {
+        Object.entries(VIEWER_DEFAULTS).forEach(([key, read]) => {
+            // Khung quay video luôn ở chất lượng Cao
+            if (store.chosen.has(key) || viewer[key] === undefined || (IS_RECORD && key === 'quality')) return;
+            const value = read(viewer[key]);
+            if (value === null) return;
+            next[key] = value;
+            store.scriptKeys.add(key);
+        });
+    }
+    if (!Object.keys(next).some(key => String(next[key]) !== String(prev[key]))) return;
+    store.setState({ config: { ...prev, ...next } });
+    configDidUpdate();
+    if (String(next.scaleFactor ?? prev.scaleFactor) !== String(prev.scaleFactor)) handleResize();
 }
 
 // Bỏ phần tử thứ i: đưa phần tử cuối vào chỗ của nó thay vì splice (splice dồn cả mảng, hàng nghìn tia lửa tắt mỗi
