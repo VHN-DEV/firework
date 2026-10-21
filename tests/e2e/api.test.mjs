@@ -21,19 +21,41 @@ export async function run(browser, base, { check }) {
     };
     const file = id => path.join(DIST, 'configs', `${id}.json`);
     const read = id => (fs.existsSync(file(id)) ? JSON.parse(fs.readFileSync(file(id), 'utf8')) : null);
+    const previewFiles = [];
 
     try {
         // Trình duyệt gửi status "private": không khóa được kịch bản, lần sau vẫn lưu và xóa được
         const first = await post('/api/save_config.php', { filename: 'zz_e2e_api', config: { status: 'private', title: 'API', events: [] } });
-        const again = await post('/api/save_config.php', { filename: 'zz_e2e_api', config: { status: 'private', title: 'API 2', events: [] } });
+        const again = await post('/api/save_config.php', { filename: 'zz_e2e_api', key: first.trackKey, config: { status: 'private', title: 'API 2', events: [] } });
         check('lưu kịch bản: không nhận "riêng tư" từ trình duyệt, lưu lại được',
             first.success && again.success && read('zz_e2e_api')?.title === 'API 2' && !('status' in read('zz_e2e_api')),
             JSON.stringify({ first: first.message, again: again.message, saved: read('zz_e2e_api') }));
         check('kịch bản mới được cấp mã theo dõi, lưu lại thì không cấp nữa', /^[a-f0-9]{32}$/.test(first.trackKey || '') && !again.trackKey);
 
+        // Chỉ máy đã tạo (giữ mã) mới lưu đè, xóa được
+        const stranger = await post('/api/save_config.php', { filename: 'zz_e2e_api', config: { title: 'Người lạ', events: [] } });
+        const strangerDelete = await post('/api/manage_configs.php?action=delete', { filename: 'zz_e2e_api', key: '0'.repeat(32) });
+        const owner = await post('/api/save_config.php', { filename: 'zz_e2e_api', key: first.trackKey, config: { title: 'API 3', events: [] } });
+        check('máy khác không lưu đè, không xóa được; máy đã tạo (có mã) thì được',
+            stranger.code === 'not_owner' && strangerDelete.code === 'not_owner' && owner.success && read('zz_e2e_api')?.title === 'API 3',
+            JSON.stringify({ stranger: stranger.code, strangerDelete: strangerDelete.code, owner: owner.success }));
+        const listed = await (await fetch(base + '/api/manage_configs.php?action=list')).json();
+        check('danh sách đánh dấu kịch bản có mã của máy đã tạo', listed.find(s => s.id === 'zz_e2e_api')?.locked === true);
+
+        // Xem thử: mỗi lần một bản tạm tên ngẫu nhiên, không có mã, không hiện trong danh sách
+        const p1 = await post('/api/save_config.php', { filename: 'x', preview: true, config: { title: 'Thử 1', events: [] } });
+        const p2 = await post('/api/save_config.php', { filename: 'x', preview: true, config: { title: 'Thử 2', events: [] } });
+        const listedAfter = await (await fetch(base + '/api/manage_configs.php?action=list')).json();
+        check('mỗi lần Xem thử một bản tạm riêng, không cấp mã, không hiện trong danh sách',
+            /^preview_temp_[a-f0-9]{16}$/.test(p1.filename) && p1.filename !== p2.filename && !p1.trackKey
+            && read(p1.filename)?.title === 'Thử 1' && !listedAfter.some(s => s.id.startsWith('preview_temp')), JSON.stringify([p1.filename, p2.filename]));
+        previewFiles.push(p1.filename, p2.filename);
+        const reserved = await post('/api/save_config.php', { filename: 'preview_temp_mine', config: { events: [] } });
+        check('tên bắt đầu bằng preview_temp dành cho bản xem thử', !reserved.success);
+
         // Lỗi mã hóa (số vô cực) không ghi đè làm mất kịch bản đang có
-        const broken = await post('/api/save_config.php', '{"filename":"zz_e2e_api","config":{"title":"x","events":[],"n":1e400}}');
-        check('lưu thất bại giữa chừng không làm hỏng kịch bản đang có', !broken.success && read('zz_e2e_api')?.title === 'API 2', JSON.stringify(broken));
+        const broken = await post('/api/save_config.php', `{"filename":"zz_e2e_api","key":"${first.trackKey}","config":{"title":"x","events":[],"n":1e400}}`);
+        check('lưu thất bại giữa chừng không làm hỏng kịch bản đang có', !broken.success && read('zz_e2e_api')?.title === 'API 3', JSON.stringify(broken));
 
         // Kịch bản sai kiểu: không lưu; file sai kiểu có sẵn không làm hỏng danh sách
         const wrong = await post('/api/save_config.php', { filename: 'zz_e2e_api_bad', config: { events: 5 } });
@@ -58,10 +80,10 @@ export async function run(browser, base, { check }) {
             '/api/./data/owners/zz_e2e_api.json'].map(async url => (await fetch(base + url)).status));
         check('dữ liệu báo mở quà bị chặn cả với đường dẫn biến thể', codes.every(c => c === 403), codes.join(', '));
 
-        const removed = await post('/api/manage_configs.php?action=delete', { filename: 'zz_e2e_api' });
+        const removed = await post('/api/manage_configs.php?action=delete', { filename: 'zz_e2e_api', key: first.trackKey });
         check('xóa được kịch bản từng gửi kèm "riêng tư"', removed.success && !fs.existsSync(file('zz_e2e_api')), JSON.stringify(removed));
     } finally {
-        for (const id of ['zz_e2e_api', 'zz_e2e_api_bad', 'zz_e2e_api_odd', 'zz_e2e_api_old', 'zz_e2e_api_share']) {
+        for (const id of ['zz_e2e_api', 'zz_e2e_api_bad', 'zz_e2e_api_odd', 'zz_e2e_api_old', 'zz_e2e_api_share', ...previewFiles]) {
             removeConfig(id);
             for (const kind of ['owners', 'opens']) fs.rmSync(path.join(DIST, 'api/data', kind, `${id}.json`), { force: true });
         }

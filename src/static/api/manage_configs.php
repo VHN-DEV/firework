@@ -25,6 +25,10 @@ if ($action === 'list') {
 
     foreach ($files as $file) {
         $filename = basename($file, '.json');
+        // Bản tạm của nút "Xem thử"
+        if (strpos($filename, 'preview_temp') === 0) {
+            continue;
+        }
         // Optionally read some info from the file
         $content = json_decode(file_get_contents($file), true);
         // File hỏng hoặc sai kiểu: vẫn liệt kê, không để một file làm hỏng cả danh sách
@@ -36,7 +40,9 @@ if ($action === 'list') {
             'title' => isset($content['title']) && is_string($content['title']) ? $content['title'] : $filename,
             'author' => isset($content['author']) && is_string($content['author']) ? $content['author'] : 'Unknown',
             'eventCount' => isset($content['events']) && is_array($content['events']) ? count($content['events']) : 0,
-            'status' => isset($content['status']) && $content['status'] === 'private' ? 'private' : 'public'
+            'status' => isset($content['status']) && $content['status'] === 'private' ? 'private' : 'public',
+            // Có mã của máy đã tạo: chỉ máy giữ mã mới lưu đè, xóa được
+            'locked' => track_has_key($filename)
         ];
     }
 
@@ -48,6 +54,7 @@ if ($action === 'delete') {
     $rawData = file_get_contents('php://input');
     $data = json_decode($rawData, true);
     $filename = isset($data['filename']) && is_string($data['filename']) ? $data['filename'] : '';
+    $key = isset($data['key']) && is_string($data['key']) ? $data['key'] : '';
 
     if (empty($filename)) {
         echo json_encode(['success' => false, 'message' => 'Thiếu tên file.']);
@@ -63,6 +70,10 @@ if ($action === 'delete') {
         $content = json_decode(file_get_contents($filePath), true);
         if (isset($content['status']) && $content['status'] === 'private') {
             echo json_encode(['success' => false, 'message' => 'Kịch bản này là riêng tư và không thể xóa.']);
+            exit;
+        }
+        if (!track_can_modify($filename, $key)) {
+            echo json_encode(['success' => false, 'code' => 'not_owner', 'message' => 'Chỉ máy đã tạo kịch bản này mới xóa được.']);
             exit;
         }
 

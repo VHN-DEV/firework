@@ -26,9 +26,10 @@ function track_dir($kind)
     return $dir;
 }
 
+// Bản tạm của nút "Xem thử" (preview_temp...) không có mã theo dõi, không ghi lịch sử mở quà
 function track_valid_id($id)
 {
-    return is_string($id) && preg_match('/^[a-z0-9_-]{1,80}$/', $id) && $id !== 'preview_temp';
+    return is_string($id) && preg_match('/^[a-z0-9_-]{1,80}$/', $id) && strpos($id, 'preview_temp') !== 0;
 }
 
 function track_empty()
@@ -37,6 +38,7 @@ function track_empty()
 }
 
 // Kịch bản mới: tạo mã theo dõi, trả về mã (chỉ một lần duy nhất). Đã có mã thì trả về null.
+// Mã này cũng là quyền của máy đã tạo kịch bản: lưu đè, xóa kịch bản đã có mã phải gửi kèm đúng mã.
 function track_create_key($id)
 {
     if (!track_valid_id($id)) {
@@ -121,6 +123,13 @@ function track_record($id, $event, $device)
     flock($fp, LOCK_UN);
     fclose($fp);
     return $ok;
+}
+
+// Kịch bản đã có mã (tạo từ khi có tính năng này) chỉ máy giữ mã mới lưu đè, xóa được; kịch bản cũ chưa có mã thì ai
+// cũng sửa được như trước
+function track_can_modify($id, $key)
+{
+    return !track_has_key($id) || track_check_key($id, $key);
 }
 
 // Xóa kịch bản thì xóa luôn mã theo dõi và lịch sử mở quà

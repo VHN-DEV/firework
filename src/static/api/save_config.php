@@ -21,6 +21,12 @@ if (!$data) {
 
 $filename = isset($data['filename']) && is_string($data['filename']) ? $data['filename'] : '';
 $config = isset($data['config']) ? $data['config'] : null;
+$key = isset($data['key']) && is_string($data['key']) ? $data['key'] : '';
+// Nút "Xem thử": mỗi lần một bản tạm tên ngẫu nhiên (hai người cùng xem thử không thấy kịch bản của nhau)
+$isPreview = !empty($data['preview']);
+if ($isPreview) {
+    $filename = 'preview_temp_' . bin2hex(random_bytes(8));
+}
 
 if (empty($filename) || !$config) {
     echo json_encode(['success' => false, 'message' => 'Thiếu tên file hoặc nội dung cấu hình.']);
@@ -43,6 +49,10 @@ if (empty($filename)) {
     echo json_encode(['success' => false, 'message' => 'Tên file không hợp lệ.']);
     exit;
 }
+if (!$isPreview && strpos($filename, 'preview_temp') === 0) {
+    echo json_encode(['success' => false, 'message' => 'Tên file này dành cho bản xem thử, hãy đặt tên khác.']);
+    exit;
+}
 
 $targetDir = __DIR__ . '/../configs/';
 if (!is_dir($targetDir)) {
@@ -52,11 +62,26 @@ if (!is_dir($targetDir)) {
 $filePath = $targetDir . $filename . '.json';
 $isNew = !file_exists($filePath);
 
+// Bản xem thử cũ hơn 1 ngày: xóa (kể cả preview_temp dùng chung của bản trước)
+if ($isPreview) {
+    foreach (glob($targetDir . 'preview_temp*.json') as $old) {
+        if (preg_match('/^preview_temp(_[a-f0-9]{16})?\.json$/', basename($old)) && filemtime($old) < time() - 86400) {
+            @unlink($old);
+        }
+    }
+}
+
 // Check if existing file is private
 if (!$isNew) {
     $existingContent = json_decode(file_get_contents($filePath), true);
     if (isset($existingContent['status']) && $existingContent['status'] === 'private') {
         echo json_encode(['success' => false, 'message' => 'Kịch bản này là riêng tư và không thể ghi đè.']);
+        exit;
+    }
+    // Kịch bản do máy khác tạo: không ghi đè (builder tự lưu thành bản mới)
+    if (!track_can_modify($filename, $key)) {
+        echo json_encode(['success' => false, 'code' => 'not_owner',
+            'message' => 'Kịch bản này do máy khác tạo, chỉ máy đó mới lưu đè được. Hãy lưu với tên khác.']);
         exit;
     }
 }
@@ -82,7 +107,7 @@ if ($saved) {
     $response = ['success' => true, 'message' => 'Đã lưu kịch bản thành công!', 'filename' => $filename];
     // Kịch bản mới: tạo mã theo dõi mở quà, chỉ trả về lần này (trình soạn của người gửi giữ lại). Kịch bản đã có từ
     // trước mà chưa có mã (lưu trước khi có tính năng này) thì không cấp, kẻo người khác lưu đè là lấy được mã.
-    $trackKey = $isNew ? track_create_key($filename) : null;
+    $trackKey = $isNew && !$isPreview ? track_create_key($filename) : null;
     if ($trackKey) {
         $response['trackKey'] = $trackKey;
     }

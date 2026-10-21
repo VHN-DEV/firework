@@ -73,7 +73,7 @@ export async function run(browser, base, { check }) {
         await tracker.close();
 
         // Xóa kịch bản thì xóa luôn dữ liệu theo dõi
-        await fetch(`${base}/api/manage_configs.php?action=delete`, { method: 'POST', body: JSON.stringify({ filename: ID }) });
+        await fetch(`${base}/api/manage_configs.php?action=delete`, { method: 'POST', body: JSON.stringify({ filename: ID, key }) });
         const left = ['owners', 'opens'].filter(k => fs.existsSync(path.join(DIST, 'api/data', k, `${ID}.json`)));
         check('xóa kịch bản thì xóa luôn dữ liệu theo dõi', left.length === 0, left.join(', '));
         check('báo mở quà không lỗi JS', sender.errors.length === 0, sender.errors.join(' | '));

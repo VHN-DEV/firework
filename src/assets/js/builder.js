@@ -2647,6 +2647,7 @@ async function saveConfig(isPreview = false) {
     let filename = document.getElementById('filename').value.trim();
 
     if (isPreview) {
+        // Máy chủ đặt tên ngẫu nhiên cho mỗi lần xem thử; trang tĩnh lưu trong trình duyệt của mình nên dùng tên chung
         filename = 'preview_temp';
     } else if (!filename) {
         notify('Vui lòng nhập tên file!', 'warning');
@@ -2744,10 +2745,20 @@ async function saveConfig(isPreview = false) {
     return fetch('api/save_config.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename, config, shareImage })
+        // key: mã của máy đã tạo kịch bản, cần để lưu đè kịch bản của mình
+        body: JSON.stringify({ filename, config, shareImage, key: getOwnerKeys()[filename], preview: isPreview || undefined })
     })
         .then(response => response.json())
-        .then(data => {
+        .then(async data => {
+            if (!data.success && data.code === 'not_owner' && !isPreview) {
+                // Kịch bản trùng tên do máy khác tạo (vd mở kịch bản của người khác rồi sửa): lưu thành bản mới của mình
+                const newName = await getUniqueFilename(filename, null);
+                document.getElementById('filename').value = newName;
+                state.currentFilename = null;
+                notify(`"${filename}" do máy khác tạo nên không ghi đè được, đã lưu thành bản mới: ${newName}`, 'info');
+                setSaving(false);
+                return saveConfig();
+            }
             if (data.success) {
                 if (data.trackKey) saveOwnerKey(data.filename, data.trackKey);
                 if (!isPreview) {
@@ -4471,7 +4482,8 @@ function loadScriptsList() {
     fetchPromise
         .then(data => {
             // Bỏ file chỉ mục và file tạm tạo ra mỗi lần bấm "Xem thử"
-            data = data.filter(s => s.id !== 'configs_index' && s.id !== 'preview_temp');
+            data = data.filter(s => s.id !== 'configs_index' && !s.id.startsWith('preview_temp'));
+            const ownerKeys = getOwnerKeys();
             list.innerHTML = '';
 
             // Add local scripts if in static env
@@ -4503,6 +4515,8 @@ function loadScriptsList() {
                 item.dataset.id = script.id;
                 const isPrivate = script.status === 'private';
                 const isLocal = script.status === 'local';
+                // Do máy khác tạo: chỉ xem, nhân bản được; sửa rồi lưu thì thành bản mới
+                const isOthers = script.locked && !ownerKeys[script.id];
 
                 item.onclick = (e) => {
                     if (e.target.closest('.btn')) return;
@@ -4515,13 +4529,13 @@ function loadScriptsList() {
                 <div class="meta">
                     <span><i class="fas fa-user"></i> ${escapeHtml(script.author)}</span>
                     <span><i class="fas fa-fireworks"></i> ${escapeHtml(script.eventCount)} phát bắn</span>
-                    <span class="script-badges">${isPrivate ? '<span class="gift-badge" title="Kịch bản riêng tư: không xóa được từ đây"><i class="fas fa-lock"></i>Riêng tư</span>' : ''}${isLocal ? '<span class="gift-badge" title="Chỉ lưu trên trình duyệt này"><i class="fas fa-laptop"></i>Trên máy này</span>' : ''}</span>
+                    <span class="script-badges">${isPrivate ? '<span class="gift-badge" title="Kịch bản riêng tư: không xóa được từ đây"><i class="fas fa-lock"></i>Riêng tư</span>' : ''}${isLocal ? '<span class="gift-badge" title="Chỉ lưu trên trình duyệt này"><i class="fas fa-laptop"></i>Trên máy này</span>' : ''}${isOthers ? '<span class="gift-badge" title="Chỉ máy đã tạo mới lưu đè, xóa được. Bạn vẫn xem, nhân bản được; sửa rồi lưu sẽ thành bản mới."><i class="fas fa-user-lock"></i>Máy khác tạo</span>' : ''}</span>
                 </div>
                 <div class="script-actions">
                     <button class="btn primary small" onclick="editScript('${script.id}')"><i class="fas fa-edit"></i> Sửa</button>
                     <button class="btn secondary small" onclick="duplicateScript('${script.id}')"><i class="fas fa-copy"></i> Nhân bản</button>
                     <button class="btn secondary small" onclick="previewScript('${script.id}')"><i class="fas fa-play"></i> Xem</button>
-                    ${(!isPrivate || isLocal) ? `<button class="btn danger small is-icon" onclick="deleteScript('${script.id}')" title="Xóa" aria-label="Xóa kịch bản"><i class="fas fa-trash"></i></button>` : ''}
+                    ${(!isPrivate || isLocal) && !isOthers ? `<button class="btn danger small is-icon" onclick="deleteScript('${script.id}')" title="Xóa" aria-label="Xóa kịch bản"><i class="fas fa-trash"></i></button>` : ''}
                 </div>
             `;
                 list.appendChild(item);
@@ -4628,7 +4642,7 @@ function deleteScript(filename) {
         fetch('api/manage_configs.php?action=delete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename })
+            body: JSON.stringify({ filename, key: getOwnerKeys()[filename] })
         })
             .then(response => {
                 if (!response.ok) throw new Error('Mạng không ổn định hoặc lỗi server');
