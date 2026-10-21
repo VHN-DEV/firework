@@ -321,6 +321,8 @@ document.addEventListener('DOMContentLoaded', () => {
             refreshMiniPreview();
         };
         reader.readAsDataURL(file);
+        // Chọn lại đúng file đó lần sau vẫn nhận
+        e.target.value = '';
     });
 
     document.getElementById('loop')?.addEventListener('change', syncLoopState);
@@ -355,6 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('effects-volume')?.addEventListener('input', (e) => {
         state.effectsVolume = Number(e.target.value) / 100;
         document.getElementById('out-effects-volume').textContent = e.target.value + '%';
+        refreshMiniPreview();
     });
     if (isStaticEnv) {
         document.getElementById('music-hint').textContent = 'Trang tĩnh (GitHub Pages) không tải file lên được: hãy dán link trực tiếp tới file nhạc, '
@@ -759,6 +762,7 @@ function duplicateEvent(id) {
 
     // Insert after the original event
     state.events.splice(index + 1, 0, newEvent);
+    renderEventList();
 
     // Mở luôn bản sao để chỉnh tiếp
     selectEvent(newId);
@@ -1069,13 +1073,14 @@ function renderEventList() {
 function addEventFromUI(burst) {
     const active = state.events.find(e => e.id === state.activeEventId);
     const targetBurst = burst ?? (active ? Number(active.burst) || 1 : Math.max(1, getMaxBurst()));
-    addEvent({ burst: targetBurst });
+    addEvent({ burst: targetBurst }, { render: false });
 
     // Đặt ngay sau phát cuối cùng của đợt đó để số thứ tự (#) liền mạch
     const added = state.events.pop();
     let insertAt = 0;
     state.events.forEach((e, i) => { if ((Number(e.burst) || 1) <= targetBurst) insertAt = i + 1; });
     state.events.splice(insertAt, 0, added);
+    renderEventList();
 
     selectEvent(added.id);
     document.querySelector(`.shot-row[data-id="${added.id}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -1439,7 +1444,7 @@ function renderInspectorHeaderText(event) {
     const delay = Number(event.delay) ? `trễ ${formatNumber(event.delay)} ms` : 'bắn ngay';
     return {
         title: `#${index} · ${escapeHtml(event.shell)}`,
-        sub: event.shell === 'Tạm dừng' ? `Đợt ${event.burst}` : `Đợt ${event.burst} · ${delay}`
+        sub: event.shell === 'Tạm dừng' ? `Đợt ${escapeHtml(event.burst)}` : `Đợt ${escapeHtml(event.burst)} · ${delay}`
     };
 }
 
@@ -1547,7 +1552,7 @@ function renderInspector() {
             </div>
             <div>
                 <label for="f-duration">Thời gian hiện ảnh (ms)</label>
-                <input type="number" id="f-duration" step="500" min="1500" max="20000" value="${event.duration ?? ''}" placeholder="4500"
+                <input type="number" id="f-duration" step="500" min="1500" max="20000" value="${escapeHtml(event.duration ?? '')}" placeholder="4500"
                     onchange="updateEvent(${event.id}, 'duration', this.value)">
                 <small class="field-hint">Ảnh hiện dần ~1,8 giây, giữ lại, rồi tan thành tia lửa. Muốn đợt sau chờ ảnh tan hết thì thêm phát "Tạm dừng".</small>
             </div>`;
@@ -1563,7 +1568,7 @@ function renderInspector() {
             <div class="grid-2">
                 <div>
                     <label for="f-duration">Hiện trong (ms)${helpTip('captionDuration')}</label>
-                    <input type="number" id="f-duration" step="500" min="1000" max="30000" value="${event.duration ?? ''}" placeholder="4000"
+                    <input type="number" id="f-duration" step="500" min="1000" max="30000" value="${escapeHtml(event.duration ?? '')}" placeholder="4000"
                         onchange="updateEvent(${event.id}, 'duration', this.value)">
                 </div>
                 <div>
@@ -1589,7 +1594,7 @@ function renderInspector() {
         specific = `
             <div>
                 <label for="f-duration">Thời gian nghỉ (ms)</label>
-                <input type="number" id="f-duration" step="500" min="0" value="${event.duration || 2000}" onchange="updateEvent(${event.id}, 'duration', this.value)">
+                <input type="number" id="f-duration" step="500" min="0" value="${escapeHtml(event.duration || 2000)}" onchange="updateEvent(${event.id}, 'duration', this.value)">
                 <small class="field-hint">Kéo dài đợt này thêm một khoảng, các đợt sau sẽ chờ.</small>
             </div>`;
     }
@@ -1633,9 +1638,9 @@ function renderInspector() {
         <div>
             <div class="field-label-row">
                 <label for="f-launchAngle">Góc bắn</label>
-                <output id="out-launchAngle">${event.launchAngle ?? 90}°</output>
+                <output id="out-launchAngle">${escapeHtml(event.launchAngle ?? 90)}°</output>
             </div>
-            <input type="range" id="f-launchAngle" min="0" max="180" step="5" value="${event.launchAngle ?? 90}"
+            <input type="range" id="f-launchAngle" min="0" max="180" step="5" value="${escapeHtml(event.launchAngle ?? 90)}"
                 oninput="document.getElementById('out-launchAngle').textContent = this.value + '°'; updateEvent(${event.id}, 'launchAngle', this.value)">
             <small class="field-hint">90° là bắn thẳng lên; nhỏ hơn nghiêng sang trái, lớn hơn nghiêng sang phải.</small>
         </div>
@@ -2564,7 +2569,6 @@ function getFinalConfig() {
         background: state.background,
         music: state.music ? { ...state.music } : undefined,
         effectsVolume: state.effectsVolume < 1 ? state.effectsVolume : undefined,
-        status: state.status || "public",
         events: state.events.map(e => {
             const { id, expanded, ...cleanEvent } = e;
             return cleanEvent;
@@ -2590,15 +2594,15 @@ async function getAvailableScripts() {
         try {
             const response = await fetch('api/manage_configs.php?action=list');
             const data = await response.json();
-            return data.map(s => s.id);
+            return Array.isArray(data) ? data.map(s => s.id) : null;
         } catch (e) {
-            return [];
+            return null;
         }
     }
 }
 
 async function getUniqueFilename(requestedName, currentFilename) {
-    const existingIds = (await getAvailableScripts()).map(id => id.toLowerCase());
+    const available = await getAvailableScripts();
     const reqLower = requestedName.toLowerCase();
     const currentLower = currentFilename ? currentFilename.toLowerCase() : '';
 
@@ -2606,6 +2610,10 @@ async function getUniqueFilename(requestedName, currentFilename) {
     if (reqLower === currentLower) {
         return requestedName;
     }
+    if (!available) {
+        throw new Error('Không kiểm tra được tên kịch bản trên máy chủ, vui lòng thử lại.');
+    }
+    const existingIds = available.map(id => id.toLowerCase());
 
     // Nếu chưa tồn tại trong danh sách đã có thì dùng luôn
     if (!existingIds.includes(reqLower)) {
@@ -2647,7 +2655,13 @@ async function saveConfig(isPreview = false) {
     // Xử lý tên file duy nhất nếu không phải xem thử
     if (!isPreview) {
         const originalName = filename;
-        filename = await getUniqueFilename(filename, state.currentFilename);
+        try {
+            filename = await getUniqueFilename(filename, state.currentFilename);
+        } catch (e) {
+            setSaving(false);
+            notify(e.message, 'error');
+            return;
+        }
         if (filename !== originalName) {
             document.getElementById('filename').value = filename;
             notify(`Tên file đã tồn tại, tự động đổi thành: ${filename}`, 'info');
@@ -2884,7 +2898,7 @@ function applySnapshot(data) {
     restoringSnapshot = true;
     const activeIndex = state.events.findIndex(e => e.id === state.activeEventId);
     const currentFilename = state.currentFilename;
-    loadConfigIntoState(data.config, data.filename || '');
+    loadConfigIntoState(data.config, data.filename || '', { migrate: false });
     if (typeof data.title === 'string') document.getElementById('title').value = data.title;
     // Hoàn tác không đổi kịch bản đang sửa trên máy chủ (quyền ghi đè khi lưu)
     state.currentFilename = currentFilename;
@@ -2981,6 +2995,8 @@ function initEditHistory() {
         if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
         // Trong ô nhập, Ctrl+Z hoàn tác chữ đang gõ như bình thường
         if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+        // Đang mở hộp thoại (cắt ảnh, kho nhạc...): không đổi kịch bản phía sau hộp thoại
+        if (document.querySelector('.modal:not(.hide)')) return;
         const key = e.key.toLowerCase();
         if (key === 'z' && !e.shiftKey) {
             e.preventDefault();
@@ -3768,7 +3784,9 @@ function zoomTrack(dir) {
 function markerColor(event) {
     const first = Array.isArray(event.color) ? event.color[0] : event.color;
     if (!first || first === 'Ngẫu nhiên' || first === 'random') return '#b46cff';
-    return COLOR[first] || first;
+    // Đưa thẳng vào style của nút: chỉ nhận màu CSS hợp lệ (kịch bản nhập vào có thể chứa mã độc)
+    const color = COLOR[first] || String(first);
+    return CSS.supports('color', color) ? color : '#b46cff';
 }
 
 // Kết quả phân tích nhạc (sóng nhạc, phách) của bài đang dùng, có rồi mới vẽ
@@ -4669,6 +4687,9 @@ function importConfig(e) {
             try {
                 const config = JSON.parse(e.target.result);
                 loadConfigIntoState(config, file.name.replace('.json', ''));
+                // Như kịch bản mới: lưu lần đầu tự thêm số nếu trùng tên kịch bản đã có (không ghi đè)
+                state.currentFilename = null;
+                updateScriptNameLabel();
                 hideLoading();
                 notify('Đã nhập kịch bản thành công!', 'success');
             } catch (err) {
@@ -4682,7 +4703,7 @@ function importConfig(e) {
     e.target.value = '';
 }
 
-function loadConfigIntoState(config, filename) {
+function loadConfigIntoState(config, filename, { migrate = true } = {}) {
     document.getElementById('title').value = config.title || '';
     document.getElementById('subtitle').value = config.subtitle || '';
     document.getElementById('seo-title').value = config.seoTitle || '';
@@ -4713,14 +4734,12 @@ function loadConfigIntoState(config, filename) {
     document.getElementById('intro-message').value = config.introMessage || '';
     document.getElementById('outro-message').value = config.outroMessage || '';
     document.getElementById('loop').checked = config.loop !== false;
-    syncLoopState();
     document.getElementById('filename').value = filename;
 
     state.events = [];
     state.nextId = 1;
     state.activeEventId = null;
     state.currentFilename = filename;
-    state.status = config.status || 'public';
     state.showBackground = !!config.showBackground;
     state.smoke = ['light', 'heavy'].includes(config.smoke) ? config.smoke : '';
     renderSmoke();
@@ -4754,14 +4773,16 @@ function loadConfigIntoState(config, filename) {
     refreshMiniPreview();
 
     if (config.events && Array.isArray(config.events)) {
-        // Kịch bản lưu bởi builder phiên bản cũ dùng tọa độ 0-1: đổi sang 0-100 (phát nào có cả x, y trong khoảng 0-1)
-        config.events.forEach(ev => {
-            if (typeof ev.x === 'number' && typeof ev.y === 'number' && ev.x <= 1 && ev.y <= 1) {
+        // Kịch bản lưu bởi builder phiên bản cũ dùng tọa độ 0-1: đổi sang 0-100. Chỉ khi mọi phát có tọa độ đều trong 0-1
+        // (kịch bản mới có thể có phát sát góc, vd x=1, y=0), và không làm khi hoàn tác/khôi phục nháp.
+        const positioned = config.events.filter(ev => typeof ev.x === 'number' && typeof ev.y === 'number');
+        if (migrate && positioned.length && positioned.every(ev => ev.x <= 1 && ev.y <= 1)) {
+            positioned.forEach(ev => {
                 // Làm tròn 1 chữ số thập phân (0.3 * 100 = 30.000000000000004)
                 ev.x = Math.round(ev.x * 1000) / 10;
                 ev.y = Math.round(ev.y * 1000) / 10;
-            }
-        });
+            });
+        }
         // Vẽ danh sách một lần sau khi thêm đủ (vẽ lại sau mỗi phát thì kịch bản dài rất chậm)
         config.events.forEach(ev => addEvent(ev, { render: false }));
         renderEventList();
@@ -4771,6 +4792,8 @@ function loadConfigIntoState(config, filename) {
     renderInspector();
     updateMiniInfo();
     updateScriptNameLabel();
+    // Sau khi đã có phát bắn của kịch bản mới: chạy lại khung xem nhanh từ đầu theo kịch bản này
+    syncLoopState();
 }
 
 function previewConfig() {
@@ -4985,6 +5008,7 @@ function toggleMiniPreview(force) {
         loadPreviewFrame();
     } else {
         previewReady = false;
+        stopPreviewMusic();
         getPreviewFrame().src = 'about:blank';
     }
     positionMobileSheet();

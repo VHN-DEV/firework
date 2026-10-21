@@ -159,6 +159,16 @@ export async function run(browser, base, { check }) {
             title: document.querySelector('.config-overlay h1')?.textContent || ''
         }));
         check('chạm hộp quà trong khung xem nhanh: mở quà, chạy từ đầu kèm tiêu đề', opened.hidden && opened.title.length > 0, JSON.stringify(opened));
+
+        // Nhân bản phát bắn: bản sao hiện ngay trong danh sách, ngay sau phát gốc
+        await page.evaluate(() => setTimelineView('list'));
+        const rowsBefore = await page.$$eval('.shot-row', rows => rows.length);
+        await page.evaluate(() => document.querySelector('.shot-row').click());
+        await sleep(300);
+        await page.evaluate(() => document.querySelector('#inspector [title="Nhân bản"]').click());
+        await sleep(300);
+        const rowsAfter = await page.$$eval('.shot-row', rows => rows.length);
+        check('nhân bản phát bắn: bản sao hiện ngay trong danh sách', rowsAfter === rowsBefore + 1, `${rowsBefore} → ${rowsAfter}`);
         check('builder không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
         await page.close();
