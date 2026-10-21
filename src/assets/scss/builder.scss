@@ -3811,12 +3811,26 @@ select.is-invalid {
         strong {
             color: $b-text;
         }
+
+        ol {
+            padding-left: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+    }
+
+    .help-section.wide {
+        grid-column: 1 / -1;
     }
 
     .actions-guide {
-        grid-column: 1 / -1;
         background: linear-gradient(90deg, rgba(99, 102, 241, 0.14), transparent);
         border-color: rgba($b-accent, 0.3);
+
+        p + p {
+            margin-top: 0.45rem;
+        }
     }
 }
 

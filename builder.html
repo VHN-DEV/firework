@@ -315,8 +315,8 @@
                                         </span>
                                         <input type="checkbox" id="music-sync" class="switch">
                                     </label>
-                                    <small class="field-hint">Bấm <i class="fas fa-music"></i> ở khung xem nhanh để nghe nhạc
-                                        cùng pháo hoa.</small>
+                                    <small class="field-hint">Bấm <i class="fas fa-volume-high"></i> ở khung xem nhanh để nghe
+                                        nhạc cùng pháo hoa.</small>
                                 </div>
                                 <input type="file" id="music-file" class="hide"
                                     accept="audio/*,.mp3,.m4a,.ogg,.wav">
@@ -998,89 +998,156 @@
                 </button>
             </div>
             <div class="help-content">
+                <div class="help-section wide">
+                    <h4><i class="fas fa-rocket"></i> Bắt đầu nhanh</h4>
+                    <ol>
+                        <li>Bấm <strong>Mới</strong>, chọn dịp (sinh nhật, 20/10, Tết...) và nhập tên: có ngay một màn pháo hoa
+                            hoàn chỉnh kèm lời chúc.</li>
+                        <li>Chỉnh <strong>Cấu hình chung</strong> ở cột trái (trên điện thoại, máy tính bảng: nút
+                            <i class="fas fa-sliders"></i> trên thanh trên): tiêu đề, màn mở quà, nhạc, khung cảnh.</li>
+                        <li>Thêm, bớt, chỉnh từng phát bắn ở <strong>Dòng thời gian</strong>; kết quả hiện ngay ở khung
+                            <strong>Xem nhanh</strong>. Bấm <i class="fas fa-gift"></i> để xem đúng như người nhận.</li>
+                        <li>Bấm <strong>Lưu</strong> để có link riêng gửi qua Messenger, Zalo... hoặc xuất thành
+                            <strong>Video</strong>.</li>
+                    </ol>
+                </div>
+
                 <div class="help-section">
-                    <h4><i class="fas fa-sliders"></i> Cấu hình chung</h4>
+                    <h4><i class="fas fa-gift"></i> Thông tin chung, màn mở quà & màn kết</h4>
                     <ul>
-                        <li><strong>Tiêu đề & dòng phụ:</strong> hiện lên khi màn trình diễn bắt đầu.</li>
-                        <li><strong>Ảnh nền:</strong> bật để có cảnh thành phố, hoặc bấm vào ảnh để tải ảnh của bạn.</li>
-                        <li><strong>Nhạc nền:</strong> chọn bài nhạc từ máy hoặc dán link file nhạc; chọn giây bắt đầu để
-                            bỏ đoạn dạo đầu. Nhạc phát cùng đợt pháo đầu tiên.</li>
+                        <li><strong>Tiêu đề, dòng phụ, người thực hiện:</strong> hiện khi màn trình diễn bắt đầu và trên
+                            màn kết.</li>
+                        <li><strong>Khung bắt đầu:</strong> thiệp chào (lời mời và nút Mở quà) hoặc hộp quà. Người nhận chạm
+                            mở quà rồi mới có pháo và tiếng, vì trình duyệt chỉ cho phát âm thanh sau một lần chạm.</li>
+                        <li><strong>Gửi tới:</strong> có tên người nhận thì link mở bằng "Gửi [tên]".</li>
+                        <li><strong>Tự động lặp lại:</strong> bật thì bắn mãi; tắt thì chạy một lượt rồi hiện màn kết với
+                            lời chúc và nút Xem lại.</li>
+                        <li><strong>Hẹn giờ mở quà:</strong> trước giờ hẹn link chỉ hiện đồng hồ đếm ngược. "Khóa tới giờ"
+                            để tới giờ người nhận tự mở quà; "Bắn đúng giờ" để pháo tự bắn đúng khoảnh khắc (giao thừa,
+                            0 giờ sinh nhật) cho ai đã bấm "Tôi đã sẵn sàng".</li>
+                        <li><strong>Báo cho tôi khi người nhận mở quà:</strong> biết người nhận đã mở link, mở quà, xem hết
+                            chưa.</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h4><i class="fas fa-music"></i> Nhạc & âm thanh</h4>
+                    <ul>
+                        <li><strong>Nhạc nền:</strong> chọn từ <strong>kho nhạc</strong> có sẵn, bài nhạc trên máy (tối đa
+                            20MB) hoặc dán link file .mp3. Nhạc phát cùng đợt pháo đầu tiên.</li>
+                        <li><strong>Phát từ giây:</strong> bỏ đoạn dạo đầu; nghe trên thanh phát rồi bấm
+                            <i class="fas fa-location-crosshairs"></i> để lấy đúng chỗ đang nghe.</li>
                         <li><strong>Xếp pháo theo nhịp nhạc:</strong> builder tự nghe bài nhạc, tìm nhịp và đoạn cao trào
-                            rồi đặt pháo nổ đúng phách. Khi bật "Khớp nhịp nhạc", "Nổ sau" của mỗi phát là lúc pháo nổ
-                            (pháo tự phóng sớm cho kịp) và dòng thời gian hiện ♪ mốc giây trong bài.</li>
-                        <li><strong>Màn mở quà & màn kết:</strong> chọn khung bắt đầu (thiệp chào hoặc hộp quà), nhập
-                            người nhận để link mở bằng "Gửi ..."; lời chúc ở màn kết hiện khi tắt Tự động lặp lại.</li>
-                        <li><strong>Hẹn giờ mở quà:</strong> trước giờ hẹn link chỉ hiện đồng hồ đếm ngược. "Khóa tới
-                            giờ" để người nhận tự mở quà khi tới giờ; "Bắn đúng giờ" để pháo hoa tự bắn đúng khoảnh
-                            khắc (giao thừa, 0 giờ sinh nhật) cho ai đã bấm "Tôi đã sẵn sàng".</li>
-                        <li><strong>Khói pháo:</strong> như pháo hoa thật, mỗi quả nổ để lại đám khói trắng trôi theo gió,
-                            được những quả nổ sau rọi màu. "Nhẹ" thoáng qua, "Dày" đặc và lâu tan. Máy đặt chất lượng
-                            Thấp thì không có khói.</li>
-                        <li><strong>Mặt nước:</strong> nâng chân trời lên 1/3 hoặc nửa màn hình; pháo bắn từ mép nước và phản
-                            chiếu xuống nước. Độ cao 0 của mỗi phát bắn là mặt nước. Chọn hồ tĩnh lặng hoặc sông chảy, thả hoa đăng hay cánh hoa
-                            trôi trên nước; bật "Chim, cá, khúc gỗ trôi" để có cò đậu, cá nhảy, gỗ trôi theo dòng.</li>
-                        <li><strong>Bầu trời đêm:</strong> sao, trăng (đúng pha của hôm người nhận xem, hoặc tự chọn 1 trong 8 pha
-                            và vị trí), đèn trời, khinh khí cầu, máy bay.</li>
-                        <li><strong>Khi người nhận xem:</strong> đặt sẵn chất lượng, ánh sáng bầu trời, thu phóng, hiện nút
-                            điều khiển, toàn màn hình khi mở quà. Người xem vẫn tự đổi được; mục họ đã tự chọn thì giữ theo họ.</li>
-                        <li><strong>Giảm chớp sáng:</strong> cho người nhạy cảm với ánh sáng nhấp nháy (hạt không chớp tắt,
-                            không có quầng chớp lúc nổ). Người xem cũng tự bật được bằng nút trên màn mở quà.</li>
-                        <li><strong>Tên file:</strong> dùng để lưu và tạo link chia sẻ. Trùng tên sẽ tự thêm số.</li>
+                            rồi đặt pháo nổ đúng phách. Chọn độ dày, bắn trong bao lâu và có giữ chữ, ảnh, lời nhắn đang có
+                            không.</li>
+                        <li><strong>Khớp nhịp nhạc:</strong> bật thì "Nổ sau" của mỗi phát là lúc pháo nổ (pháo tự phóng sớm
+                            cho kịp), pháo bám theo bài nhạc và dòng thời gian hiện ♪ mốc giây trong bài.</li>
+                        <li><strong>Âm lượng:</strong> chỉnh riêng nhạc nền và tiếng pháo; có nhạc thì nên giảm tiếng pháo
+                            để nghe rõ nhạc.</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h4><i class="fas fa-mountain-sun"></i> Khung cảnh & hiệu ứng</h4>
+                    <ul>
+                        <li><strong>Ảnh nền:</strong> cảnh thành phố về đêm; bấm vào ảnh để thay bằng ảnh của bạn.</li>
+                        <li><strong>Sao, trăng:</strong> sao lấp lánh ít hoặc nhiều; trăng đúng pha của hôm người nhận xem,
+                            hoặc tự chọn 1 trong 8 pha và vị trí. Trăng trôi chậm theo một cung.</li>
+                        <li><strong>Trang trí:</strong> 🏮 đèn trời, 🎈 khinh khí cầu, ✈️ máy bay; chọn được nhiều thứ.</li>
+                        <li><strong>Khói pháo:</strong> như pháo thật, mỗi quả nổ để lại khói trắng trôi theo gió, được
+                            những quả sau rọi màu. "Nhẹ" thoáng qua, "Dày" đặc và lâu tan. Người xem đặt chất lượng Thấp
+                            thì không có khói.</li>
+                        <li><strong>Mặt nước:</strong> chiếm 1/3 hoặc nửa màn hình; pháo bắn từ mép nước và phản chiếu
+                            xuống nước (độ cao 0 của mỗi phát là mặt nước). Chọn hồ tĩnh lặng hoặc sông chảy, thả 🪷 hoa
+                            đăng hay 🌸 cánh hoa; bật "Chim, cá, khúc gỗ trôi" cho mặt nước sống động.</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h4><i class="fas fa-display"></i> Khi người nhận xem</h4>
+                    <ul>
+                        <li>Đặt sẵn cách xem khi mở link. Người xem vẫn tự đổi được trong Cài đặt; mục họ đã tự chọn
+                            trước đó thì giữ theo họ.</li>
+                        <li><strong>Chất lượng:</strong> "Tự động" (khuyên dùng) theo sức máy người xem, giật thì tự hạ
+                            bậc; "Cao" vẽ đầy đủ nhất; "Thấp" nhẹ nhất cho máy yếu.</li>
+                        <li><strong>Ánh sáng bầu trời, thu phóng:</strong> trời sáng lên theo màu pháo (Tắt, Mờ, Bình
+                            thường); cỡ pháo theo màn hình người xem hoặc cố định.</li>
+                        <li><strong>Toàn màn hình khi mở quà, hiện nút điều khiển:</strong> chạm mở quà là vào toàn màn hình
+                            (iPhone không hỗ trợ); các nút tạm dừng, âm thanh, cài đặt luôn hiện.</li>
+                        <li><strong>Chạm màn hình để bắn pháo:</strong> tắt để người xem chỉ xem, chạm vào trời không bắn
+                            thêm pháo.</li>
+                        <li><strong>Giảm chớp sáng:</strong> cho người nhạy cảm với ánh sáng nhấp nháy. Người xem cũng tự
+                            bật được bằng nút trên màn mở quà.</li>
                     </ul>
                 </div>
 
                 <div class="help-section">
                     <h4><i class="fas fa-timeline"></i> Dòng thời gian</h4>
                     <ul>
-                        <li><strong>Tạo nhanh:</strong> bấm <strong>Mới</strong>, chọn dịp và nhập tên để có ngay một màn
-                            trình diễn hoàn chỉnh, rồi chỉnh tiếp.</li>
-                        <li><strong>Đợt:</strong> các phát bắn cùng đợt nổ cùng lúc; các đợt chạy lần lượt từ nhỏ đến lớn.</li>
+                        <li><strong>Danh sách:</strong> các phát bắn xếp theo đợt. Các phát cùng đợt nổ cùng lúc; các đợt
+                            chạy lần lượt, mỗi đợt khoảng 3 giây.</li>
                         <li><strong>Theo giây:</strong> xem các phát bắn trên thước giây cùng sóng nhạc; kéo ngang để đổi
                             thời điểm (bám phách nhạc), nhấn đúp chỗ trống để thêm phát. Các phát khác giữ nguyên thời
                             điểm, đợt được xếp lại tự động.</li>
+                        <li><strong>Trễ (ms):</strong> chờ bao lâu kể từ đầu đợt rồi mới bắn, để tạo chuỗi nổ nối tiếp.
+                            Thêm phát <strong>Tạm dừng</strong> để kéo dài một đợt.</li>
+                        <li><strong>Thêm phát:</strong> nút "Thêm phát bắn" hoặc "Đợt mới"; trên điện thoại là nút
+                            <i class="fas fa-plus"></i> tròn ở góc dưới.</li>
                         <li><strong>Hoàn tác:</strong> Ctrl+Z (làm lại: Ctrl+Y) hoặc hai nút mũi tên trên cùng. Kịch bản
                             đang soạn được tự lưu nháp trong trình duyệt; lần sau mở builder sẽ hỏi khôi phục.</li>
-                        <li><strong>Trễ (ms):</strong> chờ bao lâu kể từ đầu đợt rồi mới bắn, để tạo chuỗi nổ nối tiếp.</li>
-                        <li><strong>Tạm dừng:</strong> kéo dài đợt đó thêm một khoảng thời gian.</li>
-                        <li><strong>Thời lượng:</strong> mỗi đợt kéo dài khoảng 3 giây (cộng thêm thời gian tạm dừng).</li>
                     </ul>
                 </div>
 
                 <div class="help-section">
                     <h4><i class="fas fa-pen-to-square"></i> Chỉnh một phát bắn</h4>
                     <ul>
-                        <li><strong>Chọn phát bắn</strong> trong dòng thời gian để mở bảng chỉnh sửa.</li>
+                        <li><strong>Chọn phát bắn</strong> trong dòng thời gian để mở bảng chỉnh sửa;
+                            <i class="fas fa-copy"></i> nhân bản, <i class="fas fa-trash"></i> xóa.</li>
+                        <li><strong>Loại pháo:</strong> hoa cúc, liễu, trái tim... cùng các loại đặc biệt:
+                            <strong>Văn bản</strong> (chữ trên trời, chèn được biểu tượng), <strong>Hình ảnh</strong>,
+                            <strong>Lời nhắn</strong> (dòng chữ như phụ đề, không bắn pháo), <strong>Tạm dừng</strong>.</li>
+                        <li><strong>Hình ảnh:</strong> tải ảnh lên hoặc chọn từ <strong>kho ảnh</strong>, chọn phần hiển
+                            thị và khung trái tim, ngôi sao, tròn...; pháo nổ thành viền khung, ảnh lớn dần và rõ dần bên
+                            trong.</li>
+                        <li><strong>Vị trí & kích thước:</strong> bấm hoặc kéo trên khung để chọn điểm nổ (X: trái → phải,
+                            Y: đất → trời); chỉnh cỡ pháo, góc bắn, góc xoay hình.</li>
+                        <li><strong>Kiểu bắn:</strong> cách pháo bay lên (xoắn đôi, nổ dọc đường, bay nhiều tầng, đạn tàng
+                            hình...), dùng được với mọi loại pháo.</li>
+                        <li><strong>Màu sắc, âm thanh, hiệu ứng nâng cao:</strong> chọn nhiều màu để pháo đa sắc; tiếng lúc
+                            phóng, bay, nổ; nhấp nháy, lách tách, nổ chéo, màu chuyển, mật độ hạt...</li>
                         <li><strong>Giải thích nhanh:</strong> rê chuột hoặc chạm vào <span class="help-tip is-static">?</span>
                             cạnh mỗi mục để xem mục đó dùng làm gì.</li>
-                        <li><strong>Vị trí:</strong> bấm hoặc kéo trên khung để chọn điểm nổ (X: trái → phải, Y: đất → trời).</li>
-                        <li><strong>Màu sắc:</strong> chọn nhiều màu để pháo đa sắc, hoặc "Ngẫu nhiên".</li>
-                        <li><strong>Hình ảnh:</strong> tải ảnh lên, chọn khung trái tim/ngôi sao/tròn...; pháo nổ thành viền
-                            khung, ảnh lớn dần và rõ dần bên trong.</li>
-                        <li><strong>Kiểu bắn:</strong> cách pháo bay lên (xoắn đôi, nổ dọc đường, bay nhiều tầng, bay
-                            lượn...), dùng được với mọi loại pháo.</li>
-                        <li><strong>Nâng cao:</strong> mật độ hạt, màu chuyển, lấp lánh, cháy lâu, nổ chéo...</li>
                     </ul>
                 </div>
 
                 <div class="help-section">
                     <h4><i class="fas fa-eye"></i> Xem nhanh</h4>
                     <ul>
-                        <li>Chạy chính trình diễn thật nên hiển thị giống hệt khi gửi cho bạn bè.</li>
-                        <li>Khi đang chọn một phát bắn, khung xem nhanh chỉ bắn lặp lại phát đó.</li>
-                        <li>Nút <i class="fas fa-music"></i> phát nhạc nền khớp nhịp với cả kịch bản.</li>
-                        <li>Nút <i class="fas fa-desktop"></i> / <i class="fas fa-mobile-screen"></i> chuyển giữa màn hình
-                            máy tính và điện thoại.</li>
+                        <li>Chạy chính trình phát thật nên hiển thị giống hệt khi gửi đi. Đang chọn một phát bắn thì khung
+                            chỉ bắn lặp lại phát đó.</li>
+                        <li><i class="fas fa-rotate-right"></i> chạy cả kịch bản từ đầu, kèm tiêu đề, lời nhắn và màn kết.</li>
+                        <li><i class="fas fa-volume-high"></i> bật tiếng pháo và nhạc nền (nhạc chạy lại từ đầu cho khớp
+                            nhịp).</li>
+                        <li><i class="fas fa-gift"></i> xem như người nhận: hiện thiệp hoặc hộp quà, chạm vào khung để mở
+                            rồi xem tới màn kết.</li>
+                        <li><i class="fas fa-desktop"></i> / <i class="fas fa-mobile-screen"></i> xem như trên máy tính
+                            hoặc điện thoại; <i class="fas fa-expand"></i> phóng to toàn màn hình.</li>
+                        <li>Đồng hồ đếm ngược của hẹn giờ và toàn màn hình khi mở quà chỉ xem được bằng
+                            <strong>Xem thử</strong> (mở tab mới).</li>
                     </ul>
                 </div>
 
                 <div class="help-section actions-guide">
                     <h4><i class="fas fa-floppy-disk"></i> Lưu & chia sẻ</h4>
-                    <p>Bấm <strong>Lưu</strong> để tạo link riêng, rồi gửi cho bạn bè qua Messenger, Zalo...</p>
-                    <p>Bật <strong>Báo cho tôi khi người nhận mở quà</strong> (mục Màn mở quà) để biết người nhận đã mở
-                        link, mở quà, xem hết chưa: xem trong hộp Chia sẻ, danh sách Kịch bản của tôi hoặc link theo dõi
-                        riêng (cần bản có máy chủ PHP).</p>
-                    <p>Bấm <strong>Video</strong> để quay màn trình diễn kèm tiếng pháo và nhạc thành video (dọc cho
-                        TikTok/Story, ngang hoặc vuông), xem lại rồi tải về.</p>
+                    <p>Bấm <strong>Lưu</strong> để tạo link riêng rồi gửi qua Messenger, Zalo, Facebook; hộp Chia sẻ có thêm
+                        nền tảng khác, <strong>mã QR và ảnh thiệp</strong>. Nhóm <strong>Chia sẻ & SEO</strong> đặt tên file
+                        (dùng làm link, trùng tên sẽ tự thêm số), tiêu đề, mô tả và ảnh hiện khi gửi link.</p>
+                    <p>Bật <strong>Báo cho tôi khi người nhận mở quà</strong> (nhóm Màn mở quà & màn kết) để biết người nhận
+                        đã mở link, mở quà, xem hết chưa: xem trong hộp Chia sẻ, danh sách Kịch bản của tôi hoặc link theo
+                        dõi riêng (cần bản có máy chủ PHP).</p>
+                    <p><strong>Mở</strong> để sửa kịch bản đã lưu; <strong>Nhập</strong> / <strong>Xuất</strong> file .json
+                        để chuyển kịch bản sang máy khác; <strong>Video</strong> quay màn trình diễn kèm tiếng pháo và nhạc
+                        (dọc cho TikTok/Story, ngang hoặc vuông), xem lại rồi tải về.</p>
                 </div>
             </div>
             <div class="modal-footer">

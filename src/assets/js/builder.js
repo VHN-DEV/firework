@@ -1160,7 +1160,8 @@ const HELP_TIPS = {
     reduceFlashing: 'Bật khi người nhận nhạy cảm với ánh sáng nhấp nháy (người lớn tuổi, người dễ bị co giật do ánh sáng...): hạt pháo không chớp tắt hay lấp lánh, '
         + 'không có quầng chớp lúc nổ, bầu trời không đổi màu theo pháo. Người xem cũng tự bật được bằng nút "Giảm chớp sáng" trên màn mở quà.',
     loop: 'Bật: chạy hết đợt cuối thì quay lại đợt đầu, bắn mãi. Tắt: chạy một lượt rồi hiện màn kết với lời chúc và nút Xem lại.',
-    music: 'Nhạc phát cùng đợt pháo đầu tiên. Chọn file từ máy (tối đa 20MB) hoặc dán link trực tiếp tới file .mp3; link trang YouTube, Zing không dùng được.',
+    music: 'Nhạc phát cùng đợt pháo đầu tiên. Chọn bài trong kho nhạc có sẵn, file từ máy (tối đa 20MB) hoặc dán link trực tiếp tới file .mp3; '
+        + 'link trang YouTube, Zing không dùng được.',
     musicStart: 'Bỏ đoạn dạo đầu: nhạc phát từ giây này. Nghe trên thanh phát rồi bấm nút <i class="fas fa-location-crosshairs"></i> để lấy đúng chỗ đang nghe.',
     musicVolume: 'Độ to của nhạc nền so với tiếng pháo.',
     musicSync: 'Bật: "Nổ sau" của mỗi phát là lúc pháo <strong>nổ</strong> (pháo tự phóng sớm cho kịp) và pháo bám theo bài nhạc nên nổ đúng phách; '
@@ -1199,7 +1200,7 @@ const HELP_TIPS = {
     y: 'Độ cao của điểm nổ: 0 là mặt đất, 100 là đỉnh trời. Cao hơn thì pháo bay lâu hơn.',
     size: 'Cỡ chùm nổ, 1 là cỡ chuẩn. Lớn hơn thì chùm to và nhiều hạt hơn, máy yếu có thể giật.',
     rotation: 'Xoay các pháo hình (trái tim, ngôi sao, bướm...) theo độ. Để trống thì mỗi lần nổ nghiêng ngẫu nhiên một chút. Chữ không bị xoay.',
-    sounds: 'Âm thanh lúc phóng, lúc bay (tiếng huýt) và lúc nổ; "Mặc định" là âm của loại pháo. Khung xem nhanh không phát tiếng, bấm <strong>Xem thử</strong> để nghe.',
+    sounds: 'Âm thanh lúc phóng, lúc bay (tiếng huýt) và lúc nổ; "Mặc định" là âm của loại pháo. Bấm <i class="fas fa-volume-high"></i> ở khung xem nhanh để nghe.',
     effects: '<ul>'
         + '<li><strong>Nhấp nháy</strong>: hạt chớp tắt liên tục.</li>'
         + '<li><strong>Lách tách</strong>: hạt tàn thì nổ lép bép.</li>'
@@ -1676,7 +1677,7 @@ function renderInspector() {
             ['', 'Mặc định (mạnh)'], ['burstDeep', 'Trầm vang'], ['burstSoft', 'Nhẹ nhàng'], ['burstSmall', 'Nhỏ'], ['burstWhoosh', 'Vút'],
             ['crackleBang', 'Tiếng bụp thật'], ['crackle', 'Lách tách to'], ['crackleHeavy', 'Lách tách dồn dập'],
             ['crackleFirecracker', 'Pháo thật'], ['crackleSmall', 'Lách tách nhỏ'], ['burstOut', 'Tỏa rộng'], ['none', 'Im lặng']])}
-        <small class="note">Âm thanh chỉ nghe được khi bấm "Xem thử" (khung xem nhanh không phát tiếng).</small>`, 'sounds');
+        <small class="note">Bật <i class="fas fa-volume-high"></i> ở khung xem nhanh để nghe thử.</small>`, 'sounds');
 
     const builtin = SHELL_BUILTIN_EFFECTS[event.shell] || [];
     const effectChip = (field, label) => {
@@ -2505,7 +2506,7 @@ function startPreviewMusic() {
     } catch (e) {
         // Chưa tải xong thông tin bài nhạc: phát từ đầu
     }
-    audio.play().catch(() => notify('Trình duyệt chặn phát nhạc, hãy bấm nút nhạc ở khung xem nhanh lần nữa.', 'warning'));
+    audio.play().catch(() => notify('Trình duyệt chặn phát nhạc, hãy bấm nút âm thanh ở khung xem nhanh lần nữa.', 'warning'));
     clearInterval(previewClockTimer);
     previewClockTimer = setInterval(sendPreviewClock, 250);
 }
@@ -2985,7 +2986,7 @@ function renderStartFrames() {
             <span class="emoji">${f.icon}</span>${f.name}
         </button>`).join('');
     const current = START_FRAMES.find(f => f.value === state.startFrame) || START_FRAMES[0];
-    document.getElementById('start-frame-hint').textContent = `${current.hint} Bấm "Xem thử" để trải nghiệm.`;
+    document.getElementById('start-frame-hint').textContent = `${current.hint} Bấm nút quà ở khung xem nhanh để trải nghiệm như người nhận.`;
 }
 
 function setStartFrame(value) {
