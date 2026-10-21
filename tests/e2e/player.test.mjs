@@ -187,7 +187,7 @@ export async function run(browser, base, { check }) {
         page = await openPage(browser);
         await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
         await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
-            { ...smokeShow(undefined), water: 'half', decor: 'both' });
+            { ...smokeShow(undefined), water: 'half', decor: 'both', waterLife: false });
         await sleep(4500);
         const scene = await page.evaluate(() => {
             const cov = (id, from = 0, to = 1) => {
@@ -215,6 +215,23 @@ export async function run(browser, base, { check }) {
             return n;
         });
         check('sông chảy: hoa đăng trôi trên mặt nước', lanterns > 5, lanterns);
+        // Sông chảy: có khúc gỗ trôi (màu gỗ nâu trên mặt nước); tắt "Chim, cá, khúc gỗ" thì không có
+        const woodOnWater = () => page.evaluate(() => {
+            const c = document.getElementById('water-canvas');
+            const d = c.getContext('2d').getImageData(0, Math.round(c.height / 2), c.width, Math.round(c.height / 2)).data;
+            let n = 0;
+            for (let i = 0; i < d.length; i += 4) if (d[i] > 60 && d[i] > d[i + 1] + 15 && d[i + 1] > d[i + 2] + 8) n++;
+            return n;
+        });
+        await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
+            { loop: true, events: [], water: 'half', waterStyle: 'river' });
+        await sleep(1500);
+        const wood = await woodOnWater();
+        await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
+            { loop: true, events: [], water: 'half', waterStyle: 'river', waterLife: false });
+        await sleep(800);
+        const noWood = await woodOnWater();
+        check('sông chảy: có khúc gỗ trôi, tắt "Chim, cá, khúc gỗ" thì không còn', wood > 20 && noWood === 0, JSON.stringify({ wood, noWood }));
         check('cảnh vật không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
         await page.close();
 

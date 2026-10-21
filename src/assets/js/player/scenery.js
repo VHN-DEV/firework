@@ -85,6 +85,469 @@ function floatLanternSprite() {
     return c;
 }
 
+// ---------------------------------------------------------------------------
+// Cuộc sống trên mặt nước: khúc gỗ trôi (sông), cò trắng bay xuống đậu lên khúc gỗ hoặc đáp xuống nước, cá nhảy.
+// Tọa độ theo điểm ảnh CSS; vật trên nước dùng x và d (0 mép nước xa, 1 sát người xem): xa thì nhỏ và trôi chậm.
+// ---------------------------------------------------------------------------
+function logSprite() {
+    if (sprites.log) return sprites.log;
+    const c = document.createElement('canvas');
+    c.width = 180;
+    c.height = 40;
+    const g = c.getContext('2d');
+    const body = (x, y, w, h, r) => {
+        g.beginPath();
+        g.moveTo(x + r, y);
+        g.lineTo(x + w - r, y);
+        g.quadraticCurveTo(x + w, y, x + w, y + r);
+        g.lineTo(x + w, y + h - r);
+        g.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        g.lineTo(x + r, y + h);
+        g.quadraticCurveTo(x, y + h, x, y + h - r);
+        g.lineTo(x, y + r);
+        g.quadraticCurveTo(x, y, x + r, y);
+        g.fill();
+    };
+    // Cành gãy chĩa lên
+    g.fillStyle = '#3f2a1b';
+    g.beginPath();
+    g.moveTo(58, 12);
+    g.lineTo(44, 1);
+    g.lineTo(49, 0);
+    g.lineTo(66, 11);
+    g.fill();
+    g.fillStyle = '#4a3020';
+    body(4, 9, 164, 24, 11);
+    g.fillStyle = '#6b4a2e';
+    body(6, 10, 160, 9, 5);
+    // Vỏ cây
+    g.strokeStyle = 'rgba(28, 17, 9, 0.55)';
+    g.lineWidth = 2;
+    [[18, 15, 40], [70, 14, 34], [118, 16, 30], [30, 24, 46], [96, 25, 40], [140, 22, 18]].forEach(([x, y, w]) => {
+        g.beginPath();
+        g.moveTo(x, y);
+        g.lineTo(x + w, y);
+        g.stroke();
+    });
+    // Mặt cắt ở đầu khúc gỗ: vân gỗ
+    g.fillStyle = '#b58a57';
+    g.beginPath();
+    g.ellipse(164, 21, 7, 12, 0, 0, Math.PI * 2);
+    g.fill();
+    g.strokeStyle = '#7d5532';
+    g.lineWidth = 1.2;
+    [8, 4.5].forEach(r => {
+        g.beginPath();
+        g.ellipse(164, 21, r * 0.55, r, 0, 0, Math.PI * 2);
+        g.stroke();
+    });
+    // Nửa dưới chìm trong nước: mờ dần
+    g.globalCompositeOperation = 'destination-in';
+    const sink = g.createLinearGradient(0, 0, 0, 40);
+    sink.addColorStop(0, 'rgba(0, 0, 0, 1)');
+    sink.addColorStop(0.55, 'rgba(0, 0, 0, 1)');
+    sink.addColorStop(0.8, 'rgba(0, 0, 0, 0.25)');
+    sink.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    g.fillStyle = sink;
+    g.fillRect(0, 0, 180, 40);
+    sprites.log = c;
+    return c;
+}
+
+// Cò trắng (nhìn nghiêng, quay sang phải): cánh giơ lên, cụp xuống, liệng, đứng, bơi
+function egretSprite(pose) {
+    const key = 'egret_' + pose;
+    if (sprites[key]) return sprites[key];
+    const c = document.createElement('canvas');
+    c.width = 48;
+    c.height = 40;
+    const g = c.getContext('2d');
+    const white = '#e9ece6';
+    const shade = '#b9bfb6';
+    const beak = (x1, y1, x2, y2) => {
+        g.strokeStyle = '#e0b030';
+        g.lineWidth = 1.6;
+        g.beginPath();
+        g.moveTo(x1, y1);
+        g.lineTo(x2, y2);
+        g.stroke();
+    };
+    const blob = (x, y, rx, ry, color, rot = 0) => {
+        g.fillStyle = color;
+        g.beginPath();
+        g.ellipse(x, y, rx, ry, rot, 0, Math.PI * 2);
+        g.fill();
+    };
+    const poly = (points, color) => {
+        g.fillStyle = color;
+        g.beginPath();
+        points.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+        g.closePath();
+        g.fill();
+    };
+    if (pose === 'up' || pose === 'down' || pose === 'glide') {
+        // Chân duỗi về sau, cổ co lại khi bay
+        g.strokeStyle = '#2b2b2b';
+        g.lineWidth = 1.4;
+        g.beginPath();
+        g.moveTo(16, 23);
+        g.lineTo(5, 25);
+        g.stroke();
+        if (pose === 'up') poly([[18, 21], [28, 21], [17, 3], [12, 5]], shade);
+        blob(23, 22, 9, 4, white);
+        blob(32, 19, 3.4, 3, white);
+        beak(35, 19, 43, 21);
+        if (pose === 'down') poly([[18, 22], [28, 22], [19, 37], [14, 35]], white);
+        if (pose === 'glide') poly([[13, 19], [32, 19], [26, 23], [16, 23]], white);
+    } else if (pose === 'stand') {
+        g.strokeStyle = '#2b2b2b';
+        g.lineWidth = 1.4;
+        g.beginPath();
+        g.moveTo(21, 27);
+        g.lineTo(20, 38);
+        g.moveTo(24, 27);
+        g.lineTo(25, 38);
+        g.stroke();
+        blob(22, 23, 8, 5, white, -0.3);
+        blob(20, 25, 6, 3, shade, -0.3);
+        // Cổ cong chữ S
+        g.strokeStyle = white;
+        g.lineWidth = 3;
+        g.beginPath();
+        g.moveTo(27, 19);
+        g.quadraticCurveTo(31, 14, 28, 10);
+        g.quadraticCurveTo(26, 7, 29, 6);
+        g.stroke();
+        blob(30, 6, 2.6, 2.3, white);
+        beak(32, 6, 39, 7);
+    } else {
+        // Bơi: thân nổi trên mặt nước, cổ vươn lên
+        blob(23, 27, 10, 5, white);
+        blob(21, 29, 8, 3, shade);
+        g.strokeStyle = white;
+        g.lineWidth = 3;
+        g.beginPath();
+        g.moveTo(30, 25);
+        g.quadraticCurveTo(34, 20, 32, 15);
+        g.stroke();
+        blob(33, 14, 2.6, 2.3, white);
+        beak(35, 14, 42, 15);
+        g.globalCompositeOperation = 'destination-in';
+        const sink = g.createLinearGradient(0, 0, 0, 40);
+        sink.addColorStop(0, 'rgba(0, 0, 0, 1)');
+        sink.addColorStop(0.72, 'rgba(0, 0, 0, 1)');
+        sink.addColorStop(0.82, 'rgba(0, 0, 0, 0)');
+        g.fillStyle = sink;
+        g.fillRect(0, 0, 48, 40);
+    }
+    sprites[key] = c;
+    return c;
+}
+
+function fishSprite() {
+    if (sprites.fish) return sprites.fish;
+    const c = document.createElement('canvas');
+    c.width = 34;
+    c.height = 16;
+    const g = c.getContext('2d');
+    const silver = g.createLinearGradient(0, 2, 0, 14);
+    silver.addColorStop(0, '#7f93a6');
+    silver.addColorStop(0.45, '#e4ecf3');
+    silver.addColorStop(1, '#a9b8c6');
+    g.fillStyle = silver;
+    g.beginPath();
+    g.moveTo(9, 8);
+    g.lineTo(1, 2);
+    g.lineTo(3, 8);
+    g.lineTo(1, 14);
+    g.closePath();
+    g.fill();
+    g.beginPath();
+    g.ellipse(19, 8, 12, 4.6, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#1d242c';
+    g.beginPath();
+    g.arc(26, 7, 1.2, 0, Math.PI * 2);
+    g.fill();
+    sprites.fish = c;
+    return c;
+}
+
+const rand = (min, max) => min + Math.random() * (max - min);
+
+const WaterLife = {
+    key: '',
+    logs: [],
+    birds: [],
+    fish: [],
+    ripples: [],
+    drops: [],
+    next: { log: 0, bird: 0, fish: 0 },
+
+    // Trôi theo dòng (điểm ảnh CSS / ms), khớp với các vệt sáng của mặt nước
+    flow(d, river) {
+        return river ? 0.03 * (0.4 + 1.2 * d) : 0;
+    },
+
+    scale(d) {
+        return (0.6 + d * 1.1) * (IS_MOBILE ? 0.85 : 1);
+    },
+
+    reset(river, cssW) {
+        this.logs = [];
+        this.birds = [];
+        this.fish = [];
+        this.ripples = [];
+        this.drops = [];
+        const slow = IS_MOBILE ? 1.3 : 1;
+        // Mở màn đã có sẵn một khúc gỗ đang trôi và một con cò sắp bay tới
+        if (river) this.logs.push(this.makeLog(rand(0.18, 0.42) * cssW, rand(0.45, 0.8)));
+        this.next = river
+            ? { log: rand(9000, 16000) * slow, bird: rand(1500, 3000), fish: rand(2500, 4500) }
+            : { log: Infinity, bird: rand(3000, 6000), fish: rand(3500, 6000) };
+    },
+
+    makeLog(x, d) {
+        return { x, d, len: rand(95, 135), phase: Math.random() * 6, bird: null };
+    },
+
+    surfaceY(d, topCss, depthCss) {
+        return topCss + d * depthCss;
+    },
+
+    // Vòng sóng lan và tia nước bắn lên tại một điểm trên mặt nước
+    splash(x, d, topCss, depthCss, size) {
+        const s = this.scale(d);
+        const y = this.surfaceY(d, topCss, depthCss);
+        this.ripples.push({ x, d, age: 0, life: 1500, r0: 3 * s * size }, { x, d, age: -180, life: 1500, r0: 2 * s * size });
+        const count = Math.round(4 + size * 3);
+        for (let i = 0; i < count; i++) {
+            this.drops.push({ x, y, base: y, vx: rand(-0.04, 0.04) * s, vy: -rand(0.05, 0.11) * s * size, size: rand(1, 1.8) * s });
+        }
+    },
+
+    update(dt, river, cssW, topCss, depthCss) {
+        const slow = IS_MOBILE ? 1.3 : 1;
+        // Khúc gỗ: trôi vào từ thượng nguồn (bên trái), ra khỏi khung thì bỏ
+        this.next.log -= dt;
+        if (this.next.log <= 0) {
+            this.next.log = rand(10000, 20000) * slow;
+            if (this.logs.length < 2) {
+                const d = rand(0.3, 0.85);
+                const log = this.makeLog(0, d);
+                log.x = -log.len * this.scale(d);
+                this.logs.push(log);
+            }
+        }
+        this.logs.forEach(log => {
+            log.x += this.flow(log.d, river) * 0.9 * dt;
+            log.phase += dt * 0.0015;
+        });
+        this.logs = this.logs.filter(log => log.x - log.len * this.scale(log.d) < cssW + 30);
+
+        // Cò: bay tới khúc gỗ đang trong khung (nếu còn chỗ) hoặc một điểm trên mặt nước
+        this.next.bird -= dt;
+        if (this.next.bird <= 0) {
+            this.next.bird = (river ? rand(7000, 13000) : rand(9000, 16000)) * slow;
+            if (this.birds.length < 2) {
+                const dir = Math.random() < 0.5 ? 1 : -1;
+                const free = this.logs.filter(log => !log.bird && log.x > cssW * 0.12 && log.x < cssW * 0.62);
+                const bird = {
+                    state: 'fly', dir, x: dir > 0 ? -24 : cssW + 24, y: topCss * rand(0.25, 0.6),
+                    flap: Math.random() * 300, rest: rand(5000, 10000)
+                };
+                if (free.length && Math.random() < 0.7) {
+                    bird.log = free[0];
+                    free[0].bird = bird;
+                    bird.ox = rand(0.35, 0.65) * free[0].len * this.scale(free[0].d);
+                } else {
+                    bird.d = rand(0.3, 0.8);
+                    bird.tx = rand(0.2, 0.8) * cssW;
+                }
+                this.birds.push(bird);
+            }
+        }
+        this.birds.forEach(bird => {
+            bird.flap += dt;
+            if (bird.state === 'fly') {
+                const d = bird.log ? bird.log.d : bird.d;
+                const s = this.scale(d);
+                const tx = bird.log ? bird.log.x - bird.log.len * s + bird.ox : bird.tx;
+                const ty = this.surfaceY(d, topCss, depthCss) - (bird.log ? 9 * s : 0);
+                if (!bird.log) bird.tx += this.flow(d, river) * 0.6 * dt;
+                const dx = tx - bird.x;
+                const dy = ty - bird.y;
+                const dist = Math.hypot(dx, dy);
+                bird.dir = dx >= 0 ? 1 : -1;
+                bird.near = dist < 70;
+                const step = Math.min(dist, (bird.near ? 0.07 : 0.12) * dt);
+                if (dist <= step + 0.5) {
+                    bird.state = bird.log ? 'perch' : 'swim';
+                    bird.x = tx;
+                    bird.y = ty;
+                    if (!bird.log) this.splash(bird.x, d, topCss, depthCss, 1);
+                } else {
+                    bird.x += dx / dist * step;
+                    bird.y += dy / dist * step;
+                }
+            } else if (bird.state === 'perch' || bird.state === 'swim') {
+                bird.rest -= dt;
+                if (bird.log) {
+                    const s = this.scale(bird.log.d);
+                    bird.x = bird.log.x - bird.log.len * s + bird.ox;
+                    bird.y = this.surfaceY(bird.log.d, topCss, depthCss) - 9 * s + Math.sin(bird.log.phase) * 0.6 * s;
+                } else {
+                    bird.x += (this.flow(bird.d, river) * 0.6 + bird.dir * 0.004) * dt;
+                    bird.y = this.surfaceY(bird.d, topCss, depthCss) + Math.sin(bird.flap * 0.002) * 0.5;
+                }
+                // Hết giờ nghỉ, hoặc khúc gỗ sắp trôi ra khỏi khung: bay đi
+                if (bird.rest <= 0 || bird.x > cssW - 15 || bird.x < 15) {
+                    if (!bird.log) this.splash(bird.x, bird.d, topCss, depthCss, 0.7);
+                    if (bird.log) bird.log.bird = null;
+                    bird.state = 'leave';
+                    bird.vx = bird.dir * 0.1;
+                    bird.vy = -0.075;
+                }
+            } else {
+                bird.x += bird.vx * dt;
+                bird.y += bird.vy * dt;
+                bird.vy = Math.max(-0.12, bird.vy - 0.00004 * dt);
+            }
+        });
+        this.birds = this.birds.filter(bird => !(bird.state === 'leave' && (bird.y < -40 || bird.x < -40 || bird.x > cssW + 40)));
+
+        // Cá nhảy: vọt lên khỏi mặt nước theo đường cong rồi lao xuống
+        this.next.fish -= dt;
+        if (this.next.fish <= 0) {
+            this.next.fish = (river ? rand(3000, 7000) : rand(5000, 10000)) * slow;
+            const d = rand(0.25, 0.9);
+            const s = this.scale(d);
+            const fish = { x: rand(0.1, 0.9) * cssW, d, t: 0, life: rand(650, 900), h: rand(16, 28) * s, dx: (Math.random() < 0.5 ? -1 : 1) * rand(16, 28) * s };
+            this.fish.push(fish);
+            this.splash(fish.x, d, topCss, depthCss, 0.8);
+        }
+        this.fish.forEach(fish => {
+            fish.t += dt;
+            fish.x += this.flow(fish.d, river) * dt;
+            if (fish.t >= fish.life && !fish.done) {
+                fish.done = true;
+                this.splash(fish.x + fish.dx, fish.d, topCss, depthCss, 1);
+            }
+        });
+        this.fish = this.fish.filter(fish => !fish.done);
+
+        this.ripples.forEach(r => {
+            r.age += dt;
+            r.x += this.flow(r.d, river) * dt;
+        });
+        this.ripples = this.ripples.filter(r => r.age < r.life);
+        this.drops.forEach(p => {
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.vy += 0.00035 * dt;
+        });
+        this.drops = this.drops.filter(p => p.y <= p.base || p.vy < 0);
+    },
+
+    draw(ctx, k, topCss, depthCss, time) {
+        ctx.setTransform(k, 0, 0, k, 0, 0);
+        ctx.globalCompositeOperation = 'source-over';
+        // Vòng sóng
+        ctx.lineWidth = 1 / k;
+        this.ripples.forEach(r => {
+            if (r.age < 0) return;
+            const p = r.age / r.life;
+            const s = this.scale(r.d);
+            const rx = r.r0 + p * 30 * s;
+            ctx.globalAlpha = (1 - p) * 0.5;
+            ctx.strokeStyle = 'rgb(205, 222, 255)';
+            ctx.beginPath();
+            ctx.ellipse(r.x, this.surfaceY(r.d, topCss, depthCss), rx, rx * 0.28, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        });
+        // Vật trên mặt nước, xa vẽ trước
+        const things = [
+            ...this.logs.map(log => ({ d: log.d, log })),
+            ...this.birds.filter(b => b.state === 'perch' || b.state === 'swim').map(bird => ({ d: bird.log ? bird.log.d + 0.0001 : bird.d, bird }))
+        ].sort((a, b) => a.d - b.d);
+        things.forEach(({ log, bird }) => {
+            if (log) {
+                const s = this.scale(log.d);
+                const w = log.len * s;
+                const h = w * 40 / 180;
+                const y = this.surfaceY(log.d, topCss, depthCss) + Math.sin(log.phase) * 0.6 * s;
+                const sprite = logSprite();
+                // Bóng in xuống nước
+                ctx.save();
+                ctx.globalAlpha = 0.22;
+                ctx.translate(log.x - w, y + h * 0.25);
+                ctx.scale(1, -0.6);
+                ctx.drawImage(sprite, 0, -h, w, h);
+                ctx.restore();
+                ctx.save();
+                ctx.globalAlpha = 0.95;
+                ctx.translate(log.x - w / 2, y);
+                ctx.rotate(Math.sin(log.phase * 0.7) * 0.02);
+                ctx.drawImage(sprite, -w / 2, -h * 0.62, w, h);
+                ctx.restore();
+            } else {
+                this.drawBird(ctx, bird, bird.log ? 'stand' : 'swim', this.scale(bird.log ? bird.log.d : bird.d));
+            }
+        });
+        // Cá đang nhảy
+        const fishImg = fishSprite();
+        this.fish.forEach(fish => {
+            const p = Math.min(1, fish.t / fish.life);
+            const lift = 4 * fish.h * p * (1 - p);
+            const x = fish.x + fish.dx * p;
+            const y = this.surfaceY(fish.d, topCss, depthCss) - lift;
+            const angle = Math.atan2(-4 * fish.h * (1 - 2 * p), fish.dx);
+            const s = this.scale(fish.d);
+            ctx.save();
+            ctx.globalAlpha = 0.95;
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            ctx.drawImage(fishImg, -13 * s, -6.1 * s, 26 * s, 12.2 * s);
+            ctx.restore();
+        });
+        // Tia nước
+        ctx.fillStyle = 'rgb(225, 236, 255)';
+        this.drops.forEach(p => {
+            ctx.globalAlpha = 0.8;
+            ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+        });
+        // Cò đang bay (trên trời và lúc sà xuống)
+        this.birds.forEach(bird => {
+            if (bird.state !== 'fly' && bird.state !== 'leave') return;
+            const pose = bird.state === 'fly' && bird.near ? 'glide' : Math.floor(bird.flap / 130) % 2 ? 'up' : 'down';
+            const d = bird.log ? bird.log.d : bird.d ?? 0.5;
+            this.drawBird(ctx, bird, pose, this.scale(d) * 1.05);
+        });
+        ctx.globalAlpha = 1;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+    },
+
+    drawBird(ctx, bird, pose, s) {
+        const sprite = egretSprite(pose);
+        const w = 42 * s;
+        const h = w * 40 / 48;
+        ctx.save();
+        ctx.globalAlpha = 0.95;
+        ctx.translate(bird.x, bird.y);
+        if (bird.dir < 0) ctx.scale(-1, 1);
+        // Gốc vẽ: chân (đứng), mặt nước (bơi), thân (bay)
+        const anchorY = pose === 'stand' ? 0.95 : pose === 'swim' ? 0.72 : 0.55;
+        ctx.drawImage(sprite, -w / 2, -h * anchorY, w, h);
+        // Đang bơi: bóng in mờ xuống nước
+        if (pose === 'swim') {
+            ctx.globalAlpha = 0.22;
+            ctx.scale(1, -0.7);
+            ctx.drawImage(sprite, -w / 2, -h * anchorY, w, h);
+        }
+        ctx.restore();
+    }
+};
+
 export const Water = {
     drawn: false,
     frame: 0,
@@ -96,8 +559,9 @@ export const Water = {
     floatKey: '',
 
     // sources: các canvas cùng kích thước khung (vẽ theo điểm ảnh CSS cssW x cssH); background: phần tử ảnh nền;
-    // style: 'lake' hồ tĩnh lặng | 'river' sông chảy; floating: '' | 'lanterns' hoa đăng | 'petals' cánh hoa
-    render(ctx, { sources, background, sky, cssW, cssH, time, style, floating, calm }) {
+    // style: 'lake' hồ tĩnh lặng | 'river' sông chảy; floating: '' | 'lanterns' hoa đăng | 'petals' cánh hoa;
+    // life: khúc gỗ trôi, cò, cá nhảy
+    render(ctx, { sources, background, sky, cssW, cssH, time, style, floating, calm, life }) {
         const level = horizon();
         const { width: W, height: H } = ctx.canvas;
         if (level >= 1 || !W || !H) {
@@ -247,7 +711,20 @@ export const Water = {
             }
         });
 
-        // 7. Mép nước sáng mảnh
+        // 7. Khúc gỗ trôi, cò đậu, cá nhảy
+        if (life) {
+            const key = `${river}_${Math.round(cssW)}_${Math.round(cssH)}_${level}`;
+            if (key !== WaterLife.key) {
+                WaterLife.key = key;
+                WaterLife.reset(river, cssW);
+            }
+            WaterLife.update(dt, river, cssW, horizonCss, depthCss);
+            WaterLife.draw(ctx, k, horizonCss, depthCss, time);
+        } else if (WaterLife.key) {
+            WaterLife.key = '';
+        }
+
+        // 8. Mép nước sáng mảnh
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
         const line = ctx.createLinearGradient(0, 0, W, 0);

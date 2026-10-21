@@ -47,6 +47,8 @@ const state = {
     // Kiểu mặt nước ('lake' hồ tĩnh lặng, 'river' sông chảy), vật trôi ('' / 'lanterns' hoa đăng / 'petals' cánh hoa)
     waterStyle: 'lake',
     floating: '',
+    // Chim, cá, khúc gỗ trên mặt nước
+    waterLife: true,
     // Bầu trời đêm: trang trí (danh sách), sao ('' / 'few' / 'many'), trăng ({ phase: 'auto' | 0-7, x, y } hoặc null)
     decor: [],
     stars: '',
@@ -241,6 +243,10 @@ document.addEventListener('DOMContentLoaded', () => {
     renderSmoke();
     renderScene();
     renderSky();
+    document.getElementById('water-life')?.addEventListener('change', (e) => {
+        state.waterLife = e.target.checked;
+        refreshMiniPreview();
+    });
     // Vị trí trăng: kéo thanh trượt thì xem nhanh cập nhật
     ['x', 'y'].forEach(axis => document.getElementById('moon-' + axis)?.addEventListener('input', (e) => {
         if (!state.moon) return;
@@ -667,6 +673,7 @@ function createNewScript() {
         state.water = '';
         state.waterStyle = 'lake';
         state.floating = '';
+        state.waterLife = true;
         renderScene();
         state.decor = [];
         state.stars = '';
@@ -1092,6 +1099,8 @@ const HELP_TIPS = {
         + 'thấy đèn đỏ, xanh ở hai đầu cánh và đèn chớp. Chỉ để trang trí, không ảnh hưởng tới các phát bắn; bật Giảm chớp sáng thì đèn không chớp.',
     floating: '<strong>Hoa đăng</strong>: đèn hoa sen thả nước, ánh nến in bóng xuống nước. <strong>Cánh hoa</strong>: cánh hoa hồng, trắng '
         + 'lác đác trên mặt nước. Kiểu "Sông chảy" thì chúng trôi theo dòng, "Hồ tĩnh lặng" thì gần như đứng yên, dập dềnh.',
+    waterLife: 'Cho mặt nước sống động: thỉnh thoảng một con cò trắng bay xuống đậu lên khúc gỗ hoặc đáp xuống nước rồi bay đi, '
+        + 'cá vọt lên khỏi mặt nước làm sóng lan và tia nước bắn lên. Kiểu "Sông chảy" có thêm khúc gỗ trôi theo dòng.',
     stars: 'Sao lấp lánh nhẹ trên bầu trời, mờ dần sát chân trời và trôi chậm cùng trăng. Có ảnh nền thành phố thì sao chỉ ở phần trời phía trên.',
     moon: '<strong>Theo ngày xem</strong>: trăng đúng pha của hôm người nhận mở (tính theo chu kỳ 29,53 ngày; rằm thì trăng tròn). '
         + '<strong>Tự chọn</strong>: chọn 1 trong 8 pha. Trăng trôi chậm theo một cung, phản chiếu xuống mặt nước nếu có. '
@@ -2444,6 +2453,7 @@ function getFinalConfig() {
         water: state.water || undefined,
         waterStyle: state.water && state.waterStyle === 'river' ? 'river' : undefined,
         floating: state.water && state.floating ? state.floating : undefined,
+        waterLife: state.water && !state.waterLife ? false : undefined,
         decor: state.decor.length ? [...state.decor] : undefined,
         stars: state.stars || undefined,
         moon: state.moon ? { ...state.moon } : undefined,
@@ -3138,6 +3148,8 @@ function renderScene() {
         });
     });
     document.getElementById('water-options')?.classList.toggle('hide', !state.water);
+    const life = document.getElementById('water-life');
+    if (life) life.checked = state.waterLife;
     // Thước dọc của khung xem nhanh: độ cao 0 là mặt nước
     const level = { third: 2 / 3, half: 0.5 }[state.water] || 1;
     const rulerY = document.getElementById('mini-ruler-y');
@@ -4711,6 +4723,7 @@ function loadConfigIntoState(config, filename) {
     state.water = ['third', 'half'].includes(config.water) ? config.water : '';
     state.waterStyle = config.waterStyle === 'river' ? 'river' : 'lake';
     state.floating = ['lanterns', 'petals'].includes(config.floating) ? config.floating : '';
+    state.waterLife = config.waterLife !== false;
     renderScene();
     state.decor = normalizeDecor(config.decor);
     state.stars = ['few', 'many'].includes(config.stars) ? config.stars : '';

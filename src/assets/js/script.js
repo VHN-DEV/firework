@@ -2362,7 +2362,8 @@ function render(speed) {
         time: performance.now(),
         style: burstConfig && burstConfig.waterStyle === 'river' ? 'river' : 'lake',
         floating: burstConfig && ['lanterns', 'petals'].includes(burstConfig.floating) ? burstConfig.floating : '',
-        calm: reduceFlashingSelector()
+        calm: reduceFlashingSelector(),
+        life: !burstConfig || burstConfig.waterLife !== false
     });
 }
 
