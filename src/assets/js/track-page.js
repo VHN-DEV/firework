@@ -23,7 +23,8 @@ function showError(message) {
     $('#gift-error').textContent = message;
     $('#gift-error').classList.remove('hide');
     $('#gift-status').classList.add('hide');
-    if (!titleLoaded) $('#gift-title').textContent = 'Theo dõi món quà';
+    // Dòng nhỏ phía trên đã ghi "Theo dõi món quà": tiêu đề nói rõ là không xem được
+    if (!titleLoaded) $('#gift-title').textContent = 'Không xem được món quà';
 }
 
 async function loadTitle() {
