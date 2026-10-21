@@ -857,6 +857,92 @@ select.is-invalid {
     padding: 0.25rem 1.1rem 1.1rem;
 }
 
+// Nhóm gấp/mở trong "Cấu hình chung" (cùng kiểu với các mục của bảng chỉnh phát bắn)
+.settings-group {
+    border-bottom: 1px solid $b-line;
+
+    // Tên nhóm, dưới là dòng tóm tắt (cột trái hẹp nên không đặt cùng hàng)
+    > summary {
+        list-style: none;
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr) auto;
+        align-items: center;
+        column-gap: 0.55rem;
+        row-gap: 0.1rem;
+        padding: 0.8rem 0;
+        cursor: pointer;
+        font-family: 'Outfit', sans-serif;
+        font-weight: 600;
+        font-size: 0.92rem;
+        user-select: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+
+        > i:first-child {
+            grid-row: 1 / span 2;
+            color: $b-accent;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .summary-title {
+            grid-column: 2;
+        }
+
+        // Tóm tắt khi gấp: tên bài nhạc, "Hộp quà · Gửi Mẹ"...
+        .summary-hint {
+            grid-column: 2;
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            font-size: 0.74rem;
+            color: $b-faint;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        &::after {
+            content: '\f078';
+            grid-column: 3;
+            grid-row: 1 / span 2;
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            font-size: 0.65rem;
+            color: $b-faint;
+            transition: transform 0.2s;
+        }
+
+        &:hover .summary-title {
+            color: $b-accent-2;
+        }
+    }
+
+    &[open] > summary {
+        .summary-hint {
+            display: none;
+        }
+
+        &::after {
+            transform: rotate(180deg);
+        }
+    }
+}
+
+.settings-group-body {
+    padding: 0.1rem 0 1.1rem;
+
+    > .field:first-child {
+        margin-top: 0;
+    }
+}
+
+// Lối vào "Cấu hình chung" trên điện thoại (máy tính: cột trái luôn hiện, tablet: nút "Cài đặt" trên thanh trên)
+.settings-card {
+    display: none;
+}
+
 .background-upload-frame {
     position: relative;
     width: 100%;
@@ -3656,6 +3742,61 @@ select.is-invalid {
         border: none;
         background: none;
         border-radius: 0;
+    }
+
+    .settings-card {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        width: calc(100% - 1.5rem);
+        margin: 0.85rem 0.75rem 0;
+        padding: 0.7rem 0.85rem;
+        border-radius: $b-radius;
+        border: 1px solid $b-line-strong;
+        background: $b-panel-2;
+        color: $b-text;
+        text-align: left;
+
+        .settings-card-icon {
+            flex: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 11px;
+            background: rgba($b-accent, 0.18);
+            color: $b-accent-2;
+        }
+
+        .settings-card-text {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+
+            strong {
+                font-size: 0.92rem;
+            }
+
+            small {
+                color: $b-muted;
+                font-size: 0.76rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+
+        > i:last-child {
+            color: $b-faint;
+            font-size: 0.8rem;
+        }
+
+        &:active {
+            background: rgba($b-accent, 0.12);
+        }
     }
 
     .timeline-toolbar {

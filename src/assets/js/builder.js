@@ -349,6 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Nút "?" giải thích từng mục
     helpTooltip.init();
+    initSettingsGroups();
 
     // Báo mở quà: công tắc, hỏi trạng thái các món quà của mình
     document.getElementById('notify-open')?.addEventListener('change', (e) => {
@@ -454,10 +455,7 @@ function validateConfig() {
 
     if (!isValid) {
         errors.forEach(err => notify(err, 'error'));
-        const panel = document.getElementById('settings-panel');
-        if (filenameInput.classList.contains('is-invalid') && window.innerWidth < 1200 && !panel.classList.contains('open')) {
-            toggleSidebar();
-        }
+        if (filenameInput.classList.contains('is-invalid')) revealSetting('filename');
     }
 
     return isValid;
@@ -1778,6 +1776,7 @@ function getMusicAudio() {
 
 // Đồng bộ mục "Nhạc nền" và "Âm lượng tiếng pháo" theo state
 function renderMusic() {
+    scheduleSettingsSummaries();
     const music = state.music;
     const audio = getMusicAudio();
     if (!audio) return;
@@ -2439,6 +2438,88 @@ function setStartFrame(value) {
     renderStartFrames();
 }
 
+// ---------------------------------------------------------------------------
+// "Cấu hình chung" chia nhóm gấp/mở: nhớ nhóm đang mở, tóm tắt nhóm đang gấp
+// ---------------------------------------------------------------------------
+const SETTINGS_GROUPS_KEY = 'firework_builder_groups';
+
+function initSettingsGroups() {
+    let saved = {};
+    try {
+        saved = JSON.parse(localStorage.getItem(SETTINGS_GROUPS_KEY) || '{}') || {};
+    } catch (e) {
+        // Không đọc được: giữ mặc định (chỉ mở "Thông tin chung")
+    }
+    document.querySelectorAll('.settings-group').forEach(group => {
+        if (typeof saved[group.dataset.group] === 'boolean') group.open = saved[group.dataset.group];
+        group.addEventListener('toggle', () => {
+            saved[group.dataset.group] = group.open;
+            try {
+                localStorage.setItem(SETTINGS_GROUPS_KEY, JSON.stringify(saved));
+            } catch (e) {
+                // Chế độ ẩn danh, bị chặn lưu: lần sau mở lại theo mặc định
+            }
+        });
+    });
+    // Mọi thao tác trong cột cấu hình đều có thể đổi phần tóm tắt
+    const panel = document.getElementById('settings-panel');
+    ['input', 'change', 'click'].forEach(type => panel?.addEventListener(type, scheduleSettingsSummaries));
+    renderSettingsSummaries();
+}
+
+let settingsSummaryFrame = 0;
+function scheduleSettingsSummaries() {
+    cancelAnimationFrame(settingsSummaryFrame);
+    settingsSummaryFrame = requestAnimationFrame(renderSettingsSummaries);
+}
+
+function settingsSummaries() {
+    const value = id => (document.getElementById(id)?.value || '').trim();
+    const checked = id => !!document.getElementById(id)?.checked;
+    const frame = START_FRAMES.find(f => f.value === state.startFrame) || START_FRAMES[0];
+    const recipient = value('recipient');
+    const music = state.music;
+    const musicName = music ? (music.name || decodeURIComponent(music.url.split('/').pop().split('?')[0])) : '';
+    const scene = [
+        state.showBackground && 'Ảnh nền',
+        state.smoke === 'light' ? 'Khói nhẹ' : state.smoke === 'heavy' ? 'Khói dày' : '',
+        state.reduceFlashing && 'Giảm chớp sáng',
+        checked('loop') ? 'Lặp lại' : 'Chạy một lượt'
+    ].filter(Boolean);
+    const filename = value('filename');
+    return {
+        basics: value('title') || 'Chưa có tiêu đề',
+        gift: [frame.name, recipient && `Gửi ${recipient}`, state.openAt && 'Hẹn giờ'].filter(Boolean).join(' · '),
+        sound: music ? musicName + (music.sync ? ' · khớp nhịp' : '') : 'Chưa có nhạc',
+        scene: scene.join(' · '),
+        share: state.seo.mode === 'custom' ? 'Ảnh của bạn' : 'Thiệp tự động',
+        file: filename ? filename + '.json' : 'Đặt khi lưu'
+    };
+}
+
+function renderSettingsSummaries() {
+    const summaries = settingsSummaries();
+    document.querySelectorAll('[data-summary]').forEach(el => {
+        el.textContent = summaries[el.dataset.summary] || '';
+    });
+    const card = document.getElementById('settings-card-summary');
+    if (card) card.textContent = [summaries.gift, summaries.sound, summaries.scene].join(' · ');
+}
+
+// Đưa người soạn tới một ô trong "Cấu hình chung": mở ngăn (tablet/điện thoại), mở nhóm chứa ô, cuộn tới và đặt con trỏ
+function revealSetting(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const group = el.closest('.settings-group');
+    if (group && !group.open) group.open = true;
+    const panel = document.getElementById('settings-panel');
+    if (window.innerWidth < 1200 && !panel.classList.contains('open')) toggleSidebar();
+    setTimeout(() => {
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        el.focus({ preventScroll: true });
+    }, 50);
+}
+
 // Giá trị cho ô datetime-local (giờ trên máy người soạn)
 function toLocalInputValue(iso) {
     const d = new Date(iso);
@@ -2484,6 +2565,7 @@ function renderSmoke() {
         btn.classList.toggle('active', on);
         btn.setAttribute('aria-pressed', String(on));
     });
+    scheduleSettingsSummaries();
 }
 
 // ---------------------------------------------------------------------------
