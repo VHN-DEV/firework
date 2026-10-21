@@ -17,7 +17,8 @@ import { IS_MOBILE } from './env.js';
 import { horizon, reduceFlashing, isLowQuality } from './state.js';
 import { moonIllumination } from './moon.js';
 
-// Độ phân giải lớp mặt nước so với điểm ảnh CSS (bóng phản chiếu vốn mờ, gợn sóng); điện thoại thấp hơn cho nhẹ máy
+// Độ phân giải lớp mặt nước so với điểm ảnh CSS khi chất lượng 480p trở xuống (cho nhẹ máy); mức cao hơn thì vẽ nét
+// theo mật độ điểm ảnh màn hình như trăng, sao
 export const WATER_RESOLUTION = IS_MOBILE ? 0.35 : 0.5;
 
 // ---------------------------------------------------------------------------
@@ -567,6 +568,7 @@ export const Water = {
     last: 0,
     flow: 0,
     dashes: [],
+    swells: [],
     dashKey: '',
     floats: [],
     floatKey: '',
@@ -582,8 +584,8 @@ export const Water = {
             this.drawn = false;
             return;
         }
-        // Điện thoại: vẽ lại cách một khung hình
-        if (IS_MOBILE && this.drawn && (++this.frame & 1)) return;
+        // Chất lượng 480p trở xuống: vẽ lại cách một khung hình
+        if (isLowQuality && this.drawn && (++this.frame & 1)) return;
         this.drawn = true;
 
         const k = W / cssW;
@@ -621,14 +623,15 @@ export const Water = {
         });
         m.globalCompositeOperation = 'source-over';
 
-        // 2. Nền nước: xanh đêm, sáng nhẹ theo màu trời ở gần chân trời
+        // 2. Nền nước: xanh đêm, sát chân trời sáng hơn (ánh trời đêm in xuống nước), sáng thêm theo màu pháo
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.globalAlpha = 1;
         ctx.clearRect(0, 0, W, H);
-        const tint = `${9 + sky.r * 0.5 | 0}, ${13 + sky.g * 0.5 | 0}, ${24 + sky.b * 0.5 | 0}`;
+        const tint = `${16 + sky.r * 0.5 | 0}, ${26 + sky.g * 0.5 | 0}, ${46 + sky.b * 0.5 | 0}`;
         const base = ctx.createLinearGradient(0, top, 0, H);
         base.addColorStop(0, `rgb(${tint})`);
-        base.addColorStop(1, 'rgb(3, 5, 10)');
+        base.addColorStop(0.35, 'rgb(9, 15, 30)');
+        base.addColorStop(1, 'rgb(3, 6, 13)');
         ctx.fillStyle = base;
         ctx.fillRect(0, top, W, depth);
 
@@ -639,7 +642,8 @@ export const Water = {
         const dt = Math.min(50, this.last ? time - this.last : 16);
         this.last = time;
         this.flow += dt * (river ? 0.03 : 0.004);
-        const strip = IS_MOBILE ? 3 : 2;
+        // Dải cao khoảng 2-3 điểm ảnh CSS dù lớp vẽ nét hay thưa (cùng dáng sóng, cùng số lần vẽ)
+        const strip = Math.max(1, Math.round((IS_MOBILE ? 6 : 4) * k));
         // Ghép kiểu lighten như các lớp trên trang: phần đen (lớp vệt pháo được phủ đen dần) không làm tối mặt nước
         ctx.globalCompositeOperation = 'lighten';
         for (let y = 0, i = 0; y < depth; i++) {
@@ -667,20 +671,31 @@ export const Water = {
         ctx.globalAlpha = 0.08;
         ctx.drawImage(mirror, 0, top + Math.round(7 * k));
 
-        // 5. Vệt sáng ngắn lấp lánh trên mặt nước; vệt nào nằm chỗ có ánh pháo thì sáng rực lên
+        // 5. Dải sóng dài mờ trôi chậm (kết cấu mặt nước), rồi vệt sóng ngắn lấp lánh; vệt nào nằm chỗ có ánh pháo thì
+        //    sáng rực lên. Gần chân trời vệt nhỏ, dày; gần người xem vệt dài, thưa (phối cảnh).
         this.syncDashes(river, cssW);
+        const thin = Math.max(1, Math.round(k));
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = 'rgb(120, 150, 210)';
+        this.swells.forEach(swell => {
+            const x = (((swell.u * (cssW + 160) + this.flow * (river ? 0.25 + swell.d * 0.8 : 0.12)) % (cssW + 160)) - 80) * k;
+            const row = top + Math.round(swell.d * (depth - 1) + Math.sin(time * swell.speed + swell.phase) * 2 * k);
+            const len = swell.len * (0.4 + swell.d) * k;
+            ctx.globalAlpha = (calm ? 0.07 : 0.04 + 0.05 * (0.5 + 0.5 * Math.sin(time * swell.speed * 1.3 + swell.phase))) * (1 - swell.d * 0.4);
+            ctx.fillRect(x, row, len, thin);
+        });
         this.dashes.forEach(dash => {
             const x = (((dash.u * (cssW + 40) + this.flow * (river ? 0.4 + dash.d * 1.2 : 0.3)) % (cssW + 40)) - 20) * k;
             const row = top + Math.round(dash.d * (depth - 1));
             const len = Math.max(1, dash.len * (0.5 + dash.d) * k);
-            const twinkle = calm ? 0.6 : 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(time * dash.speed + dash.phase));
+            const twinkle = calm ? 0.6 : 0.2 + 0.8 * Math.pow(0.5 + 0.5 * Math.sin(time * dash.speed + dash.phase), 2);
             ctx.globalCompositeOperation = 'source-over';
-            ctx.globalAlpha = twinkle * 0.22 * (1 - dash.d * 0.3);
-            ctx.fillStyle = 'rgb(190, 210, 255)';
-            ctx.fillRect(x, row, len, Math.max(1, Math.round(k)));
+            ctx.globalAlpha = twinkle * 0.42 * (1 - dash.d * 0.35);
+            ctx.fillStyle = dash.color;
+            ctx.fillRect(x, row, len, thin);
             ctx.globalCompositeOperation = 'lighter';
             ctx.globalAlpha = twinkle;
-            ctx.drawImage(mirror, Math.max(0, x), row - top, len, 1, x, row, len, Math.max(1, Math.round(k)));
+            ctx.drawImage(mirror, Math.max(0, x), row - top, len, 1, x, row, len, thin);
         });
         ctx.restore();
 
@@ -752,13 +767,23 @@ export const Water = {
         const key = `${river}_${Math.round(cssW)}`;
         if (key === this.dashKey) return;
         this.dashKey = key;
-        const count = Math.round((river ? 150 : 80) * (IS_MOBILE ? 0.55 : 1));
+        const count = Math.round((river ? 230 : 150) * (IS_MOBILE ? 0.6 : 1));
+        // Ánh trăng, sao in xuống: phần lớn xanh bạc, thỉnh thoảng một vệt trắng ấm
+        const colors = ['rgb(185, 205, 255)', 'rgb(205, 222, 255)', 'rgb(160, 190, 245)', 'rgb(255, 240, 215)'];
         this.dashes = Array.from({ length: count }, () => ({
             u: Math.random(),
-            d: Math.pow(Math.random(), 0.8),
-            len: MyMath.random(2, 10),
+            d: Math.pow(Math.random(), 1.2),
+            len: MyMath.random(2, 12),
             phase: Math.random() * Math.PI * 2,
-            speed: MyMath.random(0.0015, 0.005)
+            speed: MyMath.random(0.0015, 0.005),
+            color: colors[Math.random() < 0.12 ? 3 : (Math.random() * 3) | 0]
+        }));
+        this.swells = Array.from({ length: Math.round((river ? 70 : 50) * (IS_MOBILE ? 0.6 : 1)) }, () => ({
+            u: Math.random(),
+            d: Math.pow(Math.random(), 1.1),
+            len: MyMath.random(30, 120),
+            phase: Math.random() * Math.PI * 2,
+            speed: MyMath.random(0.0004, 0.0012)
         }));
     },
 

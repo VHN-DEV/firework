@@ -91,6 +91,8 @@ const waterCtx = waterCanvas.getContext('2d');
 // Kích thước khung (điểm ảnh CSS)
 let frameW = 0;
 let frameH = 0;
+// Lớp mặt nước đang vẽ thưa theo chất lượng thấp không (xem handleResize)
+let waterLowQuality = null;
 const stages = [
     trailsStage,
     mainStage
@@ -2196,8 +2198,11 @@ function handleResize() {
     decoCanvas.height = Math.round(containerH * decoScale);
     decoCanvas.style.width = containerW + 'px';
     decoCanvas.style.height = containerH + 'px';
-    waterCanvas.width = Math.round(containerW * WATER_RESOLUTION);
-    waterCanvas.height = Math.round(containerH * WATER_RESOLUTION);
+    // Mặt nước nét như trăng, sao (khúc gỗ, cò, hoa đăng, vệt sóng); chất lượng 480p trở xuống vẽ thưa cho nhẹ máy
+    const waterScale = isLowQuality ? WATER_RESOLUTION : decoScale;
+    waterLowQuality = isLowQuality;
+    waterCanvas.width = Math.round(containerW * waterScale);
+    waterCanvas.height = Math.round(containerH * waterScale);
     waterCanvas.style.width = containerW + 'px';
     waterCanvas.style.height = containerH + 'px';
     // Tính đến quy mô
@@ -2275,7 +2280,8 @@ function applyQualityLimits() {
     if (IS_RECORD) return;
     const shortSide = Math.min(frameW || window.innerWidth, frameH || window.innerHeight);
     const dpr = Math.min(window.devicePixelRatio || 1, Number(level.value) / shortSide);
-    if (stages.some(stage => stage.dpr !== dpr)) {
+    // Đổi mật độ điểm ảnh, hoặc qua lại mức 480p (mặt nước vẽ thưa/nét): dựng lại các lớp
+    if (stages.some(stage => stage.dpr !== dpr) || waterLowQuality !== isLowQuality) {
         stages.forEach(stage => { stage.dpr = dpr; });
         handleResize();
     }
