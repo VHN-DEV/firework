@@ -2643,42 +2643,55 @@ select.is-invalid {
     background: transparent;
 }
 
-// Dải "Tạo nhanh theo dịp" trên dòng thời gian (khi kịch bản còn trống)
+// Dải "Tạo nhanh theo dịp" trên dòng thời gian (khi kịch bản còn trống): một hàng, nhãn bên trái, các dịp vuốt ngang
 .template-strip {
-    margin: 1rem;
-    padding: 0.9rem 1rem;
-    border-radius: $b-radius;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0.75rem 1rem 0.25rem;
+    padding: 0.4rem 0 0.4rem 0.85rem;
+    border-radius: 999px;
     background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(168, 85, 247, 0.12));
     border: 1px solid rgba($b-accent, 0.35);
 }
 
 .template-strip-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.25rem 0.75rem;
-    margin-bottom: 0.7rem;
+    flex: none;
+    color: $b-text;
+    font-size: 0.82rem;
+    white-space: nowrap;
 
-    strong {
-        color: $b-text;
-        font-size: 0.9rem;
-
-        i {
-            color: $b-accent-2;
-            margin-right: 0.3rem;
-        }
-    }
-
-    span {
-        color: $b-muted;
-        font-size: 0.78rem;
+    i {
+        color: $b-accent-2;
+        margin-right: 0.25rem;
     }
 }
 
 .template-chips {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
+    flex: 1;
+    min-width: 0;
+    gap: 0.4rem;
+    overflow-x: auto;
+    padding-right: 2.5rem;
+    scrollbar-width: none;
+    // Mờ dần ở mép phải: gợi ý còn dịp khác khi vuốt
+    mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    .template-chip {
+        flex: none;
+        padding: 0.3rem 0.65rem;
+        font-size: 0.78rem;
+        white-space: nowrap;
+
+        .emoji {
+            font-size: 0.9rem;
+        }
+    }
 }
 
 .template-chip {
@@ -4156,33 +4169,8 @@ select.is-invalid {
         padding: 0.5rem 0.75rem 7rem;
     }
 
-    // Tạo nhanh: một hàng dịp vuốt ngang thay vì 5 hàng chiếm gần hết màn hình
     .template-strip {
         margin: 0.5rem 0.75rem 0.25rem;
-        padding: 0.75rem 0 0.75rem 0.85rem;
-    }
-
-    .template-strip-head {
-        padding-right: 0.85rem;
-        margin-bottom: 0.6rem;
-    }
-
-    .template-chips {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        padding-right: 2.5rem;
-        scrollbar-width: none;
-        // Mờ dần ở mép phải: gợi ý còn dịp khác khi vuốt
-        mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
-
-        &::-webkit-scrollbar {
-            display: none;
-        }
-    }
-
-    .template-chip {
-        flex: none;
-        white-space: nowrap;
     }
 
     // Kho nhạc / kho ảnh: nhãn lọc một hàng vuốt ngang

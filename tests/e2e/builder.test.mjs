@@ -18,6 +18,15 @@ export async function run(browser, base, { check }) {
     try {
         await page.goto(base + '/builder.html', { waitUntil: 'networkidle0' });
         check('builder mới mở: có dải "Tạo nhanh theo dịp"', await page.$eval('#template-strip', e => !e.classList.contains('hide')));
+        // Dải gọn một hàng; lăn chuột trên các dịp thì cuộn ngang
+        const strip = await page.$eval('#template-strip', e => e.getBoundingClientRect().height);
+        const chips = await page.$('#template-chips');
+        const chipsBox = await chips.boundingBox();
+        await page.mouse.move(chipsBox.x + chipsBox.width / 2, chipsBox.y + chipsBox.height / 2);
+        await page.mouse.wheel({ deltaY: 200 });
+        await sleep(300);
+        const scrolled = await page.$eval('#template-chips', e => e.scrollLeft);
+        check('dải "Tạo nhanh" gọn một hàng, lăn chuột thì cuộn ngang', strip < 60 && scrolled > 0, JSON.stringify({ strip, scrolled }));
 
         // Nút "?" giải thích: bấm thì hiện, không bật/tắt công tắc chứa nó, Esc để đóng
         // "Tự động lặp lại" nằm trong nhóm "Màn mở quà & màn kết" (đang gấp): mở nhóm trước

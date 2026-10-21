@@ -643,12 +643,11 @@
                         <button id="btn-draft-discard" type="button" class="btn ghost small">Bỏ qua</button>
                     </div>
                 </div>
-                <div id="template-strip" class="template-strip hide">
-                    <div class="template-strip-head">
-                        <strong><i class="fas fa-wand-magic-sparkles"></i> Tạo nhanh theo dịp</strong>
-                        <span>Chọn dịp, nhập tên là có ngay màn pháo hoa hoàn chỉnh kèm lời chúc</span>
-                    </div>
-                    <div id="template-chips" class="template-chips"></div>
+                <!-- Một hàng: nhãn bên trái, các dịp cuộn ngang -->
+                <div id="template-strip" class="template-strip hide"
+                    title="Chọn dịp, nhập tên là có ngay màn pháo hoa hoàn chỉnh kèm lời chúc">
+                    <strong class="template-strip-head"><i class="fas fa-wand-magic-sparkles"></i> Tạo nhanh</strong>
+                    <div id="template-chips" class="template-chips" aria-label="Tạo nhanh theo dịp"></div>
                 </div>
                 <div id="event-list" class="timeline"></div>
                 <div id="track-view" class="track-view hide"></div>

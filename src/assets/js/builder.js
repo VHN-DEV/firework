@@ -3346,6 +3346,12 @@ function renderTemplateChips() {
         <button type="button" class="template-chip" onclick="openTemplatesModal('${o.id}')">
             <span class="emoji">${o.icon}</span>${escapeHtml(o.name)}
         </button>`).join('');
+    // Các dịp nằm trên một hàng cuộn ngang: lăn chuột (dọc) trên dải thì cuộn ngang
+    chips.addEventListener('wheel', (e) => {
+        if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || chips.scrollWidth <= chips.clientWidth) return;
+        chips.scrollLeft += e.deltaY;
+        e.preventDefault();
+    }, { passive: false });
 }
 
 // Kịch bản còn trống (chưa đặt tiêu đề, chưa mở kịch bản nào, tối đa 1 phát bắn): gợi ý tạo nhanh từ mẫu
