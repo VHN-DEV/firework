@@ -3302,9 +3302,10 @@ select.is-invalid {
 }
 
 // Thông báo
+// Góc dưới: không che thanh công cụ của khung xem nhanh; thông báo chỉ để đọc nên bấm xuyên qua được
 .notification-container {
     position: fixed;
-    top: calc(#{$topbar-h} + 0.75rem);
+    bottom: 1.25rem;
     right: 1.25rem;
     z-index: 5000;
     display: flex;
@@ -3325,7 +3326,6 @@ select.is-invalid {
     border: 1px solid $b-line-strong;
     box-shadow: 0 16px 34px rgba(0, 0, 0, 0.45);
     font-size: 0.85rem;
-    pointer-events: auto;
     animation: toast-in 0.25s ease-out;
 
     i {
@@ -3353,14 +3353,14 @@ select.is-invalid {
 @keyframes toast-in {
     from {
         opacity: 0;
-        transform: translateY(-8px);
+        transform: translateY(8px);
     }
 }
 
 @keyframes toast-out {
     to {
         opacity: 0;
-        transform: translateY(-8px);
+        transform: translateY(8px);
     }
 }
 
@@ -3690,9 +3690,11 @@ select.is-invalid {
         grid-template-columns: 1fr 1fr;
     }
 
+    // Ngay trên nút nổi "+"
     .notification-container {
         left: 0.75rem;
         right: 0.75rem;
+        bottom: calc(1.1rem + 58px + 0.75rem + env(safe-area-inset-bottom));
         align-items: stretch;
 
         .toast {
