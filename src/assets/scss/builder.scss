@@ -139,10 +139,6 @@ button {
     .show-mobile {
         display: inline-flex !important;
     }
-
-    .show-tablet {
-        display: none !important;
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -976,11 +972,6 @@ select.is-invalid {
     > .field:first-child {
         margin-top: 0;
     }
-}
-
-// Lối vào "Cấu hình chung" trên điện thoại (máy tính: cột trái luôn hiện, tablet: nút "Cài đặt" trên thanh trên)
-.settings-card {
-    display: none;
 }
 
 .background-upload-frame {
@@ -4025,6 +4016,36 @@ select.is-invalid {
         width: 34px;
     }
 
+    // Xếp các nút sát nhau (bỏ vạch ngăn sau hoàn tác) để tên kịch bản còn chỗ
+    .brand {
+        gap: 0.5rem;
+    }
+
+    .topbar-actions {
+        gap: 0.2rem;
+    }
+
+    .history-group {
+        padding-right: 0;
+        margin-right: 0;
+        border-right: none;
+    }
+
+    #btn-save {
+        padding: 0 0.8rem;
+        margin-left: 0.2rem;
+    }
+
+    // Nút "Cài đặt" chỉ còn biểu tượng, cùng cỡ nút hoàn tác
+    .settings-btn {
+        width: 34px;
+        padding: 0;
+
+        span {
+            display: none;
+        }
+    }
+
     // Gọn một dòng: chỉ giữ các nút, ẩn đường link dài (nút "Sao chép" vẫn lấy đúng link)
     .share-bar {
         margin: 0.5rem 0.75rem 0;
@@ -4094,61 +4115,6 @@ select.is-invalid {
         border: none;
         background: none;
         border-radius: 0;
-    }
-
-    .settings-card {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        width: calc(100% - 1.5rem);
-        margin: 0.85rem 0.75rem 0;
-        padding: 0.7rem 0.85rem;
-        border-radius: $b-radius;
-        border: 1px solid $b-line-strong;
-        background: $b-panel-2;
-        color: $b-text;
-        text-align: left;
-
-        .settings-card-icon {
-            flex: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 38px;
-            height: 38px;
-            border-radius: 11px;
-            background: rgba($b-accent, 0.18);
-            color: $b-accent-2;
-        }
-
-        .settings-card-text {
-            flex: 1;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 0.15rem;
-
-            strong {
-                font-size: 0.92rem;
-            }
-
-            small {
-                color: $b-muted;
-                font-size: 0.76rem;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-        }
-
-        > i:last-child {
-            color: $b-faint;
-            font-size: 0.8rem;
-        }
-
-        &:active {
-            background: rgba($b-accent, 0.12);
-        }
     }
 
     .timeline-toolbar {

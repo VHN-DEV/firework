@@ -76,7 +76,8 @@
                         <i class="fas fa-film"></i><span>Video</span>
                     </button>
                 </div>
-                <button class="btn ghost show-tablet" onclick="toggleSidebar()" title="Cấu hình chung">
+                <button class="btn ghost show-tablet settings-btn" onclick="toggleSidebar()" title="Cấu hình chung"
+                    aria-label="Cấu hình chung">
                     <i class="fas fa-sliders"></i><span>Cài đặt</span>
                 </button>
                 <button id="btn-preview" class="btn secondary hide-mobile" title="Mở màn trình diễn trong tab mới">
@@ -591,15 +592,6 @@
 
             <!-- Cột giữa: dòng thời gian các đợt bắn -->
             <section class="timeline-panel">
-                <!-- Điện thoại: lối vào "Cấu hình chung" ngay trên dòng thời gian (ngoài menu ⋮) -->
-                <button type="button" id="settings-card" class="settings-card" onclick="toggleSidebar()">
-                    <span class="settings-card-icon"><i class="fas fa-sliders"></i></span>
-                    <span class="settings-card-text">
-                        <strong>Cấu hình chung</strong>
-                        <small id="settings-card-summary">Tiêu đề, màn mở quà, nhạc nền, khói pháo...</small>
-                    </span>
-                    <i class="fas fa-chevron-right"></i>
-                </button>
                 <div class="timeline-toolbar">
                     <div class="timeline-heading">
                         <h1>Dòng thời gian<button type="button" class="help-tip" data-help="timeline" aria-label="Giải thích">?</button></h1>

@@ -3023,8 +3023,6 @@ function renderSettingsSummaries() {
     document.querySelectorAll('[data-summary]').forEach(el => {
         el.textContent = summaries[el.dataset.summary] || '';
     });
-    const card = document.getElementById('settings-card-summary');
-    if (card) card.textContent = [summaries.gift, summaries.sound, summaries.scene].join(' · ');
 }
 
 // Đưa người soạn tới một ô trong "Cấu hình chung": mở ngăn (tablet/điện thoại), mở nhóm chứa ô, cuộn tới và đặt con trỏ
