@@ -263,96 +263,6 @@ function logSprite(variant) {
     return c;
 }
 
-// Cò trắng (nhìn nghiêng, quay sang phải): cánh giơ lên, cụp xuống, liệng, đứng, bơi
-function egretSprite(pose) {
-    const key = 'egret_' + pose;
-    if (sprites[key]) return sprites[key];
-    const c = document.createElement('canvas');
-    c.width = 48;
-    c.height = 40;
-    const g = c.getContext('2d');
-    const white = '#e9ece6';
-    const shade = '#b9bfb6';
-    const beak = (x1, y1, x2, y2) => {
-        g.strokeStyle = '#e0b030';
-        g.lineWidth = 1.6;
-        g.beginPath();
-        g.moveTo(x1, y1);
-        g.lineTo(x2, y2);
-        g.stroke();
-    };
-    const blob = (x, y, rx, ry, color, rot = 0) => {
-        g.fillStyle = color;
-        g.beginPath();
-        g.ellipse(x, y, rx, ry, rot, 0, Math.PI * 2);
-        g.fill();
-    };
-    const poly = (points, color) => {
-        g.fillStyle = color;
-        g.beginPath();
-        points.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
-        g.closePath();
-        g.fill();
-    };
-    if (pose === 'up' || pose === 'down' || pose === 'glide') {
-        // Chân duỗi về sau, cổ co lại khi bay
-        g.strokeStyle = '#2b2b2b';
-        g.lineWidth = 1.4;
-        g.beginPath();
-        g.moveTo(16, 23);
-        g.lineTo(5, 25);
-        g.stroke();
-        if (pose === 'up') poly([[18, 21], [28, 21], [17, 3], [12, 5]], shade);
-        blob(23, 22, 9, 4, white);
-        blob(32, 19, 3.4, 3, white);
-        beak(35, 19, 43, 21);
-        if (pose === 'down') poly([[18, 22], [28, 22], [19, 37], [14, 35]], white);
-        if (pose === 'glide') poly([[13, 19], [32, 19], [26, 23], [16, 23]], white);
-    } else if (pose === 'stand') {
-        g.strokeStyle = '#2b2b2b';
-        g.lineWidth = 1.4;
-        g.beginPath();
-        g.moveTo(21, 27);
-        g.lineTo(20, 38);
-        g.moveTo(24, 27);
-        g.lineTo(25, 38);
-        g.stroke();
-        blob(22, 23, 8, 5, white, -0.3);
-        blob(20, 25, 6, 3, shade, -0.3);
-        // Cổ cong chữ S
-        g.strokeStyle = white;
-        g.lineWidth = 3;
-        g.beginPath();
-        g.moveTo(27, 19);
-        g.quadraticCurveTo(31, 14, 28, 10);
-        g.quadraticCurveTo(26, 7, 29, 6);
-        g.stroke();
-        blob(30, 6, 2.6, 2.3, white);
-        beak(32, 6, 39, 7);
-    } else {
-        // Bơi: thân nổi trên mặt nước, cổ vươn lên
-        blob(23, 27, 10, 5, white);
-        blob(21, 29, 8, 3, shade);
-        g.strokeStyle = white;
-        g.lineWidth = 3;
-        g.beginPath();
-        g.moveTo(30, 25);
-        g.quadraticCurveTo(34, 20, 32, 15);
-        g.stroke();
-        blob(33, 14, 2.6, 2.3, white);
-        beak(35, 14, 42, 15);
-        g.globalCompositeOperation = 'destination-in';
-        const sink = g.createLinearGradient(0, 0, 0, 40);
-        sink.addColorStop(0, 'rgba(0, 0, 0, 1)');
-        sink.addColorStop(0.72, 'rgba(0, 0, 0, 1)');
-        sink.addColorStop(0.82, 'rgba(0, 0, 0, 0)');
-        g.fillStyle = sink;
-        g.fillRect(0, 0, 48, 40);
-    }
-    sprites[key] = c;
-    return c;
-}
-
 // Vịt trời (nhìn nghiêng, quay sang phải): vịt đực đầu xanh cổ khoang trắng, vịt mái nâu lốm đốm. Tư thế: bơi, chổng
 // đuôi kiếm ăn, cánh giơ lên, cụp xuống. Mặt nước ở hàng 20 (bơi, chổng đuôi).
 function duckSprite(kind, pose) {
@@ -453,10 +363,10 @@ function duckSprite(kind, pose) {
 
 // Các loại cá: cá mè bạc, cá chép vàng cam, cá trắm xanh rêu, cá con (nhảy cả đàn). Vẽ sẵn gấp đôi cho nét.
 const FISH_LOOKS = {
-    silver: { w: 34, h: 16, back: '#7f93a6', side: '#e4ecf3', belly: '#a9b8c6', fin: '#9fb0c0', eye: '#1d242c' },
-    carp: { w: 40, h: 20, back: '#8e3f1c', side: '#e88a38', belly: '#f6cf7a', fin: '#d2602a', eye: '#2a1a10', scales: true, barbel: true },
-    grass: { w: 46, h: 16, back: '#3e4a30', side: '#8f9670', belly: '#d6d4b4', fin: '#5a6444', eye: '#1c2016' },
-    minnow: { w: 18, h: 8, back: '#6f8496', side: '#dfe8f0', belly: '#b9c6d2', fin: '#9fb0c0', eye: '#1d242c', stripe: true }
+    silver: { w: 34, h: 16, thick: 0.3, back: '#7f93a6', side: '#e4ecf3', belly: '#a9b8c6', fin: '#9fb0c0', eye: '#1d242c' },
+    carp: { w: 40, h: 20, thick: 0.36, back: '#8e3f1c', side: '#e88a38', belly: '#f6cf7a', fin: '#d2602a', eye: '#2a1a10', scales: true, barbel: true },
+    grass: { w: 46, h: 16, thick: 0.26, back: '#3e4a30', side: '#8f9670', belly: '#d6d4b4', fin: '#5a6444', eye: '#1c2016' },
+    minnow: { w: 18, h: 8, thick: 0.27, back: '#6f8496', side: '#dfe8f0', belly: '#b9c6d2', fin: '#9fb0c0', eye: '#1d242c', stripe: true }
 };
 
 // Cỡ trên màn hình (điểm ảnh CSS ở d = 0), thời gian một cú nhảy, độ cao, quãng xa
@@ -467,78 +377,251 @@ const FISH_TYPES = {
     minnow: { size: 11, life: [340, 460], lift: [6, 11], reach: [10, 16] }
 };
 
-function fishSprite(type) {
-    const key = 'fish_' + type;
-    if (sprites[key]) return sprites[key];
-    const look = FISH_LOOKS[type];
-    const { w, h } = look;
-    const S = 2;
-    const c = document.createElement('canvas');
-    c.width = w * S;
-    c.height = h * S;
-    const g = c.getContext('2d');
-    g.scale(S, S);
-    const cy = h / 2;
-    const tail = w * 0.26;
-    const rx = (w - tail) / 2 - 0.5;
-    const ry = h * 0.3;
-    const bx = tail + rx + 0.5;
-    // Đuôi, vây lưng
-    g.fillStyle = look.fin;
-    g.beginPath();
-    g.moveTo(tail + 2, cy);
-    g.lineTo(1, cy - h * 0.4);
-    g.lineTo(tail * 0.45, cy);
-    g.lineTo(1, cy + h * 0.4);
-    g.closePath();
-    g.fill();
-    g.beginPath();
-    g.moveTo(bx - rx * 0.35, cy - ry * 0.85);
-    g.lineTo(bx - rx * 0.05, cy - ry * 1.6);
-    g.lineTo(bx + rx * 0.3, cy - ry * 0.85);
-    g.closePath();
-    g.fill();
+// Cá nhảy vẽ bằng nét: thân uốn cong theo cú nhảy, đuôi quẫy (nhanh lúc vừa rời nước), mình hơi xoay nên hông lóe sáng.
+// Gốc ở giữa thân, đầu quay sang phải; L: chiều dài (điểm ảnh CSS); bend: độ cong thân; wag: quẫy đuôi (-1..1);
+// roll: mình xoay (0,4 nghiêng hẳn - 1 nhìn ngang).
+function drawFishBody(ctx, look, L, bend, wag, roll, k) {
+    const N = 10;
+    const thick = look.thick * L;
+    const top = [];
+    const bot = [];
+    const spine = [];
+    for (let i = 0; i <= N; i++) {
+        const t = i / N;
+        const x = L * (0.5 - t * 0.8);
+        const y = (bend * t * t * 0.3 + wag * Math.pow(t, 2.2) * 0.14) * L;
+        const h = thick * Math.pow(Math.sin(Math.PI * (0.12 + 0.82 * t)), 0.7) * (0.5 + 0.5 * roll);
+        spine.push([x, y]);
+        top.push([x, y - h / 2]);
+        bot.push([x, y + h / 2]);
+    }
+    const [tx, ty] = spine[N];
+    const [px, py] = spine[N - 1];
+    const ang = Math.atan2(ty - py, tx - px) + wag * 0.35;
+    // Vây đuôi chẻ đôi, quẫy theo đuôi
+    ctx.fillStyle = look.fin;
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(tx + Math.cos(ang - 0.5) * L * 0.2, ty + Math.sin(ang - 0.5) * L * 0.2);
+    ctx.lineTo(tx + Math.cos(ang) * L * 0.1, ty + Math.sin(ang) * L * 0.1);
+    ctx.lineTo(tx + Math.cos(ang + 0.5) * L * 0.2, ty + Math.sin(ang + 0.5) * L * 0.2);
+    ctx.closePath();
+    ctx.fill();
+    // Vây lưng
+    const [dx1, dy1] = top[3];
+    const [dx2, dy2] = top[5];
+    ctx.beginPath();
+    ctx.moveTo(dx1, dy1);
+    ctx.lineTo((dx1 + dx2) / 2 - L * 0.04, Math.min(dy1, dy2) - thick * 0.45);
+    ctx.lineTo(dx2, dy2);
+    ctx.closePath();
+    ctx.fill();
     // Thân: lưng sẫm, hông sáng, bụng nhạt
-    const skin = g.createLinearGradient(0, cy - ry, 0, cy + ry);
+    const skin = ctx.createLinearGradient(0, -thick / 2, 0, thick / 2);
     skin.addColorStop(0, look.back);
     skin.addColorStop(0.45, look.side);
     skin.addColorStop(1, look.belly);
-    g.fillStyle = skin;
-    g.beginPath();
-    g.ellipse(bx, cy, rx, ry, 0, 0, Math.PI * 2);
-    g.fill();
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    top.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.quadraticCurveTo(tx, ty, bot[N][0], bot[N][1]);
+    for (let i = N - 1; i >= 0; i--) ctx.lineTo(bot[i][0], bot[i][1]);
+    ctx.quadraticCurveTo(L * 0.56, spine[0][1], top[0][0], top[0][1]);
+    ctx.fill();
+    ctx.lineWidth = Math.max(1 / k, L * 0.02);
     if (look.scales) {
-        g.strokeStyle = 'rgba(255, 225, 160, 0.35)';
-        g.lineWidth = 0.5;
-        for (let i = 0; i < 5; i++) {
-            for (let j = 0; j < 2; j++) {
-                g.beginPath();
-                g.arc(bx - rx * 0.55 + i * rx * 0.28, cy - ry * 0.25 + j * ry * 0.6, 1.4, -Math.PI / 2, Math.PI / 2);
-                g.stroke();
-            }
+        ctx.strokeStyle = 'rgba(255, 225, 160, 0.35)';
+        for (let i = 2; i < N - 2; i += 1.5) {
+            const [x, y] = spine[Math.round(i)];
+            ctx.beginPath();
+            ctx.arc(x, y - thick * 0.08, thick * 0.12, -Math.PI / 2, Math.PI / 2);
+            ctx.stroke();
         }
     }
-    if (look.stripe) {
-        g.fillStyle = 'rgba(40, 50, 60, 0.55)';
-        g.fillRect(bx - rx * 0.8, cy - 0.4, rx * 1.6, 0.8);
-    }
-    g.fillStyle = look.eye;
-    g.beginPath();
-    g.arc(bx + rx * 0.62, cy - ry * 0.2, Math.max(0.7, h * 0.07), 0, Math.PI * 2);
-    g.fill();
+    // Vệt lóe sáng dọc hông khi mình cá xoay
+    ctx.strokeStyle = look.stripe ? 'rgba(40, 50, 60, 0.6)' : `rgba(255, 255, 255, ${0.15 + 0.45 * (1 - roll)})`;
+    ctx.beginPath();
+    spine.slice(1, N - 1).forEach(([x, y], i) => (i ? ctx.lineTo(x, y - thick * 0.05) : ctx.moveTo(x, y - thick * 0.05)));
+    ctx.stroke();
+    ctx.fillStyle = look.eye;
+    ctx.beginPath();
+    ctx.arc(L * 0.38, spine[1][1] - thick * 0.12, Math.max(0.5, thick * 0.11), 0, Math.PI * 2);
+    ctx.fill();
     if (look.barbel) {
-        g.strokeStyle = '#b06030';
-        g.lineWidth = 0.5;
-        g.beginPath();
-        g.moveTo(bx + rx * 0.95, cy + 1);
-        g.lineTo(bx + rx + 2.5, cy + 3.5);
-        g.stroke();
+        ctx.strokeStyle = '#b06030';
+        ctx.beginPath();
+        ctx.moveTo(L * 0.5, thick * 0.12);
+        ctx.lineTo(L * 0.56, thick * 0.34);
+        ctx.stroke();
     }
-    sprites[key] = c;
-    return c;
 }
 
+// Cò trắng vẽ bằng nét để cử động mềm: cánh vỗ chậm có khớp khuỷu, đầu cánh uốn trễ theo nhịp; cổ chữ S co lại lúc bay,
+// vươn cao lúc đứng, rướn ra rình mồi, mổ xuống nước, ngoái ra sau rỉa lông; chân duỗi về sau lúc bay, đưa ra trước lúc
+// đáp, bước chậm lúc lội. p: tư thế (xem WaterLife.egretTarget); gốc ở giữa thân, đơn vị u (điểm ảnh CSS), quay sang phải.
+const EGRET_NECK = {
+    tuck: [8, -7, 7.5, -2.5, 10.5, -4.5, 0.05],
+    up: [10, -7, 2.5, -13, 8, -19, 0.12],
+    stalk: [11, -5, 14, -9, 17.5, -8, 0.55],
+    strike: [12, -2, 18, 2, 21, 9.5, 1.15],
+    preen: [7, -12, 1, -12, -3, -6.5, 2.6]
+};
+
+function egretNeck(p) {
+    const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+    let v = mix(EGRET_NECK.tuck, EGRET_NECK.up, p.neck);
+    v = mix(v, EGRET_NECK.stalk, p.stalk);
+    v = mix(v, EGRET_NECK.strike, p.strike);
+    v = mix(v, EGRET_NECK.preen, p.preen);
+    return { c1x: v[0], c1y: v[1], c2x: v[2], c2y: v[3], hx: v[4] + p.headX, hy: v[5] + p.headY, bill: v[6] + p.headTilt };
+}
+
+function drawEgret(ctx, cx, cy, u, dir, p, k) {
+    const white = '#eef0ea';
+    const shade = '#c6ccc1';
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(dir * u, u);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const thin = 1 / (k * u);
+    const wing = (theta, lag, spread, color, dx) => {
+        const len = 21 * spread;
+        const ex = dx - 1;
+        const ey = -Math.sin(theta) * len * 0.5;
+        const tx = dx - 7 * spread;
+        const ty = ey - Math.sin(theta + lag) * len * 0.55;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(dx + 3, -1.6);
+        ctx.quadraticCurveTo(ex + 3.5, ey - 0.6, tx, ty);
+        ctx.quadraticCurveTo(ex - 5, ey * 0.85 + 1, dx - 6, 0.6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(150, 158, 148, 0.5)';
+        ctx.lineWidth = Math.max(thin, 0.5);
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(tx + (ex - 5 - tx) * 0.35, ty + (ey * 0.85 + 1 - ty) * 0.35);
+        ctx.stroke();
+    };
+    const flying = p.fold > 0.03;
+    if (flying) wing(p.wing - 0.08, p.lag, p.fold, '#b9bfb4', -1);
+    // Chân
+    ctx.strokeStyle = '#2a2a2a';
+    ctx.lineWidth = Math.max(thin, 1.05);
+    if (p.legs === 'stand') {
+        const legLen = 11 * (1 - 0.25 * p.crouch);
+        [[-1, 1], [0.6, -1]].forEach(([hx, sign]) => {
+            const swing = p.walk * Math.sin(p.step) * 2.6 * sign;
+            const lift = p.walk * Math.max(0, Math.cos(p.step) * sign) * 1.6;
+            const fx = hx + swing;
+            const fy = legLen - lift;
+            ctx.beginPath();
+            ctx.moveTo(hx, 3);
+            ctx.lineTo((hx + fx) / 2 - 1.3, 3 + (fy - 3) * 0.45);
+            ctx.lineTo(fx, fy);
+            ctx.lineTo(fx + 2.4, fy);
+            ctx.stroke();
+        });
+    } else {
+        [0, 1].forEach(i => {
+            const hx = -2 + i * 0.8;
+            ctx.beginPath();
+            ctx.moveTo(hx, 2.5);
+            ctx.lineTo(hx + Math.cos(p.legA) * 15, 2.5 + Math.sin(p.legA) * 15 + i * 0.6);
+            ctx.stroke();
+        });
+    }
+    // Thân, đuôi, lông mao dài trên lưng
+    ctx.save();
+    ctx.rotate(p.tilt);
+    ctx.strokeStyle = 'rgba(236, 239, 232, 0.45)';
+    ctx.lineWidth = Math.max(thin, 0.45);
+    ctx.beginPath();
+    ctx.moveTo(-2, -3);
+    ctx.quadraticCurveTo(-10, -3.5, -15, 0.6 + p.breath * 0.6);
+    ctx.stroke();
+    ctx.fillStyle = white;
+    ctx.beginPath();
+    ctx.moveTo(-8, 0.5);
+    ctx.lineTo(-12.5, 2.4);
+    ctx.lineTo(-8, 2.8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 8.6, 4.2 + p.breath * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = shade;
+    ctx.beginPath();
+    ctx.ellipse(-0.6, 1.9, 7, 2.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (!flying) {
+        ctx.strokeStyle = 'rgba(186, 193, 182, 0.9)';
+        ctx.lineWidth = Math.max(thin, 0.55);
+        ctx.beginPath();
+        ctx.moveTo(4.5, -1.5);
+        ctx.quadraticCurveTo(-1, -2.6, -8, 1.4);
+        ctx.stroke();
+    }
+    ctx.restore();
+    // Cổ chữ S, đầu, mỏ vàng
+    const n = egretNeck(p);
+    ctx.strokeStyle = white;
+    ctx.lineWidth = 2.3;
+    ctx.beginPath();
+    ctx.moveTo(5, -2);
+    ctx.bezierCurveTo(n.c1x, n.c1y, n.c2x, n.c2y, n.hx, n.hy);
+    ctx.stroke();
+    if (p.gulp > 0.02) {
+        // Miếng mồi trôi xuống cổ
+        const t = p.gulp;
+        const b = (a0, a1, a2, a3) => (1 - t) ** 3 * a0 + 3 * (1 - t) ** 2 * t * a1 + 3 * (1 - t) * t * t * a2 + t ** 3 * a3;
+        ctx.fillStyle = white;
+        ctx.beginPath();
+        ctx.ellipse(b(5, n.c1x, n.c2x, n.hx), b(-2, n.c1y, n.c2y, n.hy), 1.8, 1.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.save();
+    ctx.translate(n.hx, n.hy);
+    ctx.rotate(n.bill);
+    ctx.fillStyle = white;
+    ctx.beginPath();
+    ctx.ellipse(0.4, 0, 2.3, 1.75, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Ngoảnh đầu về phía người xem: mỏ ngắn lại
+    const billLen = 7.5 * (0.5 + 0.5 * Math.cos(p.turn));
+    ctx.fillStyle = '#e2b13a';
+    ctx.beginPath();
+    ctx.moveTo(1.8, -0.75);
+    ctx.lineTo(2 + billLen, 0.1);
+    ctx.lineTo(1.8, 0.75);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0.9, -0.9, 0.8, 0.8);
+    if (p.prey > 0.05) {
+        // Cá nhỏ giãy trong mỏ
+        ctx.fillStyle = 'rgb(205, 218, 230)';
+        ctx.translate(2 + billLen, 0.3);
+        ctx.rotate(Math.sin(p.prey * 60) * 0.6);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 2.6, 0.95, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.restore();
+    if (flying) wing(p.wing, p.lag, p.fold, white, 0.5);
+    ctx.restore();
+}
+
+const EGRET_POSE = { wing: 0.3, lag: 0, fold: 1, neck: 0, stalk: 0, strike: 0, preen: 0, tilt: 0, legA: Math.PI - 0.1, crouch: 0,
+    walk: 0, turn: 0, headX: 0, headY: 0, headTilt: 0, breath: 0, prey: 0, gulp: 0 };
+
 const rand = (min, max) => min + Math.random() * (max - min);
+
+// Sinh vật trên mặt nước bật/tắt riêng từng loại (builder, mục "Trên mặt nước")
+const WATER_ALL = { birds: true, ducks: true, fish: true, logs: true };
+
 
 const WaterLife = {
     key: '',
@@ -559,7 +642,7 @@ const WaterLife = {
         return (0.6 + d * 1.1) * (IS_MOBILE ? 0.85 : 1);
     },
 
-    reset(river, cssW) {
+    reset(river, cssW, flags = WATER_ALL) {
         this.logs = [];
         this.birds = [];
         this.ducks = [];
@@ -568,7 +651,7 @@ const WaterLife = {
         this.drops = [];
         const slow = IS_MOBILE ? 1.3 : 1;
         // Mở màn đã có sẵn một khúc gỗ đang trôi, một con cò và một đàn vịt sắp bay tới
-        if (river) this.logs.push(this.makeLog(rand(0.18, 0.42) * cssW, rand(0.45, 0.8)));
+        if (river && flags.logs) this.logs.push(this.makeLog(rand(0.18, 0.42) * cssW, rand(0.45, 0.8)));
         this.next = river
             ? { log: rand(9000, 16000) * slow, bird: rand(1500, 3000), duck: rand(5000, 9000), fish: rand(2500, 4500), rise: rand(800, 2000) }
             : { log: Infinity, bird: rand(3000, 6000), duck: rand(2500, 5000), fish: rand(3500, 6000), rise: rand(800, 2000) };
@@ -604,12 +687,19 @@ const WaterLife = {
         this.ripples.push({ x, d, age: -delay, life, r0: 1.5 * this.scale(d) * size, size });
     },
 
-    // rocks: đá, gò đất giữa dòng (vật trôi, vịt né)
-    update(dt, river, cssW, topCss, depthCss, rocks = []) {
+    // rocks: đá, gò đất giữa dòng (vật trôi, vịt né); flags: loại nào đang bật (tắt thì bỏ ngay)
+    update(dt, river, cssW, topCss, depthCss, rocks = [], flags = WATER_ALL) {
         const slow = IS_MOBILE ? 1.3 : 1;
+        if (!flags.logs) this.logs = [];
+        if (!flags.ducks) this.ducks = [];
+        if (!flags.fish) this.fish = [];
+        if (!flags.birds && this.birds.length) {
+            this.birds.forEach(bird => this.freeEgretPerch(bird));
+            this.birds = [];
+        }
         // Khúc gỗ: trôi vào từ thượng nguồn (bên trái), ra khỏi khung thì bỏ
         this.next.log -= dt;
-        if (this.next.log <= 0) {
+        if (this.next.log <= 0 && flags.logs) {
             this.next.log = rand(10000, 20000) * slow;
             if (this.logs.length < 2) {
                 const d = rand(0.3, 0.85);
@@ -622,86 +712,24 @@ const WaterLife = {
             log.x += this.flow(log.d, river) * 0.9 * dt;
             log.phase += dt * 0.0015;
             const half = log.len * this.scale(log.d) / 2;
-            steerAround(log, log.x - half, half, rocks, dt, depthCss);
+            steerAround(log, log.x - half, half, rocks, dt, depthCss, 1);
         });
         this.logs = this.logs.filter(log => log.x - log.len * this.scale(log.d) < cssW + 30);
 
-        // Cò: bay tới khúc gỗ đang trong khung (nếu còn chỗ) hoặc một điểm trên mặt nước
+        // Cò: bay tới đậu trên khúc gỗ, đá, gò đất hoặc lội chỗ nước nông sát bờ; đứng thì ngó nghiêng, rỉa lông, lội thì
+        // rình rồi mổ cá; hết giờ thì nhún chân cất cánh bay đi
         this.next.bird -= dt;
-        if (this.next.bird <= 0) {
+        if (this.next.bird <= 0 && flags.birds) {
             this.next.bird = (river ? rand(7000, 13000) : rand(9000, 16000)) * slow;
-            if (this.birds.length < 2) {
-                const dir = Math.random() < 0.5 ? 1 : -1;
-                const free = this.logs.filter(log => !log.bird && logSprite(log.variant).perch && log.x > cssW * 0.12 && log.x < cssW * 0.62);
-                const bird = {
-                    state: 'fly', dir, x: dir > 0 ? -24 : cssW + 24, y: topCss * rand(0.25, 0.6),
-                    flap: Math.random() * 300, rest: rand(5000, 10000)
-                };
-                if (free.length && Math.random() < 0.7) {
-                    bird.log = free[0];
-                    free[0].bird = bird;
-                    bird.ox = rand(0.35, 0.65) * free[0].len * this.scale(free[0].d);
-                } else {
-                    bird.d = rand(0.3, 0.8);
-                    bird.tx = rand(0.2, 0.8) * cssW;
-                }
-                this.birds.push(bird);
-            }
+            if (this.birds.length < 2) this.birds.push(this.makeEgret(cssW, topCss, rocks));
         }
-        this.birds.forEach(bird => {
-            bird.flap += dt;
-            if (bird.state === 'fly') {
-                const d = bird.log ? bird.log.d : bird.d;
-                const s = this.scale(d);
-                const tx = bird.log ? bird.log.x - bird.log.len * s + bird.ox : bird.tx;
-                const ty = this.surfaceY(d, topCss, depthCss) - (bird.log ? this.logPerch(bird.log, s) : 0);
-                if (!bird.log) bird.tx += this.flow(d, river) * 0.6 * dt;
-                const dx = tx - bird.x;
-                const dy = ty - bird.y;
-                const dist = Math.hypot(dx, dy);
-                bird.dir = dx >= 0 ? 1 : -1;
-                bird.near = dist < 70;
-                const step = Math.min(dist, (bird.near ? 0.07 : 0.12) * dt);
-                if (dist <= step + 0.5) {
-                    bird.state = bird.log ? 'perch' : 'swim';
-                    bird.x = tx;
-                    bird.y = ty;
-                    if (!bird.log) this.splash(bird.x, d, topCss, depthCss, 1);
-                } else {
-                    bird.x += dx / dist * step;
-                    bird.y += dy / dist * step;
-                }
-            } else if (bird.state === 'perch' || bird.state === 'swim') {
-                bird.rest -= dt;
-                if (bird.log) {
-                    const s = this.scale(bird.log.d);
-                    bird.x = bird.log.x - bird.log.len * s + bird.ox;
-                    bird.y = this.surfaceY(bird.log.d, topCss, depthCss) - this.logPerch(bird.log, s) + Math.sin(bird.log.phase) * 0.6 * s;
-                } else {
-                    bird.x += (this.flow(bird.d, river) * 0.6 + bird.dir * 0.004) * dt;
-                    steerAround(bird, bird.x, 10 * this.scale(bird.d), rocks, dt, depthCss);
-                    bird.y = this.surfaceY(bird.d, topCss, depthCss) + Math.sin(bird.flap * 0.002) * 0.5;
-                }
-                // Hết giờ nghỉ, hoặc khúc gỗ sắp trôi ra khỏi khung: bay đi
-                if (bird.rest <= 0 || bird.x > cssW - 15 || bird.x < 15) {
-                    if (!bird.log) this.splash(bird.x, bird.d, topCss, depthCss, 0.7);
-                    if (bird.log) bird.log.bird = null;
-                    bird.state = 'leave';
-                    bird.vx = bird.dir * 0.1;
-                    bird.vy = -0.075;
-                }
-            } else {
-                bird.x += bird.vx * dt;
-                bird.y += bird.vy * dt;
-                bird.vy = Math.max(-0.12, bird.vy - 0.00004 * dt);
-            }
-        });
-        this.birds = this.birds.filter(bird => !(bird.state === 'leave' && (bird.y < -40 || bird.x < -40 || bird.x > cssW + 40)));
+        this.birds.forEach(bird => this.updateEgret(bird, dt, cssW, topCss, depthCss, rocks));
+        this.birds = this.birds.filter(bird => !(bird.state === 'leave' && (bird.y < -60 || bird.x < -60 || bird.x > cssW + 60)));
 
         // Vịt trời: cả đàn bay tới, đáp xuống trượt trên nước, bơi quạt chân để lại vệt sóng, thỉnh thoảng chổng đuôi
         // kiếm ăn, rồi chạy trên mặt nước cất cánh bay đi
         this.next.duck -= dt;
-        if (this.next.duck <= 0) {
+        if (this.next.duck <= 0 && flags.ducks) {
             this.next.duck = (river ? rand(16000, 26000) : rand(12000, 20000)) * slow;
             if (!this.ducks.length) {
                 const dir = Math.random() < 0.5 ? 1 : -1;
@@ -751,7 +779,7 @@ const WaterLife = {
                 const target = duck.state === 'dabble' ? 0 : duck.dir * 0.011;
                 duck.vx += (target - duck.vx) * Math.min(1, dt * 0.0015);
                 duck.x += (duck.vx + this.flow(duck.d, river) * 0.5) * dt;
-                steerAround(duck, duck.x, 12 * s, rocks, dt, depthCss);
+                steerAround(duck, duck.x, 12 * s, rocks, dt, depthCss, Math.sign(duck.vx + this.flow(duck.d, river) * 0.5));
                 duck.y = this.surfaceY(duck.d, topCss, depthCss) + Math.sin(duck.flap * 0.004) * 0.3 * s;
                 if (duck.state === 'swim') {
                     duck.paddle -= dt;
@@ -789,7 +817,7 @@ const WaterLife = {
 
         // Cá nhảy: vọt lên khỏi mặt nước theo đường cong rồi lao xuống; cá con nhảy cả đàn, con này nối con kia
         this.next.fish -= dt;
-        if (this.next.fish <= 0) {
+        if (this.next.fish <= 0 && flags.fish) {
             this.next.fish = (river ? rand(3000, 7000) : rand(5000, 10000)) * slow;
             const r = Math.random();
             const type = r < 0.35 ? 'silver' : r < 0.6 ? 'carp' : r < 0.75 ? 'grass' : 'minnow';
@@ -805,7 +833,7 @@ const WaterLife = {
             const count = type === 'minnow' ? 3 + ((Math.random() * 3) | 0) : 1;
             for (let i = 0; i < count; i++) {
                 this.fish.push({
-                    type, d, x: x + dir * i * rand(5, 9) * s, t: -i * rand(90, 160), started: false,
+                    type, d, x: x + dir * i * rand(5, 9) * s, t: -i * rand(90, 160), started: false, seed: Math.random(),
                     life: rand(...kind.life), h: rand(...kind.lift) * s, dx: dir * rand(...kind.reach) * s
                 });
             }
@@ -818,6 +846,16 @@ const WaterLife = {
                 fish.started = true;
                 this.splash(fish.x, fish.d, topCss, depthCss, size * 0.9);
             }
+            // Nước rỏ xuống từ mình cá lúc đang bay
+            if (fish.started && fish.t < fish.life * 0.7) {
+                const f = this.fishState(fish, topCss, depthCss);
+                fish.shed = (fish.shed ?? 0) - dt;
+                if (f.p > 0.05 && f.y < f.surf && fish.shed <= 0) {
+                    fish.shed = 45;
+                    const s = this.scale(fish.d);
+                    this.drops.push({ x: f.x - Math.sign(f.vx) * f.L * 0.3, y: f.y, base: f.surf, vx: rand(-0.015, 0.015), vy: rand(-0.02, 0.01), size: rand(0.8, 1.4) * s });
+                }
+            }
             if (fish.t >= fish.life && !fish.done) {
                 fish.done = true;
                 this.splash(fish.x + fish.dx, fish.d, topCss, depthCss, size);
@@ -827,7 +865,7 @@ const WaterLife = {
 
         // Cá đớp mồi: vòng sóng nhỏ lan ra đây đó trên mặt nước
         this.next.rise -= dt;
-        if (this.next.rise <= 0) {
+        if (this.next.rise <= 0 && flags.fish) {
             this.next.rise = rand(1200, 3200) * slow;
             const d = rand(0.15, 0.95);
             const x = rand(0.05, 0.95) * cssW;
@@ -869,9 +907,8 @@ const WaterLife = {
     things(ctx, k, topCss, depthCss, time, river) {
         return [
             ...this.logs.map(log => ({ d: log.d, draw: () => this.drawLog(ctx, log, k, topCss, depthCss, time, river) })),
-            ...this.birds.filter(b => b.state === 'perch' || b.state === 'swim').map(bird => ({
-                d: bird.log ? bird.log.d + 0.0001 : bird.d,
-                draw: () => this.drawBird(ctx, bird, bird.log ? 'stand' : 'swim', this.scale(bird.log ? bird.log.d : bird.d))
+            ...this.birds.filter(b => b.state === 'land' || b.state === 'stand' || b.state === 'takeoff').map(bird => ({
+                d: bird.d + 0.0001, draw: () => this.drawStandingEgret(ctx, bird, k, topCss, depthCss)
             })),
             ...this.ducks.filter(duck => duck.state === 'swim' || duck.state === 'dabble').map(duck => ({
                 d: duck.d, draw: () => this.drawDuck(ctx, duck, duck.state, this.scale(duck.d), k, time)
@@ -880,23 +917,24 @@ const WaterLife = {
     },
 
     // Cá đang nhảy, tia nước, cò và vịt đang bay (trên mọi vật)
-    drawOver(ctx, k, topCss, depthCss) {
+    drawOver(ctx, k, topCss, depthCss, time) {
+        // Cá nhảy: đầu theo hướng bay, thân uốn cong (nhiều nhất ở đỉnh), đuôi quẫy nhanh lúc vừa rời nước; phần còn dưới
+        // mặt nước bị nước che nên như trồi lên, lặn xuống thật
         this.fish.forEach(fish => {
             if (fish.t < 0) return;
-            const p = Math.min(1, fish.t / fish.life);
-            const lift = 4 * fish.h * p * (1 - p);
-            const x = fish.x + fish.dx * p;
-            const y = this.surfaceY(fish.d, topCss, depthCss) - lift;
-            const angle = Math.atan2(-4 * fish.h * (1 - 2 * p), fish.dx);
-            const s = this.scale(fish.d);
-            const img = fishSprite(fish.type);
-            const w = FISH_TYPES[fish.type].size * s;
-            const h = w * img.height / img.width;
+            const f = this.fishState(fish, topCss, depthCss);
+            const early = f.p < 0.3;
+            const wag = Math.sin(time * (early ? 0.05 : 0.022) + fish.seed * 9) * (early ? 1 : 0.45);
             ctx.save();
-            ctx.globalAlpha = 0.95;
-            ctx.translate(x, y);
-            ctx.rotate(angle);
-            ctx.drawImage(img, -w / 2, -h / 2, w, h);
+            ctx.beginPath();
+            ctx.rect(f.x - f.L * 1.5, f.y - f.L * 1.5, f.L * 3, Math.max(0, f.surf - (f.y - f.L * 1.5)));
+            ctx.clip();
+            ctx.translate(f.x, f.y);
+            if (f.vx < 0) ctx.scale(-1, 1);
+            ctx.rotate(Math.atan2(f.vy, Math.abs(f.vx)));
+            ctx.globalAlpha = 0.97;
+            drawFishBody(ctx, FISH_LOOKS[fish.type], f.L, 0.25 + 0.55 * Math.sin(Math.PI * f.p), wag,
+                0.7 + 0.3 * Math.cos(f.p * Math.PI * 2 + fish.seed * 6), k);
             ctx.restore();
         });
         ctx.fillStyle = 'rgb(225, 236, 255)';
@@ -905,10 +943,7 @@ const WaterLife = {
             ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
         });
         this.birds.forEach(bird => {
-            if (bird.state !== 'fly' && bird.state !== 'leave') return;
-            const pose = bird.state === 'fly' && bird.near ? 'glide' : Math.floor(bird.flap / 130) % 2 ? 'up' : 'down';
-            const d = bird.log ? bird.log.d : bird.d ?? 0.5;
-            this.drawBird(ctx, bird, pose, this.scale(d) * 1.05);
+            if (bird.state === 'fly' || bird.state === 'leave') this.drawFlyingEgret(ctx, bird, k);
         });
         this.ducks.forEach(duck => {
             if (duck.state !== 'fly' && duck.state !== 'leave') return;
@@ -970,24 +1005,242 @@ const WaterLife = {
         ctx.restore();
     },
 
-    drawBird(ctx, bird, pose, s) {
-        const sprite = egretSprite(pose);
-        const w = 42 * s;
-        const h = w * 40 / 48;
-        ctx.save();
-        ctx.globalAlpha = 0.95;
-        ctx.translate(bird.x, bird.y);
-        if (bird.dir < 0) ctx.scale(-1, 1);
-        // Gốc vẽ: chân (đứng), mặt nước (bơi), thân (bay)
-        const anchorY = pose === 'stand' ? 0.95 : pose === 'swim' ? 0.72 : 0.55;
-        ctx.drawImage(sprite, -w / 2, -h * anchorY, w, h);
-        // Đang bơi: bóng in mờ xuống nước
-        if (pose === 'swim') {
-            ctx.globalAlpha = 0.22;
-            ctx.scale(1, -0.7);
-            ctx.drawImage(sprite, -w / 2, -h * anchorY, w, h);
+    makeEgret(cssW, topCss, rocks) {
+        const dir = Math.random() < 0.5 ? 1 : -1;
+        const bird = {
+            state: 'fly', dir, x: dir > 0 ? -30 : cssW + 30, y: topCss * rand(0.2, 0.55), ph: Math.random() * 6, t: 0,
+            rest: rand(9000, 18000), act: null, legs: 'fly', d: 0.5, u: 1, pose: { ...EGRET_POSE, legs: 'fly' }
+        };
+        const logs = this.logs.filter(log => !log.bird && logSprite(log.variant).perch && log.x > cssW * 0.15 && log.x < cssW * 0.6);
+        const free = rocks.filter(rock => !rock.bird);
+        const roll = Math.random();
+        if (logs.length && roll < 0.5) {
+            bird.perch = { log: logs[0], ox: rand(0.35, 0.65) };
+            logs[0].bird = bird;
+        } else if (free.length && roll < 0.8) {
+            const rock = free[(Math.random() * free.length) | 0];
+            bird.perch = { rock };
+            rock.bird = bird;
+        } else {
+            bird.perch = { wade: true, x: rand(0.15, 0.85) * cssW, d: rand(0.03, 0.12) };
         }
+        return bird;
+    },
+
+    freeEgretPerch(bird) {
+        if (bird.perch.log && bird.perch.log.bird === bird) bird.perch.log.bird = null;
+        if (bird.perch.rock && bird.perch.rock.bird === bird) bird.perch.rock.bird = null;
+    },
+
+    // Chỗ chân cò chạm: mặt trên khúc gỗ, đá, gò đất; lội thì chân ngập dưới mặt nước. surf: mặt nước chỗ đó.
+    egretFeet(bird, topCss, depthCss) {
+        const perch = bird.perch;
+        if (perch.log) {
+            const log = perch.log;
+            const s = this.scale(log.d);
+            const surf = this.surfaceY(log.d, topCss, depthCss);
+            return { x: log.x - log.len * s * (1 - perch.ox), y: surf - this.logPerch(log, s) + Math.sin(log.phase) * 0.5 * s, d: log.d, surf };
+        }
+        if (perch.rock) {
+            const rock = perch.rock;
+            const sprite = rock.kind === 'rock' ? rockSprite(rock.variant) : moundSprite(rock.variant);
+            const w = rock.size * this.scale(rock.d);
+            const surf = this.surfaceY(rock.d, topCss, depthCss);
+            return { x: rock.x + sprite.perchX * w, y: surf - w * (sprite.wl - sprite.top) / sprite.width, d: rock.d, surf };
+        }
+        const surf = this.surfaceY(perch.d, topCss, depthCss);
+        return { x: perch.x, y: surf + 3 * 0.9 * this.scale(perch.d), d: perch.d, surf, wade: true };
+    },
+
+    // Việc tiếp theo lúc đứng: ngó nghiêng, rỉa lông, đứng nghỉ; lội thì rình (bước chậm) rồi mổ, có khi được cá
+    nextEgretAction(bird) {
+        const prev = bird.act && bird.act.type;
+        if (prev === 'stalk') return { type: 'strike', t: 0, dur: 520 };
+        if (prev === 'strike') return Math.random() < 0.45 ? { type: 'catch', t: 0, dur: 1400 } : { type: 'look', t: 0, dur: rand(900, 1600) };
+        const r = Math.random();
+        if (bird.perch.wade && r < 0.55) return { type: 'stalk', t: 0, dur: rand(2500, 5000) };
+        if (r < 0.72) return { type: 'look', t: 0, dur: rand(1600, 3200), turn: Math.random() < 0.4 };
+        if (r < 0.88) return { type: 'preen', t: 0, dur: rand(1800, 3200) };
+        return { type: 'idle', t: 0, dur: rand(1500, 3000) };
+    },
+
+    updateEgret(bird, dt, cssW, topCss, depthCss, rocks) {
+        bird.t += dt;
+        // Chỗ đậu không còn (khúc gỗ trôi đi, tắt đá/gò đất): đang bay thì chuyển sang lội, đang đứng thì bay đi
+        const gone = (bird.perch.log && !this.logs.includes(bird.perch.log)) || (bird.perch.rock && !rocks.includes(bird.perch.rock));
+        if (gone) {
+            if (bird.state === 'fly') {
+                const feet = this.egretFeet(bird, topCss, depthCss);
+                bird.perch = { wade: true, x: Math.min(cssW - 30, Math.max(30, feet.x)), d: rand(0.03, 0.12) };
+            } else if (bird.state === 'land' || bird.state === 'stand') {
+                bird.state = 'takeoff';
+                bird.t = 0;
+            }
+        }
+        const feet = this.egretFeet(bird, topCss, depthCss);
+        const u = 0.9 * this.scale(feet.d);
+        bird.d = feet.d;
+        bird.u = u;
+        const p = bird.pose;
+        const target = { ...EGRET_POSE, wing: p.wing, lag: p.lag };
+        let wingTau = 40;
+        if (bird.state === 'fly') {
+            const tx = feet.x;
+            const ty = feet.y - 11 * u;
+            const dx = tx - bird.x;
+            const dy = ty - bird.y;
+            const dist = Math.hypot(dx, dy);
+            bird.dir = dx >= 0 ? 1 : -1;
+            const near = dist < 60;
+            const step = Math.min(dist, (near ? 0.035 + 0.06 * dist / 60 : 0.11) * dt);
+            bird.ph += dt * Math.PI * 2 / (near ? 380 : 780);
+            if (near) {
+                // Sắp đáp: xòe cánh hãm lại, đưa chân ra trước, ngả thân ra sau
+                Object.assign(target, { wing: 1.0 + 0.28 * Math.sin(bird.ph), lag: 0.35, neck: 0.5, tilt: -0.45, legA: Math.PI / 2 - 0.35 });
+            } else {
+                Object.assign(target, { wing: 0.25 + 0.95 * Math.sin(bird.ph), lag: -0.45 * Math.cos(bird.ph), legA: Math.PI - 0.1 });
+            }
+            if (dist <= step + 0.5) {
+                bird.state = 'land';
+                bird.t = 0;
+                bird.legs = 'stand';
+                if (feet.wade) this.splash(feet.x, feet.d, topCss, depthCss, 0.5);
+            } else {
+                bird.x += dx / dist * step;
+                bird.y += dy / dist * step;
+            }
+        } else if (bird.state === 'land' || bird.state === 'stand') {
+            if (bird.state === 'land') {
+                // Chạm chân: cánh còn giơ một chút rồi xếp lại
+                Object.assign(target, { fold: bird.t < 220 ? 1 : 0, wing: 0.9, lag: 0.2, neck: 0.8, tilt: -0.35, crouch: bird.t < 200 ? 0.5 : 0 });
+                wingTau = 120;
+                if (bird.t > 650) {
+                    bird.state = 'stand';
+                    bird.act = null;
+                }
+            } else {
+                bird.rest -= dt;
+                if (!bird.act || bird.act.t >= bird.act.dur) {
+                    // Ngó xong có khi quay sang hướng khác
+                    if (bird.act && bird.act.type === 'look' && bird.act.turn) bird.dir = -bird.dir;
+                    bird.act = this.nextEgretAction(bird);
+                }
+                const act = bird.act;
+                act.t += dt;
+                const q = act.t / act.dur;
+                Object.assign(target, { fold: 0, neck: 0.78, tilt: -0.32, breath: Math.sin(bird.t * 0.003) });
+                if (act.type === 'idle') {
+                    target.headTilt = Math.sin(bird.t * 0.0013) * 0.08;
+                } else if (act.type === 'look') {
+                    Object.assign(target, { neck: 1, headTilt: -0.12 + Math.sin(bird.t * 0.0021) * 0.12, turn: q > 0.3 && q < 0.65 ? 1.1 : 0 });
+                } else if (act.type === 'preen') {
+                    Object.assign(target, { preen: 1, headX: Math.sin(bird.t * 0.018) * 0.7, headY: Math.sin(bird.t * 0.011) * 0.5 });
+                } else if (act.type === 'stalk') {
+                    // Rướn cổ, khom người, bước thật chậm
+                    Object.assign(target, { stalk: 1, crouch: 0.4, walk: 1, tilt: -0.1 });
+                    p.step += dt * 0.0045;
+                    bird.perch.x = Math.min(cssW - 30, Math.max(30, bird.perch.x + bird.dir * 0.004 * dt));
+                } else if (act.type === 'strike') {
+                    Object.assign(target, { stalk: 1, crouch: 0.5, tilt: -0.05, strike: q < 0.55 ? 1 : 0 });
+                    if (q > 0.3 && !act.splashed) {
+                        act.splashed = true;
+                        this.splash(feet.x + bird.dir * 20 * u, feet.d, topCss, depthCss, 0.45);
+                    }
+                } else if (act.type === 'catch') {
+                    // Ngửa cổ nuốt cá
+                    Object.assign(target, { neck: 0.95, headTilt: -0.5, prey: q < 0.45 ? 1 : 0 });
+                    p.gulp = q > 0.45 && q < 0.95 ? (q - 0.45) / 0.5 : 0;
+                }
+                const edge = feet.x > cssW - 20 || feet.x < 20;
+                if ((bird.rest <= 0 && (act.type === 'idle' || act.type === 'look')) || edge) {
+                    bird.state = 'takeoff';
+                    bird.t = 0;
+                }
+            }
+            bird.x = feet.x;
+            bird.y = feet.y - 11 * u * (1 - 0.25 * p.crouch);
+        } else if (bird.state === 'takeoff') {
+            // Nhún chân lấy đà rồi bật lên
+            Object.assign(target, { fold: 0, crouch: 1, neck: 0.4, tilt: -0.2 });
+            bird.x = feet.x;
+            bird.y = feet.y - 11 * u * (1 - 0.25 * p.crouch);
+            if (bird.t > 240) {
+                this.freeEgretPerch(bird);
+                if (feet.wade) this.splash(feet.x, feet.d, topCss, depthCss, 0.6);
+                bird.state = 'leave';
+                bird.t = 0;
+                bird.legs = 'fly';
+                bird.vx = bird.dir * 0.07;
+                bird.vy = -0.08;
+                p.fold = 0.6;
+                p.legA = Math.PI / 2 + 0.25;
+            }
+        } else {
+            // Cất cánh: vỗ mạnh, chân còn buông thõng rồi duỗi dần về sau
+            bird.ph += dt * Math.PI * 2 / (bird.t < 900 ? 440 : 700);
+            Object.assign(target, {
+                wing: 0.3 + 1.0 * Math.sin(bird.ph), lag: -0.5 * Math.cos(bird.ph),
+                legA: bird.t < 500 ? Math.PI / 2 + 0.25 : Math.PI - 0.1, tilt: bird.t < 600 ? -0.25 : 0
+            });
+            bird.vx += bird.dir * 0.00004 * dt;
+            bird.x += bird.vx * dt;
+            bird.y += bird.vy * dt;
+            bird.vy = Math.max(-0.1, bird.vy - 0.00003 * dt);
+        }
+        // Tư thế đổi dần (mổ thì nhanh), cánh theo nhịp vỗ
+        const ease = tau => 1 - Math.exp(-dt / tau);
+        Object.keys(target).forEach(key => {
+            if (key === 'gulp' || key === 'step') return;
+            const tau = key === 'wing' || key === 'lag' ? wingTau : key === 'strike' ? 45 : key === 'fold' ? 140 : 110;
+            p[key] += (target[key] - p[key]) * ease(tau);
+        });
+        p.legs = bird.legs;
+    },
+
+    // Cò đứng: phần chân ngập nước (lúc lội) không thấy; bóng in xuống nước; vòng sóng quanh chân
+    drawStandingEgret(ctx, bird, k, topCss, depthCss) {
+        const feet = this.egretFeet(bird, topCss, depthCss);
+        const u = bird.u;
+        const paint = alpha => {
+            ctx.save();
+            if (feet.wade) {
+                ctx.beginPath();
+                ctx.rect(bird.x - 40 * u, bird.y - 40 * u, 80 * u, Math.max(0, feet.surf - (bird.y - 40 * u)));
+                ctx.clip();
+            }
+            ctx.globalAlpha = alpha;
+            drawEgret(ctx, bird.x, bird.y, u, bird.dir, bird.pose, k);
+            ctx.restore();
+        };
+        ctx.save();
+        ctx.translate(0, feet.surf);
+        ctx.scale(1, -0.75);
+        ctx.translate(0, -feet.surf);
+        paint(0.2);
         ctx.restore();
+        paint(0.97);
+        if (feet.wade) {
+            ctx.strokeStyle = 'rgb(205, 222, 255)';
+            ctx.lineWidth = 1 / k;
+            ctx.globalAlpha = 0.25 + 0.1 * Math.sin(bird.t * 0.004);
+            ctx.beginPath();
+            ctx.ellipse(feet.x + bird.dir * 0.5 * u, feet.surf, 4.5 * u, 1.2 * u, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    },
+
+    drawFlyingEgret(ctx, bird, k) {
+        ctx.globalAlpha = 0.97;
+        drawEgret(ctx, bird.x, bird.y + Math.cos(bird.ph) * 0.8 * bird.u, bird.u, bird.dir, bird.pose, k);
+    },
+
+    // Cá đang nhảy: tâm thân đi theo đường cong từ dưới mặt nước lên rồi xuống lại dưới mặt nước
+    fishState(fish, topCss, depthCss) {
+        const p = Math.min(1, Math.max(0, fish.t / fish.life));
+        const L = FISH_TYPES[fish.type].size * this.scale(fish.d);
+        const H = fish.h + L * 0.45;
+        const surf = this.surfaceY(fish.d, topCss, depthCss);
+        return { p, L, surf, x: fish.x + fish.dx * p, y: surf - 4 * H * p * (1 - p) + L * 0.45, vx: fish.dx, vy: -4 * H * (1 - 2 * p) };
     }
 };
 
@@ -1194,6 +1447,9 @@ function rockSprite(variant) {
     });
     sinkBelow(g, W, H, wl, 0.55);
     c.wl = wl * S;
+    const peak = stones.reduce((a, b) => (b[1] - b[3] < a[1] - a[3] ? b : a));
+    c.top = (peak[1] - peak[3] + 1) * S;
+    c.perchX = peak[0] / W - 0.5;
     sprites[key] = c;
     return c;
 }
@@ -1253,6 +1509,8 @@ function moundSprite(variant) {
     }
     sinkBelow(g, W, H, wl, 0.45);
     c.wl = wl * S;
+    c.top = (peak + 1.5) * S;
+    c.perchX = (variant ? 50 : 66) / W - 0.5;
     sprites[key] = c;
     return c;
 }
@@ -1328,17 +1586,27 @@ function drawFlowMarks(ctx, x, y, half, s, k, time, seed, river, strength) {
     }
 }
 
-// Né đá, gò đất: vật đang ở gần (theo chiều ngang) mà cùng tầm xa (d) thì dạt dần ra phía trước hoặc phía sau vật cản
-function steerAround(item, x, half, rocks, dt, depthCss) {
+// Né đá, gò đất: dòng nước rẽ qua vật cản đẩy vật trôi dạt dần sang bên từ khá xa phía trước, mạnh dần khi tới gần, êm
+// lại sau khi qua; tốc độ dạt ngang có quán tính nên không giật ngang. x, half: tâm và nửa bề ngang vật (điểm ảnh CSS);
+// dir: hướng vật đang đi (1 sang phải, -1 sang trái, 0 đứng yên: chỉ dạt khi chồng lên vật cản).
+function steerAround(item, x, half, rocks, dt, depthCss, dir = 1) {
+    let push = 0;
     for (const rock of rocks) {
         const rockHalf = rock.size * WaterLife.scale(rock.d) / 2;
-        if (Math.abs(rock.x - x) > rockHalf + half + 40) continue;
-        const need = rockHalf * 0.5 / depthCss + 0.05;
+        const need = (rockHalf * 0.5 / depthCss + 0.05) * 1.4;
         const gap = item.d - rock.d;
         if (Math.abs(gap) >= need) continue;
+        const reach = rockHalf + half;
+        const ahead = dir > 0 ? rock.x - x : dir < 0 ? x - rock.x : Math.abs(rock.x - x);
+        const before = dir ? reach + 170 : reach + 10;
+        if (ahead > before || ahead < -reach) continue;
+        const along = ahead > reach ? 1 - (ahead - reach) / (before - reach) : 1;
+        const close = 1 - Math.abs(gap) / need;
         const side = gap === 0 ? (rock.d > 0.5 ? -1 : 1) : Math.sign(gap);
-        item.d = Math.min(0.97, Math.max(0.03, item.d + side * 0.0003 * dt));
+        push += side * along * along * close * 0.00007;
     }
+    item.vd = (item.vd || 0) + (push - (item.vd || 0)) * Math.min(1, dt / 450);
+    item.d = Math.min(0.97, Math.max(0.03, item.d + item.vd * dt));
 }
 
 export const Water = {
@@ -1358,8 +1626,10 @@ export const Water = {
 
     // sources: các canvas cùng kích thước khung (vẽ theo điểm ảnh CSS cssW x cssH); background: phần tử ảnh nền;
     // style: 'lake' hồ tĩnh lặng | 'river' sông chảy; floating: '' | 'lanterns' hoa đăng | 'petals' cánh hoa;
-    // life: khúc gỗ trôi, cò, vịt trời, cá nhảy; plants: lá bèo; rocks: đá, gò đất giữa dòng
-    render(ctx, { sources, background, sky, cssW, cssH, time, style, floating, calm, life, plants, rocks: rocksOn }) {
+    // life: { birds: cò, ducks: vịt trời, fish: cá nhảy, logs: khúc gỗ trôi } (false: tắt hết); plants: lá bèo;
+    // rocks: đá, gò đất giữa dòng
+    render(ctx, { sources, background, sky, cssW, cssH, time, style, floating, calm, life: lifeFlags, plants, rocks: rocksOn }) {
+        const life = !!lifeFlags && (lifeFlags.birds || lifeFlags.ducks || lifeFlags.fish || lifeFlags.logs);
         const level = horizon();
         const { width: W, height: H } = ctx.canvas;
         if (level >= 1 || !W || !H) {
@@ -1522,7 +1792,7 @@ export const Water = {
             item.u += (river ? item.speed * (0.3 + item.d) : item.speed * still) * dt / cssW;
             if (item.u > 1.06) item.u = -0.06;
             if (item.u < -0.06) item.u = 1.06;
-            steerAround(item, item.u * cssW, half, rocks, dt, waterDepthCss);
+            steerAround(item, item.u * cssW, half, rocks, dt, waterDepthCss, river ? 1 : 0);
         };
         this.plants.forEach(item => {
             item.bob += dt * 0.0012;
@@ -1537,9 +1807,9 @@ export const Water = {
             const key = `${river}_${Math.round(cssW)}_${Math.round(cssH)}_${level}`;
             if (key !== WaterLife.key) {
                 WaterLife.key = key;
-                WaterLife.reset(river, cssW);
+                WaterLife.reset(river, cssW, lifeFlags);
             }
-            WaterLife.update(dt, river, cssW, waterTopCss, waterDepthCss, rocks);
+            WaterLife.update(dt, river, cssW, waterTopCss, waterDepthCss, rocks, lifeFlags);
         } else if (WaterLife.key) {
             WaterLife.key = '';
         }
@@ -1556,7 +1826,7 @@ export const Water = {
             ...rocks.map(rock => ({ d: rock.d, draw: () => this.drawRock(ctx, rock, surfY(rock.d), WaterLife.scale(rock.d), k, time, river) })),
             ...(life ? WaterLife.things(ctx, k, waterTopCss, waterDepthCss, time, river) : [])
         ].sort((a, b) => a.d - b.d).forEach(item => item.draw());
-        if (life) WaterLife.drawOver(ctx, k, waterTopCss, waterDepthCss);
+        if (life) WaterLife.drawOver(ctx, k, waterTopCss, waterDepthCss, time);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
 
         ctx.globalCompositeOperation = 'source-over';

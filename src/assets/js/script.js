@@ -374,6 +374,17 @@ setSmokeLevel(() => (isLowQuality || !burstConfig ? 0 : SMOKE_LEVELS[burstConfig
 // Mặt nước: đường chân trời (điểm phóng) nâng lên 1/3 hoặc nửa màn hình
 const WATER_LEVELS = { third: 2 / 3, half: 0.5 };
 const horizonSelector = () => (burstConfig && WATER_LEVELS[burstConfig.water]) || 1;
+// Sinh vật trên mặt nước bật/tắt riêng từng loại; kịch bản cũ ghi waterLife: false là tắt hết
+const waterLifeFlags = () => {
+    const config = burstConfig || {};
+    const off = config.waterLife === false;
+    return {
+        birds: !off && config.waterBirds !== false,
+        ducks: !off && config.waterDucks !== false,
+        fish: !off && config.waterFish !== false,
+        logs: !off && config.waterLogs !== false
+    };
+};
 setHorizon(horizonSelector);
 // Bầu trời đêm theo kịch bản: sao, trăng, trang trí. Kịch bản cũ ghi decor dạng chữ ("both" = đèn trời + khinh khí cầu).
 const DECOR_KINDS = ['lanterns', 'balloons', 'planes'];
@@ -2706,7 +2717,7 @@ function render(speed) {
         style: burstConfig && burstConfig.waterStyle === 'river' ? 'river' : 'lake',
         floating: burstConfig && ['lanterns', 'petals'].includes(burstConfig.floating) ? burstConfig.floating : '',
         calm: reduceFlashingSelector(),
-        life: !burstConfig || burstConfig.waterLife !== false,
+        life: waterLifeFlags(),
         plants: !burstConfig || burstConfig.waterPlants !== false,
         rocks: !burstConfig || burstConfig.waterRocks !== false
     });
