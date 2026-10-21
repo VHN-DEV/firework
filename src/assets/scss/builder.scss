@@ -3327,11 +3327,6 @@ select.is-invalid {
     }
 }
 
-.segmented.viewer-quality {
-    grid-template-columns: repeat(4, 1fr);
-}
-
-.segmented.viewer-quality button,
 .segmented.viewer-sky button {
     white-space: nowrap;
     font-size: 0.78rem;

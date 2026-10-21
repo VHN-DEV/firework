@@ -68,7 +68,7 @@ export function setHorizon(check) {
     horizon = check;
 }
 
-// Mức khói pháo: 0 tắt, 1 nhẹ, 2 dày (kịch bản chọn; chất lượng Thấp thì tắt). Trình phát cắm hàm thật vào lúc khởi động.
+// Mức khói pháo: 0 tắt, 1 nhẹ, 2 dày (kịch bản chọn; chất lượng 480p trở xuống thì tắt). Trình phát cắm hàm thật vào lúc khởi động.
 export let smokeLevel = () => 0;
 
 export function setSmokeLevel(check) {

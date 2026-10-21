@@ -293,7 +293,7 @@ export async function run(browser, base, { check }) {
         check('sao lấp lánh trên trời', sky.stars > 100, sky.stars);
         await page.close();
 
-        // Người nhận mở link tặng trên máy đã đặt chất lượng Thấp (xem nhanh không đọc cài đặt đã lưu)
+        // Người nhận mở link tặng trên máy đã đặt chất lượng thấp: bản lưu cũ "Thấp" (1) thành 480p (xem nhanh không đọc cài đặt đã lưu)
         writeConfig('zz_e2e_smoke', smokeShow('heavy'));
         page = await openPage(browser);
         await page.evaluateOnNewDocument(() => localStorage.setItem('cm_fireworks_data',
@@ -303,11 +303,11 @@ export async function run(browser, base, { check }) {
         await waitForShow(page).catch(() => {});
         await sleep(5000);
         const low = await smokeCover(page);
-        check('khói pháo: máy đặt chất lượng Thấp thì không có khói', low === 0, low.toFixed(3));
+        check('khói pháo: máy đặt chất lượng 480p (bản lưu cũ "Thấp") thì không có khói', low === 0, low.toFixed(3));
         await page.close();
 
         // Kịch bản đặt sẵn cách xem (viewer): áp cho người xem mới, không lưu thành cài đặt của họ
-        writeConfig('zz_e2e_viewer', { ...smokeShow(undefined), loop: false, viewer: { quality: '1', skyLighting: '1', scaleFactor: 0.75, hideControls: false } });
+        writeConfig('zz_e2e_viewer', { ...smokeShow(undefined), loop: false, viewer: { quality: '360', skyLighting: '1', scaleFactor: 0.75, hideControls: false } });
         page = await openPage(browser);
         await page.evaluateOnNewDocument(() => localStorage.removeItem('cm_fireworks_data'));
         await page.goto(base + '/index.html?config=zz_e2e_viewer', { waitUntil: 'networkidle0' });
@@ -319,13 +319,14 @@ export async function run(browser, base, { check }) {
             stored: JSON.parse(localStorage.getItem('cm_fireworks_data') || 'null')
         }));
         check('kịch bản đặt sẵn cách xem: áp cho người xem mới, không lưu thành cài đặt của họ',
-            viewer.quality === '1' && viewer.sky === '1' && viewer.scale === '0.75' && viewer.controls
+            viewer.quality === '360' && viewer.sky === '1' && viewer.scale === '0.75' && viewer.controls
             && (!viewer.stored || (viewer.stored.data.quality === 'auto' && viewer.stored.data.skyLighting === '2')), JSON.stringify(viewer));
         await page.close();
         removeConfig('zz_e2e_viewer');
 
-        // Chất lượng: mặc định Tự động; mức Thấp vẽ tối đa ×1,5 trên màn DPR 3 (Cao thì đủ độ phân giải)
-        for (const [stored, ratio] of [[null, 3], ['1', 1.5]]) {
+        // Chất lượng theo độ phân giải: mặc định Tự động (máy mạnh: độ phân giải gốc); 480p trên điện thoại 390×844 vẽ cạnh
+        // ngắn đúng 480 điểm ảnh; bản lưu cũ "Cao" (3) thành 2160p, vẫn đủ độ phân giải gốc
+        for (const [stored, value, ratio] of [[null, 'auto', 3], ['480', '480', 480 / 390], ['3', '2160', 3]]) {
             page = await openPage(browser);
             await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 3 });
             await page.evaluateOnNewDocument(q => {
@@ -340,8 +341,9 @@ export async function run(browser, base, { check }) {
                 label: document.querySelector('.quality-ui option[value="auto"]').textContent,
                 ratio: document.getElementById('trails-canvas').width / document.getElementById('trails-canvas').clientWidth
             }));
-            check(stored ? 'chất lượng Thấp: vẽ tối đa ×1,5 trên màn DPR 3' : 'chất lượng mặc định "Tự động", máy mạnh vẽ đủ độ phân giải',
-                (stored ? q.value === '1' : q.value === 'auto' && /^Tự động \(/.test(q.label)) && Math.abs(q.ratio - ratio) < 0.01, JSON.stringify(q));
+            const name = { auto: 'chất lượng mặc định "Tự động", máy mạnh vẽ đủ độ phân giải', 480: 'chất lượng 480p: cạnh ngắn vẽ đúng 480 điểm ảnh',
+                2160: 'bản lưu cũ chất lượng "Cao" đổi thành 2160p, vẽ đủ độ phân giải' }[value];
+            check(name, q.value === value && (value !== 'auto' || /^Tự động \(\d+p\)$/.test(q.label)) && Math.abs(q.ratio - ratio) < 0.01, JSON.stringify(q));
             await page.close();
         }
     } finally {

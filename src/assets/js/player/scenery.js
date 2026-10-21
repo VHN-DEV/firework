@@ -1154,7 +1154,7 @@ export const Decor = {
             this.drawn = false;
             return;
         }
-        // Chất lượng Thấp: sao, trăng, đèn trời trôi rất chậm nên vẽ lại cách một khung hình
+        // Chất lượng 480p trở xuống: sao, trăng, đèn trời trôi rất chậm nên vẽ lại cách một khung hình
         if (isLowQuality && this.drawn && (++this.frame & 1)) return;
         this.drawn = true;
         const k = W / this.width;

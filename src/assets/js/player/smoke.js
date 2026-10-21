@@ -159,7 +159,7 @@ export const Smoke = {
         });
     },
 
-    // scriptOff: kịch bản không có khói (vd vừa tắt trong builder) thì bỏ ngay khói đang có. Tắt vì chất lượng Thấp
+    // scriptOff: kịch bản không có khói (vd vừa tắt trong builder) thì bỏ ngay khói đang có. Tắt vì chất lượng 480p trở xuống
     // (tự động hạ giữa chừng) thì không sinh khói mới, khói đang có vẫn tan dần.
     update(timeStep, scriptOff) {
         if (!smokeLevel() && (scriptOff || !puffs.length)) {

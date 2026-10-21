@@ -52,8 +52,10 @@ Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và 
 - **Tạo màn trình diễn riêng**: Mở trình soạn kịch bản (`builder.html`, nút "Tạo kịch bản pháo hoa") để chọn loại pháo, chữ trên trời, nhạc nền (tự tải lên hoặc chọn từ kho nhạc có sẵn), ảnh (kho ảnh), lời chúc, khói pháo (Tắt / Nhẹ / Dày), mặt nước phản chiếu, bầu trời đêm (sao, trăng đúng pha, đèn trời,
   khinh khí cầu, máy bay) rồi chia sẻ link.
 - **Cài đặt** (nút bánh răng ⚙️ ở góc trên bên phải, hoặc phím `O`): chỉ gồm các tùy chọn khi xem, mỗi mục có nút "?" giải thích:
-  - **Chất lượng**: Tự động (mặc định: theo máy, giật thì tự hạ bậc) / Thấp / Vừa / Cao. Cao vẽ đầy đủ không giới hạn;
-    Vừa, Thấp bớt tia lửa lúc dày đặc nhất và độ nét để máy yếu vẫn mượt. Người tạo có thể đặt sẵn trong builder (nhóm
+  - **Chất lượng**: theo độ phân giải như trang xem phim: Tự động (mặc định: theo màn hình và sức máy, giật thì tự hạ
+    xuống) hoặc 144p, 240p, 360p, 480p SD, 720p HD, 1080p Full HD, 1440p 2K, 2160p 4K, 4320p 8K (số điểm ảnh cạnh ngắn của
+    khung vẽ, không vượt độ phân giải gốc của màn hình). Từ 1080p trở lên vẽ đầy đủ mọi hiệu ứng; 720p bớt tia lửa lúc dày
+    đặc nhất; 480p trở xuống bớt thêm và không có khói pháo. Người tạo có thể đặt sẵn trong builder (nhóm
     "Khi người nhận xem"), lựa chọn người xem tự đặt luôn được ưu tiên.
   - **Ánh sáng bầu trời**: Tắt / Mờ / Bình thường.
   - **Thu phóng**: phóng to hay thu nhỏ toàn bộ pháo hoa.

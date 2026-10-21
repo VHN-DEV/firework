@@ -14,13 +14,14 @@ import { getOwnerKeys } from './gift-tracking.js';
 import '../scss/style.scss';
 import {
     IS_PREVIEW, IS_RECORD, IS_HIGH_END_DEVICE, QUALITY_HIGH, QUALITY_NORMAL, IS_DESKTOP, IS_HEADER,
-    SKY_LIGHT_NORMAL, getDefaultScaleFactor, SKY_LIGHT_NONE, COLOR, INVISIBLE, PI_2, CONFIG_NAME, QUALITY_LOW,
+    SKY_LIGHT_NORMAL, getDefaultScaleFactor, SKY_LIGHT_NONE, COLOR, INVISIBLE, PI_2, CONFIG_NAME,
     SKY_LIGHT_DIM, PI_HALF, IS_MOBILE, GRAVITY, MAX_WIDTH, MAX_HEIGHT
 } from './player/env.js';
 import {
     setQuality, quality, isLowQuality, isHighQuality, stageW, stageH, setStageSize, setSimSpeed, simSpeed,
     setReduceFlashing, setCanPlaySound, setSoundEnabled, setSettings, setIsRunning, setSmokeLevel, setHorizon
 } from './player/state.js';
+import { QUALITY_AUTO, QUALITY_LEVELS, qualityLevel, validQuality } from './player/quality.js';
 import {
     randomColor, makePistilColor, whiteOrGold, resolveSingleColor, resolveEventColor, COLOR_TUPLES,
     COLOR_CODES_W_INVIS
@@ -58,11 +59,16 @@ printCopyrightNotice('Trình diễn Pháo hoa');
 if (IS_PREVIEW || IS_RECORD || new URLSearchParams(window.location.search).get('config')) {
     document.querySelector('meta[name="robots"]')?.setAttribute('content', 'noindex, follow');
 }
-// Chất lượng "Tự động": mức bắt đầu theo cấu hình máy, autoTuner hạ/nâng khi đang xem
-const QUALITY_AUTO = 'auto';
-const AUTO_QUALITY_START = IS_HIGH_END_DEVICE ? QUALITY_HIGH : QUALITY_NORMAL;
+// Chất lượng "Tự động" (các mức: player/quality.js): máy mạnh bắt đầu ở độ phân giải gốc của màn hình, ít nhất 1080p
+// cho đủ hiệu ứng; máy yếu bắt đầu ở 720p HD. autoTuner hạ/nâng khi đang xem, không xuống dưới 360p.
+const AUTO_QUALITY_START = (() => {
+    if (!IS_HIGH_END_DEVICE) return '720';
+    const native = Math.min(window.innerWidth, window.innerHeight) * (window.devicePixelRatio || 1);
+    const fits = QUALITY_LEVELS.filter(level => Number(level.value) >= Math.max(native, 1080));
+    return (fits[fits.length - 1] || QUALITY_LEVELS[0]).value;
+})();
+const AUTO_QUALITY_FLOOR = '360';
 let autoQuality = AUTO_QUALITY_START;
-const validQuality = value => (value === QUALITY_AUTO || ['1', '2', '3'].includes(String(value)) ? String(value) : QUALITY_AUTO);
 // Cài đặt khi xem mà kịch bản đặt sẵn được (VIEWER_KEYS) và phần được lưu lại cho người xem
 const VIEWER_KEYS = ['quality', 'skyLighting', 'scaleFactor', 'hideControls', 'reduceFlashing'];
 const PERSISTED_VIEWER_KEYS = ['quality', 'skyLighting', 'scaleFactor', 'reduceFlashing'];
@@ -140,8 +146,8 @@ const store = {
         // Lưu ý rằng các giá trị cấu hình được sử dụng cho <select> phải là chuỗi, trừ khi chuyển đổi giá trị thành chuỗi theo cách thủ công
         // tại thời điểm kết xuất và phân tích cú pháp khi thay đổi.
         config: {
-            // Tự động theo máy (xem autoQuality); khung quay video luôn ở mức Cao
-            quality: IS_RECORD ? String(QUALITY_HIGH) : QUALITY_AUTO,
+            // Tự động theo máy (xem autoQuality); khung quay video luôn vẽ đủ hiệu ứng (độ phân giải theo video)
+            quality: IS_RECORD ? '2160' : QUALITY_AUTO,
             customText: '',
             shell: [
                 'Nổ lách tách',
@@ -346,8 +352,11 @@ const isRunning = (state = store.state) => !state.paused && !state.menuOpen;
 const soundEnabledSelector = (state = store.state) => state.soundEnabled;
 // Liệu bất kỳ âm thanh nào có được phép hay không, có tính đến nhiều yếu tố.
 const canPlaySoundSelector = (state = store.state) => isRunning(state) && soundEnabledSelector(state);
-// Chất lượng đang dùng (số 1-3): chọn "Tự động" thì theo autoQuality
-const qualitySelector = () => (store.state.config.quality === QUALITY_AUTO ? autoQuality : +store.state.config.quality);
+// Mức chất lượng đang dùng (player/quality.js): chọn "Tự động" thì theo autoQuality
+const qualityLevelSelector = () => qualityLevel(store.state.config.quality === QUALITY_AUTO ? autoQuality : store.state.config.quality)
+    || qualityLevel(AUTO_QUALITY_START);
+// Mức hiệu ứng (1-3) các module hạt pháo dùng
+const qualitySelector = () => qualityLevelSelector().tier;
 // Người xem tự bật, hoặc người tạo bật sẵn cho cả màn trình diễn (kịch bản có reduceFlashing)
 const reduceFlashingSelector = () => !!(store.state.config.reduceFlashing || (burstConfig && burstConfig.reduceFlashing));
 // Các module hạt pháo, âm thanh đọc cài đặt của trình phát qua state.js
@@ -356,7 +365,7 @@ setCanPlaySound(() => canPlaySoundSelector());
 setSoundEnabled(() => soundEnabledSelector());
 setSettings(() => store.state.config);
 setIsRunning(() => isRunning());
-// Khói pháo theo kịch bản ("light" nhẹ, "heavy" dày); chất lượng Thấp thì tắt để máy yếu không giật
+// Khói pháo theo kịch bản ("light" nhẹ, "heavy" dày); chất lượng 480p trở xuống thì tắt để máy yếu không giật
 const SMOKE_LEVELS = { light: 1, heavy: 2 };
 setSmokeLevel(() => (isLowQuality || !burstConfig ? 0 : SMOKE_LEVELS[burstConfig.smoke] || 0));
 // Mặt nước: đường chân trời (điểm phóng) nâng lên 1/3 hoặc nửa màn hình
@@ -420,9 +429,10 @@ const scaleFactorSelector = () => store.state.config.scaleFactor;
 const helpContent = {
     quality: {
         header: 'Chất lượng',
-        body: 'Tự động (khuyên dùng): bắt đầu theo cấu hình máy, nếu thấy giật thì tự hạ bậc, mượt trở lại thì nâng lên. '
-            + 'Cao: vẽ đầy đủ, không giới hạn gì, hợp máy mạnh. Vừa: bớt tia lửa lúc pháo dày đặc nhất, vẽ ở độ nét vừa phải. '
-            + 'Thấp: nhẹ nhất cho máy yếu, không có khói pháo.'
+        body: 'Như trang xem phim: số càng lớn hình càng nét nhưng càng nặng máy. Tự động (khuyên dùng): bắt đầu theo màn hình và '
+            + 'cấu hình máy, nếu thấy giật thì tự hạ xuống, mượt trở lại thì nâng lên. Từ 1080p trở lên vẽ đầy đủ mọi hiệu ứng; '
+            + '720p bớt tia lửa lúc pháo dày đặc nhất; 480p trở xuống nhẹ nhất cho máy yếu, không có khói pháo. Mức cao hơn '
+            + 'độ phân giải màn hình thì vẽ bằng độ phân giải gốc của màn hình.'
     },
     skyLighting: {
         header: 'Ánh sáng bầu trời',
@@ -1285,12 +1295,7 @@ async function init() {
         node.innerHTML = options.reduce((acc, opt) => acc += `<option value="${opt.value}">${opt.label}</option>`, '');
     }
 
-    setOptionsForSelect(appNodes.quality, [
-        { label: 'Tự động', value: QUALITY_AUTO },
-        { label: 'Thấp', value: QUALITY_LOW },
-        { label: 'Vừa', value: QUALITY_NORMAL },
-        { label: 'Cao', value: QUALITY_HIGH }
-    ]);
+    setOptionsForSelect(appNodes.quality, [{ label: 'Tự động', value: QUALITY_AUTO }, ...QUALITY_LEVELS]);
     renderQualityLabel();
 
     setOptionsForSelect(appNodes.skyLighting, [
@@ -2127,8 +2132,9 @@ function handleResize() {
     smokeCanvas.style.height = containerH + 'px';
     frameW = containerW;
     frameH = containerH;
-    // Nét theo mật độ điểm ảnh của màn hình (tối đa 2) để trăng, sao không nhòe
-    const decoScale = Math.min(2, window.devicePixelRatio || 1);
+    // Nét theo mật độ điểm ảnh của màn hình (tối đa 2) để trăng, sao không nhòe; chất lượng dưới độ phân giải màn hình thì
+    // vẽ thưa theo (không thưa hơn điểm ảnh CSS)
+    const decoScale = Math.min(2, window.devicePixelRatio || 1, Math.max(1, mainStage.dpr));
     decoCanvas.width = Math.round(containerW * decoScale);
     decoCanvas.height = Math.round(containerH * decoScale);
     decoCanvas.style.width = containerW + 'px';
@@ -2203,21 +2209,15 @@ function updateGlobals(timeStep, lag) {
 }
 
 
-// Chất lượng khi xem: Tự động (mặc định) hoặc Thấp / Vừa / Cao. Mức Cao vẽ đầy đủ không giới hạn gì; Vừa, Thấp giới
-// hạn số tia lửa lúc dày đặc nhất và độ phân giải vẽ để máy yếu vẫn mượt (Thấp còn tắt khói như trước).
-const QUALITY_LIMITS = {
-    [QUALITY_HIGH]: { sparks: Infinity, dpr: Infinity },
-    [QUALITY_NORMAL]: { sparks: IS_MOBILE ? 9000 : 18000, dpr: 2 },
-    [QUALITY_LOW]: { sparks: IS_MOBILE ? 5000 : 9000, dpr: 1.5 }
-};
-const QUALITY_NAMES = { [QUALITY_LOW]: 'Thấp', [QUALITY_NORMAL]: 'Vừa', [QUALITY_HIGH]: 'Cao' };
-
+// Chất lượng khi xem (Tự động hoặc 144p ... 4320p, xem player/quality.js): giới hạn tia lửa của mức, và vẽ khung pháo
+// đúng số điểm ảnh của mức ở cạnh ngắn (720p: 720), không vượt độ phân giải gốc của màn hình.
 function applyQualityLimits() {
-    const limits = QUALITY_LIMITS[quality] || QUALITY_LIMITS[QUALITY_HIGH];
-    Spark.budget = limits.sparks;
+    const level = qualityLevelSelector();
+    Spark.budget = level.sparks;
     // Khung quay video giữ đúng độ phân giải video
     if (IS_RECORD) return;
-    const dpr = Math.min(limits.dpr, window.devicePixelRatio || 1);
+    const shortSide = Math.min(frameW || window.innerWidth, frameH || window.innerHeight);
+    const dpr = Math.min(window.devicePixelRatio || 1, Number(level.value) / shortSide);
     if (stages.some(stage => stage.dpr !== dpr)) {
         stages.forEach(stage => { stage.dpr = dpr; });
         handleResize();
@@ -2227,8 +2227,10 @@ function applyQualityLimits() {
 // Thu phóng trình duyệt, kéo cửa sổ sang màn hình có mật độ điểm ảnh khác: vẽ lại theo mật độ mới cho pháo không nhòe
 window.addEventListener('resize', applyQualityLimits);
 
-// "Tự động": bắt đầu theo cấu hình máy; lúc đang có pháo mà giật kéo dài (dưới ~26 khung/giây trong 4 giây) thì hạ một
-// bậc, mượt lâu (trên ~50 khung/giây) thì nâng lại, không vượt mức ban đầu. Mỗi lần hạ, lần nâng sau phải chờ lâu hơn.
+// "Tự động": bắt đầu theo màn hình và cấu hình máy; lúc đang có pháo mà giật kéo dài (dưới ~26 khung/giây trong 4 giây)
+// thì hạ một mức (vd 1080p xuống 720p), mượt lâu (trên ~50 khung/giây) thì nâng lại, không vượt mức ban đầu. Mỗi lần
+// hạ, lần nâng sau phải chờ lâu hơn.
+const levelIndex = value => QUALITY_LEVELS.findIndex(level => level.value === value);
 const autoTuner = {
     last: 0,
     sum: 0,
@@ -2254,10 +2256,12 @@ const autoTuner = {
         if (now < this.cooldownUntil) return;
         if (avg > 38) {
             this.good = 0;
-            if (++this.bad >= 2 && autoQuality > QUALITY_LOW) this.change(autoQuality - 1, now, true);
+            const index = levelIndex(autoQuality);
+            if (++this.bad >= 2 && index < levelIndex(AUTO_QUALITY_FLOOR)) this.change(QUALITY_LEVELS[index + 1].value, now, true);
         } else if (avg < 20) {
             this.bad = 0;
-            if (++this.good >= 5 * (1 + this.drops) && autoQuality < AUTO_QUALITY_START) this.change(autoQuality + 1, now, false);
+            const index = levelIndex(autoQuality);
+            if (++this.good >= 5 * (1 + this.drops) && index > levelIndex(AUTO_QUALITY_START)) this.change(QUALITY_LEVELS[index - 1].value, now, false);
         } else {
             this.bad = 0;
             this.good = 0;
@@ -2278,13 +2282,14 @@ const autoTuner = {
 // Ô chọn chất lượng ghi rõ mức "Tự động" đang dùng
 function renderQualityLabel() {
     const option = appNodes.quality && appNodes.quality.querySelector(`option[value="${QUALITY_AUTO}"]`);
-    if (option) option.textContent = `Tự động (${QUALITY_NAMES[autoQuality]})`;
+    if (option) option.textContent = `Tự động (${autoQuality}p)`;
 }
 
 // Cách xem kịch bản đặt sẵn (builder, nhóm "Khi người nhận xem"). Chỉ áp cho mục người xem chưa tự chọn trong Cài đặt;
 // người xem vẫn đổi được. Kịch bản sau (bản xem nhanh nhận kịch bản mới) bỏ giá trị cũ rồi mới áp giá trị mới.
 const VIEWER_DEFAULTS = {
-    quality: v => (validQuality(v) === String(v) ? String(v) : null),
+    // Kịch bản cũ ghi Thấp / Vừa / Cao (1-3): đổi sang mức tương ứng
+    quality: v => (validQuality(v) !== QUALITY_AUTO ? validQuality(v) : null),
     skyLighting: v => (['0', '1', '2'].includes(String(v)) ? String(v) : null),
     scaleFactor: v => (Number(v) >= 0.5 && Number(v) <= 2 ? Number(Number(v).toFixed(2)) : null),
     hideControls: v => (typeof v === 'boolean' ? v : null)

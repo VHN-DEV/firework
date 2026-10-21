@@ -14,6 +14,7 @@ import {
 import { OCCASIONS, buildTemplate } from './templates.js';
 import { analyzeMusic, buildBeatShow, KEEP_SHELLS } from './beat-sync.js';
 import { MOON_PHASES, moonFraction, moonPhaseIndex, moonIllumination } from './player/moon.js';
+import { QUALITY_AUTO, QUALITY_LEVELS, qualityLevel, validQuality } from './player/quality.js';
 import { eventTimes, layoutBursts, isPauseEvent, BURST_MS } from './timeline.js';
 import { createTimelineTrack } from './timeline-track.js';
 import { EMOJI_GROUPS } from './text-emojis.js';
@@ -256,6 +257,10 @@ document.addEventListener('DOMContentLoaded', () => {
     renderSmoke();
     renderScene();
     renderSky();
+    // Các mức chất lượng như trang xem phim (player/quality.js), dựng trước khi renderViewer đặt giá trị
+    const qualitySelect = document.getElementById('viewer-quality');
+    qualitySelect?.insertAdjacentHTML('beforeend', QUALITY_LEVELS.map(level => `<option value="${level.value}">${level.label}</option>`).join(''));
+    qualitySelect?.addEventListener('change', (e) => setViewerOption('quality', e.target.value));
     renderViewer();
     document.getElementById('viewer-scale')?.addEventListener('change', (e) => setViewerOption('scaleFactor', e.target.value ? Number(e.target.value) : ''));
     document.getElementById('viewer-fullscreen')?.addEventListener('change', (e) => setViewerOption('fullscreen', e.target.checked || ''));
@@ -1154,8 +1159,11 @@ const HELP_TIPS = {
         + 'lác đác trên mặt nước. Kiểu "Sông chảy" thì chúng trôi theo dòng, "Hồ tĩnh lặng" thì gần như đứng yên, dập dềnh.',
     waterLife: 'Cho mặt nước sống động: thỉnh thoảng một con cò trắng bay xuống đậu lên khúc gỗ hoặc đáp xuống nước rồi bay đi, '
         + 'cá vọt lên khỏi mặt nước làm sóng lan và tia nước bắn lên. Kiểu "Sông chảy" có thêm khúc gỗ trôi theo dòng.',
-    viewerQuality: '<strong>Tự động</strong> (khuyên dùng): theo máy người xem, giật thì tự hạ bậc. <strong>Cao</strong>: vẽ đầy đủ nhất, '
-        + 'hợp khi biết người nhận dùng máy mạnh. <strong>Thấp</strong>: nhẹ nhất, không có khói pháo. Người xem đã tự chọn mức khác thì giữ theo họ.',
+    viewerQuality: 'Như trang xem phim: số càng lớn hình càng nét nhưng càng nặng máy. <strong>Tự động</strong> (khuyên dùng): theo màn hình '
+        + 'và sức máy người xem, giật thì tự hạ xuống. Từ <strong>1080p</strong> (Full HD) trở lên vẽ đầy đủ mọi hiệu ứng, hợp khi biết '
+        + 'người nhận dùng máy mạnh; <strong>720p</strong> bớt tia lửa lúc pháo dày đặc nhất; <strong>480p</strong> trở xuống nhẹ nhất, '
+        + 'không có khói pháo. Mức cao hơn màn hình người xem thì vẽ bằng độ phân giải gốc của màn hình. Người xem đã tự chọn mức khác '
+        + 'thì giữ theo họ.',
     viewerSky: 'Bầu trời sáng lên theo màu pháo khi pháo nổ. Chọn <strong>Mờ</strong> hoặc <strong>Tắt</strong> nếu muốn trời tối hơn, '
         + 'vd khi bật ảnh nền thành phố.',
     viewerScale: 'Phóng to hoặc thu nhỏ toàn bộ pháo hoa. <strong>Theo màn hình</strong>: điện thoại tự thu nhỏ một chút cho pháo lớn '
@@ -1175,7 +1183,7 @@ const HELP_TIPS = {
         + 'Độ cao tính từ chân trời (0) tới đỉnh khung (100).',
     smoke: 'Như pháo hoa thật: mỗi quả nổ để lại một đám khói trắng, đường bay lên có vệt khói mảnh. Khói nở dần, trôi theo gió rồi tan, '
         + 'và được những quả nổ sau rọi màu. <strong>Nhẹ</strong>: thoáng qua. <strong>Dày</strong>: đám khói đặc, lâu tan. '
-        + 'Máy người xem đặt chất lượng Thấp thì không có khói để khỏi giật.',
+        + 'Người xem đặt chất lượng 480p trở xuống thì không có khói để khỏi giật.',
     reduceFlashing: 'Bật khi người nhận nhạy cảm với ánh sáng nhấp nháy (người lớn tuổi, người dễ bị co giật do ánh sáng...): hạt pháo không chớp tắt hay lấp lánh, '
         + 'không có quầng chớp lúc nổ, bầu trời không đổi màu theo pháo. Người xem cũng tự bật được bằng nút "Giảm chớp sáng" trên màn mở quà.',
     loop: 'Bật: chạy hết đợt cuối thì quay lại đợt đầu, bắn mãi. Tắt: chạy một lượt rồi hiện màn kết với lời chúc và nút Xem lại.',
@@ -3080,7 +3088,7 @@ function settingsSummaries() {
     const filename = value('filename');
     return {
         viewer: [
-            VIEWER_QUALITY_NAMES[state.viewer.quality] || 'Chất lượng tự động',
+            qualityLevel(state.viewer.quality) ? `Chất lượng ${state.viewer.quality}p` : 'Chất lượng tự động',
             VIEWER_SKY_NAMES[state.viewer.skyLighting],
             state.viewer.scaleFactor !== undefined && `Thu phóng ${Math.round(state.viewer.scaleFactor * 100)}%`,
             state.viewer.fullscreen && 'Toàn màn hình',
@@ -3281,7 +3289,6 @@ function renderScene() {
 
 // Cách xem đặt sẵn (nhóm "Khi người nhận xem"): chỉ lưu mục khác mặc định của trình phát
 const VIEWER_SKY_NAMES = { 0: 'Trời không sáng theo pháo', 1: 'Trời sáng mờ' };
-const VIEWER_QUALITY_NAMES = { 1: 'Chất lượng Thấp', 2: 'Chất lượng Vừa', 3: 'Chất lượng Cao' };
 
 function setViewerOption(key, value) {
     if (value === '' || value === undefined || value === null) delete state.viewer[key];
@@ -3292,13 +3299,15 @@ function setViewerOption(key, value) {
 
 function renderViewer() {
     const v = state.viewer;
-    [['.viewer-quality', v.quality], ['.viewer-sky', v.skyLighting]].forEach(([selector, value]) => {
+    [['.viewer-sky', v.skyLighting]].forEach(([selector, value]) => {
         document.querySelectorAll(`${selector} [data-value]`).forEach(btn => {
             const on = btn.dataset.value === String(value ?? '');
             btn.classList.toggle('active', on);
             btn.setAttribute('aria-pressed', String(on));
         });
     });
+    const quality = document.getElementById('viewer-quality');
+    if (quality) quality.value = v.quality ?? '';
     const scale = document.getElementById('viewer-scale');
     if (scale) scale.value = v.scaleFactor !== undefined ? String(v.scaleFactor) : '';
     const fullscreen = document.getElementById('viewer-fullscreen');
@@ -3316,7 +3325,8 @@ function renderViewer() {
 function normalizeViewer(viewer) {
     const v = viewer && typeof viewer === 'object' ? viewer : {};
     const out = {};
-    if (['1', '2', '3'].includes(String(v.quality))) out.quality = String(v.quality);
+    // Kịch bản cũ ghi Thấp / Vừa / Cao (1-3): đổi sang mức tương ứng (480p, 720p, 4K)
+    if (v.quality !== undefined && validQuality(v.quality) !== QUALITY_AUTO) out.quality = validQuality(v.quality);
     if (['0', '1'].includes(String(v.skyLighting))) out.skyLighting = String(v.skyLighting);
     if (Number(v.scaleFactor) >= 0.5 && Number(v.scaleFactor) <= 2) out.scaleFactor = Number(v.scaleFactor);
     if (v.hideControls === false) out.hideControls = false;

@@ -445,13 +445,11 @@
                         <div class="settings-group-body">
                             <small class="field-hint viewer-lead">Cài đặt sẵn khi mở link. Người xem vẫn tự đổi được trong Cài đặt; mục họ đã tự chọn trước đó thì giữ theo họ.</small>
                             <div class="field">
-                                <label>Chất lượng<button type="button" class="help-tip" data-help="viewerQuality" aria-label="Giải thích">?</button></label>
-                                <div class="segmented viewer-quality" role="group" aria-label="Chất lượng">
-                                    <button type="button" data-value="" onclick="setViewerOption('quality', '')">Tự động</button>
-                                    <button type="button" data-value="1" onclick="setViewerOption('quality', '1')">Thấp</button>
-                                    <button type="button" data-value="2" onclick="setViewerOption('quality', '2')">Vừa</button>
-                                    <button type="button" data-value="3" onclick="setViewerOption('quality', '3')">Cao</button>
-                                </div>
+                                <label for="viewer-quality">Chất lượng<button type="button" class="help-tip" data-help="viewerQuality" aria-label="Giải thích">?</button></label>
+                                <!-- Các mức 144p ... 4320p 8K do builder.js thêm vào (player/quality.js) -->
+                                <select id="viewer-quality">
+                                    <option value="">Tự động (khuyên dùng)</option>
+                                </select>
                             </div>
                             <div class="field">
                                 <label>Ánh sáng bầu trời<button type="button" class="help-tip" data-help="viewerSky" aria-label="Giải thích">?</button></label>
@@ -1061,7 +1059,7 @@
                             hoặc tự chọn 1 trong 8 pha và vị trí. Trăng trôi chậm theo một cung.</li>
                         <li><strong>Trang trí:</strong> 🏮 đèn trời, 🎈 khinh khí cầu, ✈️ máy bay; chọn được nhiều thứ.</li>
                         <li><strong>Khói pháo:</strong> như pháo thật, mỗi quả nổ để lại khói trắng trôi theo gió, được
-                            những quả sau rọi màu. "Nhẹ" thoáng qua, "Dày" đặc và lâu tan. Người xem đặt chất lượng Thấp
+                            những quả sau rọi màu. "Nhẹ" thoáng qua, "Dày" đặc và lâu tan. Người xem đặt chất lượng 480p trở xuống
                             thì không có khói.</li>
                         <li><strong>Mặt nước:</strong> chiếm 1/3 hoặc nửa màn hình; pháo bắn từ mép nước và phản chiếu
                             xuống nước (độ cao 0 của mỗi phát là mặt nước). Chọn hồ tĩnh lặng hoặc sông chảy, thả 🪷 hoa
@@ -1074,8 +1072,9 @@
                     <ul>
                         <li>Đặt sẵn cách xem khi mở link. Người xem vẫn tự đổi được trong Cài đặt; mục họ đã tự chọn
                             trước đó thì giữ theo họ.</li>
-                        <li><strong>Chất lượng:</strong> "Tự động" (khuyên dùng) theo sức máy người xem, giật thì tự hạ
-                            bậc; "Cao" vẽ đầy đủ nhất; "Thấp" nhẹ nhất cho máy yếu.</li>
+                        <li><strong>Chất lượng:</strong> theo độ phân giải như trang xem phim, từ 144p tới 4320p (8K). "Tự động"
+                            (khuyên dùng) theo màn hình và sức máy người xem, giật thì tự hạ xuống; từ 1080p (Full HD) trở lên
+                            vẽ đầy đủ mọi hiệu ứng; 480p trở xuống nhẹ nhất cho máy yếu.</li>
                         <li><strong>Ánh sáng bầu trời, thu phóng:</strong> trời sáng lên theo màu pháo (Tắt, Mờ, Bình
                             thường); cỡ pháo theo màn hình người xem hoặc cố định.</li>
                         <li><strong>Toàn màn hình khi mở quà, hiện nút điều khiển:</strong> chạm mở quà là vào toàn màn hình
