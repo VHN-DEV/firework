@@ -11,15 +11,15 @@
 // ---------------------------------------------------------------------------
 // Bảng màu & kích thước của builder
 // ---------------------------------------------------------------------------
-$b-bg: #0b0d14;
-$b-panel: #12151f;
-$b-panel-2: #171b27;
-$b-raised: #1d2232;
-$b-line: rgba(255, 255, 255, 0.07);
-$b-line-strong: rgba(255, 255, 255, 0.13);
-$b-text: #e8ebf3;
-$b-muted: #8f98ad;
-$b-faint: #5d667b;
+$b-bg: #0e1119;
+$b-panel: #1b1f2c;
+$b-panel-2: #212636;
+$b-raised: #2a3044;
+$b-line: rgba(255, 255, 255, 0.09);
+$b-line-strong: rgba(255, 255, 255, 0.16);
+$b-text: #eef1f7;
+$b-muted: #aab2c4;
+$b-faint: #848da3;
 $b-accent: #7c6cff;
 $b-accent-2: #b46cff;
 $b-gold: #f5b443;
@@ -190,7 +190,7 @@ button {
         border-color: $b-line-strong;
 
         &:hover:not(:disabled) {
-            background: #252b3e;
+            background: #343b52;
         }
     }
 
@@ -304,7 +304,7 @@ select {
     }
 
     &:hover {
-        border-color: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.26);
     }
 
     &:focus {
@@ -506,7 +506,7 @@ select.is-invalid {
     justify-content: space-between;
     gap: 1rem;
     padding: 0 1.25rem;
-    background: rgba(11, 13, 20, 0.8);
+    background: rgba($b-bg, 0.8);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid $b-line;
@@ -768,7 +768,7 @@ select.is-invalid {
 .timeline-panel,
 .preview-card,
 .inspector {
-    background: rgba(18, 21, 31, 0.85);
+    background: rgba($b-panel, 0.85);
     border: 1px solid $b-line;
     border-radius: $b-radius + 4px;
 }
@@ -1638,7 +1638,7 @@ select.is-invalid {
     align-items: center;
     gap: 0.7rem;
     padding: 0.8rem 0.75rem 0.8rem 1rem;
-    background: rgba(18, 21, 31, 0.96);
+    background: rgba($b-panel, 0.96);
     backdrop-filter: blur(8px);
     border-bottom: 1px solid $b-line;
 
@@ -1798,7 +1798,7 @@ select.is-invalid {
 
         &:hover {
             color: $b-text;
-            background: #262c40;
+            background: #343b52;
         }
     }
 }
@@ -3129,7 +3129,7 @@ select.is-invalid {
 
 .share-preview-image {
     aspect-ratio: 1200 / 630;
-    background: linear-gradient(110deg, #12151f 30%, #1d2232 50%, #12151f 70%) 0 0 / 300% 100%;
+    background: linear-gradient(110deg, $b-panel 30%, $b-raised 50%, $b-panel 70%) 0 0 / 300% 100%;
     animation: share-shimmer 1.4s linear infinite;
 
     img {
