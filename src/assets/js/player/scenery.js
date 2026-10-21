@@ -714,7 +714,7 @@ const WaterLife = {
                         kind: i === 0 || Math.random() < 0.5 ? 'male' : 'female',
                         state: 'fly', dir, x: (dir > 0 ? -30 : cssW + 30) - dir * i * rand(14, 22), y: y0 + rand(-8, 8),
                         d: Math.min(0.95, d + rand(-0.06, 0.06)), tx: tx + (i - n / 2) * rand(14, 24), vx: 0, vy: 0,
-                        flap: rand(0, 200), stay: rand(14000, 26000), feed: rand(2000, 6000), dive: 0, paddle: rand(0, 900),
+                        flap: rand(0, 200), seed: Math.random(), stay: rand(14000, 26000), feed: rand(2000, 6000), dive: 0, paddle: rand(0, 900),
                         turn: rand(4000, 9000)
                     });
                 }
@@ -874,7 +874,7 @@ const WaterLife = {
                 draw: () => this.drawBird(ctx, bird, bird.log ? 'stand' : 'swim', this.scale(bird.log ? bird.log.d : bird.d))
             })),
             ...this.ducks.filter(duck => duck.state === 'swim' || duck.state === 'dabble').map(duck => ({
-                d: duck.d, draw: () => this.drawDuck(ctx, duck, duck.state, this.scale(duck.d), k)
+                d: duck.d, draw: () => this.drawDuck(ctx, duck, duck.state, this.scale(duck.d), k, time)
             }))
         ];
     },
@@ -947,27 +947,14 @@ const WaterLife = {
         }
     },
 
-    drawDuck(ctx, duck, pose, s, k) {
+    drawDuck(ctx, duck, pose, s, k, time = 0) {
         const sprite = duckSprite(duck.kind, pose);
         const w = 24 * s;
         const h = w * 28 / 40;
         const onWater = pose === 'swim' || pose === 'dabble';
-        // Đang bơi: vệt sóng chữ V phía sau
+        // Đang bơi: vệt sóng tách ra phía sau theo hướng bơi
         if (pose === 'swim' && Math.abs(duck.vx) > 0.004) {
-            const rear = duck.x - duck.dir * 6 * s;
-            const len = 24 * s;
-            const grad = ctx.createLinearGradient(rear, 0, rear - duck.dir * len, 0);
-            grad.addColorStop(0, 'rgba(205, 222, 255, 0.32)');
-            grad.addColorStop(1, 'rgba(205, 222, 255, 0)');
-            ctx.globalAlpha = 1;
-            ctx.strokeStyle = grad;
-            ctx.lineWidth = 1 / k;
-            ctx.beginPath();
-            ctx.moveTo(rear, duck.y);
-            ctx.lineTo(rear - duck.dir * len, duck.y - len * 0.14);
-            ctx.moveTo(rear, duck.y);
-            ctx.lineTo(rear - duck.dir * len, duck.y + len * 0.14);
-            ctx.stroke();
+            drawWakeTrail(ctx, duck.x - Math.sign(duck.vx) * 4 * s, duck.y, 5 * s, s, k, time, duck.seed, -Math.sign(duck.vx), 0.45);
         }
         ctx.save();
         ctx.globalAlpha = 0.95;
@@ -1270,61 +1257,73 @@ function moundSprite(variant) {
     return c;
 }
 
-// Nước chảy qua vật đứng yên (đá, gò đất) hoặc trôi chậm hơn dòng (gỗ, lá bèo, hoa đăng...): sóng dồn ôm phía thượng nguồn
-// (bên trái), hai vệt nước rẽ ra và bọt trôi đi phía hạ nguồn, xoáy nhỏ sau đá. Hồ thì chỉ có vòng sóng lăn tăn lan
-// quanh vật. strength: 1 đá, gò đất; 0,2-0,4 vật trôi. Tọa độ điểm ảnh CSS (lớp đã nhân k).
+// Vệt sóng sau vật: những mảnh vòng sóng nhỏ tách ra từ hai bên đuôi vật, trôi ra sau, nở rộng, dạt dần sang hai bên
+// rồi tan; mảnh này chưa tan mảnh khác đã tới, mỗi lượt một dáng (chỗ tách, độ cong, độ dài cung) nên mềm và sống như
+// nước thật chứ không cứng như hai nét kẻ. Không lưu trạng thái: mỗi mảnh là một pha thời gian.
+// dir: 1 vệt kéo về bên phải (hạ nguồn), -1 bên trái; strength 0-1. Tọa độ điểm ảnh CSS (lớp đã nhân k).
+function drawWakeTrail(ctx, x, y, half, s, k, time, seed, dir, strength) {
+    const count = Math.round(4 + strength * 8);
+    const life = 1600 + 1600 * strength;
+    const reach = half * 0.5 + (12 + 40 * strength) * s;
+    ctx.lineWidth = Math.max(1 / k, (0.5 + strength * 0.6) * s);
+    ctx.strokeStyle = 'rgb(208, 224, 255)';
+    for (let i = 0; i < count; i++) {
+        const t = time / life + i / count + seed * 7;
+        const cycle = Math.floor(t);
+        const p = t - cycle;
+        const h1 = hash(cycle * 13.7 + i * 3.1 + seed * 91);
+        const h2 = hash(cycle * 7.3 + i * 5.9 + seed * 37);
+        const side = i % 2 ? 1 : -1;
+        const ease = 1 - (1 - p) * (1 - p);
+        const cx = x + dir * (half * (0.55 + h1 * 0.35) + reach * ease) + Math.sin(time * 0.0021 + i * 1.7 + seed * 5) * s;
+        const cy = y + side * (half * 0.1 + 1 * s + (2.5 + 6 * strength) * s * ease * (0.6 + h1 * 0.8));
+        const r = (2 + 4.5 * p + 3.5 * h2) * s * (0.7 + strength * 0.5);
+        const span = 0.45 + h2 * 0.8;
+        // Cung phía ngoài vệt (mảnh phía xa cong lên, mảnh phía gần cong xuống), hơi ngả về phía sau
+        const mid = (side < 0 ? Math.PI * 1.5 : Math.PI * 0.5) - dir * side * 0.45;
+        ctx.globalAlpha = Math.min(1, p * 6) * Math.pow(1 - p, 1.2) * (0.3 + 0.4 * strength);
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, r, r * 0.3, 0, mid - span, mid + span);
+        ctx.stroke();
+    }
+}
+
+// Nước quanh vật trên sông, hồ: vòng sóng lăn tăn lan quanh (vật dập dềnh); sông thì thêm sóng dồn chập chờn ôm phía
+// thượng nguồn (bên trái), vệt sóng sau vật trôi về hạ nguồn, bọt lấm tấm sau đá. strength: 1 đá, gò đất; 0,15-0,4 vật
+// trôi theo dòng.
 function drawFlowMarks(ctx, x, y, half, s, k, time, seed, river, strength) {
-    const thin = 1 / k;
-    ctx.lineWidth = thin;
+    ctx.lineWidth = 1 / k;
     ctx.strokeStyle = 'rgb(205, 222, 255)';
     for (let i = 0; i < 2; i++) {
         const p = (time * (river ? 0.0005 : 0.00032) + seed + i * 0.5) % 1;
         const rx = half * (1.02 + p * (river ? 0.45 : 0.8)) + 2.5 * s;
-        ctx.globalAlpha = (1 - p) * (river ? 0.13 : 0.2) * (0.6 + strength * 0.4);
+        ctx.globalAlpha = (1 - p) * (river ? 0.11 : 0.2) * (0.6 + strength * 0.4);
         ctx.beginPath();
         ctx.ellipse(x, y, rx, rx * 0.2 + 1.2 * s, 0, 0, Math.PI * 2);
         ctx.stroke();
     }
     if (!river) return;
-    const spread = half * 0.2 + 1.4 * s;
     ctx.strokeStyle = 'rgb(225, 236, 255)';
-    ctx.globalAlpha = (0.22 + 0.14 * Math.sin(time * 0.006 + seed * 9)) * (0.4 + strength * 0.6);
-    ctx.lineWidth = Math.max(thin, 1.1 * s * strength);
-    ctx.beginPath();
-    ctx.ellipse(x, y, half + 1.5 * s, spread + 0.6 * s, 0, Math.PI * 0.6, Math.PI * 1.4);
-    ctx.stroke();
-    const len = half * (0.7 + strength * 0.9) + 14 * s;
-    const grad = ctx.createLinearGradient(x + half * 0.7, 0, x + half + len, 0);
-    grad.addColorStop(0, `rgba(205, 222, 255, ${0.1 + 0.3 * strength})`);
-    grad.addColorStop(1, 'rgba(205, 222, 255, 0)');
-    ctx.globalAlpha = 1;
-    ctx.strokeStyle = grad;
-    ctx.lineWidth = thin;
-    ctx.beginPath();
-    [-1, 1].forEach(side => {
-        ctx.moveTo(x + half * 0.7, y + side * spread * 0.6);
-        ctx.quadraticCurveTo(x + half + len * 0.3, y + side * spread * 1.4, x + half + len, y + side * spread * (2.2 + strength * 1.4));
-    });
-    ctx.stroke();
-    ctx.fillStyle = 'rgb(215, 230, 255)';
-    const n = Math.round(3 + strength * 6);
-    for (let i = 0; i < n; i++) {
-        const p = (time * 0.0004 * (1 + hash(seed * 31 + i)) + hash(seed * 17 + i)) % 1;
-        const fx = x + half * 0.85 + p * len;
-        const fy = y + (hash(seed * 7 + i) - 0.5) * spread * 2.2 * (0.4 + p);
-        ctx.globalAlpha = (1 - p) * (0.2 + 0.35 * strength);
-        ctx.fillRect(fx, fy, (2 + hash(i + seed * 3) * 5) * s, Math.max(thin, 0.6 * s));
+    for (let i = 0; i < 3; i++) {
+        const a = Math.PI * (0.78 + i * 0.22) + Math.sin(time * 0.0035 + seed * 7 + i * 2.3) * 0.1;
+        const rx = half + (1.2 + Math.sin(time * 0.005 + i + seed * 3) * 0.6) * s;
+        ctx.globalAlpha = Math.max(0, 0.1 + 0.14 * Math.sin(time * 0.006 + seed * 9 + i * 2.1)) * (0.4 + strength * 0.6);
+        ctx.beginPath();
+        ctx.ellipse(x, y, rx, rx * 0.22 + 0.6 * s, 0, a - 0.16, a + 0.16);
+        ctx.stroke();
     }
+    drawWakeTrail(ctx, x, y, half, s, k, time, seed, 1, strength);
+    ctx.lineWidth = 1 / k;
     if (strength > 0.8) {
-        ctx.strokeStyle = 'rgb(205, 222, 255)';
-        for (let i = 0; i < 2; i++) {
-            const p = (time * 0.00035 + seed + i * 0.5) % 1;
-            const r = (2.5 + p * 3.5) * s;
-            const spin = time * 0.004 * (i ? 1 : -1);
-            ctx.globalAlpha = Math.sin(p * Math.PI) * 0.22;
-            ctx.beginPath();
-            ctx.ellipse(x + half + len * (0.15 + p * 0.45), y + (i ? 1 : -1) * spread * 1.3, r, r * 0.3, 0, spin, spin + Math.PI * 1.4);
-            ctx.stroke();
+        ctx.fillStyle = 'rgb(215, 230, 255)';
+        for (let i = 0; i < 6; i++) {
+            const t = time * 0.00035 * (1 + hash(seed * 31 + i) * 0.6) + hash(seed * 17 + i);
+            const p = t % 1;
+            const jitter = hash(Math.floor(t) * 5.1 + i + seed * 11) - 0.5;
+            const fx = x + half * 0.8 + p * (half * 0.9 + 30 * s);
+            const fy = y + jitter * (half * 0.25 + 6 * s) * (0.5 + p);
+            ctx.globalAlpha = Math.min(1, p * 5) * (1 - p) * 0.35;
+            ctx.fillRect(fx, fy, (1 + hash(i + seed * 3) * 2.5) * s, Math.max(1 / k, 0.6 * s));
         }
     }
 }
