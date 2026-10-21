@@ -102,6 +102,11 @@ export async function run(browser, base, { check }) {
         await page.evaluate(() => document.getElementById('tap-to-launch').click());
         // Tắt "Cho người nhận chụp ảnh, tạo video, chia sẻ"
         await page.evaluate(() => document.getElementById('receiver-share').click());
+        // Tóm tắt nhóm vẽ lại ở khung hình kế tiếp (máy chậm như máy chạy CI thì trễ hơn): chờ rồi mới đọc
+        await page.waitForFunction(() => {
+            const text = document.querySelector('[data-summary="viewer"]').textContent;
+            return text.includes('Khóa chạm bắn pháo') && text.includes('Khóa chia sẻ');
+        }, { timeout: 5000 }).catch(() => {});
         const tapSummary = await page.$eval('[data-summary="viewer"]', e => e.textContent);
 
         // Lưu qua API PHP

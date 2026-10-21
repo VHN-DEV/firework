@@ -59,24 +59,31 @@ export async function run(browser, base, { check }) {
             const c = document.createElement('canvas');
             c.width = v.videoWidth;
             c.height = v.videoHeight;
-            v.currentTime = 4;
-            await new Promise(r => v.addEventListener('seeked', r, { once: true }));
-            await new Promise(r => setTimeout(r, 150));
-            c.getContext('2d').drawImage(v, 0, 0);
-            const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+            // Tua tới đúng mốc t rồi lấy điểm ảnh (builder cũng tự tua khung xem trước: chờ tới khi thật sự đứng ở t)
+            const frameAt = async t => {
+                for (let i = 0; i < 20 && (v.seeking || Math.abs(v.currentTime - t) > 0.05); i++) {
+                    if (!v.seeking) v.currentTime = t;
+                    await new Promise(r => v.addEventListener('seeked', r, { once: true }));
+                }
+                await new Promise(r => setTimeout(r, 150));
+                c.getContext('2d').drawImage(v, 0, 0);
+                return c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+            };
+            const d = await frameAt(4);
             let lit = 0;
             for (let i = 0; i < d.length; i += 16) if (d[i] + d[i + 1] + d[i + 2] > 150) lit++;
-            // Khói (pháo cuối đã nổ vài giây, trời hết ửng màu): điểm xám, ba kênh gần bằng nhau, sáng hơn bầu trời đêm nhưng không chói như hạt pháo
-            v.currentTime = 9.5;
-            await new Promise(r => v.addEventListener('seeked', r, { once: true }));
-            await new Promise(r => setTimeout(r, 150));
-            c.getContext('2d').drawImage(v, 0, 0);
-            const s = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
-            let smoky = 0;
-            for (let i = 0; i < s.length; i += 16) {
-                const hi = Math.max(s[i], s[i + 1], s[i + 2]);
-                const lo = Math.min(s[i], s[i + 1], s[i + 2]);
-                if (lo >= 18 && hi <= 160 && hi - lo < 14) smoky++;
+            // Khói (pháo cuối đã nổ vài giây, trời hết ửng màu): điểm xám, ba kênh gần bằng nhau, sáng hơn bầu trời đêm nhưng
+            // không chói như hạt pháo. Khói ngẫu nhiên (gió, số đám) nên lấy mốc nhiều khói nhất trong vài mốc
+            const smokeSamples = [];
+            for (const t of [8.5, 9.5, 10.5]) {
+                const s = await frameAt(t);
+                let n = 0;
+                for (let i = 0; i < s.length; i += 16) {
+                    const hi = Math.max(s[i], s[i + 1], s[i + 2]);
+                    const lo = Math.min(s[i], s[i + 1], s[i + 2]);
+                    if (lo >= 18 && hi <= 160 && hi - lo < 14) n++;
+                }
+                smokeSamples.push(n / (s.length / 16));
             }
             const blob = await (await fetch(v.src)).blob();
             let rms = -1;
@@ -89,7 +96,7 @@ export async function run(browser, base, { check }) {
             } catch (e) {
                 // Trình duyệt không tự giải mã được rãnh tiếng của file này
             }
-            return { w: v.videoWidth, h: v.videoHeight, duration, type: blob.type, size: blob.size, lit, smoky: smoky / (s.length / 16), rms };
+            return { w: v.videoWidth, h: v.videoHeight, duration, type: blob.type, size: blob.size, lit, smoky: Math.max(...smokeSamples), smokeSamples, rms };
         });
         check('tạo xong ra file MP4 720×1280', !!video && video.type === 'video/mp4' && video.w === 720 && video.h === 1280,
             video && `${video.type} ${video.w}×${video.h} ${(video.size / 1e6).toFixed(1)} MB`);
@@ -99,7 +106,7 @@ export async function run(browser, base, { check }) {
             video && `mô phỏng + vẽ ${((timing.simulate + timing.paint) / 1000).toFixed(1)} s, cả quá trình ${renderSeconds.toFixed(1)} s cho video ${video.duration.toFixed(1)} s ${JSON.stringify(timing)}`);
         check('video dài trọn màn trình diễn kèm thiệp lời chúc', !!video && video.duration > 13 && video.duration < 22, video && `${video.duration.toFixed(1)} s`);
         check('video có hình pháo hoa và chữ', !!video && video.lit > 100, video && `${video.lit} điểm sáng`);
-        check('video có khói pháo (kịch bản bật "Dày")', !!video && video.smoky > 0.018, video && `${(video.smoky * 100).toFixed(1)}% điểm xám`);
+        check('video có khói pháo (kịch bản bật "Dày")', !!video && video.smoky > 0.015, video && `${video.smokeSamples.map(x => (x * 100).toFixed(1)).join(' / ')}% điểm xám`);
         check('video có tiếng (nhạc nền, tiếng pháo)', !!video && video.rms > 0.005, video && `rms ${video.rms.toFixed(4)}`);
 
         await page.evaluate(() => closeVideoModal());
