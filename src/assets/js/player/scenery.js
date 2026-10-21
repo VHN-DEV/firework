@@ -7,12 +7,15 @@
 // Cảnh vật theo kịch bản:
 // - Mặt nước: đường chân trời (điểm phóng pháo) nâng lên 1/3 hoặc nửa màn hình; phần dưới là mặt nước phản chiếu
 //   bầu trời (pháo, khói, trang trí, ảnh nền) lật ngược, gợn sóng, mờ dần theo độ sâu.
-// - Trang trí: đèn trời bay lên chậm và khinh khí cầu trôi ngang, đều tự phát sáng (hợp với cách ghép lớp "lighten").
+// - Bầu trời đêm: sao lấp lánh, mặt trăng đúng pha (theo ngày xem hoặc tự chọn) trôi chậm theo một cung.
+// - Trang trí: đèn trời bay lên chậm, khinh khí cầu trôi ngang, máy bay (chỉ thấy đèn nhấp nháy); đều tự phát sáng
+//   (hợp với cách ghép lớp "lighten").
 // Cả hai vẽ trên lớp canvas riêng; nhiều thứ được vẽ sẵn một lần thành ảnh nhỏ để mỗi khung hình chỉ cần chép ảnh.
 
 import MyMath from '../MyMath.js';
 import { IS_MOBILE } from './env.js';
 import { horizon, reduceFlashing } from './state.js';
+import { moonIllumination } from './moon.js';
 
 // Độ phân giải lớp mặt nước so với điểm ảnh CSS (bóng phản chiếu vốn mờ, gợn sóng); điện thoại thấp hơn cho nhẹ máy
 export const WATER_RESOLUTION = IS_MOBILE ? 0.35 : 0.5;
@@ -233,31 +236,162 @@ function burnerGlow() {
     return c;
 }
 
+// Mặt trăng: đĩa sáng đúng pha (bên phải sáng khi trăng tròn dần, bên trái khi khuyết dần, như nhìn từ Việt Nam),
+// phần tối mờ nhạt (ánh đất), vài vùng biển tối và quầng sáng. Vẽ sẵn theo pha và cỡ.
+function moonLitPath(g, r, fraction) {
+    // k = 1 lúc trăng mới, -1 lúc trăng tròn: bề rộng đường ranh sáng tối
+    const k = Math.cos(fraction * Math.PI * 2);
+    g.beginPath();
+    g.arc(0, 0, r, -Math.PI / 2, Math.PI / 2, false);
+    if (k >= 0) g.ellipse(0, 0, r * k, r, 0, Math.PI / 2, -Math.PI / 2, true);
+    else g.ellipse(0, 0, -r * k, r, 0, Math.PI / 2, Math.PI * 1.5, false);
+    g.closePath();
+}
+
+function moonSprite(fraction, radius, scale) {
+    const key = `moon${fraction.toFixed(3)}_${radius.toFixed(1)}_${scale}`;
+    if (sprites[key]) return sprites[key];
+    Object.keys(sprites).filter(name => name.startsWith('moon')).forEach(name => delete sprites[name]);
+    const r = radius * scale;
+    const size = Math.ceil(r * 7);
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const g = c.getContext('2d');
+    const lit = moonIllumination(fraction);
+    g.translate(size / 2, size / 2);
+    // Quầng sáng, đậm theo phần trăng được chiếu sáng
+    const halo = g.createRadialGradient(0, 0, r * 0.9, 0, 0, r * 3.4);
+    halo.addColorStop(0, `rgba(255, 248, 225, ${0.22 * lit})`);
+    halo.addColorStop(1, 'rgba(255, 248, 225, 0)');
+    g.fillStyle = halo;
+    g.fillRect(-size / 2, -size / 2, size, size);
+    // Phần tối: ánh đất rất mờ (trăng mới gần như không thấy)
+    g.fillStyle = 'rgba(120, 128, 150, 0.07)';
+    g.beginPath();
+    g.arc(0, 0, r, 0, Math.PI * 2);
+    g.fill();
+    // Phần sáng: đường dẫn dựng trong hệ lật ngang (trăng khuyết dần) rồi cắt theo nó
+    g.save();
+    if (fraction > 0.5) g.scale(-1, 1);
+    moonLitPath(g, r, fraction);
+    g.restore();
+    g.save();
+    g.clip();
+    const face = g.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, 0, r);
+    face.addColorStop(0, '#fffdf4');
+    face.addColorStop(1, '#e6dfc8');
+    g.fillStyle = face;
+    g.fillRect(-r, -r, r * 2, r * 2);
+    // Vùng biển tối: các mảng loang mềm
+    [[-0.28, -0.22, 0.34], [0.18, -0.3, 0.26], [0.02, 0.16, 0.36], [-0.36, 0.3, 0.2], [0.38, 0.08, 0.2], [-0.05, -0.02, 0.22]]
+        .forEach(([x, y, rr]) => {
+            const blot = g.createRadialGradient(x * r, y * r, 0, x * r, y * r, rr * r);
+            blot.addColorStop(0, 'rgba(140, 136, 122, 0.3)');
+            blot.addColorStop(0.6, 'rgba(140, 136, 122, 0.16)');
+            blot.addColorStop(1, 'rgba(140, 136, 122, 0)');
+            g.fillStyle = blot;
+            g.fillRect(x * r - rr * r, y * r - rr * r, rr * r * 2, rr * r * 2);
+        });
+    g.restore();
+    sprites[key] = c;
+    return c;
+}
+
+// Máy bay đêm: chỉ thấy đèn. Đèn đỏ, xanh ở hai đầu cánh, đèn đỏ chớp trên thân, đèn trắng chớp đôi ở đầu cánh
+function drawPlane(ctx, item, calm) {
+    const s = item.scale;
+    const dir = item.vx > 0 ? 1 : -1;
+    const light = (dx, color, alpha, size) => {
+        const x = item.x + dx * s, y = item.y;
+        ctx.globalAlpha = alpha * 0.35;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, size * 3 * s, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.arc(x, y, size * s, 0, Math.PI * 2);
+        ctx.fill();
+    };
+    const t = item.t;
+    // Đầu cánh trái màu đỏ, phải màu xanh; bay sang trái thì đổi bên
+    light(-7 * dir, '#ff4d4d', 0.85, 0.9);
+    light(7 * dir, '#4dff88', 0.85, 0.9);
+    light(-1.5 * dir, '#ffffff', 0.35, 0.6);
+    if (calm) return;
+    const beacon = t % 1100 < 120;
+    if (beacon) light(0, '#ff3030', 1, 1.2);
+    const strobe = t % 1500;
+    if (strobe < 60 || (strobe > 160 && strobe < 220)) {
+        light(-7 * dir, '#ffffff', 1, 1.3);
+        light(7 * dir, '#ffffff', 1, 1.3);
+    }
+}
+
+const STAR_COLORS = ['255, 255, 255', '210, 225, 255', '255, 240, 215', '190, 210, 255'];
+
 export const Decor = {
-    kind: '',
+    scene: null,
     items: [],
+    stars: [],
+    moon: null,
     width: 0,
     height: 0,
+    clock: 0,
     drawn: false,
 
-    // Kiểu trang trí của kịch bản và kích thước khung (CSS px); đổi thì rải lại
-    sync(kind, cssW, cssH) {
-        if (kind === this.kind && Math.abs(cssW - this.width) < 2 && Math.abs(cssH - this.height) < 2) return;
-        this.kind = kind;
+    // scene: { decor: ['lanterns', 'balloons', 'planes'], stars: '' | 'few' | 'many', moon: { fraction, x, y } | null,
+    // background } hoặc null; cssW, cssH: kích thước khung. Đổi cảnh hoặc cỡ khung thì rải lại.
+    sync(scene, cssW, cssH) {
+        if (scene === this.scene && Math.abs(cssW - this.width) < 2 && Math.abs(cssH - this.height) < 2) return;
+        this.scene = scene;
         this.width = cssW;
         this.height = cssH;
         this.items = [];
-        if (!kind || !cssW || !cssH) return;
-        const lanterns = kind === 'lanterns' || kind === 'both';
-        const balloons = kind === 'balloons' || kind === 'both';
-        if (lanterns) {
+        this.stars = [];
+        this.moon = null;
+        if (!scene || !cssW || !cssH) return;
+        const decor = scene.decor || [];
+        if (decor.includes('lanterns')) {
             const count = IS_MOBILE ? 9 : 16;
             for (let i = 0; i < count; i++) this.items.push(this.lantern(true));
         }
-        if (balloons) {
+        if (decor.includes('balloons')) {
             const count = IS_MOBILE ? 2 : 3;
             for (let i = 0; i < count; i++) this.items.push(this.balloon(i, count, true));
         }
+        if (decor.includes('planes')) this.items.push(this.plane(MyMath.random(1000, 4000)));
+        if (scene.stars) {
+            const count = { few: IS_MOBILE ? 40 : 70, many: IS_MOBILE ? 90 : 170 }[scene.stars] || 0;
+            const ground = this.groundY();
+            // Có ảnh nền thành phố: sao chỉ ở phần trời phía trên
+            const band = scene.background ? 0.45 : 0.92;
+            for (let i = 0; i < count; i++) {
+                this.stars.push({
+                    x: Math.random() * cssW,
+                    y: Math.pow(Math.random(), 1.3) * ground * band,
+                    size: Math.random() < 0.08 ? MyMath.random(1.5, 2) : MyMath.random(0.6, 1.4),
+                    color: STAR_COLORS[(Math.random() * STAR_COLORS.length) | 0],
+                    alpha: MyMath.random(0.45, 1),
+                    twinkle: Math.random() * Math.PI * 2,
+                    speed: MyMath.random(0.0015, 0.004)
+                });
+            }
+        }
+        if (scene.moon) {
+            const ground = this.groundY();
+            this.moon = {
+                fraction: scene.moon.fraction,
+                x: scene.moon.x / 100 * cssW,
+                // Độ cao tính từ đường chân trời (0) tới đỉnh khung (100)
+                y: ground * (1 - scene.moon.y / 100),
+                radius: MyMath.clamp(Math.min(cssW, ground) * 0.05, 14, 34)
+            };
+        }
+    },
+
+    active() {
+        return this.items.length > 0 || this.stars.length > 0 || !!this.moon;
     },
 
     groundY() {
@@ -298,8 +432,23 @@ export const Decor = {
         };
     },
 
+    // Máy bay bay ngang trên cao, đợi một lúc (wait, ms) mới xuất hiện
+    plane(wait) {
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        return {
+            type: 'plane',
+            wait,
+            x: dir > 0 ? -20 : this.width + 20,
+            y: MyMath.random(0.06, 0.3) * this.groundY(),
+            vx: dir * MyMath.random(0.02, 0.035),
+            scale: MyMath.random(0.8, 1.25),
+            t: Math.random() * 1500
+        };
+    },
+
     update(timeStep) {
-        if (!this.items.length) return;
+        if (!this.active()) return;
+        this.clock += timeStep;
         const ground = this.groundY();
         this.items.forEach((item, i) => {
             if (item.type === 'lantern') {
@@ -308,6 +457,14 @@ export const Decor = {
                 item.phase += timeStep * 0.0011;
                 item.flicker += timeStep * 0.012;
                 if (item.y < -20) this.items[i] = this.lantern(false);
+            } else if (item.type === 'plane') {
+                if (item.wait > 0) {
+                    item.wait -= timeStep;
+                    return;
+                }
+                item.t += timeStep;
+                item.x += item.vx * timeStep;
+                if (item.x < -30 || item.x > this.width + 30) this.items[i] = this.plane(MyMath.random(8000, 22000));
             } else {
                 item.x += item.vx * timeStep;
                 item.bob += timeStep * 0.0009;
@@ -325,9 +482,15 @@ export const Decor = {
         });
     },
 
+    // Bầu trời quay rất chậm: trăng trôi theo một cung, sao trôi theo (ít hơn)
+    skyDrift() {
+        const angle = this.clock / 240000 * Math.PI * 2;
+        return { x: Math.sin(angle) * this.width * 0.035, y: (1 - Math.cos(angle)) * this.groundY() * 0.03 };
+    },
+
     render(ctx) {
         const { width: W, height: H } = ctx.canvas;
-        if (!this.items.length) {
+        if (!this.active()) {
             if (this.drawn) ctx.clearRect(0, 0, W, H);
             this.drawn = false;
             return;
@@ -339,6 +502,27 @@ export const Decor = {
         ctx.clearRect(0, 0, W, H);
         ctx.setTransform(k, 0, 0, k, 0, 0);
         const ground = this.groundY();
+        const drift = this.skyDrift();
+
+        // Sao: lấp lánh nhẹ, mờ dần sát chân trời
+        this.stars.forEach(star => {
+            const x = (star.x + drift.x * 0.6 + this.width) % this.width;
+            const y = star.y + drift.y * 0.6;
+            const near = Math.min(1, Math.max(0, (ground - y) / (ground * 0.15)));
+            const twinkle = calm ? 0.85 : 0.65 + 0.35 * Math.sin(star.twinkle + this.clock * star.speed);
+            ctx.globalAlpha = star.alpha * twinkle * near;
+            ctx.fillStyle = `rgb(${star.color})`;
+            ctx.fillRect(x - star.size / 2, y - star.size / 2, star.size, star.size);
+        });
+
+        if (this.moon) {
+            const { fraction, radius } = this.moon;
+            const sprite = moonSprite(fraction, radius, k);
+            const size = sprite.width / k;
+            ctx.globalAlpha = 1;
+            ctx.drawImage(sprite, this.moon.x + drift.x - size / 2, this.moon.y + drift.y - size / 2, size, size);
+        }
+
         const lantern = lanternSprite();
         this.items.forEach(item => {
             if (item.type === 'lantern') {
@@ -350,6 +534,8 @@ export const Decor = {
                 ctx.globalAlpha = Math.max(0, fadeIn * fadeTop * glow);
                 const w = item.size * 2.2;
                 ctx.drawImage(lantern, x - w / 2, item.y - w * 0.7, w, w * 64 / 48);
+            } else if (item.type === 'plane') {
+                if (item.wait <= 0) drawPlane(ctx, item, calm);
             } else {
                 const y = item.y + Math.sin(item.bob) * 4;
                 const w = item.size;

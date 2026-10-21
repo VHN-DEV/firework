@@ -37,6 +37,7 @@ import { imageParticleCache, getProcessedImage, ImageBurst } from './player/imag
 import { Shell } from './player/shell.js';
 import { Smoke, SMOKE_RESOLUTION } from './player/smoke.js';
 import { Water, Decor, WATER_RESOLUTION } from './player/scenery.js';
+import { MOON_PHASES, moonFraction } from './player/moon.js';
 import { START_FRAMES, frameText } from './player/start-frames.js';
 import { clearCaptions, showCaption } from './player/captions.js';
 
@@ -316,8 +317,31 @@ setSmokeLevel(() => (isLowQuality || !burstConfig ? 0 : SMOKE_LEVELS[burstConfig
 const WATER_LEVELS = { third: 2 / 3, half: 0.5 };
 const horizonSelector = () => (burstConfig && WATER_LEVELS[burstConfig.water]) || 1;
 setHorizon(horizonSelector);
-const DECOR_KINDS = ['lanterns', 'balloons', 'both'];
-const decorSelector = () => (burstConfig && DECOR_KINDS.includes(burstConfig.decor) ? burstConfig.decor : '');
+// Bầu trời đêm theo kịch bản: sao, trăng, trang trí. Kịch bản cũ ghi decor dạng chữ ("both" = đèn trời + khinh khí cầu).
+const DECOR_KINDS = ['lanterns', 'balloons', 'planes'];
+const DECOR_ALIASES = { lanterns: ['lanterns'], balloons: ['balloons'], both: ['lanterns', 'balloons'] };
+const clampPercent = (value, fallback) => (Number.isFinite(Number(value)) ? Math.max(0, Math.min(100, Number(value))) : fallback);
+let skyCache = { config: undefined, background: undefined, scene: null };
+// Tính lại khi đổi kịch bản hoặc bật/tắt ảnh nền; trăng "theo ngày" lấy pha của lúc người xem mở
+function sceneSelector() {
+    const background = !!store.state.config.showBackground;
+    if (skyCache.config === burstConfig && skyCache.background === background) return skyCache.scene;
+    let scene = null;
+    if (burstConfig) {
+        const decor = Array.isArray(burstConfig.decor)
+            ? burstConfig.decor.filter(kind => DECOR_KINDS.includes(kind))
+            : DECOR_ALIASES[burstConfig.decor] || [];
+        const stars = ['few', 'many'].includes(burstConfig.stars) ? burstConfig.stars : '';
+        const m = burstConfig.moon;
+        const phase = m && Number.isInteger(Number(m.phase)) ? MOON_PHASES[Math.max(0, Math.min(7, Number(m.phase)))] : null;
+        const moon = m && typeof m === 'object'
+            ? { fraction: phase ? phase.fraction : moonFraction(new Date()), x: clampPercent(m.x, 78), y: clampPercent(m.y, 80) }
+            : null;
+        if (decor.length || stars || moon) scene = { decor, stars, moon, background };
+    }
+    skyCache = { config: burstConfig, background, scene };
+    return scene;
+}
 
 // Ảnh nền đứng trên mép nước khi có mặt nước
 function applyScenery(config) {
@@ -1959,8 +1983,10 @@ function handleResize() {
     smokeCanvas.style.height = containerH + 'px';
     frameW = containerW;
     frameH = containerH;
-    decoCanvas.width = containerW;
-    decoCanvas.height = containerH;
+    // Nét theo mật độ điểm ảnh của màn hình (tối đa 2) để trăng, sao không nhòe
+    const decoScale = Math.min(2, window.devicePixelRatio || 1);
+    decoCanvas.width = Math.round(containerW * decoScale);
+    decoCanvas.height = Math.round(containerH * decoScale);
     decoCanvas.style.width = containerW + 'px';
     decoCanvas.style.height = containerH + 'px';
     waterCanvas.width = Math.round(containerW * WATER_RESOLUTION);
@@ -2036,7 +2062,7 @@ function update(frameTime, lag) {
     updateGlobals(timeStep, lag);
     ImageBurst.updateAll(timeStep);
     const smokeOn = Smoke.active();
-    Decor.sync(decorSelector(), frameW, frameH);
+    Decor.sync(sceneSelector(), frameW, frameH);
     Decor.update(timeStep);
     Smoke.update(timeStep);
 
@@ -2325,7 +2351,7 @@ function render(speed) {
     // Mặt nước phản chiếu mọi thứ phía trên (vẽ sau cùng để bắt kịp khung hình này)
     Water.render(waterCtx, {
         // Lớp đang trống (không trang trí, không khói) thì bỏ qua cho nhẹ máy
-        sources: [Decor.items.length && decoCanvas, Smoke.count() && smokeCanvas, trailsStage.canvas, mainStage.canvas],
+        sources: [Decor.active() && decoCanvas, Smoke.count() && smokeCanvas, trailsStage.canvas, mainStage.canvas],
         background: store.state.config.showBackground ? appNodes.backgroundImage : null,
         sky: currentSkyColor,
         cssW: frameW,

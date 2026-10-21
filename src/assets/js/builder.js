@@ -9,6 +9,7 @@ import qrcode from 'qrcode-generator';
 import { renderShareImage } from './share-image.js';
 import { OCCASIONS, buildTemplate } from './templates.js';
 import { analyzeMusic, buildBeatShow, KEEP_SHELLS } from './beat-sync.js';
+import { MOON_PHASES, moonFraction, moonPhaseIndex, moonIllumination } from './player/moon.js';
 import { eventTimes, layoutBursts, isPauseEvent, BURST_MS } from './timeline.js';
 import { createTimelineTrack } from './timeline-track.js';
 import { EMOJI_GROUPS } from './text-emojis.js';
@@ -42,7 +43,10 @@ const state = {
     smoke: '',
     // Cảnh vật: mặt nước ('' không, 'third' 1/3, 'half' nửa màn hình), trang trí ('lanterns', 'balloons', 'both')
     water: '',
-    decor: '',
+    // Bầu trời đêm: trang trí (danh sách), sao ('' / 'few' / 'many'), trăng ({ phase: 'auto' | 0-7, x, y } hoặc null)
+    decor: [],
+    stars: '',
+    moon: null,
     background: null,
     // Nhạc nền { url, name, volume (0-1), start (giây) } và âm lượng tiếng pháo (0-1)
     music: null,
@@ -232,6 +236,14 @@ document.addEventListener('DOMContentLoaded', () => {
     renderSchedule();
     renderSmoke();
     renderScene();
+    renderSky();
+    // Vị trí trăng: kéo thanh trượt thì xem nhanh cập nhật
+    ['x', 'y'].forEach(axis => document.getElementById('moon-' + axis)?.addEventListener('input', (e) => {
+        if (!state.moon) return;
+        state.moon = { ...state.moon, [axis]: Number(e.target.value) };
+        document.getElementById('out-moon-' + axis).textContent = e.target.value;
+        refreshMiniPreview();
+    }));
 
     // Dải mẫu theo dịp ẩn khi bắt đầu tự soạn
     document.getElementById('title')?.addEventListener('input', updateTemplateStrip);
@@ -647,8 +659,11 @@ function createNewScript() {
         state.smoke = '';
         renderSmoke();
         state.water = '';
-        state.decor = '';
         renderScene();
+        state.decor = [];
+        state.stars = '';
+        state.moon = null;
+        renderSky();
 
         // Reset background
         state.showBackground = false;
@@ -1061,7 +1076,12 @@ const HELP_TIPS = {
         + 'khói, đèn trời và ảnh nền (ảnh nền đứng trên mép nước). Độ cao 0 của mỗi phát bắn là mặt nước, nên bố cục cũ vẫn giữ nguyên, '
         + 'chỉ thu gọn vào phần trời.',
     decor: '<strong>Đèn trời</strong>: những chiếc đèn lồng giấy chập chờn bay lên chậm. <strong>Khinh khí cầu</strong>: vài khinh khí cầu '
-        + 'trôi ngang, thỉnh thoảng bừng sáng khi đốt lửa. Chỉ để trang trí, không ảnh hưởng tới các phát bắn.',
+        + 'trôi ngang, thỉnh thoảng bừng sáng khi đốt lửa. <strong>Máy bay</strong>: thỉnh thoảng một chiếc bay ngang trên cao, ban đêm chỉ '
+        + 'thấy đèn đỏ, xanh ở hai đầu cánh và đèn chớp. Chỉ để trang trí, không ảnh hưởng tới các phát bắn; bật Giảm chớp sáng thì đèn không chớp.',
+    stars: 'Sao lấp lánh nhẹ trên bầu trời, mờ dần sát chân trời và trôi chậm cùng trăng. Có ảnh nền thành phố thì sao chỉ ở phần trời phía trên.',
+    moon: '<strong>Theo ngày xem</strong>: trăng đúng pha của hôm người nhận mở (tính theo chu kỳ 29,53 ngày; rằm thì trăng tròn). '
+        + '<strong>Tự chọn</strong>: chọn 1 trong 8 pha. Trăng trôi chậm theo một cung, phản chiếu xuống mặt nước nếu có. '
+        + 'Độ cao tính từ chân trời (0) tới đỉnh khung (100).',
     smoke: 'Như pháo hoa thật: mỗi quả nổ để lại một đám khói trắng, đường bay lên có vệt khói mảnh. Khói nở dần, trôi theo gió rồi tan, '
         + 'và được những quả nổ sau rọi màu. <strong>Nhẹ</strong>: thoáng qua. <strong>Dày</strong>: đám khói đặc, lâu tan. '
         + 'Máy người xem đặt chất lượng Thấp thì không có khói để khỏi giật.',
@@ -2165,7 +2185,9 @@ function getFinalConfig() {
         showBackground: state.showBackground,
         smoke: state.smoke || undefined,
         water: state.water || undefined,
-        decor: state.decor || undefined,
+        decor: state.decor.length ? [...state.decor] : undefined,
+        stars: state.stars || undefined,
+        moon: state.moon ? { ...state.moon } : undefined,
         background: state.background,
         music: state.music ? { ...state.music } : undefined,
         effectsVolume: state.effectsVolume < 1 ? state.effectsVolume : undefined,
@@ -2660,12 +2682,18 @@ function settingsSummaries() {
         state.showBackground && 'Ảnh nền',
         state.smoke === 'light' ? 'Khói nhẹ' : state.smoke === 'heavy' ? 'Khói dày' : '',
         state.water === 'third' ? 'Mặt nước 1/3' : state.water === 'half' ? 'Mặt nước nửa' : '',
-        { lanterns: 'Đèn trời', balloons: 'Khinh khí cầu', both: 'Đèn trời, khinh khí cầu' }[state.decor] || '',
         state.reduceFlashing && 'Giảm chớp sáng',
         checked('loop') ? 'Lặp lại' : 'Chạy một lượt'
     ].filter(Boolean);
+    const moon = state.moon;
+    const sky = [
+        !moon ? '' : moon.phase === 'auto' ? 'Trăng theo ngày' : `${MOON_PHASES[moon.phase].emoji} ${MOON_PHASES[moon.phase].name}`,
+        { few: 'Ít sao', many: 'Nhiều sao' }[state.stars] || '',
+        state.decor.map(kind => DECOR_NAMES[kind]).join(', ')
+    ].filter(Boolean);
     const filename = value('filename');
     return {
+        sky: sky.join(' · ') || 'Không có',
         basics: value('title') || 'Chưa có tiêu đề',
         gift: [frame.name, recipient && `Gửi ${recipient}`, state.openAt && 'Hẹn giờ'].filter(Boolean).join(' · '),
         sound: music ? musicName + (music.sync ? ' · khớp nhịp' : '') : 'Chưa có nhạc',
@@ -2737,15 +2765,93 @@ function setSmoke(level) {
     refreshMiniPreview();
 }
 
-// Mặt nước, trang trí bầu trời (nhóm "Khung cảnh & hiệu ứng")
-function setWater(level) {
-    state.water = level;
-    renderScene();
+// Bầu trời đêm (nhóm "Bầu trời đêm"): sao, trăng, trang trí
+const DECOR_NAMES = { lanterns: 'Đèn trời', balloons: 'Khinh khí cầu', planes: 'Máy bay' };
+
+function setStars(level) {
+    state.stars = level;
+    renderSky();
     refreshMiniPreview();
 }
 
-function setDecor(kind) {
-    state.decor = kind;
+// mode: '' không có trăng, 'auto' theo ngày người nhận xem, 'pick' tự chọn pha
+function setMoonMode(mode) {
+    if (!mode) state.moon = null;
+    else {
+        const current = state.moon || { x: 78, y: 80 };
+        const phase = mode === 'auto' ? 'auto' : (Number.isInteger(current.phase) ? current.phase : moonPhaseIndex(moonFraction()));
+        state.moon = { ...current, phase };
+    }
+    renderSky();
+    refreshMiniPreview();
+}
+
+function setMoonPhase(index) {
+    state.moon = { ...(state.moon || { x: 78, y: 80 }), phase: index };
+    renderSky();
+    refreshMiniPreview();
+}
+
+function toggleDecor(kind) {
+    state.decor = state.decor.includes(kind) ? state.decor.filter(k => k !== kind) : [...state.decor, kind];
+    renderSky();
+    refreshMiniPreview();
+}
+
+function renderSky() {
+    const mark = (selector, attr, value) => document.querySelectorAll(selector).forEach(btn => {
+        const on = typeof value === 'function' ? value(btn.dataset[attr]) : btn.dataset[attr] === value;
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-pressed', String(on));
+    });
+    const moon = state.moon;
+    const mode = !moon ? '' : moon.phase === 'auto' ? 'auto' : 'pick';
+    mark('.sky-stars [data-stars]', 'stars', state.stars || '');
+    mark('.sky-moon [data-moon]', 'moon', mode);
+    mark('.scene-decor [data-decor]', 'decor', kind => state.decor.includes(kind));
+    const phases = document.getElementById('moon-phases');
+    phases.classList.toggle('hide', mode !== 'pick');
+    phases.innerHTML = MOON_PHASES.map((p, i) => `
+        <button type="button" class="${mode === 'pick' && moon.phase === i ? 'active' : ''}" onclick="setMoonPhase(${i})"
+            title="${p.name}" aria-label="${p.name}">${p.emoji}</button>`).join('');
+    const hint = document.getElementById('moon-hint');
+    if (mode === 'auto') {
+        const fraction = moonFraction();
+        const today = MOON_PHASES[moonPhaseIndex(fraction)];
+        hint.textContent = `Hôm nay: ${today.emoji} ${today.name} (sáng ${Math.round(moonIllumination(fraction) * 100)}%). `
+            + 'Người nhận mở vào hôm khác sẽ thấy trăng của hôm đó.';
+    } else if (mode === 'pick') {
+        hint.textContent = `${MOON_PHASES[moon.phase].emoji} ${MOON_PHASES[moon.phase].name}`;
+    } else {
+        hint.textContent = '';
+    }
+    hint.classList.toggle('hide', !mode);
+    document.getElementById('moon-position').classList.toggle('hide', !mode);
+    if (moon) {
+        document.getElementById('moon-x').value = moon.x;
+        document.getElementById('moon-y').value = moon.y;
+        document.getElementById('out-moon-x').textContent = moon.x;
+        document.getElementById('out-moon-y').textContent = moon.y;
+    }
+    scheduleSettingsSummaries();
+}
+
+// Kịch bản cũ ghi trang trí dạng chữ ("both" = đèn trời + khinh khí cầu)
+function normalizeDecor(decor) {
+    if (Array.isArray(decor)) return decor.filter(kind => DECOR_NAMES[kind]);
+    return { lanterns: ['lanterns'], balloons: ['balloons'], both: ['lanterns', 'balloons'] }[decor] || [];
+}
+
+function normalizeMoon(moon) {
+    if (!moon || typeof moon !== 'object') return null;
+    const percent = (value, fallback, min, max) => (Number.isFinite(Number(value)) ? Math.max(min, Math.min(max, Math.round(Number(value)))) : fallback);
+    const phase = Number.isInteger(Number(moon.phase)) && moon.phase !== '' ? Math.max(0, Math.min(7, Number(moon.phase))) : 'auto';
+    return { phase, x: percent(moon.x, 78, 5, 95), y: percent(moon.y, 80, 15, 95) };
+}
+
+// Mặt nước (nhóm "Khung cảnh & hiệu ứng")
+function setWater(level) {
+    state.water = level;
     renderScene();
     refreshMiniPreview();
 }
@@ -2753,11 +2859,6 @@ function setDecor(kind) {
 function renderScene() {
     document.querySelectorAll('.scene-water [data-water]').forEach(btn => {
         const on = btn.dataset.water === (state.water || '');
-        btn.classList.toggle('active', on);
-        btn.setAttribute('aria-pressed', String(on));
-    });
-    document.querySelectorAll('.scene-decor [data-decor]').forEach(btn => {
-        const on = btn.dataset.decor === (state.decor || '');
         btn.classList.toggle('active', on);
         btn.setAttribute('aria-pressed', String(on));
     });
@@ -4332,8 +4433,11 @@ function loadConfigIntoState(config, filename) {
     state.smoke = ['light', 'heavy'].includes(config.smoke) ? config.smoke : '';
     renderSmoke();
     state.water = ['third', 'half'].includes(config.water) ? config.water : '';
-    state.decor = ['lanterns', 'balloons', 'both'].includes(config.decor) ? config.decor : '';
     renderScene();
+    state.decor = normalizeDecor(config.decor);
+    state.stars = ['few', 'many'].includes(config.stars) ? config.stars : '';
+    state.moon = normalizeMoon(config.moon);
+    renderSky();
     state.background = config.background || null;
     state.music = config.music && typeof config.music.url === 'string' ? { ...config.music } : null;
     const effectsVolume = Number(config.effectsVolume);
@@ -4644,7 +4748,7 @@ Object.assign(window, {
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
     togglePreviewMusic, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
-    hideModal, setStartFrame, undo, redo, setOpenMode, setSmoke, setWater, setDecor, openLibrary, closeLibrary, setLibraryTag,
+    hideModal, setStartFrame, undo, redo, setOpenMode, setSmoke, setWater, setStars, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
     toggleLibraryPreview, chooseLibraryItem, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
     openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, prepareVideo, stopVideo, downloadVideo, shareVideo,
     restartVideo, setTimelineView, zoomTrack, copyTrackingLink, enableOpenNotifications, checkGiftOpens

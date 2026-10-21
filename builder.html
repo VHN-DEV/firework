@@ -323,6 +323,56 @@
                             </div>
                         </div>
                     </details>
+                    <details class="settings-group" data-group="sky">
+                        <summary><i class="fas fa-moon"></i><span class="summary-title">Bầu trời đêm</span><span class="summary-hint" data-summary="sky"></span></summary>
+                        <div class="settings-group-body">
+                            <div class="field">
+                                <label>Sao<button type="button" class="help-tip" data-help="stars" aria-label="Giải thích">?</button></label>
+                                <div class="segmented sky-stars" role="group" aria-label="Sao">
+                                    <button type="button" data-stars="" onclick="setStars('')">Không</button>
+                                    <button type="button" data-stars="few" onclick="setStars('few')">Ít</button>
+                                    <button type="button" data-stars="many" onclick="setStars('many')">Nhiều</button>
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label>Trăng<button type="button" class="help-tip" data-help="moon" aria-label="Giải thích">?</button></label>
+                                <div class="segmented sky-moon" role="group" aria-label="Trăng">
+                                    <button type="button" data-moon="" onclick="setMoonMode('')">Không</button>
+                                    <button type="button" data-moon="auto" onclick="setMoonMode('auto')">Theo ngày</button>
+                                    <button type="button" data-moon="pick" onclick="setMoonMode('pick')">Tự chọn</button>
+                                </div>
+                                <div id="moon-phases" class="moon-phases hide" role="group" aria-label="Pha trăng"></div>
+                                <small id="moon-hint" class="field-hint"></small>
+                                <div id="moon-position" class="grid-2 moon-position hide">
+                                    <div>
+                                        <div class="field-label-row">
+                                            <label for="moon-x">Vị trí ngang</label>
+                                            <output id="out-moon-x"></output>
+                                        </div>
+                                        <input type="range" id="moon-x" min="5" max="95" step="1">
+                                    </div>
+                                    <div>
+                                        <div class="field-label-row">
+                                            <label for="moon-y">Độ cao</label>
+                                            <output id="out-moon-y"></output>
+                                        </div>
+                                        <input type="range" id="moon-y" min="15" max="95" step="1">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label>Trang trí<button type="button" class="help-tip" data-help="decor" aria-label="Giải thích">?</button></label>
+                                <div class="segmented scene-decor" role="group" aria-label="Trang trí bầu trời">
+                                    <button type="button" data-decor="lanterns" onclick="toggleDecor('lanterns')">🏮 Đèn trời</button>
+                                    <button type="button" data-decor="balloons" onclick="toggleDecor('balloons')">🎈 Khinh khí cầu</button>
+                                    <button type="button" data-decor="planes" onclick="toggleDecor('planes')">✈️ Máy bay</button>
+                                </div>
+                                <small class="field-hint">Bấm để bật/tắt từng thứ, chọn được nhiều</small>
+                            </div>
+                        </div>
+                    </details>
                     <details class="settings-group" data-group="scene">
                         <summary><i class="fas fa-mountain-sun"></i><span class="summary-title">Khung cảnh & hiệu ứng</span><span class="summary-hint" data-summary="scene"></span></summary>
                         <div class="settings-group-body">
@@ -363,16 +413,6 @@
                                     <button type="button" data-water="half" onclick="setWater('half')">Nửa</button>
                                 </div>
                                 <small class="field-hint">Mặt nước chiếm 1/3 hoặc nửa màn hình: pháo bắn lên từ mép nước, bóng pháo phản chiếu lung linh dưới nước</small>
-                            </div>
-
-                            <div class="field">
-                                <label>Trang trí bầu trời<button type="button" class="help-tip" data-help="decor" aria-label="Giải thích">?</button></label>
-                                <div class="segmented scene-decor" role="group" aria-label="Trang trí bầu trời">
-                                    <button type="button" data-decor="" onclick="setDecor('')">Không</button>
-                                    <button type="button" data-decor="lanterns" onclick="setDecor('lanterns')">🏮 Đèn trời</button>
-                                    <button type="button" data-decor="balloons" onclick="setDecor('balloons')">🎈 Khinh khí cầu</button>
-                                    <button type="button" data-decor="both" onclick="setDecor('both')">Cả hai</button>
-                                </div>
                             </div>
 
                             <label class="switch-row" for="reduce-flashing">
@@ -884,6 +924,10 @@
                         <li><strong>Khói pháo:</strong> như pháo hoa thật, mỗi quả nổ để lại đám khói trắng trôi theo gió,
                             được những quả nổ sau rọi màu. "Nhẹ" thoáng qua, "Dày" đặc và lâu tan. Máy đặt chất lượng
                             Thấp thì không có khói.</li>
+                        <li><strong>Mặt nước:</strong> nâng chân trời lên 1/3 hoặc nửa màn hình; pháo bắn từ mép nước và phản
+                            chiếu xuống nước. Độ cao 0 của mỗi phát bắn là mặt nước.</li>
+                        <li><strong>Bầu trời đêm:</strong> sao, trăng (đúng pha của hôm người nhận xem, hoặc tự chọn 1 trong 8 pha
+                            và vị trí), đèn trời, khinh khí cầu, máy bay.</li>
                         <li><strong>Giảm chớp sáng:</strong> cho người nhạy cảm với ánh sáng nhấp nháy (hạt không chớp tắt,
                             không có quầng chớp lúc nổ). Người xem cũng tự bật được bằng nút trên màn mở quà.</li>
                         <li><strong>Tên file:</strong> dùng để lưu và tạo link chia sẻ. Trùng tên sẽ tự thêm số.</li>

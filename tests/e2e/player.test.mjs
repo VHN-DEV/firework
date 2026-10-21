@@ -8,6 +8,7 @@
 import fs from 'fs';
 import path from 'path';
 import { DIST, sleep, openPage, writeConfig, removeConfig, writeMelody, litPixels } from './helpers.mjs';
+import { MOON_PHASES, moonFraction, moonPhaseIndex } from '../../src/assets/js/player/moon.js';
 
 const SHELLS = ['Hoa cúc', 'Liễu', 'Cây cọ', 'Xoay vòng', 'Xoắn ốc', 'Cháy lâu', 'Vòng nhẫn', 'Nổ chéo', 'Nổ lách tách',
     'Nhấp nháy', 'Đuôi ngựa', 'Ma', 'Nổ nhiều lần', 'Trái tim', 'Ngôi sao', 'Kim cương', 'Bông tuyết', 'Bông sen',
@@ -203,6 +204,34 @@ export async function run(browser, base, { check }) {
             scene.water > 0.001 && scene.sky === 0 && scene.sparksBelow === 0, JSON.stringify(scene));
         check('trang trí: đèn trời, khinh khí cầu hiện trên trời', scene.deco > 0.001, scene.deco.toFixed(4));
         check('cảnh vật không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
+        await page.close();
+
+        // ---- Bầu trời đêm: pha trăng theo ngày (so với các kỳ trăng mới/tròn đã biết), trăng đúng chỗ, sao
+        const phaseOf = iso => MOON_PHASES[moonPhaseIndex(moonFraction(new Date(iso)))].name;
+        const known = [['2024-04-08T18:21Z', 'Trăng mới'], ['2024-04-23T23:49Z', 'Trăng tròn'], ['2025-09-07T18:09Z', 'Trăng tròn'],
+            ['2025-09-21T19:54Z', 'Trăng mới'], ['2026-10-18T16:13Z', 'Bán nguyệt đầu tháng']];
+        const wrong = known.filter(([iso, name]) => phaseOf(iso) !== name);
+        check('pha trăng theo ngày khớp các kỳ trăng mới, tròn, bán nguyệt đã biết', wrong.length === 0, JSON.stringify(wrong));
+        page = await openPage(browser);
+        await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
+            { loop: true, events: [], stars: 'many', moon: { phase: 4, x: 25, y: 70 } });
+        await sleep(1500);
+        const sky = await page.evaluate(() => {
+            const c = document.getElementById('deco-canvas');
+            const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+            let moonX = 0, moonY = 0, moon = 0, stars = 0;
+            for (let y = 0; y < c.height; y++) {
+                for (let x = 0; x < c.width; x++) {
+                    const i = (y * c.width + x) * 4;
+                    if (d[i] > 225 && d[i + 1] > 220 && d[i + 3] > 240) { moonX += x; moonY += y; moon++; } else if (d[i + 3] > 40) stars++;
+                }
+            }
+            return { x: moonX / moon / c.width, y: moonY / moon / c.height, moon, stars };
+        });
+        check('trăng tròn hiện đúng chỗ đã chọn (25% ngang, 70% độ cao)',
+            sky.moon > 300 && Math.abs(sky.x - 0.25) < 0.05 && Math.abs(sky.y - 0.3) < 0.06, JSON.stringify(sky));
+        check('sao lấp lánh trên trời', sky.stars > 100, sky.stars);
         await page.close();
 
         // Người nhận mở link tặng trên máy đã đặt chất lượng Thấp (xem nhanh không đọc cài đặt đã lưu)

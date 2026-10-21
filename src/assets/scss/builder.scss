@@ -3242,8 +3242,50 @@ select.is-invalid {
 
 .segmented.beat-density,
 .segmented.smoke-levels,
-.segmented.scene-water {
+.segmented.scene-water,
+.segmented.sky-stars,
+.segmented.sky-moon,
+.segmented.scene-decor {
     grid-template-columns: repeat(3, 1fr);
+}
+
+// 8 pha trăng (biểu tượng)
+.moon-phases {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 3px;
+    margin-top: 0.45rem;
+
+    &.hide {
+        display: none;
+    }
+
+    button {
+        min-height: 34px;
+        padding: 0;
+        border: 1px solid $b-line;
+        border-radius: 8px;
+        background: $b-bg;
+        font-size: 1.05rem;
+        line-height: 1;
+
+        &:hover {
+            border-color: rgba($b-accent, 0.6);
+        }
+
+        &.active {
+            border-color: $b-accent;
+            background: rgba($b-accent, 0.25);
+        }
+    }
+}
+
+.moon-position {
+    margin-top: 0.6rem;
+
+    &.hide {
+        display: none;
+    }
 }
 
 .burst-time {
