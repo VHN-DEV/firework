@@ -699,6 +699,27 @@ function duplicateEvent(id) {
 // Giá trị dùng khi người dùng xóa trống các ô bắt buộc (thiếu "Đợt" thì phát bắn không bao giờ được bắn)
 const REQUIRED_NUMBER_DEFAULTS = { burst: 1, x: 50, y: 50, size: 1, delay: 0 };
 
+// Biểu tượng chèn nhanh vào pháo chữ: chọn loại có mảng màu rõ, nổ trên trời vẫn nhận ra hình
+const TEXT_EMOJIS = ['❤️', '💖', '💕', '💝', '🌹', '🌸', '🌻', '🌷', '⭐', '🌟', '✨', '🌙', '☀️', '🎆', '🎇', '🎉',
+    '🎂', '🎁', '🎈', '🎓', '🏆', '🥇', '💍', '👑', '🍀', '🧧', '🏮', '🐉', '🐱', '🐶', '😊', '😍', '🥰', '😘', '👍', '🇻🇳'];
+
+// Chèn biểu tượng vào chỗ con trỏ trong ô chữ, không vượt quá giới hạn ký tự của ô
+function insertTextEmoji(id, emoji) {
+    const input = document.getElementById('f-text');
+    if (!input) return;
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? start;
+    const value = input.value.slice(0, start) + emoji + input.value.slice(end);
+    if (value.length > input.maxLength) {
+        notify('Nội dung chữ đã đủ dài, không chèn thêm được.', 'warning');
+        return;
+    }
+    input.value = value;
+    input.focus();
+    input.setSelectionRange(start + emoji.length, start + emoji.length);
+    updateEvent(id, 'text', value);
+}
+
 function updateEvent(id, field, value) {
     const event = state.events.find(e => e.id === id);
     if (event) {
@@ -1338,9 +1359,15 @@ function renderInspector() {
         specific = `
             <div>
                 <label for="f-text">Nội dung chữ${helpTip('text')}</label>
-                <input type="text" id="f-text" value="${escapeHtml(event.text)}" placeholder="VD: HAPPY BIRTHDAY" maxlength="60"
-                    oninput="updateEvent(${event.id}, 'text', this.value)">
-                <small class="field-hint">Có thể dùng [YEAR], [LUNAR_YEAR], [SINCE:2000].</small>
+                <div class="input-with-btn">
+                    <input type="text" id="f-text" value="${escapeHtml(event.text)}" placeholder="VD: HAPPY BIRTHDAY" maxlength="60"
+                        oninput="updateEvent(${event.id}, 'text', this.value)">
+                    <button type="button" title="Chèn biểu tượng" onclick="document.getElementById('emoji-grid').classList.toggle('hide')">😊</button>
+                </div>
+                <div id="emoji-grid" class="emoji-grid hide">
+                    ${TEXT_EMOJIS.map(e => `<button type="button" onclick="insertTextEmoji(${event.id}, '${e}')">${e}</button>`).join('')}
+                </div>
+                <small class="field-hint">Có thể dùng [YEAR], [LUNAR_YEAR], [SINCE:2000]. Biểu tượng nổ ra giữ màu gốc của nó.</small>
             </div>`;
     } else if (event.shell === 'Hình ảnh') {
         specific = `
@@ -4317,7 +4344,7 @@ function playMiniPreviewOnce() {
 Object.assign(window, {
     toggleMiniPreview, togglePreviewDevice, toggleFullscreenMiniPreview, playMiniPreviewOnce, restartMiniPreview,
     createNewScript, selectEvent, closeInspector, addEventFromUI, addBurst, removeEvent, duplicateEvent, updateEvent,
-    handleShellChange, changeBurst, toggleEventColor, addColorToEvent, addCustomColor, removeColorFromEvent,
+    handleShellChange, insertTextEmoji, changeBurst, toggleEventColor, addColorToEvent, addCustomColor, removeColorFromEvent,
     rememberSection, editScript, duplicateScript, deleteScript, previewScript, copyShareLink, copyScriptLink,
     openScriptsModal, exportConfig, previewConfig, saveConfig, toggleSidebar, toggleMoreMenu, showModal,
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,

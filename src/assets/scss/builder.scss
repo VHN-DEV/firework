@@ -482,6 +482,54 @@ input[type="range"] {
     }
 }
 
+// Ô nhập kèm nút nhỏ bên phải (vd nút chèn biểu tượng)
+.input-with-btn {
+    display: flex;
+
+    input {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    button {
+        width: 42px;
+        flex-shrink: 0;
+        border: 1px solid $b-line-strong;
+        border-left: none;
+        border-radius: 0 $b-radius-sm $b-radius-sm 0;
+        background: $b-raised;
+        font-size: 1.05rem;
+
+        &:hover {
+            background: #343b52;
+        }
+    }
+}
+
+// Bảng biểu tượng chèn vào pháo chữ
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+    gap: 0.25rem;
+    margin-top: 0.4rem;
+    padding: 0.4rem;
+    border: 1px solid $b-line;
+    border-radius: $b-radius-sm;
+    background: $b-panel-2;
+
+    button {
+        height: 36px;
+        border: none;
+        border-radius: 8px;
+        background: none;
+        font-size: 1.25rem;
+
+        &:hover {
+            background: rgba($b-accent, 0.18);
+        }
+    }
+}
+
 input.is-invalid,
 select.is-invalid {
     border-color: $b-danger !important;
