@@ -1101,6 +1101,10 @@ async function prepareBurstConfig(burstConfig, { showOverlay }) {
             setLoadingStatus('Đang chuẩn bị hình ảnh...');
             await Promise.all(imagePromises);
         }
+        // Dựng sẵn hạt cho các phát pháo chữ (lúc người xem còn ở màn mở quà) để lúc nổ không bị khựng
+        burstConfig.events.forEach(event => {
+            if (event.text && event.shell !== 'Lời nhắn' && event.shell !== 'Tạm dừng') buildEventShot(event);
+        });
     }
 
     if (!showOverlay) return burstConfig;
@@ -2051,6 +2055,13 @@ function updateGlobals(timeStep, lag) {
 }
 
 
+// Bỏ phần tử thứ i: đưa phần tử cuối vào chỗ của nó thay vì splice (splice dồn cả mảng, hàng nghìn tia lửa tắt mỗi
+// khung thành hàng triệu thao tác). Vòng cập nhật chạy ngược nên phần tử cuối đã được cập nhật trong khung này.
+function removeAt(list, i) {
+    const last = list.pop();
+    if (i < list.length) list[i] = last;
+}
+
 function update(frameTime, lag) {
     if (!isRunning()) return;
     // Kịch bản khớp nhịp: chờ nhạc kêu rồi pháo mới bay tiếp
@@ -2089,7 +2100,7 @@ function update(frameTime, lag) {
                 star.life = 0; // Buộc nổ khi đạt tới độ cao mục tiêu hoặc bắt đầu rơi xuống
             }
             if (star.life <= 0) {
-                stars.splice(i, 1);
+                removeAt(stars, i);
                 Star.returnInstance(star);
             } else {
                 const burnRate = Math.pow(star.life / star.fullLife, 0.5);
@@ -2157,7 +2168,7 @@ function update(frameTime, lag) {
                     if (star.secondColor && !star.colorChanged) {
                         star.colorChanged = true;
                         star.color = star.secondColor;
-                        stars.splice(i, 1);
+                        removeAt(stars, i);
                         if (!Star.active[star.secondColor]) Star.active[star.secondColor] = [];
                         Star.active[star.secondColor].push(star);
                         if (star.secondColor === INVISIBLE) {
@@ -2185,7 +2196,7 @@ function update(frameTime, lag) {
             const spark = sparks[i];
             spark.life -= timeStep;
             if (spark.life <= 0) {
-                sparks.splice(i, 1);
+                removeAt(sparks, i);
                 Spark.returnInstance(spark);
             } else {
                 spark.prevX = spark.x;
@@ -2299,14 +2310,15 @@ function render(speed) {
         
         trailsCtx.strokeStyle = color;
         trailsCtx.beginPath();
-        stars.forEach(star => {
+        for (let i = 0; i < stars.length; i++) {
+            const star = stars[i];
             if (star.visible) {
                 trailsCtx.moveTo(star.x, star.y);
                 trailsCtx.lineTo(star.prevX, star.prevY);
                 mainCtx.moveTo(star.x, star.y);
                 mainCtx.lineTo(star.x - star.speedX * 1.6, star.y - star.speedY * 1.6);
             }
-        });
+        }
         trailsCtx.stroke();
     });
     mainCtx.stroke();
@@ -2321,10 +2333,11 @@ function render(speed) {
 
         trailsCtx.strokeStyle = color;
         trailsCtx.beginPath();
-        sparks.forEach(spark => {
+        for (let i = 0; i < sparks.length; i++) {
+            const spark = sparks[i];
             trailsCtx.moveTo(spark.x, spark.y);
             trailsCtx.lineTo(spark.prevX, spark.prevY);
-        });
+        }
         trailsCtx.stroke();
     });
 

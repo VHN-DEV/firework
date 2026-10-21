@@ -26,8 +26,19 @@ export const WATER_RESOLUTION = IS_MOBILE ? 0.35 : 0.5;
 const backgroundImages = new Map();
 
 // Ảnh nền đang hiện (CSS background-image) để phản chiếu, cùng vị trí trong khung
+// Đọc lại kiểu CSS của ảnh nền tối đa 4 lần mỗi giây (không phải mỗi khung hình)
+let backgroundCache = { el: null, at: 0, value: null };
 function backgroundOf(el) {
     if (!el) return null;
+    const now = performance.now();
+    if (backgroundCache.el === el && now - backgroundCache.at < 250 && (!backgroundCache.value || backgroundCache.value.image.complete)) {
+        return backgroundCache.value;
+    }
+    backgroundCache = { el, at: now, value: readBackground(el) };
+    return backgroundCache.value;
+}
+
+function readBackground(el) {
     const style = getComputedStyle(el);
     const opacity = parseFloat(style.opacity);
     const match = style.backgroundImage.match(/url\(["']?(.*?)["']?\)/);
@@ -38,7 +49,9 @@ function backgroundOf(el) {
         image.src = match[1];
         backgroundImages.set(match[1], image);
     }
-    return image.complete && image.naturalWidth ? { image, opacity } : null;
+    if (!image.complete || !image.naturalWidth) return null;
+    const box = el.getBoundingClientRect();
+    return { image, opacity, width: box.width, height: box.height };
 }
 
 let mirror = null;
@@ -593,8 +606,7 @@ export const Water = {
         const bg = backgroundOf(background);
         if (bg) {
             // Ảnh nền đứng trên mép nước: phủ kín phần trời, canh đáy
-            const box = background.getBoundingClientRect();
-            const scale = Math.max(box.width / bg.image.naturalWidth, box.height / bg.image.naturalHeight);
+            const scale = Math.max(bg.width / bg.image.naturalWidth, bg.height / bg.image.naturalHeight);
             const w = bg.image.naturalWidth * scale;
             const h = bg.image.naturalHeight * scale;
             m.globalAlpha = bg.opacity;
@@ -1016,12 +1028,13 @@ export const Decor = {
                     x: Math.random() * cssW,
                     y: Math.pow(Math.random(), 1.3) * ground * band,
                     size: Math.random() < 0.08 ? MyMath.random(1.5, 2) : MyMath.random(0.6, 1.4),
-                    color: STAR_COLORS[(Math.random() * STAR_COLORS.length) | 0],
+                    fill: `rgb(${STAR_COLORS[(Math.random() * STAR_COLORS.length) | 0]})`,
                     alpha: MyMath.random(0.45, 1),
                     twinkle: Math.random() * Math.PI * 2,
                     speed: MyMath.random(0.0015, 0.004)
                 });
             }
+            this.stars.sort((a, b) => (a.fill < b.fill ? -1 : a.fill > b.fill ? 1 : 0));
         }
         if (scene.moon) {
             const ground = this.groundY();
@@ -1149,14 +1162,18 @@ export const Decor = {
         const ground = this.groundY();
         const drift = this.skyDrift();
 
-        // Sao: lấp lánh nhẹ, mờ dần sát chân trời
+        // Sao: lấp lánh nhẹ, mờ dần sát chân trời. Xếp theo màu nên ít khi phải đổi màu vẽ.
+        let fill = '';
         this.stars.forEach(star => {
             const x = (star.x + drift.x * 0.6 + this.width) % this.width;
             const y = star.y + drift.y * 0.6;
             const near = Math.min(1, Math.max(0, (ground - y) / (ground * 0.15)));
             const twinkle = calm ? 0.85 : 0.65 + 0.35 * Math.sin(star.twinkle + this.clock * star.speed);
             ctx.globalAlpha = star.alpha * twinkle * near;
-            ctx.fillStyle = `rgb(${star.color})`;
+            if (star.fill !== fill) {
+                fill = star.fill;
+                ctx.fillStyle = fill;
+            }
             ctx.fillRect(x - star.size / 2, y - star.size / 2, star.size, star.size);
         });
 

@@ -36,9 +36,26 @@ function emojiParticleColor(r, g, b) {
     return `#${channel(r)}${channel(g)}${channel(b)}`;
 }
 
+// Hạt của chữ đã dựng (vẽ chữ rồi đọc điểm ảnh tốn ~10 ms, chữ lặp lại hoặc kịch bản lặp thì dùng lại)
+const textParticleCache = new Map();
+const TEXT_CACHE_LIMIT = 60;
+
 // ownColors: biểu tượng cảm xúc trong chữ (🎓, ❤️, 🎂...) giữ màu gốc của nó (điểm có thuộc tính color);
-// chữ thường vẫn theo màu của phát pháo
+// chữ thường vẫn theo màu của phát pháo. Kết quả dùng chung, không được sửa.
 export function getTextParticles(text, fontSize = 80, step = 3, ownColors = false) {
+    const key = `${fontSize}|${step}|${ownColors ? 1 : 0}|${text}`;
+    const cached = textParticleCache.get(key);
+    if (cached) return cached;
+    const result = buildTextParticles(text, fontSize, step, ownColors);
+    // Phông chữ chưa tải xong thì chữ vẽ bằng phông thay thế: không lưu, lần sau dựng lại
+    if (!document.fonts || document.fonts.status === 'loaded') {
+        if (textParticleCache.size >= TEXT_CACHE_LIMIT) textParticleCache.delete(textParticleCache.keys().next().value);
+        textParticleCache.set(key, result);
+    }
+    return result;
+}
+
+function buildTextParticles(text, fontSize, step, ownColors) {
     textCanvas.width = 1000; // Tăng chiều rộng để hỗ trợ văn bản dài hơn
     textCanvas.height = 200; // Tăng chiều cao
     textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
