@@ -48,7 +48,7 @@
 Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và tính năng chính:
 
 - **Tự do tương tác**: Bạn có thể nhấp chuột hoặc chạm (trên màn hình cảm ứng) vào bất cứ đâu trên màn hình bầu trời đêm để tự bắn một quả pháo hoa.
-- **Tạo màn trình diễn riêng**: Mở trình soạn kịch bản (`builder.html`, nút "Tạo kịch bản pháo hoa") để chọn loại pháo, chữ trên trời, nhạc nền, lời chúc rồi chia sẻ link.
+- **Tạo màn trình diễn riêng**: Mở trình soạn kịch bản (`builder.html`, nút "Tạo kịch bản pháo hoa") để chọn loại pháo, chữ trên trời, nhạc nền, lời chúc, khói pháo (Tắt / Nhẹ / Dày) rồi chia sẻ link.
 - **Cài đặt** (nút bánh răng ⚙️ ở góc trên bên phải, hoặc phím `O`): chỉ gồm các tùy chọn khi xem, mỗi mục có nút "?" giải thích:
   - **Chất lượng**: Thấp / Vừa / Cao (hạ xuống nếu máy bị giật).
   - **Ánh sáng bầu trời**: Tắt / Mờ / Bình thường.
@@ -64,6 +64,7 @@ Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và 
   - `env.js`, `state.js`: môi trường, hằng số, trạng thái dùng chung (cỡ sân khấu, chất lượng, tốc độ, cài đặt);
   - `particles.js` (hạt, tia lửa), `effects.js` (hiệu ứng nổ), `shapes.js` (pháo hình, chữ), `colors.js`;
   - `shell.js` (quả pháo), `shells.js` (các loại pháo), `launch-styles.js` (kiểu bắn), `image-burst.js` (pháo ảnh);
+  - `smoke.js` (khói pháo: lớp canvas riêng dưới lớp pháo, độ phân giải thấp, có giới hạn số đám khói);
   - `audio.js` (tiếng pháo, nhạc nền), `start-frames.js` (khung mở quà), `captions.js` (lời nhắn), `utils.js`.
 - `src/assets/js/builder.js`: trình soạn; kèm `beat-sync.js` (xếp pháo theo nhịp), `timeline.js`, `timeline-track.js`
   (dòng thời gian theo giây), `templates.js` (mẫu theo dịp), `recorder.js` (quay video), `gift-tracking.js` (báo mở

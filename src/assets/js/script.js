@@ -18,7 +18,7 @@ import {
 } from './player/env.js';
 import {
     setQuality, quality, isLowQuality, isHighQuality, stageW, stageH, setStageSize, setSimSpeed, simSpeed,
-    setReduceFlashing, setCanPlaySound, setSettings, setIsRunning
+    setReduceFlashing, setCanPlaySound, setSettings, setIsRunning, setSmokeLevel
 } from './player/state.js';
 import {
     randomColor, makePistilColor, whiteOrGold, resolveSingleColor, resolveEventColor, COLOR_TUPLES,
@@ -34,6 +34,7 @@ import { soundManager, musicPlayer, playGiftOpenSound, getRequiredSoundTypes } f
 import { shellNames, shellTypes, crysanthemumShell, ringShell, setRandomShell } from './player/shells.js';
 import { imageParticleCache, getProcessedImage, ImageBurst } from './player/image-burst.js';
 import { Shell } from './player/shell.js';
+import { Smoke, SMOKE_RESOLUTION } from './player/smoke.js';
 import { START_FRAMES, frameText } from './player/start-frames.js';
 import { clearCaptions, showCaption } from './player/captions.js';
 
@@ -59,6 +60,9 @@ let burstCounter = 0;
 // Stage.disableHighDPI = true;
 const trailsStage = new Stage('trails-canvas');
 const mainStage = new Stage('main-canvas');
+// Lớp khói tự quản lý kích thước (độ phân giải thấp), không qua Stage
+const smokeCanvas = document.getElementById('smoke-canvas');
+const smokeCtx = smokeCanvas.getContext('2d');
 const stages = [
     trailsStage,
     mainStage
@@ -295,6 +299,9 @@ setReduceFlashing(reduceFlashingSelector);
 setCanPlaySound(() => canPlaySoundSelector());
 setSettings(() => store.state.config);
 setIsRunning(() => isRunning());
+// Khói pháo theo kịch bản ("light" nhẹ, "heavy" dày); chất lượng Thấp thì tắt để máy yếu không giật
+const SMOKE_LEVELS = { light: 1, heavy: 2 };
+setSmokeLevel(() => (isLowQuality || !burstConfig ? 0 : SMOKE_LEVELS[burstConfig.smoke] || 0));
 const shellNameSelector = () => {
     const shells = store.state.config.shell;
     if (Array.isArray(shells) && shells.length > 0) {
@@ -935,7 +942,7 @@ function startRecording() {
         bitrate,
         container: appNodes.stageContainer,
         background: appNodes.backgroundImage,
-        layers: [trailsStage.canvas, mainStage.canvas],
+        layers: [smokeCanvas, trailsStage.canvas, mainStage.canvas],
         texts: () => [...document.querySelectorAll('.config-overlay h1, .config-overlay h2, .config-overlay p, .caption-layer .caption')],
         audioContext: soundManager.ctx,
         audioNodes: [soundManager.effectsGain, musicPlayer.gain]
@@ -1918,6 +1925,10 @@ function handleResize() {
     appNodes.stageContainer.style.width = containerW + 'px';
     appNodes.stageContainer.style.height = containerH + 'px';
     stages.forEach(stage => stage.resize(containerW, containerH));
+    smokeCanvas.width = Math.round(containerW * SMOKE_RESOLUTION);
+    smokeCanvas.height = Math.round(containerH * SMOKE_RESOLUTION);
+    smokeCanvas.style.width = containerW + 'px';
+    smokeCanvas.style.height = containerH + 'px';
     // Tính đến quy mô
     const scaleFactor = scaleFactorSelector();
     setStageSize(containerW / scaleFactor, containerH / scaleFactor);
@@ -1986,6 +1997,8 @@ function update(frameTime, lag) {
 
     updateGlobals(timeStep, lag);
     ImageBurst.updateAll(timeStep);
+    const smokeOn = Smoke.active();
+    Smoke.update(timeStep);
 
     const starDrag = 1 - (1 - Star.airDrag) * speed;
     const starDragHeavy = 1 - (1 - Star.airDragHeavy) * speed;
@@ -2054,6 +2067,7 @@ function update(frameTime, lag) {
 
                 // Hành vi riêng của kiểu bắn (xoắn, lượn, nổ dọc đường, đẩy lên tầng trên...)
                 if (star.onUpdate) star.onUpdate(star, timeStep, speed);
+                if (star.smokeTrail && smokeOn) Smoke.trail(star, timeStep);
 
                 if (star.sparkFreq) {
                     star.sparkTimer -= timeStep;
@@ -2160,6 +2174,9 @@ function render(speed) {
     }
 
     mainCtx.clearRect(0, 0, width, height);
+
+    // Khói pháo: vẽ cả khi vừa tắt để xóa lớp khói còn lại
+    Smoke.render(smokeCtx, smokeCanvas.width / (stageW || 1), currentSkyColor, reduceFlashingSelector());
 
     // Vẽ các đèn flash xếp hàng đợi
     // Chúng cũng phải được vẽ bằng cách sử dụng nguồn qua Safari. Có vẻ như việc hiển thị độ dốc bằng cách sử dụng ánh sáng sẽ vẽ các hộp đen lớn thay thế.

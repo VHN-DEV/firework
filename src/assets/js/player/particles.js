@@ -79,6 +79,9 @@ export const Star = {
 
         instance.visible = true;
         instance.heavy = false;
+        // Quả pháo đang bay lên để lại vệt khói (khi kịch bản bật khói pháo)
+        instance.smokeTrail = false;
+        instance.smokeTimer = 0;
         instance.targetY = undefined;
         instance.x = x;
         instance.y = y;

@@ -33,6 +33,8 @@ const state = {
     activeEventId: null,
     miniPreviewEnabled: false,
     showBackground: false,
+    // Khói pháo: '' tắt, 'light' nhẹ, 'heavy' dày
+    smoke: '',
     background: null,
     // Nhạc nền { url, name, volume (0-1), start (giây) } và âm lượng tiếng pháo (0-1)
     music: null,
@@ -220,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSchedule();
     });
     renderSchedule();
+    renderSmoke();
 
     // Dải mẫu theo dịp ẩn khi bắt đầu tự soạn
     document.getElementById('title')?.addEventListener('input', updateTemplateStrip);
@@ -634,6 +637,9 @@ function createNewScript() {
         syncLoopState();
         document.getElementById('share-bar').classList.add('hide');
 
+        state.smoke = '';
+        renderSmoke();
+
         // Reset background
         state.showBackground = false;
         state.background = null;
@@ -998,6 +1004,9 @@ const HELP_TIPS = {
     seoImage: 'Ảnh 1200×630 hiện khi gửi link. <strong>Thiệp tự động</strong>: vẽ từ tiêu đề và màu pháo. '
         + '<strong>Ảnh của bạn</strong>: tải ảnh lên, chọn có chèn chữ và chỗ cắt ảnh. Ảnh được tạo lại mỗi lần bấm Lưu.',
     background: 'Cảnh thành phố về đêm phía dưới bầu trời. Bật lên rồi bấm vào ảnh để thay bằng ảnh của bạn.',
+    smoke: 'Như pháo hoa thật: mỗi quả nổ để lại một đám khói trắng, đường bay lên có vệt khói mảnh. Khói nở dần, trôi theo gió rồi tan, '
+        + 'và được những quả nổ sau rọi màu. <strong>Nhẹ</strong>: thoáng qua. <strong>Dày</strong>: đám khói đặc, lâu tan. '
+        + 'Máy người xem đặt chất lượng Thấp thì không có khói để khỏi giật.',
     reduceFlashing: 'Bật khi người nhận nhạy cảm với ánh sáng nhấp nháy (người lớn tuổi, người dễ bị co giật do ánh sáng...): hạt pháo không chớp tắt hay lấp lánh, '
         + 'không có quầng chớp lúc nổ, bầu trời không đổi màu theo pháo. Người xem cũng tự bật được bằng nút "Giảm chớp sáng" trên màn mở quà.',
     loop: 'Bật: chạy hết đợt cuối thì quay lại đợt đầu, bắn mãi. Tắt: chạy một lượt rồi hiện màn kết với lời chúc và nút Xem lại.',
@@ -1954,6 +1963,7 @@ function getFinalConfig() {
         outroMessage: document.getElementById('outro-message').value.trim() || undefined,
         loop: document.getElementById('loop').checked,
         showBackground: state.showBackground,
+        smoke: state.smoke || undefined,
         background: state.background,
         music: state.music ? { ...state.music } : undefined,
         effectsVolume: state.effectsVolume < 1 ? state.effectsVolume : undefined,
@@ -2431,6 +2441,21 @@ function renderSchedule() {
 function setOpenMode(mode) {
     state.openMode = mode;
     renderSchedule();
+}
+
+// Khói pháo (Tắt / Nhẹ / Dày) trong Cấu hình chung
+function setSmoke(level) {
+    state.smoke = level;
+    renderSmoke();
+    refreshMiniPreview();
+}
+
+function renderSmoke() {
+    document.querySelectorAll('.smoke-levels [data-smoke]').forEach(btn => {
+        const on = btn.dataset.smoke === (state.smoke || '');
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-pressed', String(on));
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -3985,6 +4010,8 @@ function loadConfigIntoState(config, filename) {
     state.currentFilename = filename;
     state.status = config.status || 'public';
     state.showBackground = !!config.showBackground;
+    state.smoke = ['light', 'heavy'].includes(config.smoke) ? config.smoke : '';
+    renderSmoke();
     state.background = config.background || null;
     state.music = config.music && typeof config.music.url === 'string' ? { ...config.music } : null;
     const effectsVolume = Number(config.effectsVolume);
@@ -4295,7 +4322,7 @@ Object.assign(window, {
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
     togglePreviewMusic, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
-    hideModal, setStartFrame, undo, redo, setOpenMode, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
+    hideModal, setStartFrame, undo, redo, setOpenMode, setSmoke, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
     openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, prepareVideo, stopVideo, downloadVideo, shareVideo,
     restartVideo, setTimelineView, zoomTrack, copyTrackingLink, enableOpenNotifications, checkGiftOpens
 });

@@ -2910,7 +2910,8 @@ select.is-invalid {
     }
 }
 
-.segmented.beat-density {
+.segmented.beat-density,
+.segmented.smoke-levels {
     grid-template-columns: repeat(3, 1fr);
 }
 

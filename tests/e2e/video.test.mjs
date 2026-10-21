@@ -15,7 +15,7 @@ const ID = 'zz_e2e_video';
 export async function run(browser, base, { check }) {
     writeMelody(path.join(DIST, 'uploads/music/zz_e2e_video/melody.wav'), 30);
     writeConfig(ID, {
-        title: 'CHÚC MỪNG', subtitle: 'Thử quay video', author: 'Từ: E2E', loop: true,
+        title: 'CHÚC MỪNG', subtitle: 'Thử quay video', author: 'Từ: E2E', loop: true, smoke: 'heavy',
         music: { url: './uploads/music/zz_e2e_video/melody.wav', volume: 0.8 },
         events: [
             { burst: 1, shell: 'Hoa cúc', x: 50, y: 60, color: 'Gold' },
@@ -69,6 +69,18 @@ export async function run(browser, base, { check }) {
             const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
             let lit = 0;
             for (let i = 0; i < d.length; i += 16) if (d[i] + d[i + 1] + d[i + 2] > 150) lit++;
+            // Khói (đã nổ vài giây): điểm xám, ba kênh gần bằng nhau, sáng hơn bầu trời đêm nhưng không chói như hạt pháo
+            v.currentTime = 8;
+            await new Promise(r => v.addEventListener('seeked', r, { once: true }));
+            await new Promise(r => setTimeout(r, 150));
+            c.getContext('2d').drawImage(v, 0, 0);
+            const s = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+            let smoky = 0;
+            for (let i = 0; i < s.length; i += 16) {
+                const hi = Math.max(s[i], s[i + 1], s[i + 2]);
+                const lo = Math.min(s[i], s[i + 1], s[i + 2]);
+                if (lo >= 18 && hi <= 160 && hi - lo < 14) smoky++;
+            }
             const blob = await (await fetch(v.src)).blob();
             let rms = -1;
             try {
@@ -80,12 +92,13 @@ export async function run(browser, base, { check }) {
             } catch (e) {
                 // Trình duyệt không tự giải mã được rãnh tiếng của file này
             }
-            return { w: v.videoWidth, h: v.videoHeight, duration, type: blob.type, size: blob.size, lit, rms };
+            return { w: v.videoWidth, h: v.videoHeight, duration, type: blob.type, size: blob.size, lit, smoky: smoky / (s.length / 16), rms };
         });
         check('quay xong ra file video MP4/WebM 720×1280', !!video && /video\/(mp4|webm)/.test(video.type) && video.w === 720 && video.h === 1280,
             video && `${video.type} ${video.w}×${video.h} ${(video.size / 1e6).toFixed(1)} MB`);
         check('video dài trọn màn trình diễn kèm thiệp lời chúc', !!video && video.duration > 13 && video.duration < 22, video && `${video.duration.toFixed(1)} s`);
         check('video có hình pháo hoa và chữ', !!video && video.lit > 100, video && `${video.lit} điểm sáng`);
+        check('video có khói pháo (kịch bản bật "Dày")', !!video && video.smoky > 0.018, video && `${(video.smoky * 100).toFixed(1)}% điểm xám`);
         check('video có tiếng (nhạc nền, tiếng pháo)', !!video && video.rms > 0.005, video && `rms ${video.rms.toFixed(4)}`);
 
         await page.evaluate(() => closeVideoModal());

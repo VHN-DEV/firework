@@ -154,11 +154,52 @@ export async function run(browser, base, { check }) {
         await sleep(20000);
         check(`chạy đủ ${SHELLS.length} loại pháo và ${LAUNCH_STYLES.length} kiểu bắn không lỗi`, page.errors.length === 0, page.errors.join(' | '));
         await page.close();
+
+        // ---- Khói pháo: kịch bản bật thì có khói, tắt thì xóa ngay, chất lượng Thấp thì không có khói
+        const smokeCover = p => p.evaluate(() => {
+            const c = document.getElementById('smoke-canvas');
+            const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+            let n = 0;
+            for (let i = 3; i < d.length; i += 4) if (d[i] > 8) n++;
+            return n / (d.length / 4);
+        });
+        const smokeShow = smoke => ({
+            loop: true, smoke, events: [
+                { burst: 1, shell: 'Hoa cúc', x: 30, y: 60, color: 'Gold' },
+                { burst: 1, shell: 'Hoa cúc', x: 70, y: 60, color: 'Red', delay: 300 }
+            ]
+        });
+        page = await openPage(browser);
+        await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin), smokeShow('heavy'));
+        await sleep(5000);
+        const heavy = await smokeCover(page);
+        check('khói pháo: kịch bản bật "Dày" thì có khói quanh chỗ nổ', heavy > 0.05, heavy.toFixed(3));
+        await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin), smokeShow(undefined));
+        await sleep(800);
+        const cleared = await smokeCover(page);
+        check('khói pháo: chuyển về Tắt thì khói biến mất ngay', cleared === 0, cleared.toFixed(3));
+        check('khói pháo không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
+        await page.close();
+
+        // Người nhận mở link tặng trên máy đã đặt chất lượng Thấp (xem nhanh không đọc cài đặt đã lưu)
+        writeConfig('zz_e2e_smoke', smokeShow('heavy'));
+        page = await openPage(browser);
+        await page.evaluateOnNewDocument(() => localStorage.setItem('cm_fireworks_data',
+            JSON.stringify({ schemaVersion: '1.2', data: { quality: '1', skyLighting: '2', scaleFactor: 1 } })));
+        await page.goto(base + '/index.html?config=zz_e2e_smoke', { waitUntil: 'networkidle0' });
+        await page.click('.btn-start');
+        await waitForShow(page).catch(() => {});
+        await sleep(5000);
+        const low = await smokeCover(page);
+        check('khói pháo: máy đặt chất lượng Thấp thì không có khói', low === 0, low.toFixed(3));
+        await page.close();
     } finally {
         removeConfig('zz_e2e_card');
         removeConfig('zz_e2e_gift');
         removeConfig('zz_e2e_lock');
         removeConfig('zz_e2e_auto');
+        removeConfig('zz_e2e_smoke');
         fs.rmSync(path.join(DIST, 'uploads/music/zz_e2e'), { recursive: true, force: true });
     }
 }

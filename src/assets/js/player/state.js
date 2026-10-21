@@ -53,6 +53,13 @@ export function setReduceFlashing(check) {
     reduceFlashing = check;
 }
 
+// Mức khói pháo: 0 tắt, 1 nhẹ, 2 dày (kịch bản chọn; chất lượng Thấp thì tắt). Trình phát cắm hàm thật vào lúc khởi động.
+export let smokeLevel = () => 0;
+
+export function setSmokeLevel(check) {
+    smokeLevel = check;
+}
+
 // Cài đặt của người xem trong menu (cỡ pháo, chữ tùy chỉnh...). Trình phát cắm hàm đọc cài đặt vào lúc khởi động.
 export let settings = () => ({});
 

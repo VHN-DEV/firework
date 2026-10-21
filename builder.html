@@ -315,6 +315,16 @@
                         <input type="file" id="background-file" class="hide" accept="image/*">
                     </div>
 
+                    <div class="field">
+                        <label>Khói pháo<button type="button" class="help-tip" data-help="smoke" aria-label="Giải thích">?</button></label>
+                        <div class="segmented smoke-levels" role="group" aria-label="Khói pháo">
+                            <button type="button" data-smoke="" onclick="setSmoke('')">Tắt</button>
+                            <button type="button" data-smoke="light" onclick="setSmoke('light')">Nhẹ</button>
+                            <button type="button" data-smoke="heavy" onclick="setSmoke('heavy')">Dày</button>
+                        </div>
+                        <small class="field-hint">Khói trắng khi pháo nổ, được pháo rọi màu và trôi theo gió như ngoài đời</small>
+                    </div>
+
                     <label class="switch-row" for="reduce-flashing">
                         <span>
                             <strong>Giảm chớp sáng<button type="button" class="help-tip" data-help="reduceFlashing" aria-label="Giải thích">?</button></strong>
@@ -803,6 +813,9 @@
                         <li><strong>Hẹn giờ mở quà:</strong> trước giờ hẹn link chỉ hiện đồng hồ đếm ngược. "Khóa tới
                             giờ" để người nhận tự mở quà khi tới giờ; "Bắn đúng giờ" để pháo hoa tự bắn đúng khoảnh
                             khắc (giao thừa, 0 giờ sinh nhật) cho ai đã bấm "Tôi đã sẵn sàng".</li>
+                        <li><strong>Khói pháo:</strong> như pháo hoa thật, mỗi quả nổ để lại đám khói trắng trôi theo gió,
+                            được những quả nổ sau rọi màu. "Nhẹ" thoáng qua, "Dày" đặc và lâu tan. Máy đặt chất lượng
+                            Thấp thì không có khói.</li>
                         <li><strong>Giảm chớp sáng:</strong> cho người nhạy cảm với ánh sáng nhấp nháy (hạt không chớp tắt,
                             không có quầng chớp lúc nổ). Người xem cũng tự bật được bằng nút trên màn mở quà.</li>
                         <li><strong>Tên file:</strong> dùng để lưu và tạo link chia sẻ. Trùng tên sẽ tự thêm số.</li>

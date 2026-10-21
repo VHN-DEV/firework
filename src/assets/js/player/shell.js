@@ -15,6 +15,7 @@ import { Star, BurstFlash } from './particles.js';
 import { soundManager } from './audio.js';
 import { normalizeAssetPath } from './utils.js';
 import { imageParticleCache, ImageBurst } from './image-burst.js';
+import { Smoke } from './smoke.js';
 import {
     crossetteEffect, crackleEffect, floralEffect, fallingLeavesEffect, createParticleArc, createBurst
 } from './effects.js';
@@ -113,6 +114,7 @@ export class Shell {
             launchVelocity * (this.horsetail ? 100 : 400)
         );
         comet.targetY = burstY; // Ghi nhớ độ cao cần nổ
+        comet.smokeTrail = true;
 
         // làm sao chổi trở nên “nặng” hạn chế lực cản không khí
         comet.heavy = true;
@@ -173,6 +175,11 @@ export class Shell {
     }
 
     burst(x, y) {
+        // Khói tại chỗ nổ: chỉ quả phóng lên và các quả nổ con, không tính nhụy hoa (nổ cùng chỗ với quả chính)
+        if ((this.comet || this.isSubBurst) && Smoke.active()) {
+            Smoke.burst(x, y, this.isSubBurst ? this.spreadSize * 0.7 : this.spreadSize, this.color);
+        }
+
         // Nếu là loại hình ảnh, ta tạo ImageBurst thay vì pháo hạt
         if (this.shell === 'Hình ảnh' && this.imageUrl) {
             const normalizedUrl = normalizeAssetPath(this.imageUrl);
