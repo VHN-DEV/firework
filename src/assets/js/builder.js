@@ -594,11 +594,11 @@ function removeColorFromEvent(id, index) {
     if (!event) return;
     if (!Array.isArray(event.color)) {
         // Nếu là string, không thể xóa bằng index (về mặc định)
-        event.color = "Ngẫu nhiên";
+        event.color = '';
     } else {
         event.color.splice(index, 1);
         if (event.color.length === 1) event.color = event.color[0];
-        if (event.color.length === 0) event.color = "Ngẫu nhiên";
+        if (event.color.length === 0) event.color = '';
     }
     renderEventList();
     renderInspector();
@@ -806,7 +806,7 @@ function renderColorDots(event) {
     if (event.shell === 'Hình ảnh' && event.imageUrl) {
         return `<img class="thumb" src="${escapeHtml(normalizeAssetPath(event.imageUrl))}" alt="">`;
     }
-    const colors = Array.isArray(event.color) ? event.color : [event.color || 'Ngẫu nhiên'];
+    const colors = [].concat(event.color || []);
     return colors.slice(0, 5).map(c => (c === 'Ngẫu nhiên' || c === 'random')
         ? '<span class="dot random" title="Ngẫu nhiên"></span>'
         : `<span class="dot" style="--c: ${escapeHtml(COLOR[c] || c)}" title="${escapeHtml(c)}"></span>`
@@ -1455,7 +1455,7 @@ function renderInspector() {
         </div>
         ${numberField(event, 'rotation', 'Xoay hình (°)', { step: 15, min: -180, max: 180, placeholder: 'Ngẫu nhiên', help: 'rotation' })}`, 'position');
 
-    const colors = Array.isArray(event.color) ? event.color : [event.color || 'Ngẫu nhiên'];
+    const colors = [].concat(event.color || []);
     const presetValues = COLORS.map(c => c.value);
     const customColors = colors.filter(c => !presetValues.includes(c));
     const isCaption = event.shell === 'Lời nhắn';
@@ -1478,7 +1478,7 @@ function renderInspector() {
         </div>
         <small class="note">${isCaption
             ? 'Lời nhắn dùng màu đầu tiên; "Ngẫu nhiên" (ô cầu vồng) là chữ trắng.'
-            : 'Chọn nhiều màu để pháo đa sắc. "Ngẫu nhiên" (ô cầu vồng) cho mỗi hạt một màu.'
+            : 'Chọn nhiều màu để pháo đa sắc. "Ngẫu nhiên" (ô cầu vồng) cho mỗi hạt một màu. Bấm lại ô đang chọn để bỏ; không chọn ô nào thì dùng màu mặc định của loại pháo.'
                 + (event.shell === 'Văn bản' ? ' Để "Ngẫu nhiên" thì biểu tượng cảm xúc trong chữ (🎓, ❤️...) giữ màu gốc của nó.' : '')}</small>`);
 
     // Lời nhắn chỉ cần thời điểm, nội dung và màu chữ
@@ -1601,9 +1601,10 @@ function toggleEventColor(id, color) {
     const event = state.events.find(e => e.id === id);
     if (!event) return;
     const current = Array.isArray(event.color) ? event.color : [event.color];
-    if (color !== 'Ngẫu nhiên' && current.includes(color)) {
+    if (current.includes(color)) {
+        // Bấm lại ô đang chọn thì bỏ; bỏ hết thì để trống = màu mặc định của loại pháo
         const rest = current.filter(c => c !== color);
-        event.color = rest.length === 0 ? 'Ngẫu nhiên' : (rest.length === 1 ? rest[0] : rest);
+        event.color = rest.length === 0 ? '' : (rest.length === 1 ? rest[0] : rest);
         renderEventList();
         renderInspector();
     } else {
