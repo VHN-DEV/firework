@@ -3656,6 +3656,8 @@ export const Water = {
     dashKey: '',
     floats: [],
     floatKey: '',
+    seasonFloats: [],
+    seasonKey: '',
     plants: [],
     plantKey: '',
     rocks: [],
@@ -3667,7 +3669,11 @@ export const Water = {
     // rocks: đá, gò đất giữa dòng
     // bank: kiểu bờ bên kia (bank-styles.js)
     render(ctx, { sources, background, sky, cssW, cssH, time, style, floating, calm, life: lifeFlags, plants, rocks: rocksOn, bank: bankKind }) {
-        const life = !!lifeFlags && (lifeFlags.birds || lifeFlags.ducks || lifeFlags.fish || lifeFlags.logs);
+        // Mùa: đông mặt nước đóng băng (không sóng, không cá, vịt, cò, khúc gỗ, lá bèo, vật trôi)
+        const season = sceneSeason();
+        const frozen = season === 'winter';
+        this.season = season;
+        const life = !frozen && !!lifeFlags && (lifeFlags.birds || lifeFlags.ducks || lifeFlags.fish || lifeFlags.logs);
         const level = horizon();
         const { width: W, height: H } = ctx.canvas;
         if (level >= 1 || !W || !H) {
@@ -3734,8 +3740,9 @@ export const Water = {
         const tint = `${16 + sky.r * 0.5 | 0}, ${26 + sky.g * 0.5 | 0}, ${46 + sky.b * 0.5 | 0}`;
         const base = ctx.createLinearGradient(0, top, 0, H);
         base.addColorStop(0, `rgb(${tint})`);
-        base.addColorStop(0.35, 'rgb(9, 15, 30)');
-        base.addColorStop(1, 'rgb(3, 6, 13)');
+        // Mặt băng: xanh xám nhạt hơn nước, sáng đều hơn
+        base.addColorStop(0.35, frozen ? 'rgb(24, 32, 48)' : 'rgb(9, 15, 30)');
+        base.addColorStop(1, frozen ? 'rgb(14, 19, 30)' : 'rgb(3, 6, 13)');
         ctx.fillStyle = base;
         ctx.fillRect(0, top, W, depth);
 
@@ -3745,7 +3752,7 @@ export const Water = {
         const river = style === 'river';
         const dt = Math.min(50, this.last ? time - this.last : 16);
         this.last = time;
-        this.flow += dt * (river ? 0.03 : 0.004);
+        if (!frozen) this.flow += dt * (river ? 0.03 : 0.004);
         // Dải cao khoảng 2-3 điểm ảnh CSS dù lớp vẽ nét hay thưa (cùng dáng sóng, cùng số lần vẽ)
         const strip = Math.max(1, Math.round((IS_MOBILE ? 6 : 4) * k));
         // Ghép kiểu cộng sáng: phần đen (lớp vệt pháo được phủ đen dần) không làm tối mặt nước, card đồ họa làm sẵn được.
@@ -3769,11 +3776,11 @@ export const Water = {
                 const band = Math.max(strip, Math.round((strip + d * (river ? 9 : 5) * k * 2) / strip) * strip);
                 const phase = hash(i) * Math.PI * 2;
                 const speed = 0.0008 + hash(i + 50) * 0.0016;
-                const amp = (river ? 0.6 + d * 9 : 0.2 + d * 3) * k;
+                const amp = frozen ? 0 : (river ? 0.6 + d * 9 : 0.2 + d * 3) * k;
                 const dx = Math.round((Math.sin(time * speed + phase) + 0.5 * Math.sin(time * speed * 1.7 + phase * 2)) * amp);
-                // Khe tối ngang, càng xa bờ càng nhiều: bóng trăng, bóng pháo vỡ thành từng lát
-                const gap = hash(i + 99) < 0.1 + d * 0.3 ? 0.6 : 1;
-                ctx.globalAlpha = (river ? 0.6 * (1 - d * 0.6) : 0.78 * (1 - d * 0.5)) * gap;
+                // Khe tối ngang, càng xa bờ càng nhiều: bóng trăng, bóng pháo vỡ thành từng lát. Mặt băng: bóng phẳng, mờ
+                const gap = !frozen && hash(i + 99) < 0.1 + d * 0.3 ? 0.6 : 1;
+                ctx.globalAlpha = frozen ? 0.4 * (1 - d * 0.5) : (river ? 0.6 * (1 - d * 0.6) : 0.78 * (1 - d * 0.5)) * gap;
                 ctx.drawImage(mirror, 0, y, W, band, dx, from + y, W, band);
                 y += band;
             }
@@ -3798,8 +3805,13 @@ export const Water = {
         this.syncDashes(river, cssW);
         const thin = Math.max(1, Math.round(k));
         ctx.globalCompositeOperation = 'source-over';
+        // Mặt băng: mảng tuyết, sương giá, vết nứt phủ lên bóng phản chiếu
+        if (frozen) {
+            ctx.globalAlpha = 1;
+            ctx.drawImage(iceSheet(W, H, surf, k), 0, surf);
+        }
         ctx.fillStyle = 'rgb(120, 150, 210)';
-        this.swells.forEach(swell => {
+        if (!frozen) this.swells.forEach(swell => {
             const x = (((swell.u * (cssW + 160) + this.flow * (river ? 0.25 + swell.d * 0.8 : 0.12)) % (cssW + 160)) - 80) * k;
             const row = surf + Math.round(swell.d * (H - surf - 1) + Math.sin(time * swell.speed + swell.phase) * 2 * k);
             const len = swell.len * (0.4 + swell.d) * k;
@@ -3812,7 +3824,8 @@ export const Water = {
         const twinkles = this.dashes.map(dash => (calm ? 0.6 : 0.2 + 0.8 * Math.pow(0.5 + 0.5 * Math.sin(time * dash.speed + dash.phase), 2)));
         const dashX = dash => (((dash.u * (cssW + 40) + this.flow * (river ? 0.4 + dash.d * 1.2 : 0.3)) % (cssW + 40)) - 20) * k;
         const dashRow = dash => surf + Math.round(dash.d * (H - surf - 1));
-        const dashLen = dash => Math.max(1, dash.len * (0.5 + dash.d) * k);
+        // Mặt băng: vệt sóng thành hạt sương giá lấp lánh đứng yên
+        const dashLen = dash => (frozen ? thin : Math.max(1, dash.len * (0.5 + dash.d) * k));
         let dashFill = '';
         ctx.globalCompositeOperation = 'source-over';
         this.dashes.forEach((dash, i) => {
@@ -3833,7 +3846,7 @@ export const Water = {
         });
         const moon = Decor.moonGlow();
         if (moon && moon.light > 0.03 && moon.x > -moon.radius * 4 && moon.x < cssW + moon.radius * 4) {
-            this.drawMoonGlade(ctx, moon, k, surf, H, time, river, calm);
+            this.drawMoonGlade(ctx, moon, k, surf, H, time, river && !frozen, calm || frozen);
         }
         ctx.restore();
 
@@ -3908,8 +3921,9 @@ export const Water = {
         const rocks = this.syncRocks(rocksOn, river, cssW);
         const surfY = d => waterTopCss + d * waterDepthCss;
         const floatScale = d => (0.35 + d * 0.9) * (IS_MOBILE ? 0.85 : 1);
-        this.syncPlants(plants, river, cssW);
-        this.syncFloats(floating, river);
+        this.syncPlants(plants && !frozen, river, cssW);
+        this.syncFloats(frozen ? '' : floating, river);
+        this.syncSeasonFloats(frozen ? '' : season, river, cssW);
         // Sông thì trôi theo dòng (xa bờ người xem trôi nhanh hơn); hồ thì gần như đứng yên
         const drift = (item, half, still) => {
             item.u += (river ? item.speed * (0.3 + item.d) : item.speed * still) * dt / cssW;
@@ -3925,6 +3939,11 @@ export const Water = {
             item.bob += dt * 0.0015;
             if (item.kind !== 'lantern') item.rot += dt * item.spin;
             drift(item, (item.kind === 'lantern' ? 10 : 3) * floatScale(item.d), 0.08);
+        });
+        this.seasonFloats.forEach(item => {
+            item.bob += dt * 0.0015;
+            item.rot += dt * item.spin;
+            drift(item, 4 * floatScale(item.d), 0.08);
         });
         if (life) {
             const key = `${river}_${Math.round(cssW)}_${Math.round(cssH)}_${level}`;
@@ -3946,7 +3965,10 @@ export const Water = {
             ...this.floats.map(item => ({
                 d: item.d, draw: () => this.drawFloat(ctx, item, item.u * cssW, surfY(item.d) + Math.sin(item.bob), floatScale(item.d), k, time, river, calm)
             })),
-            ...rocks.map(rock => ({ d: rock.d, draw: () => this.drawRock(ctx, rock, surfY(rock.d), WaterLife.scale(rock.d), k, time, river) })),
+            ...this.seasonFloats.map(item => ({
+                d: item.d, draw: () => this.drawFloat(ctx, item, item.u * cssW, surfY(item.d) + Math.sin(item.bob) * 0.6, floatScale(item.d), k, time, river, calm)
+            })),
+            ...rocks.map(rock => ({ d: rock.d, draw: () => this.drawRock(ctx, rock, surfY(rock.d), WaterLife.scale(rock.d), k, time, river, frozen) })),
             ...(life ? WaterLife.things(ctx, k, waterTopCss, waterDepthCss, time, river) : [])
         ].sort((a, b) => a.d - b.d).forEach(item => item.draw());
         if (life) WaterLife.drawOver(ctx, k, waterTopCss, waterDepthCss, time);
@@ -3989,7 +4011,8 @@ export const Water = {
         ctx.translate(x, y);
         if (item.flip) ctx.scale(-1, 1);
         ctx.globalAlpha = 0.95;
-        ctx.drawImage(padSprite(item.variant), -12 * s, -5 * s, 24 * s, 10 * s);
+        // Sen chỉ nở mùa hạ
+        ctx.drawImage(seasonSprite(padSprite(item.variant === 3 && this.season !== 'summer' ? 0 : item.variant), this.season), -12 * s, -5 * s, 24 * s, 10 * s);
         ctx.restore();
     },
 
@@ -4009,6 +4032,16 @@ export const Water = {
             ctx.fillRect(x - 16 * s, y + 6 * s - 16 * s, 32 * s, 32 * s);
             ctx.restore();
             ctx.drawImage(floatLanternSprite(), x - 12 * s, y - 14 * s, 24 * s, 20 * s);
+        } else if (item.kind === 'leaf') {
+            // Lá vàng, cánh hoa nằm dẹt trên mặt nước (phối cảnh), xoay chậm theo dòng
+            const size = (item.season === 'autumn' ? 14 : 9) * s;
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(1, 0.42);
+            ctx.rotate(item.rot);
+            ctx.globalAlpha = 0.88;
+            ctx.drawImage(fallingLeafSprite(item.season, item.leaf), -size / 2, -size / 2, size, size);
+            ctx.restore();
         } else {
             ctx.save();
             ctx.translate(x, y);
@@ -4022,18 +4055,49 @@ export const Water = {
         }
     },
 
+    // Lá vàng (thu), cánh hoa đào (xuân) trôi trên mặt nước, rải lại khi đổi mùa, kiểu nước hoặc cỡ khung
+    syncSeasonFloats(season, river, cssW) {
+        this.cssW = cssW;
+        const key = `${season}_${river}_${Math.round(cssW)}`;
+        if (key === this.seasonKey) return;
+        this.seasonKey = key;
+        this.seasonFloats = [];
+        if (season !== 'autumn' && season !== 'spring') return;
+        const count = Math.round((season === 'autumn' ? 46 : 30) * (IS_MOBILE ? 0.6 : 1) * Math.min(1.4, cssW / 1200));
+        for (let i = 0; i < count; i++) {
+            this.seasonFloats.push(this.floatingLeaf(Math.random(), MyMath.random(0.04, 0.95), season, (Math.random() * 5) | 0, Math.random() * Math.PI * 2));
+        }
+    },
+
+    floatingLeaf(u, d, season, leaf, rot) {
+        return { kind: 'leaf', season, leaf, u, d, rot, speed: MyMath.random(0.015, 0.03), bob: Math.random() * 6, spin: MyMath.random(-0.0004, 0.0004) };
+    },
+
+    // Lá, cánh hoa rơi xuống mặt nước (x: điểm ảnh CSS, d: độ xa 0-1): nằm lại trôi theo dòng; nhiều quá thì lá cũ nhất chìm
+    dropLeaf(x, d, season, leaf, rot) {
+        if (!this.cssW || (season !== 'autumn' && season !== 'spring')) return;
+        this.seasonFloats.push(this.floatingLeaf(x / this.cssW, Math.max(0.02, Math.min(0.98, d)), season, leaf, rot));
+        if (this.seasonFloats.length > 70) this.seasonFloats.splice(0, 1);
+    },
+
     // Đá, gò đất: bóng phần nổi in xuống nước, dòng nước dồn vào rồi rẽ qua
-    drawRock(ctx, rock, y, s, k, time, river) {
-        const sprite = rock.kind === 'rock' ? rockSprite(rock.variant) : moundSprite(rock.variant);
+    // frozen: mặt băng mùa đông (đá, gò phủ tuyết, chân đá có gò tuyết, không có sóng nước)
+    drawRock(ctx, rock, y, s, k, time, river, frozen) {
+        const sprite = seasonSprite(rock.kind === 'rock' ? rockSprite(rock.variant) : moundSprite(rock.variant), this.season);
         const w = rock.size * s;
         const h = w * sprite.height / sprite.width;
         const wlOff = h * sprite.wl / sprite.height;
         const x0 = rock.x - w / 2;
-        drawReflection(ctx, sprite, x0, y, w, wlOff, 0.3, time, rock.seed, s);
-        drawFlowMarks(ctx, rock.x, y, w * 0.46, s, k, time, rock.seed, river, 1);
+        drawReflection(ctx, sprite, x0, y, w, wlOff, frozen ? 0.15 : 0.3, time, rock.seed, s);
+        if (!frozen) drawFlowMarks(ctx, rock.x, y, w * 0.46, s, k, time, rock.seed, river, 1);
         ctx.globalAlpha = 1;
         ctx.drawImage(sprite, 0, 0, sprite.width, sprite.wl, x0, y - wlOff, w, wlOff);
-        drawSubmerged(ctx, sprite, x0, y, w, h - wlOff, time, rock.seed, s);
+        if (frozen) {
+            ctx.fillStyle = 'rgba(184, 194, 214, 0.7)';
+            ctx.beginPath();
+            ctx.ellipse(rock.x, y, w * 0.55, 2.2 * s, 0, 0, Math.PI * 2);
+            ctx.fill();
+        } else drawSubmerged(ctx, sprite, x0, y, w, h - wlOff, time, rock.seed, s);
         if (!sprite.reeds) return;
         // Gò đất: lau sậy đung đưa theo gió (mỗi cây một nhịp), bông lau nâu; nước vỗ nhẹ dọc chân gò
         const u = w / sprite.logicalW;
@@ -4062,6 +4126,7 @@ export const Water = {
                 ctx.restore();
             }
         });
+        if (frozen) return;
         ctx.fillStyle = 'rgb(205, 222, 255)';
         for (let i = 0; i < 9; i++) {
             const fx = x0 + w * (0.12 + i * 0.095) + Math.sin(time * 0.0021 + i * 1.7 + rock.seed * 5) * 1.5 * u;
@@ -4183,6 +4248,171 @@ export const Water = {
 // Thời tiết: mưa, tuyết rơi. Vẽ trên lớp mặt nước (lớp trên cùng, phủ cả khung) nên không in bóng xuống nước mà vẫn có
 // trong ảnh chụp, video; hạt mưa rơi xuống mặt nước gợn vòng lăn tăn (mặt băng thì vỡ tung thành chấm sáng).
 // ---------------------------------------------------------------------------
+
+// Lá rụng (thu: vàng, cam, đỏ, nâu) và cánh hoa đào (xuân: hồng, trắng): mỗi loại một ảnh nhỏ, vẽ xoay, lật khi bay,
+// nằm dẹt khi trôi trên mặt nước. Màu dịu theo ánh trăng
+const LEAF_COLORS = {
+    autumn: [['#b88a24', '#6e4c10'], ['#c0681c', '#70340c'], ['#a8401e', '#5a1c0c'], ['#8c6834', '#4a3216'], ['#c8a43a', '#7a5e16']],
+    spring: [['#d8a2b4', '#9a5c70'], ['#e4c2cc', '#a8808c'], ['#ece0e2', '#b0989e'], ['#cc8aa2', '#8e4e64']]
+};
+let leafSprites = {};
+function fallingLeafSprite(season, i) {
+    const key = `${season}_${i}`;
+    if (leafSprites[key]) return leafSprites[key];
+    const c = document.createElement('canvas');
+    c.width = c.height = 48;
+    const g = c.getContext('2d');
+    const [fill, vein] = LEAF_COLORS[season][i % LEAF_COLORS[season].length];
+    g.translate(24, 24);
+    if (season === 'autumn') {
+        // Lá: phiến thon hai đầu nhọn, mép hơi lượn, gân giữa, gân bên, cuống
+        g.fillStyle = fill;
+        g.beginPath();
+        g.moveTo(0, -20);
+        g.bezierCurveTo(14, -12, 12, 8, 0, 17);
+        g.bezierCurveTo(-12, 8, -14, -12, 0, -20);
+        g.fill();
+        g.strokeStyle = vein;
+        g.lineWidth = 1.6;
+        g.beginPath();
+        g.moveTo(0, -17);
+        g.lineTo(0, 23);
+        for (let y = -10; y <= 8; y += 6) {
+            g.moveTo(0, y);
+            g.lineTo(7, y - 5);
+            g.moveTo(0, y);
+            g.lineTo(-7, y - 5);
+        }
+        g.stroke();
+    } else {
+        // Cánh hoa đào: tròn, khuyết nhẹ ở đầu, gốc thon ửng đậm
+        g.fillStyle = fill;
+        g.beginPath();
+        g.moveTo(0, 14);
+        g.bezierCurveTo(-15, 4, -12, -15, -3, -14);
+        g.lineTo(0, -10);
+        g.lineTo(3, -14);
+        g.bezierCurveTo(12, -15, 15, 4, 0, 14);
+        g.fill();
+        g.fillStyle = vein;
+        g.globalAlpha = 0.5;
+        g.beginPath();
+        g.ellipse(0, 9, 3, 4, 0, 0, Math.PI * 2);
+        g.fill();
+    }
+    leafSprites[key] = c;
+    return c;
+}
+
+// Mặt băng mùa đông (vẽ sẵn theo cỡ khung): sương giá mờ, tuyết phủ loang lổ thành từng mảng (sát bờ dày thành dải tuyết),
+// vài vết nứt dài tẽ nhánh. Xa chân trời mảng tuyết dẹt và nhỏ lại, gần người xem to ra (phối cảnh)
+let iceCache = { key: '', canvas: null };
+function iceSheet(W, H, surf, k) {
+    const key = `${W}_${H}_${surf}_${k.toFixed(3)}`;
+    if (iceCache.key === key) return iceCache.canvas;
+    const h = H - surf;
+    const c = document.createElement('canvas');
+    c.width = W;
+    c.height = Math.max(1, h);
+    const g = c.getContext('2d');
+    // Mảng tuyết, sương giá: tính thưa (nửa độ phân giải) rồi phóng lên cho mềm
+    const sw = Math.max(1, Math.ceil(W / 2));
+    const sh = Math.max(1, Math.ceil(h / 2));
+    const small = document.createElement('canvas');
+    small.width = sw;
+    small.height = sh;
+    const sg = small.getContext('2d');
+    const img = sg.createImageData(sw, sh);
+    const noise = makeNoise(91);
+    // Chiếu phối cảnh mặt phẳng băng: hàng cách chân trời r điểm ảnh ở xa 1/r; ngang và dọc trên mặt băng cùng co theo xa
+    // gần (mảng xa nhỏ và dẹt, mảng gần to), mảng gần người xem rộng gấp ~2,5 lần bề dọc
+    const patchPx = 110 * k;
+    for (let py = 0; py < sh; py++) {
+        const d = py / sh;
+        const r = py * 2 + 4 * k;
+        const Q = 2.5 * h * h / (r * patchPx);
+        const shore = Math.pow(Math.max(0, 1 - d / 0.07), 2);
+        for (let px = 0; px < sw; px++) {
+            const P = (px * 2 - W / 2) * h / (r * patchPx);
+            const patch = smooth01(0.55, 0.72, fbm(noise, P, Q, 4));
+            const frost = fbm(noise, P * 4 + 50, Q * 4, 2);
+            const a = Math.min(0.85, patch * 0.42 + frost * 0.08 + shore * 0.7);
+            const i = (py * sw + px) * 4;
+            const tone = 0.9 + 0.12 * frost;
+            img.data[i] = 176 * tone;
+            img.data[i + 1] = 186 * tone;
+            img.data[i + 2] = 208 * tone;
+            img.data[i + 3] = 255 * a;
+        }
+    }
+    sg.putImageData(img, 0, 0);
+    g.imageSmoothingEnabled = true;
+    g.drawImage(small, 0, 0, sw, sh, 0, 0, W, h);
+    // Vết nứt: đường gãy khúc dài, tẽ nhánh; xa chân trời nằm ngang, gần người xem xiên nhiều hơn
+    let seed = 53;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const crack = (x, y, a, steps, width) => {
+        const path = [[x, y]];
+        for (let i = 0; i < steps; i++) {
+            const d = Math.max(0, Math.min(1, y / h));
+            a += (rnd() - 0.5) * 0.9;
+            const flat = 0.25 + 0.75 * d;
+            const len = (6 + 26 * d) * k * (0.6 + rnd() * 0.8);
+            x += Math.cos(a) * len;
+            y += Math.sin(a) * len * flat * 0.5;
+            path.push([x, y]);
+            if (rnd() < 0.18 && steps > 4) crack(x, y, a + (rnd() < 0.5 ? -1 : 1) * (0.6 + rnd() * 0.6), (steps / 3) | 0, width * 0.7);
+            if (y < 0 || y > h) break;
+        }
+        [['rgba(8, 14, 26, 0.35)', 1], ['rgba(214, 228, 248, 0.32)', 0]].forEach(([color, off]) => {
+            g.strokeStyle = color;
+            g.lineWidth = width;
+            g.beginPath();
+            path.forEach(([px, py], i) => (i ? g.lineTo(px, py + off * k * 0.6) : g.moveTo(px, py + off * k * 0.6)));
+            g.stroke();
+        });
+    };
+    for (let i = 0; i < 7; i++) crack(rnd() * W, h * (0.15 + rnd() * 0.8), (rnd() < 0.5 ? 0 : Math.PI) + (rnd() - 0.5) * 0.8, 10 + ((rnd() * 10) | 0), Math.max(1, 0.7 * k));
+    iceCache = { key, canvas: c };
+    return c;
+}
+
+// Đá, gò đất, lá bèo theo mùa: thu cỏ, rêu, lá bèo ngả vàng úa; đông cỏ rêu bạc màu, tuyết đọng mặt trên, lau sậy khô
+// không bông. Đổi màu từng điểm (chỗ xanh lá) một lần rồi giữ lại
+const seasonSprites = new Map();
+function seasonSprite(sprite, season) {
+    if (season !== 'autumn' && season !== 'winter') return sprite;
+    let made = seasonSprites.get(sprite);
+    if (!made) seasonSprites.set(sprite, made = {});
+    if (made[season]) return made[season];
+    const c = document.createElement('canvas');
+    c.width = sprite.width;
+    c.height = sprite.height;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.drawImage(sprite, 0, 0);
+    const img = g.getImageData(0, 0, c.width, c.height);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+        const green = d[i + 1] - Math.max(d[i], d[i + 2]);
+        if (green < 3 || d[i + 3] < 8) continue;
+        const t = Math.min(1, green / 26);
+        const [r, gg, b] = [d[i], d[i + 1], d[i + 2]];
+        const [tr, tg, tb] = season === 'autumn' ? [gg * 1.18, gg * 0.92, b * 0.55] : [(r + gg + b) / 3 * 1.25 + 30, (r + gg + b) / 3 * 1.28 + 34, (r + gg + b) / 3 * 1.38 + 44];
+        d[i] = r + (tr - r) * t * (season === 'winter' ? 0.85 : 1);
+        d[i + 1] = gg + (tg - gg) * t * (season === 'winter' ? 0.85 : 1);
+        d[i + 2] = b + (tb - b) * t * (season === 'winter' ? 0.85 : 1);
+    }
+    g.putImageData(img, 0, 0);
+    if (season === 'winter' && sprite.wl) snowCap(c, 0, 0, c.width, sprite.wl, spriteRes, 1.6);
+    const reedColor = season === 'autumn' ? '#6a5c32' : '#5c5442';
+    Object.assign(c, {
+        wl: sprite.wl,
+        logicalW: sprite.logicalW,
+        reeds: sprite.reeds && sprite.reeds.map(reed => ({ ...reed, color: reedColor, cattail: season === 'autumn' && reed.cattail }))
+    });
+    made[season] = c;
+    return c;
+}
 
 // Bông tuyết: chấm tròn mềm
 let flakeSprite = null;

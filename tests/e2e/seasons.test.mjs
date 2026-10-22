@@ -39,6 +39,19 @@ const bankColors = page => page.evaluate(() => {
     return { warm: sky.warm, snow: sky.snow + bank.snow };
 });
 
+// Mặt nước (lớp mặt nước, phần dưới mép bờ): độ sáng trung bình, số điểm màu ấm (lá vàng trôi)
+const waterLook = page => page.evaluate(() => {
+    const c = document.getElementById('water-canvas');
+    const d = c.getContext('2d').getImageData(0, Math.round(c.height * 0.56), c.width, Math.round(c.height * 0.44)).data;
+    let sum = 0, warm = 0, n = 0;
+    for (let i = 0; i < d.length; i += 4) {
+        sum += d[i] + d[i + 1] + d[i + 2];
+        n++;
+        if (d[i] > 90 && d[i] > d[i + 2] + 40 && d[i + 1] > d[i + 2]) warm++;
+    }
+    return { light: Math.round(sum / n / 3), warm };
+});
+
 export async function run(browser, base, { check }) {
     const page = await openPage(browser, { width: 1280, height: 720 });
     try {
@@ -75,6 +88,14 @@ export async function run(browser, base, { check }) {
         await sleep(900);
         const earth = await bankColors(page);
         check('mùa đông: bờ đất phủ tuyết', earth.snow > 1500, JSON.stringify(earth));
+        const waters = {};
+        for (const season of ['', 'autumn', 'winter']) {
+            await show(page, { water: 'half', season: season || undefined, waterBirds: false, waterDucks: false, waterRocks: false, waterPlants: false });
+            await sleep(900);
+            waters[season || 'summer'] = await waterLook(page);
+        }
+        check('mùa thu: lá vàng trôi trên mặt nước', waters.autumn.warm > waters.summer.warm + 60, JSON.stringify(waters));
+        check('mùa đông: mặt nước đóng băng (mặt băng phủ tuyết sáng hơn mặt nước)', waters.winter.light > waters.summer.light + 12, JSON.stringify(waters));
         check('mưa, tuyết, cảnh theo mùa không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
         await page.close();
