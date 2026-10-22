@@ -389,7 +389,10 @@ const waterLifeFlags = () => {
         birds: !off && config.waterBirds !== false,
         ducks: !off && config.waterDucks !== false,
         fish: !off && config.waterFish !== false,
-        logs: !off && config.waterLogs !== false
+        logs: !off && config.waterLogs !== false,
+        frogs: !off && config.waterFrogs !== false,
+        // Bong bóng nước nổi lên rồi vỡ: luôn có (là một phần của mặt nước)
+        bubbles: true
     };
 };
 setHorizon(horizonSelector);

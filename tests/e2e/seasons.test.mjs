@@ -140,6 +140,19 @@ export async function run(browser, base, { check }) {
         await sleep(1200);
         const off = await draft();
         check('builder: mùa hạ, trời quang thì không lưu (như kịch bản cũ)', off && off.season === null && off.weather === null, JSON.stringify(off));
+        // Trên mặt nước: tắt ếch thì lưu waterFrogs: false
+        await builder.evaluate(() => {
+            setWater('half');
+            const chip = document.querySelector('[data-water-thing="waterFrogs"]');
+            chip.checked = false;
+            chip.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        await sleep(1200);
+        const frogs = await builder.evaluate(() => {
+            const d = JSON.parse(localStorage.getItem('firework_builder_draft') || 'null');
+            return d && d.config ? d.config.waterFrogs ?? null : null;
+        });
+        check('builder: có nút bật tắt Ếch, tắt thì lưu waterFrogs: false', frogs === false, String(frogs));
         // Mẫu theo dịp: Giáng sinh mùa đông tuyết rơi
         await builder.evaluate(() => openTemplatesModal('giang_sinh'));
         await builder.type('#tpl-recipient', 'Lan');

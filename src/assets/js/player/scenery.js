@@ -705,8 +705,156 @@ const EGRET_POSE = { wing: 0.3, lag: 0, fold: 1, neck: 0, stalk: 0, strike: 0, p
 
 const rand = (min, max) => min + Math.random() * (max - min);
 
-// Sinh vật trên mặt nước bật/tắt riêng từng loại (builder, mục "Trên mặt nước")
-const WATER_ALL = { birds: true, ducks: true, fish: true, logs: true };
+// Sinh vật trên mặt nước bật/tắt riêng từng loại (builder, mục "Trên mặt nước"); bong bóng nước luôn có
+const WATER_ALL = { birds: true, ducks: true, fish: true, logs: true, frogs: true, bubbles: true };
+
+// Ếch (đêm trăng): lưng xanh rêu sẫm có đốm, bụng vàng nhạt, mắt lồi tròng vàng có ánh trăng lóe; nhìn nghiêng.
+// pose: 'sit' ngồi chồm hổm, chân sau gập (x, y: chỗ chân chạm); 'jump' duỗi dài, chân sau đạp thẳng (x, y: giữa thân,
+// angle: hướng bay); 'peek' chỉ đỉnh đầu, đôi mắt nhô khỏi mặt nước (x, y: mặt nước). u: đơn vị cỡ (điểm ảnh CSS);
+// sac: túi kêu dưới cằm phồng (0-1); blink: đang nhắm mắt; tongue: lưỡi phóng ra tới điểm (tx, ty) (tọa độ trước khi lật)
+const FROG = { back: '#3d5c2f', dark: '#22341b', spot: '#2a3f21', belly: '#a6a674', light: '#7d9a54', eye: '#dcb54a' };
+
+function frogEye(ctx, x, y, r, blink) {
+    ctx.fillStyle = FROG.back;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    if (blink) {
+        ctx.fillStyle = FROG.dark;
+        ctx.fillRect(x - r * 0.7, y - r * 0.1, r * 1.4, r * 0.25);
+        return;
+    }
+    ctx.fillStyle = FROG.eye;
+    ctx.beginPath();
+    ctx.arc(x + r * 0.1, y, r * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.ellipse(x + r * 0.15, y, r * 0.48, r * 0.26, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.beginPath();
+    ctx.arc(x - r * 0.15, y - r * 0.3, r * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawFrog(ctx, x, y, u, dir, pose, { sac = 0, blink = false, angle = 0, tongue = null } = {}) {
+    const ell = (cx, cy, rx, ry, rot, color) => {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.ellipse(cx * u, cy * u, rx * u, ry * u, rot, 0, Math.PI * 2);
+        ctx.fill();
+    };
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(dir, 1);
+    if (pose === 'peek') {
+        // Đỉnh đầu nổi trên mặt nước (nửa dưới bị nước che), hai mắt lồi, bóng mờ in xuống nước
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(-4 * u, -4 * u, 8 * u, 4 * u);
+        ctx.clip();
+        ell(0, 0.3, 2.1, 1, 0, FROG.back);
+        ell(0.4, -0.25, 1.3, 0.35, 0, FROG.light);
+        frogEye(ctx, -0.75 * u, -0.6 * u, 0.62 * u, blink);
+        frogEye(ctx, 0.85 * u, -0.62 * u, 0.62 * u, blink);
+        ctx.restore();
+        ctx.globalAlpha *= 0.25;
+        ell(0, 0.55, 2, 0.5, 0, FROG.dark);
+        ctx.restore();
+        return;
+    }
+    if (pose === 'jump') {
+        ctx.rotate(angle);
+        // Chân sau đạp thẳng ra sau, chân trước chìa ra đón chỗ đáp
+        ctx.strokeStyle = FROG.back;
+        ctx.lineCap = 'round';
+        ctx.lineWidth = 1.1 * u;
+        ctx.beginPath();
+        ctx.moveTo(-2.4 * u, 0.3 * u);
+        ctx.lineTo(-5 * u, 1.1 * u);
+        ctx.stroke();
+        ctx.lineWidth = 0.65 * u;
+        ctx.beginPath();
+        ctx.moveTo(-5 * u, 1.1 * u);
+        ctx.lineTo(-7.2 * u, 0.5 * u);
+        ctx.moveTo(1.8 * u, 0.7 * u);
+        ctx.lineTo(3.3 * u, 2 * u);
+        ctx.stroke();
+        ell(-7.9, 0.4, 1, 0.35, 0.2, FROG.dark);
+        ell(0, 0, 3.4, 1.45, 0, FROG.back);
+        ell(0.4, 0.6, 2.4, 0.7, 0, FROG.belly);
+        ell(-0.4, -0.9, 2.2, 0.4, 0, FROG.light);
+        ell(3, -0.3, 1.6, 1.05, 0, FROG.back);
+        frogEye(ctx, 3.1 * u, -1.2 * u, 0.7 * u, false);
+        ctx.restore();
+        return;
+    }
+    // Ngồi: chân sau gập dưới thân, chân trước chống, đầu ngẩng; lưng hứng ánh trăng, vài đốm sẫm
+    ell(-2.4, -0.35, 2.1, 0.45, 0, FROG.dark);
+    ell(-2.3, -1.6, 1.9, 1.25, -0.25, FROG.back);
+    ell(-0.3, -2.3, 3.1, 1.85, -0.32, FROG.back);
+    ell(0.3, -1.5, 2.2, 0.95, -0.32, FROG.belly);
+    ell(-0.7, -3.5, 2, 0.45, -0.32, FROG.light);
+    ell(-1.4, -2.6, 0.45, 0.3, 0, FROG.spot);
+    ell(0.2, -3, 0.4, 0.28, 0, FROG.spot);
+    ell(-0.6, -1.9, 0.35, 0.25, 0, FROG.spot);
+    ell(2.3, -3.1, 1.75, 1.15, -0.15, FROG.back);
+    ctx.strokeStyle = FROG.back;
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 0.65 * u;
+    ctx.beginPath();
+    ctx.moveTo(1.3 * u, -2 * u);
+    ctx.lineTo(2 * u, -0.25 * u);
+    ctx.stroke();
+    ell(2.3, -0.15, 0.6, 0.25, 0, FROG.dark);
+    ctx.strokeStyle = FROG.dark;
+    ctx.lineWidth = 0.18 * u;
+    ctx.beginPath();
+    ctx.moveTo(3.95 * u, -2.75 * u);
+    ctx.quadraticCurveTo(3 * u, -2.45 * u, 1.9 * u, -2.6 * u);
+    ctx.stroke();
+    // Túi kêu dưới cằm phồng lên xẹp xuống
+    if (sac > 0.02) {
+        ell(3.1, -2.05, 0.4 + sac * 1.05, 0.35 + sac * 0.85, 0, 'rgba(222, 216, 176, 0.88)');
+        ell(2.9 - sac * 0.2, -2.3 - sac * 0.3, 0.25 + sac * 0.3, 0.15 + sac * 0.2, 0, 'rgba(255, 255, 240, 0.55)');
+    }
+    // Lưỡi phóng ra đớp mồi
+    if (tongue) {
+        ctx.strokeStyle = '#d0707a';
+        ctx.lineWidth = 0.35 * u;
+        ctx.beginPath();
+        ctx.moveTo(3.9 * u, -2.75 * u);
+        ctx.lineTo(tongue[0] * dir, tongue[1]);
+        ctx.stroke();
+    }
+    frogEye(ctx, 2.5 * u, -4.05 * u, 0.8 * u, blink);
+    ctx.restore();
+}
+
+// Bong bóng nổi trên mặt nước: vòm trong suốt hứng ánh trời, mép sáng, đốm lóe; sắp vỡ thì rung rinh
+function drawBubble(ctx, x, y, r, k, wobble) {
+    const rx = r * (1 + wobble * 0.12);
+    const ry = r * 0.78 * (1 - wobble * 0.1);
+    ctx.fillStyle = 'rgba(150, 178, 220, 0.16)';
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, Math.PI, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(210, 226, 255, 0.6)';
+    ctx.lineWidth = Math.max(0.5 / k, r * 0.12);
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, Math.PI, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.beginPath();
+    ctx.arc(x - rx * 0.35, y - ry * 0.55, Math.max(0.4 / k, r * 0.2), 0, Math.PI * 2);
+    ctx.fill();
+    // Bóng mờ của vòm in xuống nước
+    ctx.strokeStyle = 'rgba(190, 210, 245, 0.18)';
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry * 0.6, 0, 0, Math.PI);
+    ctx.stroke();
+}
 
 
 const WaterLife = {
@@ -715,9 +863,11 @@ const WaterLife = {
     birds: [],
     ducks: [],
     fish: [],
+    frogs: [],
+    bubbles: [],
     ripples: [],
     drops: [],
-    next: { log: 0, bird: 0, duck: 0, fish: 0, rise: 0 },
+    next: { log: 0, bird: 0, duck: 0, fish: 0, rise: 0, frog: 0, bubble: 0 },
 
     // Trôi theo dòng (điểm ảnh CSS / ms), khớp với các vệt sáng của mặt nước
     flow(d, river) {
@@ -733,14 +883,16 @@ const WaterLife = {
         this.birds = [];
         this.ducks = [];
         this.fish = [];
+        this.frogs = [];
+        this.bubbles = [];
         this.ripples = [];
         this.drops = [];
         const slow = IS_MOBILE ? 1.3 : 1;
-        // Mở màn đã có sẵn một khúc gỗ đang trôi, một con cò và một đàn vịt sắp bay tới
+        // Mở màn đã có sẵn một khúc gỗ đang trôi, một con cò và một đàn vịt sắp bay tới, ếch sắp ló đầu
         if (river && flags.logs) this.logs.push(this.makeLog(rand(0.18, 0.42) * cssW, rand(0.45, 0.8)));
         this.next = river
-            ? { log: rand(9000, 16000) * slow, bird: rand(1500, 3000), duck: rand(5000, 9000), fish: rand(2500, 4500), rise: rand(800, 2000) }
-            : { log: Infinity, bird: rand(3000, 6000), duck: rand(2500, 5000), fish: rand(3500, 6000), rise: rand(800, 2000) };
+            ? { log: rand(9000, 16000) * slow, bird: rand(1500, 3000), duck: rand(5000, 9000), fish: rand(2500, 4500), rise: rand(800, 2000), frog: rand(1500, 3500), bubble: rand(800, 2500) }
+            : { log: Infinity, bird: rand(3000, 6000), duck: rand(2500, 5000), fish: rand(3500, 6000), rise: rand(800, 2000), frog: rand(1200, 3000), bubble: rand(800, 2500) };
     },
 
     makeLog(x, d) {
@@ -778,12 +930,15 @@ const WaterLife = {
         this.ripples.push({ x, d, age: -delay, life, r0: 1.5 * this.scale(d) * size, size });
     },
 
-    // rocks: đá, gò đất giữa dòng (vật trôi, vịt né); flags: loại nào đang bật (tắt thì bỏ ngay)
-    update(dt, river, cssW, topCss, depthCss, rocks = [], flags = WATER_ALL) {
+    // rocks: đá, gò đất giữa dòng (vật trôi, vịt né; ếch nhảy lên); pads: lá bèo (ếch nhảy lên); flags: loại nào đang bật
+    // (tắt thì bỏ ngay)
+    update(dt, river, cssW, topCss, depthCss, rocks = [], flags = WATER_ALL, pads = []) {
         const slow = IS_MOBILE ? 1.3 : 1;
         if (!flags.logs) this.logs = [];
         if (!flags.ducks) this.ducks = [];
         if (!flags.fish) this.fish = [];
+        if (!flags.frogs) this.frogs = [];
+        if (!flags.bubbles) this.bubbles = [];
         if (!flags.birds && this.birds.length) {
             this.birds.forEach(bird => this.freeEgretPerch(bird));
             this.birds = [];
@@ -954,6 +1109,34 @@ const WaterLife = {
         });
         this.fish = this.fish.filter(fish => !fish.done);
 
+        // Ếch: ló đầu khỏi mặt nước gần đá, gò đất, lá bèo hoặc sát bờ; nhảy lên ngồi, đớp đom đóm, nhảy sang chỗ khác
+        // hoặc nhảy tõm xuống nước
+        this.next.frog -= dt;
+        if (this.next.frog <= 0 && flags.frogs) {
+            this.next.frog = rand(6000, 12000) * slow;
+            if (this.frogs.length < (IS_MOBILE ? 1 : 2)) this.frogs.push(this.makeFrog(cssW, rocks, pads));
+        }
+        this.frogs.forEach(frog => this.updateFrog(frog, dt, river, cssW, topCss, depthCss, rocks, pads));
+        this.frogs = this.frogs.filter(frog => frog.state !== 'gone');
+
+        // Bong bóng: vài bong bóng nổi lên mặt nước, trôi theo dòng, rung rinh rồi vỡ (vòng sóng nhỏ, tia nước li ti)
+        this.next.bubble -= dt;
+        if (this.next.bubble <= 0 && flags.bubbles) {
+            this.next.bubble = rand(1800, 5200) * slow;
+            this.bubbleUp(rand(0.05, 0.95) * cssW, rand(0.08, 0.92), 1 + ((Math.random() * 3) | 0));
+        }
+        this.bubbles.forEach(b => {
+            b.t += dt;
+            b.x += this.flow(b.d, river) * dt;
+            if (b.t >= b.life) {
+                const s = this.scale(b.d);
+                this.ring(b.x, b.d, 0.25 + b.r * 0.1, 700);
+                const y = this.surfaceY(b.d, topCss, depthCss);
+                for (let i = 0; i < 2; i++) this.drops.push({ x: b.x, y, base: y, vx: rand(-0.03, 0.03) * s, vy: -rand(0.03, 0.06) * s, size: rand(0.6, 1) * s });
+            }
+        });
+        this.bubbles = this.bubbles.filter(b => b.t < b.life);
+
         // Cá đớp mồi: vòng sóng nhỏ lan ra đây đó trên mặt nước
         this.next.rise -= dt;
         if (this.next.rise <= 0 && flags.fish) {
@@ -1002,6 +1185,14 @@ const WaterLife = {
             drawMirrorSlices(ctx, surf, surf - duck.y + 12 * s, duck.x, 14 * s, 0.26 * (1 - (surf - duck.y) / reach), time, duck.seed, s, 1)(
                 alpha => this.paintDuck(ctx, duck, pose, s, alpha));
         });
+        this.bubbles.forEach(b => {
+            if (b.t < 0) return;
+            const s = this.scale(b.d);
+            const grow = Math.min(1, b.t / 260);
+            const wobble = b.life - b.t < 220 ? Math.sin(b.t * 0.08) : 0;
+            ctx.globalAlpha = 1;
+            drawBubble(ctx, b.x, this.surfaceY(b.d, topCss, depthCss), b.r * s * grow, k, wobble);
+        });
         ctx.lineWidth = 1 / k;
         ctx.strokeStyle = 'rgb(205, 222, 255)';
         this.ripples.forEach(r => {
@@ -1025,6 +1216,9 @@ const WaterLife = {
             })),
             ...this.ducks.filter(duck => duck.state === 'swim' || duck.state === 'dabble').map(duck => ({
                 d: duck.d, draw: () => this.drawDuck(ctx, duck, duck.state, this.scale(duck.d), k, time)
+            })),
+            ...this.frogs.filter(frog => frog.state === 'peek' || frog.state === 'sit' || frog.state === 'aim').map(frog => ({
+                d: frog.d + 0.0003, draw: () => this.drawFrogNow(ctx, frog, topCss, depthCss)
             }))
         ];
     },
@@ -1050,6 +1244,19 @@ const WaterLife = {
                 0.7 + 0.3 * Math.cos(f.p * Math.PI * 2 + fish.seed * 6), k);
             ctx.restore();
         });
+        this.frogs.forEach(frog => {
+            if (frog.state === 'hop' || frog.state === 'leap') this.drawFrogNow(ctx, frog, topCss, depthCss);
+            if (frog.bug) {
+                // Đom đóm bay lượn quanh ếch (cộng sáng)
+                const glow = fireflyGlow();
+                const size = 5 * this.scale(frog.d);
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.globalAlpha = 0.6 + 0.4 * Math.sin(time * 0.012 + frog.seed * 9);
+                ctx.drawImage(glow, frog.bug.x - size / 2, frog.bug.y - size / 2, size, size);
+                ctx.restore();
+            }
+        });
         ctx.fillStyle = 'rgb(225, 236, 255)';
         this.drops.forEach(p => {
             ctx.globalAlpha = 0.8;
@@ -1063,6 +1270,201 @@ const WaterLife = {
             this.drawDuck(ctx, duck, Math.floor(duck.flap / 85) % 2 ? 'up' : 'down', this.scale(duck.d), k);
         });
         ctx.globalAlpha = 1;
+    },
+
+    // Vài bong bóng nổi lên quanh một chỗ (x: điểm ảnh CSS, d: độ xa), cái sau nổi muộn hơn cái trước một chút
+    bubbleUp(x, d, n) {
+        const s = this.scale(d);
+        for (let i = 0; i < n; i++) {
+            this.bubbles.push({ x: x + rand(-5, 5) * s, d: Math.max(0.02, Math.min(0.98, d + rand(-0.01, 0.01))), r: rand(0.8, 2.2), t: -i * rand(150, 550), life: rand(1200, 3400) });
+        }
+    },
+
+    // Ếch mới: ló đầu ở chỗ nước gần đá, gò đất, lá bèo hoặc sát bờ
+    makeFrog(cssW, rocks, pads) {
+        return { state: 'peek', ...this.frogWaterSpot(cssW, rocks, pads), dir: Math.random() < 0.5 ? 1 : -1, t: 0, dur: rand(3000, 6500), seed: Math.random(), sacIn: rand(900, 2600), sac: 0, blinkIn: rand(1500, 4000), blink: 0, perch: null };
+    },
+
+    frogWaterSpot(cssW, rocks, pads, near) {
+        const r = Math.random();
+        if (near) return { x: near.x + rand(-26, 26) * this.scale(near.d), d: Math.max(0.02, Math.min(0.95, near.d + rand(-0.03, 0.03))) };
+        if (rocks.length && r < 0.45) {
+            const rock = rocks[(Math.random() * rocks.length) | 0];
+            const w = rock.size * this.scale(rock.d);
+            return { x: rock.x + (Math.random() < 0.5 ? -1 : 1) * w * rand(0.45, 0.65), d: Math.min(0.95, rock.d + rand(0.005, 0.03)) };
+        }
+        if (pads.length && r < 0.75) {
+            const pad = pads[(Math.random() * pads.length) | 0];
+            return { x: pad.u * cssW + (Math.random() < 0.5 ? -1 : 1) * rand(14, 22) * this.scale(pad.d), d: Math.min(0.95, pad.d + rand(0.005, 0.02)) };
+        }
+        return { x: rand(0.08, 0.92) * cssW, d: rand(0.02, 0.07) };
+    },
+
+    // Chỗ ếch ngồi: giữa lá bèo (theo lá trôi, dập dềnh), mặt trên đá, gò đất; hoặc một chỗ trên mặt nước
+    frogPerchPoint(perch, cssW, topCss, depthCss) {
+        if (perch.pad) {
+            const pad = perch.pad;
+            const s = this.scale(pad.d);
+            return { x: pad.u * cssW + perch.ox * s, y: this.surfaceY(pad.d, topCss, depthCss) + Math.sin(pad.bob) * 0.5 - 0.7 * s, d: pad.d };
+        }
+        if (perch.rock) {
+            const rock = perch.rock;
+            const sprite = rock.kind === 'rock' ? rockSprite(rock.variant) : moundSprite(rock.variant);
+            const w = rock.size * this.scale(rock.d);
+            return { x: rock.x + (sprite.perchX + perch.ox) * w, y: this.surfaceY(rock.d, topCss, depthCss) - w * (sprite.wl - sprite.top) / sprite.width, d: rock.d };
+        }
+        return { x: perch.x, y: this.surfaceY(perch.d, topCss, depthCss), d: perch.d, water: true };
+    },
+
+    // Chỗ nhảy tới gần đó: lá bèo, đá, gò đất chưa có ai (cò, ếch khác); không có thì null
+    frogTarget(frog, cssW, rocks, pads) {
+        const s = this.scale(frog.d);
+        const reach = 70 * s;
+        const taken = p => this.frogs.some(f => f !== frog && f.perch && (f.perch.pad === p || f.perch.rock === p));
+        const options = [
+            ...pads.filter(p => !taken(p) && Math.abs(p.u * cssW - frog.x) < reach && Math.abs(p.d - frog.d) < 0.14).map(pad => ({ pad, ox: rand(-2, 2) })),
+            ...rocks.filter(r => !taken(r) && !(r.bird && this.birds.includes(r.bird)) && Math.abs(r.x - frog.x) < reach * 1.3 && Math.abs(r.d - frog.d) < 0.16)
+                .map(rock => ({ rock, ox: rand(-0.12, 0.12) }))
+        ].filter(p => !(frog.perch && (p.pad ? p.pad === frog.perch.pad : p.rock === frog.perch.rock)));
+        return options.length ? options[(Math.random() * options.length) | 0] : null;
+    },
+
+    // Nhảy vồng từ chỗ đang ở tới chỗ mới (tới mặt nước thì tõm xuống)
+    frogHop(frog, to, cssW, topCss, depthCss) {
+        const from = frog.perch ? this.frogPerchPoint(frog.perch, cssW, topCss, depthCss) : { x: frog.x, y: this.surfaceY(frog.d, topCss, depthCss), d: frog.d };
+        if (!frog.perch) this.splash(frog.x, frog.d, topCss, depthCss, 0.35);
+        else if (frog.perch.pad) this.ring(from.x, frog.d, 0.5, 900);
+        const end = this.frogPerchPoint(to, cssW, topCss, depthCss);
+        frog.dir = end.x >= from.x ? 1 : -1;
+        frog.hop = { from, to, t: 0, dur: rand(420, 600), h: rand(14, 22) * this.scale(frog.d) + Math.abs(end.x - from.x) * 0.18 };
+        frog.perch = null;
+        frog.state = 'hop';
+    },
+
+    updateFrog(frog, dt, river, cssW, topCss, depthCss, rocks, pads) {
+        frog.t += dt;
+        const s = this.scale(frog.d);
+        // Chớp mắt, túi kêu phồng lên xẹp xuống (lúc ngồi)
+        frog.blinkIn -= dt;
+        if (frog.blinkIn <= 0) {
+            frog.blink = 140;
+            frog.blinkIn = rand(2500, 6000);
+        }
+        frog.blink = Math.max(0, frog.blink - dt);
+        // Chỗ ngồi không còn (tắt lá bèo, đá): nhảy xuống nước
+        if (frog.perch && ((frog.perch.pad && !pads.includes(frog.perch.pad)) || (frog.perch.rock && !rocks.includes(frog.perch.rock)))) {
+            frog.perch = null;
+            frog.state = 'under';
+            frog.t = 0;
+            frog.dur = rand(1500, 3000);
+            this.splash(frog.x, frog.d, topCss, depthCss, 0.35);
+            return;
+        }
+        if (frog.state === 'peek') {
+            // Ló đầu: dập dềnh theo sóng, trôi theo dòng; hết lúc thì nhảy lên chỗ gần đó hoặc lặn mất
+            if (frog.t < dt + 1) this.ring(frog.x, frog.d, 0.45, 1400);
+            frog.x += this.flow(frog.d, river) * dt;
+            if (frog.t >= frog.dur) {
+                const to = Math.random() < 0.7 ? this.frogTarget(frog, cssW, rocks, pads) : null;
+                if (to) this.frogHop(frog, to, cssW, topCss, depthCss);
+                else {
+                    frog.state = Math.random() < 0.4 ? 'under' : 'gone';
+                    frog.t = 0;
+                    frog.dur = rand(1500, 3500);
+                    this.ring(frog.x, frog.d, 0.5, 1300);
+                    this.bubbleUp(frog.x, frog.d, 2);
+                }
+            }
+        } else if (frog.state === 'under') {
+            // Lặn dưới nước một lúc rồi ló đầu chỗ khác gần đó (bong bóng nổi lên chỗ vừa lặn)
+            frog.x += this.flow(frog.d, river) * dt;
+            if (frog.t >= frog.dur) {
+                Object.assign(frog, { state: 'peek', ...this.frogWaterSpot(cssW, rocks, pads, Math.random() < 0.6 ? frog : null), t: 0, dur: rand(2500, 6000) });
+            }
+        } else if (frog.state === 'hop' || frog.state === 'leap') {
+            const hop = frog.hop;
+            hop.t += dt;
+            const p = Math.min(1, hop.t / hop.dur);
+            const end = frog.state === 'leap' ? this.frogPerchPoint(frog.perch, cssW, topCss, depthCss) : this.frogPerchPoint(hop.to, cssW, topCss, depthCss);
+            const start = frog.state === 'leap' ? end : hop.from;
+            frog.x = start.x + (end.x - start.x) * p;
+            frog.y = start.y + (end.y - start.y) * p - hop.h * 4 * p * (1 - p);
+            frog.d = start.d + (end.d - start.d) * p;
+            frog.angle = frog.state === 'leap' ? -1.2 * (1 - 2 * p) : Math.atan2((end.y - start.y) - hop.h * 4 * (1 - 2 * p), Math.abs(end.x - start.x) + 1e-3);
+            // Đớp đom đóm ở đỉnh cú nhảy
+            if (frog.state === 'leap' && frog.bug && p > 0.42) {
+                frog.tongue = 90;
+                frog.tongueAt = [frog.bug.x - frog.x, frog.bug.y - frog.y];
+                frog.bug = null;
+            }
+            if (p >= 1) {
+                if (frog.state === 'leap') {
+                    frog.state = 'sit';
+                    frog.t = 0;
+                    frog.dur = rand(2500, 6000);
+                } else if (end.water) {
+                    // Tõm xuống nước: tia nước, vòng sóng, bong bóng; lặn một lúc rồi có khi ló đầu chỗ khác
+                    this.splash(end.x, end.d, topCss, depthCss, 0.45);
+                    this.bubbleUp(end.x, end.d, 2);
+                    Object.assign(frog, { state: Math.random() < 0.55 ? 'under' : 'gone', x: end.x, d: end.d, t: 0, dur: rand(1800, 4000) });
+                } else {
+                    frog.perch = hop.to;
+                    frog.state = 'sit';
+                    frog.t = 0;
+                    frog.dur = rand(4000, 9000);
+                    if (hop.to.pad) this.ring(end.x, end.d, 0.55, 1000);
+                }
+            }
+        } else if (frog.state === 'sit' || frog.state === 'aim') {
+            const at = this.frogPerchPoint(frog.perch, cssW, topCss, depthCss);
+            frog.x = at.x;
+            frog.y = at.y;
+            frog.d = at.d;
+            frog.sacIn -= dt;
+            if (frog.sacIn <= 0) {
+                frog.sac = 700;
+                frog.sacIn = rand(1600, 4200);
+            }
+            frog.sac = Math.max(0, frog.sac - dt);
+            frog.tongue = Math.max(0, (frog.tongue || 0) - dt);
+            if (frog.state === 'aim') {
+                // Đom đóm bay lại gần, ếch rình rồi nhảy vọt lên đớp
+                const bug = frog.bug;
+                bug.t += dt;
+                const come = Math.max(0, 1 - bug.t / 1400);
+                bug.x = frog.x + frog.dir * (6 + 30 * come) * s + Math.sin(bug.t * 0.006) * 4 * s;
+                bug.y = frog.y - (16 + 10 * come) * s + Math.sin(bug.t * 0.009 + 1) * 3 * s;
+                if (bug.t >= bug.wait) {
+                    frog.state = 'leap';
+                    frog.hop = { t: 0, dur: 480, h: 18 * s };
+                }
+            } else if (frog.t >= frog.dur) {
+                const r = Math.random();
+                if (r < 0.4) {
+                    frog.state = 'aim';
+                    frog.bug = { t: 0, wait: rand(1500, 2600), x: frog.x, y: frog.y };
+                } else {
+                    const to = r < 0.72 ? this.frogTarget(frog, cssW, rocks, pads) : null;
+                    // Không có chỗ nào gần: nhảy tõm xuống nước ngay cạnh
+                    this.frogHop(frog, to || { x: frog.x + frog.dir * rand(14, 26) * s, d: Math.min(0.97, frog.d + rand(0.005, 0.03)) }, cssW, topCss, depthCss);
+                }
+            }
+        }
+    },
+
+    drawFrogNow(ctx, frog, topCss, depthCss) {
+        const u = 1.3 * this.scale(frog.d);
+        ctx.globalAlpha = 1;
+        if (frog.state === 'peek') {
+            drawFrog(ctx, frog.x, this.surfaceY(frog.d, topCss, depthCss) + Math.sin(frog.t * 0.004) * 0.3 * u, u, frog.dir, 'peek', { blink: frog.blink > 0 });
+        } else if (frog.state === 'hop' || (frog.state === 'leap' && frog.hop.t / frog.hop.dur > 0.12 && frog.hop.t / frog.hop.dur < 0.88)) {
+            drawFrog(ctx, frog.x, frog.y - 2 * u, u, frog.dir, 'jump', { angle: frog.angle });
+        } else {
+            drawFrog(ctx, frog.x, frog.y, u, frog.dir, 'sit', {
+                sac: frog.sac > 0 ? Math.sin(Math.PI * (1 - frog.sac / 700)) : 0, blink: frog.blink > 0,
+                tongue: frog.tongue > 0 ? frog.tongueAt : null
+            });
+        }
     },
 
     // Khúc gỗ nổi: phần nổi thẳng, phần chìm từng lát lệch theo sóng (nước khúc xạ); bóng phần nổi in xuống nước gợn theo
@@ -1124,7 +1526,7 @@ const WaterLife = {
         };
         const logs = this.logs.filter(log => !log.bird && logSprite(log.variant).perch && log.x > cssW * 0.15 && log.x < cssW * 0.6);
         // Đá, gò đất chưa có cò nào đang đậu (dấu cũ của cò đã đi khỏi cảnh thì bỏ qua)
-        const free = rocks.filter(rock => !rock.bird || !this.birds.includes(rock.bird));
+        const free = rocks.filter(rock => (!rock.bird || !this.birds.includes(rock.bird)) && !this.frogs.some(frog => frog.perch && frog.perch.rock === rock));
         const roll = Math.random();
         if (logs.length && roll < 0.4) {
             bird.perch = { log: logs[0], ox: rand(0.35, 0.65) };
@@ -3719,7 +4121,7 @@ export const Water = {
         const season = sceneSeason();
         const frozen = season === 'winter';
         this.season = season;
-        const life = !frozen && !!lifeFlags && (lifeFlags.birds || lifeFlags.ducks || lifeFlags.fish || lifeFlags.logs);
+        const life = !frozen && !!lifeFlags && (lifeFlags.birds || lifeFlags.ducks || lifeFlags.fish || lifeFlags.logs || lifeFlags.frogs || lifeFlags.bubbles);
         const level = horizon();
         const { width: W, height: H } = ctx.canvas;
         if (level >= 1 || !W || !H) {
@@ -3997,7 +4399,7 @@ export const Water = {
                 WaterLife.key = key;
                 WaterLife.reset(river, cssW, lifeFlags);
             }
-            WaterLife.update(dt, river, cssW, waterTopCss, waterDepthCss, rocks, lifeFlags);
+            WaterLife.update(dt, river, cssW, waterTopCss, waterDepthCss, rocks, lifeFlags, this.plants);
         } else if (WaterLife.key) {
             WaterLife.key = '';
         }

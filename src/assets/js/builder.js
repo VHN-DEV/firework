@@ -68,6 +68,7 @@ const state = {
     waterDucks: true,
     waterFish: true,
     waterLogs: true,
+    waterFrogs: true,
     waterPlants: true,
     waterRocks: true,
     // Cách xem đặt sẵn: quality ('1'-'3'), skyLighting ('0', '1'), scaleFactor, hideControls (false), fullscreen (true)
@@ -1205,6 +1206,8 @@ const HELP_TIPS = {
         + '<li><strong>Cò</strong>: bay tới đậu trên khúc gỗ, đá, gò đất hoặc lội chỗ nước nông rình cá, ngó nghiêng, rỉa lông rồi bay đi.</li>'
         + '<li><strong>Vịt trời</strong>: cả đàn bay tới, bơi để lại vệt sóng, chổng đuôi kiếm ăn rồi cất cánh.</li>'
         + '<li><strong>Cá</strong>: cá mè, cá chép, cá trắm, đàn cá con nhảy khỏi mặt nước; cá đớp mồi làm sóng lăn tăn.</li>'
+        + '<li><strong>Ếch</strong>: ló đầu khỏi mặt nước gần đá, gò đất, lá bèo hoặc sát bờ; nhảy lên lá bèo, đá, gò đất ngồi phập '
+        + 'phồng túi kêu, đớp đom đóm bay ngang, rồi nhảy tõm xuống nước. Mặt nước còn có bong bóng nổi lên rồi vỡ.</li>'
         + '<li><strong>Khúc gỗ trôi</strong>: mỗi khúc một dáng, trôi theo dòng (chỉ khi "Sông chảy").</li>'
         + '<li><strong>Lá bèo</strong>: lá bèo, thỉnh thoảng có hoa súng; hồ thì mọc thành đám, sông thì trôi theo dòng.</li>'
         + '<li><strong>Đá, gò đất</strong>: giữa dòng; sông chảy thì nước dồn vào, rẽ ra hai bên, vật trôi lách qua.</li>'
@@ -3546,8 +3549,8 @@ function renderScene() {
 }
 
 // Trên mặt nước (mục "Trên mặt nước"); kịch bản cũ chỉ có một công tắc waterLife cho cò, vịt, cá, gỗ
-const WATER_THINGS = ['waterBirds', 'waterDucks', 'waterFish', 'waterLogs', 'waterPlants', 'waterRocks'];
-const WATER_LIFE_THINGS = ['waterBirds', 'waterDucks', 'waterFish', 'waterLogs'];
+const WATER_THINGS = ['waterBirds', 'waterDucks', 'waterFish', 'waterFrogs', 'waterLogs', 'waterPlants', 'waterRocks'];
+const WATER_LIFE_THINGS = ['waterBirds', 'waterDucks', 'waterFish', 'waterFrogs', 'waterLogs'];
 
 // Cách xem đặt sẵn (nhóm "Khi người nhận xem"): chỉ lưu mục khác mặc định của trình phát
 const VIEWER_SKY_NAMES = { 0: 'Trời không sáng theo pháo', 1: 'Trời sáng mờ' };
