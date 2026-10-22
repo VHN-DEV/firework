@@ -159,7 +159,8 @@ const LAUNCH_STYLES = [
 // Giá trị khớp với START_FRAMES trong trình phát (script.js); thêm khung mới thì thêm ở cả hai nơi.
 const START_FRAMES = [
     { value: '', name: 'Thiệp chào', icon: '💌', hint: 'Thiệp với lời mời và nút "Mở quà".' },
-    { value: 'gift', name: 'Hộp quà', icon: '🎁', hint: 'Hộp quà rung rinh; chạm vào thì bung nắp, nổ tung ruy băng và pháo giấy rồi mới bắt đầu.' }
+    { value: 'gift', name: 'Hộp quà', icon: '🎁', hint: 'Hộp quà phóng nhẹ vào giữa, vệt sáng vàng quét qua, rung rinh; chạm vào thì bung nắp, nổ tung ruy băng và pháo giấy rồi mới bắt đầu.' },
+    { value: 'lixi', name: 'Bao lì xì', icon: '🧧', hint: 'Bao lì xì rơi xuống nảy nhẹ, viền vàng lóe sáng, nghiêng qua lại; chạm vào thì nắp lật lên, thiệp lộc nhô ra, xu vàng bung lên.' }
 ];
 
 // Biểu tượng khung vẽ bằng SVG nét viền: emoji không có hình bo góc hay "không khung" đúng nghĩa

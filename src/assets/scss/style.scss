@@ -851,7 +851,6 @@ body {
 
     .start-screen.frame-gift & {
         display: flex;
-        animation: fadeInScale 0.8s ease-out;
     }
 
     // Đang tải lời mời riêng của kịch bản
@@ -894,17 +893,107 @@ body {
     }
 
     &__hint {
-        margin: 0.5rem 0 0;
-        color: rgba(255, 255, 255, 0.65);
-        font-size: 0.95rem;
-        animation: giftHint 2s ease-in-out infinite;
-        transition: opacity 0.3s;
+        margin: 0.75rem 0 0;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.9rem;
 
-        .start-screen.gift-opening & {
-            opacity: 0;
-            animation: none;
+        &:empty {
+            display: none;
         }
     }
+
+    // Nút mở (chạm vật thể cũng mở được)
+    &__cta {
+        margin-top: 0.25rem;
+        padding: 0.85rem 2.4rem;
+        border: none;
+        border-radius: 3rem;
+        background: linear-gradient(135deg, var(--st-main, #ff0043) 0%, var(--st-accent, #ffbf36) 100%);
+        color: #fff;
+        font-family: inherit;
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        cursor: pointer;
+        box-shadow: 0 10px 22px rgba(var(--st-main-rgb, 255, 0, 67), 0.35);
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+        &:hover {
+            transform: scale(1.05);
+        }
+
+        &:focus-visible {
+            outline: 3px solid var(--st-accent, #ffbf36);
+            outline-offset: 4px;
+        }
+    }
+}
+
+// Hiện lần lượt: vật thể trước (hiệu ứng riêng của từng khung), rồi tiêu đề, lời nhắn, người gửi, nút; nút sáng nhẹ theo
+// nhịp chờ. Chạm mở: chữ, nút lui đi để vật thể là tâm điểm
+.start-screen.frame-gift.is-ready .gift-stage {
+    > * {
+        animation: stageRise 0.5s ease-out both;
+    }
+
+    > .gift-stage__hero {
+        animation: heroIn 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.25) 0.1s both;
+    }
+
+    > .gift-stage__title {
+        animation-delay: 0.7s;
+    }
+
+    > .gift-stage__message {
+        animation-delay: 0.8s;
+    }
+
+    > .gift-stage__from {
+        animation-delay: 0.85s;
+    }
+
+    > .gift-stage__cta {
+        animation: ctaIn 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3) 1s both, ctaGlow 2.6s ease-in-out 1.6s infinite;
+    }
+
+    > .gift-stage__hint {
+        animation-delay: 1.15s;
+    }
+}
+
+.start-screen.frame-gift.gift-opening .gift-stage {
+    > .gift-stage__title,
+    > .gift-stage__message,
+    > .gift-stage__from,
+    > .gift-stage__cta,
+    > .gift-stage__hint {
+        animation: stageAway 0.35s ease-in forwards;
+    }
+}
+
+@keyframes stageRise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes stageAway {
+    to { opacity: 0; transform: translateY(-6px); }
+}
+
+@keyframes heroIn {
+    0% { opacity: 0; transform: translateY(12px) scale(0.75); }
+    60% { opacity: 1; transform: translateY(-4px) scale(1.03); }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes ctaIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes ctaGlow {
+    0%, 100% { box-shadow: 0 10px 22px rgba(var(--st-main-rgb, 255, 0, 67), 0.35); }
+    50% { box-shadow: 0 10px 30px rgba(var(--st-main-rgb, 255, 0, 67), 0.55), 0 0 22px rgba(var(--st-accent-rgb, 255, 191, 54), 0.45); }
 }
 
 // Hộp quà vẽ bằng CSS: thân, nắp, nơ, quầng sáng
@@ -956,6 +1045,19 @@ body {
             linear-gradient(90deg, transparent 43%, var(--st-accent-light, #ffd34d) 43%, var(--st-accent, #ffbf36) 57%, transparent 57%),
             linear-gradient(160deg, var(--st-main-light, #ff4f7b) 0%, var(--st-main, #e0144c) 55%, var(--st-main-dark, #a80d3a) 100%);
         box-shadow: inset 0 -12px 20px rgba(0, 0, 0, 0.25), 0 18px 30px rgba(0, 0, 0, 0.45);
+        overflow: hidden;
+    }
+
+    // Vệt sáng vàng quét ngang thân hộp một lần lúc hộp vừa hiện
+    &__shine {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(105deg, transparent 30%, rgba(255, 244, 205, 0.6) 50%, transparent 70%);
+        transform: translateX(-130%);
+
+        .start-screen.is-ready & {
+            animation: heroShine 0.7s ease-in-out 0.75s both;
+        }
     }
 
     &__lid {
@@ -1088,16 +1190,267 @@ body {
     100% { opacity: 0; transform: translate(-50%, -50%) scale(3.6); }
 }
 
-@keyframes giftHint {
-    0%, 100% { opacity: 0.55; }
-    50% { opacity: 1; }
+@keyframes heroShine {
+    from { transform: translateX(-130%); }
+    to { transform: translateX(130%); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .gift-box,
-    .gift-box__lid,
+// ---------------------------------------------------------------------------
+// Vật thể chính của các khung bắt đầu khác (bao lì xì, bánh sinh nhật, đèn lồng...): vẽ bằng CSS, màu theo giao diện của
+// dịp (--st-main, --st-accent). Mỗi khung: hiệu ứng hiện ra (đè lên heroIn của ô vật thể), nhịp chờ, lấy đà
+// (.gift-opening) và bung ra (.gift-open)
+// ---------------------------------------------------------------------------
+.hero {
+    --s: clamp(150px, 40vw, 200px);
+    position: relative;
+    display: block;
+    width: var(--s);
+    height: var(--s);
+    margin: 2.25rem 0 1.25rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    &:focus-visible {
+        outline: 3px solid var(--st-accent, #ffbf36);
+        outline-offset: 10px;
+        border-radius: 18px;
+    }
+
+    span,
+    i,
+    b {
+        position: absolute;
+        display: block;
+    }
+
+    // Quầng sáng sau vật thể; mở quà thì lóe rộng ra
+    &__glow {
+        left: 50%;
+        top: 55%;
+        width: 190%;
+        height: 190%;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(var(--st-accent-rgb, 255, 191, 54), 0.36) 0%, rgba(var(--st-main-rgb, 255, 0, 67), 0.15) 35%, transparent 65%);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        animation: giftGlow 2.6s ease-in-out infinite;
+
+        .start-screen.gift-open & {
+            animation: giftFlash 0.9s ease-out forwards;
+        }
+    }
+}
+
+// Giảm chớp sáng: không lóe sáng khi mở
+.start-screen.gift-calm.gift-open {
+    .hero__glow,
     .gift-box__glow {
         animation: none;
+        opacity: 0.6;
+    }
+}
+
+// Bao lì xì (startFrame: "lixi"): rơi xuống nảy nhẹ, viền vàng lóe sáng, hai đồng xu trang trí rơi rồi mờ; chờ thì nghiêng
+// qua lại; chạm vào thì nắp lật lên, thiệp lộc vàng nhô ra, xu vàng bung lên
+.start-screen.frame-lixi.is-ready .gift-stage > .gift-stage__hero {
+    animation: lixiDrop 0.75s cubic-bezier(0.3, 0.7, 0.4, 1) 0.1s both;
+}
+
+.lixi {
+    left: 20%;
+    width: 60%;
+    top: 0;
+    height: 94%;
+    perspective: 520px;
+    transform-origin: 50% 0;
+
+    .start-screen.is-ready & {
+        animation: lixiSway 3s ease-in-out 1.3s infinite;
+    }
+
+    // Thiệp lộc vàng bên trong, mở thì nhô lên
+    &__card {
+        z-index: 1;
+        left: 9%;
+        right: 9%;
+        top: 5%;
+        height: 60%;
+        border-radius: 4px;
+        background:
+            linear-gradient(var(--st-main, #d7141a), var(--st-main, #d7141a)) 50% 22% / 46% 3px no-repeat,
+            linear-gradient(170deg, #fff6d6, var(--st-accent-light, #ffe07a) 55%, var(--st-accent, #ffbf36));
+        box-shadow: inset 0 0 0 3px rgba(var(--st-main-rgb, 215, 20, 26), 0.55), 0 2px 6px rgba(0, 0, 0, 0.3);
+        transition: transform 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.15) 0.22s;
+    }
+
+    // Thân bao: đỏ son có hoa văn chéo mờ, viền vàng hai lớp
+    &__body {
+        z-index: 2;
+        inset: 0;
+        border-radius: 9px;
+        background:
+            repeating-linear-gradient(45deg, rgba(var(--st-accent-rgb, 255, 191, 54), 0.08) 0 3px, transparent 3px 11px),
+            repeating-linear-gradient(-45deg, rgba(var(--st-accent-rgb, 255, 191, 54), 0.06) 0 3px, transparent 3px 11px),
+            linear-gradient(165deg, var(--st-main-light, #ff4f4f) 0%, var(--st-main, #d7141a) 50%, var(--st-main-dark, #8f0d12) 100%);
+        box-shadow:
+            inset 0 0 0 calc(var(--s) * 0.022) var(--st-main-dark, #8f0d12),
+            inset 0 0 0 calc(var(--s) * 0.034) var(--st-accent, #ffbf36),
+            0 16px 28px rgba(0, 0, 0, 0.45);
+
+        .start-screen.is-ready & {
+            animation: lixiEdge 0.5s ease-out 0.75s;
+        }
+    }
+
+    // Chữ "Lộc" trên đồng tiền vàng
+    &__emblem {
+        z-index: 3;
+        left: 50%;
+        top: 58%;
+        width: 46%;
+        aspect-ratio: 1;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: radial-gradient(circle at 38% 32%, #fff3b8, var(--st-accent, #ffbf36) 55%, var(--st-accent-dark, #c98a12));
+        box-shadow: 0 0 0 calc(var(--s) * 0.012) var(--st-accent-dark, #c98a12), 0 3px 8px rgba(0, 0, 0, 0.3);
+        color: var(--st-main-dark, #8f0d12);
+        font: 800 calc(var(--s) * 0.1) / 1 Georgia, 'Times New Roman', serif;
+        transform: translate(-50%, -50%);
+        transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+    }
+
+    // Nắp hình chữ V, viền vàng; mở thì lật lên (nửa chừng thì nằm sau thiệp)
+    &__flap {
+        z-index: 4;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 38%;
+        transform-origin: 50% 0;
+        transition: transform 0.55s cubic-bezier(0.4, 0, 0.6, 1), z-index 0s 0.27s;
+
+        i {
+            inset: 0;
+            clip-path: polygon(0 0, 100% 0, 100% 30%, 50% 100%, 0 30%);
+            border-radius: 9px 9px 0 0;
+        }
+    }
+
+    &__flap-edge {
+        background: var(--st-accent, #ffbf36);
+        transform: translateY(calc(var(--s) * 0.024));
+    }
+
+    &__flap-face {
+        background: linear-gradient(180deg, var(--st-main-dark, #8f0d12), var(--st-main, #d7141a) 95%);
+    }
+
+    // Đồng xu trang trí: rơi xuống cạnh bao rồi mờ dần (chỉ một lần lúc hiện ra)
+    &__coin {
+        z-index: 5;
+        bottom: 6%;
+        width: 13%;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #fff3b8, var(--st-accent, #ffbf36) 55%, var(--st-accent-dark, #c98a12));
+        box-shadow: inset 0 0 0 2px var(--st-accent-dark, #c98a12);
+        opacity: 0;
+
+        &::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 28%;
+            height: 28%;
+            background: var(--st-main-dark, #8f0d12);
+            transform: translate(-50%, -50%);
+        }
+
+        &--a {
+            left: 4%;
+        }
+
+        &--b {
+            right: 3%;
+            width: 11%;
+        }
+
+        .start-screen.is-ready &--a {
+            animation: lixiCoin 1.2s ease-in 0.8s both;
+        }
+
+        .start-screen.is-ready &--b {
+            animation: lixiCoin 1.2s ease-in 0.95s both;
+        }
+    }
+}
+
+.start-screen.gift-opening .lixi {
+    animation: lixiShake 0.38s linear;
+}
+
+.start-screen.gift-open .lixi {
+    animation: none;
+
+    .lixi__flap {
+        z-index: 0;
+        transform: rotateX(180deg);
+    }
+
+    .lixi__card {
+        transform: translateY(-55%);
+    }
+
+    .lixi__emblem {
+        transform: translate(-50%, -50%) scale(1.12);
+    }
+}
+
+@keyframes lixiDrop {
+    0% { opacity: 0; transform: translateY(-90px) rotate(-8deg); }
+    55% { opacity: 1; transform: translateY(0) rotate(1deg); }
+    75% { transform: translateY(-8px) rotate(0); }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes lixiSway {
+    0%, 100% { transform: rotate(-2.5deg); }
+    50% { transform: rotate(2.5deg); }
+}
+
+@keyframes lixiEdge {
+    50% { filter: drop-shadow(0 0 12px rgba(var(--st-accent-rgb, 255, 191, 54), 0.95)); }
+}
+
+@keyframes lixiCoin {
+    0% { opacity: 0; transform: translateY(-34px) scale(0.6); }
+    25% { opacity: 1; transform: translateY(0) scale(1); }
+    70% { opacity: 1; transform: translateY(16px); }
+    100% { opacity: 0; transform: translateY(30px); }
+}
+
+@keyframes lixiShake {
+    0%, 100% { transform: rotate(0); }
+    20% { transform: rotate(-6deg) scale(1.03); }
+    45% { transform: rotate(5deg) scale(1.05); }
+    70% { transform: rotate(-3deg) scale(1.06); }
+}
+
+// Giảm chuyển động: bỏ hiệu ứng hiện ra, nhịp chờ (vẫn mở được, chuyển cảnh ngắn)
+@media (prefers-reduced-motion: reduce) {
+    .start-screen.frame-gift .gift-stage > *,
+    .gift-box,
+    .gift-box *,
+    .hero,
+    .hero * {
+        animation: none !important;
     }
 }
 
