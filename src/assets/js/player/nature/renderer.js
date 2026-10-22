@@ -13,7 +13,7 @@ let nextJob = 1;
 let queue = Promise.resolve();
 
 function inline(request) {
-    queue = queue.then(() => import('./sounds/index.js')).then(m => new Promise((resolve, reject) => {
+    const job = queue.then(() => import('./sounds/index.js')).then(m => new Promise((resolve, reject) => {
         setTimeout(() => {
             try {
                 resolve(m.renderSound(request));
@@ -22,7 +22,9 @@ function inline(request) {
             }
         }, 0);
     }));
-    return queue;
+    // Một tiếng dựng lỗi không được chặn các tiếng sau: hàng đợi là chuỗi promise, một lần reject thì mọi lượt sau cũng hỏng
+    queue = job.catch(() => {});
+    return job;
 }
 
 function useInline() {

@@ -82,4 +82,6 @@ export const EMOJI_GROUPS = [
         name: 'Thiên thể và chiêm tinh',
         emojis: '☉ ☾ ☿ ♀ ⊕ ♂ ⚳ ♃ ♄ ♅ ♆ ♇ ⚷'
     }
-].map(g => ({ ...g, emojis: g.emojis.split(' ') }));
+// Bỏ ký tự chọn kiểu (U+FE0F) thừa ở đầu một số biểu tượng: chèn vào chữ nó dính vào ký tự đứng trước (♥ thành ♥️) và
+// tốn thêm một ký tự của giới hạn độ dài
+].map(g => ({ ...g, emojis: g.emojis.split(' ').map(e => e.replace(/^️+/, '')).filter(Boolean) }));

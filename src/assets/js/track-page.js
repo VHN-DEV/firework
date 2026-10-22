@@ -58,7 +58,7 @@ function render(status) {
     $('#gift-error').classList.add('hide');
 }
 
-async function refresh() {
+async function loadStatus() {
     if (!id || !key) {
         showError('Link theo dõi thiếu mã. Hãy mở lại link trong hộp Chia sẻ của trình soạn.');
         return;
@@ -86,6 +86,15 @@ async function refresh() {
         });
     }
     lastOpens = opens;
+}
+
+// Cập nhật 30 giây một lần và mỗi lần quay lại tab: không chạy chồng, kẻo hai lượt cùng so với số lần mở cũ rồi báo hai lần
+// "Món quà đã được mở"
+let refreshing = null;
+
+function refresh() {
+    if (!refreshing) refreshing = loadStatus().finally(() => { refreshing = null; });
+    return refreshing;
 }
 
 $('#gift-show').href = `./index.html?config=${encodeURIComponent(id)}`;

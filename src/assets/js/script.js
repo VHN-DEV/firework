@@ -831,6 +831,8 @@ export function beginShow(open, firstLaunchDelay) {
             if (countdownActive) {
                 appNodes.loadingInit.classList.add('remove');
                 appNodes.startScreen.classList.remove('hide');
+                // Hiệu ứng nền đã dừng lúc màn ẩn đi (startCountdown bật nó khi màn còn đang ẩn): chạy lại cho màn đếm ngược
+                startAmbient.start(screenTheme, { lowQuality: isLowQuality });
                 return;
             }
             configRequest.then(config => reportGiftEvent('open', config));
