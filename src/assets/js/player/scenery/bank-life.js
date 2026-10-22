@@ -242,7 +242,8 @@ export function drawBankSkyline(ctx, cssW, ground, clock, calm, glow, drop) {
     ctx.save();
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
-    ctx.drawImage(still, 0, ground - BANK_STILL_UP, still.width / k, still.height / k);
+    // Đúng lưới điểm ảnh thật (chân trời thường lẻ nửa điểm ảnh): lệch thì cỏ, bụi cây vẽ sẵn bị nhòe
+    ctx.drawImage(still, 0, Math.round((ground - BANK_STILL_UP) * k) / k, still.width / k, still.height / k);
     const cellW = TUFT_W * k;
     const cellH = TUFT_H * k;
     life.tufts.forEach(tuft => {

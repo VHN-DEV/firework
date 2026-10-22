@@ -442,7 +442,9 @@ export function drawStyledSkyline(ctx, cssW, ground, clock, calm, glow, drop) {
     const layer = skylineLayer(bankStyle, cssW, ground, k, drop);
     const w = layer.canvas.width / k;
     const h = layer.canvas.height / k;
-    const y0 = ground - layer.up;
+    // Đặt ảnh vẽ sẵn đúng lưới điểm ảnh thật: chân trời thường lẻ nửa điểm ảnh (vd 969 / 2), vẽ lệch thì mỗi nét 1 điểm
+    // ảnh (mạch đá, lan can, mái nhà) tách thành hai hàng mờ
+    const y0 = Math.round((ground - layer.up) * k) / k;
     const opts = { ground, clock, calm, cssW, k };
     ctx.save();
     ctx.globalCompositeOperation = 'source-over';

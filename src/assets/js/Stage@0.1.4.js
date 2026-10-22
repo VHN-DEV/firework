@@ -81,11 +81,13 @@ const Ticker = (function TickerFactory(window) {
 			frameTime = 68;
 		}
 
-		// fire custom listeners
-		listeners.forEach(listener => listener.call(window, frameTime, frameTime / 16.6667));
-
-		// always queue another frame
-		queueFrame();
+		// fire custom listeners; always queue another frame, kể cả khi một khung báo lỗi (vd kịch bản sửa tay có giá trị lạ):
+		// không thì cả màn trình diễn đứng hình mãi
+		try {
+			listeners.forEach(listener => listener.call(window, frameTime, frameTime / 16.6667));
+		} finally {
+			queueFrame();
+		}
 	}
 
 
@@ -122,8 +124,8 @@ const Stage = (function StageFactory(window, document, Ticker) {
 		// canvas size in DIPs and natural pixels
 		this.width = canvas.width;
 		this.height = canvas.height;
-		this.naturalWidth = this.width * this.dpr;
-		this.naturalHeight = this.height * this.dpr;
+		this.naturalWidth = Math.round(this.width * this.dpr);
+		this.naturalHeight = Math.round(this.height * this.dpr);
 
 		// size canvas to match natural size
 		if (this.width !== this.naturalWidth) {
@@ -203,8 +205,9 @@ const Stage = (function StageFactory(window, document, Ticker) {
 	Stage.prototype.resize = function resize(w, h) {
 		this.width = w;
 		this.height = h;
-		this.naturalWidth = w * this.dpr;
-		this.naturalHeight = h * this.dpr;
+		// Làm tròn (không cắt phần lẻ): canvas thiếu một hàng điểm ảnh so với chỗ hiện thì trình duyệt co giãn cả lớp, nhòe
+		this.naturalWidth = Math.round(w * this.dpr);
+		this.naturalHeight = Math.round(h * this.dpr);
 		this.canvas.width = this.naturalWidth;
 		this.canvas.height = this.naturalHeight;
 		this.canvas.style.width = w + 'px';

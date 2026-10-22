@@ -16,28 +16,47 @@ import { appNodes, configDidUpdate, frameH, frameW, handleResize, mainStage, qua
 // Chất lượng "Tự động" (các mức: player/quality.js): máy mạnh bắt đầu ở độ phân giải gốc của màn hình, ít nhất 1080p
 // cho đủ hiệu ứng; máy yếu bắt đầu ở 720p HD. Điện thoại bắt đầu tối đa ở 1080p: màn nhỏ mật độ điểm ảnh rất cao (vd
 // 1170 điểm ảnh cạnh ngắn) mắt gần như không phân biệt được với 1080p mà nhẹ máy hơn nhiều. autoTuner hạ/nâng khi đang
-// xem, không xuống dưới 360p.
-export const AUTO_QUALITY_START = (() => {
+// xem, không xuống dưới 360p. Tính lại khi cửa sổ đổi cỡ hoặc sang màn hình khác (refreshAutoStart).
+function startLevel() {
     if (!IS_HIGH_END_DEVICE) return '720';
     if (IS_MOBILE) return '1080';
     const native = Math.min(window.innerWidth, window.innerHeight) * (window.devicePixelRatio || 1);
     const fits = QUALITY_LEVELS.filter(level => Number(level.value) >= Math.max(native, 1080));
     return (fits[fits.length - 1] || QUALITY_LEVELS[0]).value;
-})();
+}
+
+export let AUTO_QUALITY_START = startLevel();
 
 const AUTO_QUALITY_FLOOR = '360';
 
 export let autoQuality = AUTO_QUALITY_START;
 
+const levelIndex = value => QUALITY_LEVELS.findIndex(level => level.value === value);
+
+// Mở trên màn laptop rồi kéo cửa sổ sang màn 2K/4K (hoặc ngược lại): mức ban đầu theo màn hình mới. Chưa phải hạ vì giật
+// thì dùng luôn mức mới; đã hạ thì giữ mức đang dùng (không vượt mức ban đầu mới), autoTuner nâng dần nếu mượt
+function refreshAutoStart() {
+    const start = startLevel();
+    if (start === AUTO_QUALITY_START) return;
+    AUTO_QUALITY_START = start;
+    if (!autoTuner.drops || levelIndex(autoQuality) < levelIndex(start)) autoQuality = start;
+    renderQualityLabel();
+}
+
 // Chất lượng khi xem (Tự động hoặc 144p ... 4320p, xem player/quality.js): giới hạn tia lửa của mức, và vẽ khung pháo
 // đúng số điểm ảnh của mức ở cạnh ngắn (720p: 720).
 export function applyQualityLimits() {
+    // Khung quay video giữ đúng độ phân giải video
+    if (!IS_RECORD) refreshAutoStart();
     const level = qualityLevelSelector();
     Spark.budget = level.sparks;
-    // Khung quay video giữ đúng độ phân giải video
     if (IS_RECORD) return;
     const shortSide = Math.min(frameW || window.innerWidth, frameH || window.innerHeight);
-    const dpr = Math.min(maxRenderScale(), Number(level.value) / shortSide);
+    const native = window.devicePixelRatio || 1;
+    let dpr = Math.min(maxRenderScale(), Number(level.value) / shortSide);
+    // Sát độ phân giải gốc (vd điện thoại 412px × 2,625 ở mức 1080p ra 2,621): vẽ bằng đúng màn hình. Lệch chút ít thì
+    // trình duyệt vẫn phải co giãn cả lớp (nhòe mọi nét) chỉ để bớt vài phần trăm điểm ảnh
+    if (dpr < native && dpr > native * 0.95) dpr = native;
     // Đổi mật độ điểm ảnh, hoặc qua lại mức 480p (mặt nước vẽ thưa/nét): dựng lại các lớp
     if (stages.some(stage => stage.dpr !== dpr) || waterLowQuality !== isLowQuality) {
         stages.forEach(stage => { stage.dpr = dpr; });
@@ -110,8 +129,6 @@ export function renderResolution() {
 // "Tự động": bắt đầu theo màn hình và cấu hình máy; lúc đang có pháo mà giật kéo dài (dưới ~26 khung/giây trong 4 giây)
 // thì hạ một mức (vd 1080p xuống 720p), mượt lâu (trên ~50 khung/giây) thì nâng lại, không vượt mức ban đầu. Mỗi lần
 // hạ, lần nâng sau phải chờ lâu hơn.
-const levelIndex = value => QUALITY_LEVELS.findIndex(level => level.value === value);
-
 export const autoTuner = {
     last: 0,
     sum: 0,

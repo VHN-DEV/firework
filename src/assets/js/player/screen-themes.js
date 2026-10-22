@@ -176,10 +176,14 @@ export function themeConfettiColors() {
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
-// Ảnh vẽ sẵn của một hạt (cỡ s x s điểm ảnh), dùng lại cho mọi hạt cùng kiểu, cùng màu
+// Ảnh vẽ sẵn của một hạt, dùng lại cho mọi hạt cùng kiểu, cùng màu. size: cỡ thiết kế (điểm ảnh CSS); ảnh dựng nét gấp
+// spriteScale lần (theo mật độ điểm ảnh màn hình, xem createScreenAmbient) cho khỏi nhòe khi vẽ ra, mọi nét vẽ theo tỉ lệ s
+let spriteScale = 1;
+
 function sprite(size, draw) {
-    const [c, g] = makeCanvas(size, size);
-    draw(g, size);
+    const s = Math.ceil(size * spriteScale);
+    const [c, g] = makeCanvas(s, s);
+    draw(g, s);
     return c;
 }
 
@@ -273,7 +277,7 @@ const balloonSprite = (color, size = 64) => sprite(size, (g, s) => {
     const cx = s / 2;
     const r = s * 0.27;
     g.strokeStyle = 'rgba(255, 255, 255, 0.55)';
-    g.lineWidth = 1;
+    g.lineWidth = s / 64;
     g.beginPath();
     g.moveTo(cx, s * 0.66);
     g.quadraticCurveTo(cx - s * 0.06, s * 0.8, cx + s * 0.02, s * 0.98);
@@ -311,10 +315,10 @@ const lanternSprite = (color, accent, size = 72) => sprite(size, (g, s) => {
     g.fill();
     // Nan đèn
     g.strokeStyle = 'rgba(120, 40, 10, 0.35)';
-    g.lineWidth = 1;
+    g.lineWidth = s / 72;
     [-0.1, 0, 0.1].forEach(dx => {
         g.beginPath();
-        g.ellipse(cx, s * 0.5, Math.abs(dx) * s + 0.5, s * 0.24, 0, 0, Math.PI * 2);
+        g.ellipse(cx, s * 0.5, Math.abs(dx) * s + s / 144, s * 0.24, 0, 0, Math.PI * 2);
         g.stroke();
     });
     g.fillStyle = accent;
@@ -534,11 +538,14 @@ export function createScreenAmbient(host) {
             host.prepend(canvas);
         }
         canvas.hidden = false;
-        const nextKey = `${theme.effect}_${theme.main}_${theme.accent}`;
+        // Ảnh hạt nét theo màn hình: bóng bay, đèn lồng vẽ ra tới ~1,35 lần cỡ thiết kế; đổi mật độ thì dựng lại
+        const res = Math.min(4, 1.35 * Math.min(window.devicePixelRatio || 1, 3));
+        const nextKey = `${theme.effect}_${theme.main}_${theme.accent}_${res}`;
         const W = window.innerWidth;
         const H = window.innerHeight;
         if (nextKey !== key || !parts.length) {
             key = nextKey;
+            spriteScale = res;
             maker = effect(theme);
             const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             // Màn hình nhỏ, máy yếu, người xem muốn giảm chuyển động: ít hạt hơn
@@ -563,6 +570,8 @@ export function createScreenAmbient(host) {
             }
             const g = canvas.getContext('2d');
             g.setTransform(dpr, 0, 0, dpr, 0, 0);
+            // Ảnh hạt dựng nét hơn cỡ vẽ ra: thu nhỏ mịn, không lởm chởm
+            g.imageSmoothingQuality = 'high';
             g.clearRect(0, 0, w, h);
             const dt = Math.min(0.05, (now - last) / 1000) * maker.slow;
             last = now;

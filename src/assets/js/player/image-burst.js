@@ -45,8 +45,12 @@ function sampleFrameOutline(frame, count) {
 // Chuẩn bị ảnh cho pháo: lấy phần ảnh người dùng chọn (crop, xem cropRect). Có khung: vùng vuông
 // (ảnh dọc/ngang không bị kéo méo) rồi cắt theo khung. Không khung: giữ nguyên tỉ lệ ảnh.
 // Kèm một bản rất nhỏ, phóng to lên sẽ thành ảnh nhòe lúc mới hiện.
+// Cỡ ảnh theo cỡ lớn nhất ảnh có thể hiện (86% cạnh ngắn của khung, xem ImageBurst) tính bằng điểm ảnh thật của màn hình,
+// để không bị phóng to (nhòe): cố định 512 thì trên điện thoại ảnh hiện ra ~930 điểm ảnh, kéo giãn gần gấp đôi. Khung
+// dựng video đã đặt devicePixelRatio theo cỡ video.
 export function getProcessedImage(img, frame = '', crop = null) {
-    const maxSide = 512;
+    const shown = 0.86 * Math.min(window.innerWidth, window.innerHeight) * (window.devicePixelRatio || 1);
+    const maxSide = Math.round(MyMath.clamp(shown, 512, 2048));
     const iw = img.naturalWidth || img.width || maxSide;
     const ih = img.naturalHeight || img.height || maxSide;
     const canvas = document.createElement('canvas');
@@ -229,8 +233,9 @@ export class ImageBurst {
                 ctx.lineWidth = Math.max(5, w * 0.03);
                 ctx.stroke();
             }
+            // Thu, phóng ảnh mịn (mặc định 'low' làm ảnh rỗ khi vẽ nhỏ hơn cỡ ảnh)
+            ctx.imageSmoothingQuality = 'high';
             if (sharp < 1 && b.img.soft) {
-                ctx.imageSmoothingQuality = 'high';
                 ctx.globalAlpha = alpha * (1 - sharp * sharp);
                 ctx.drawImage(b.img.soft, left, top, w, h);
             }
