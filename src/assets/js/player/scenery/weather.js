@@ -10,15 +10,14 @@ import { horizon, isLowQuality, season as sceneSeason, weather as sceneWeather }
 import { LEAF_COLORS, fallingLeafSprite } from './water-sprites.js';
 import { bankBandCss } from './bank.js';
 import { Water } from './water.js';
+import { makeCanvas } from '../utils.js';
 
 // Bông tuyết: chấm tròn mềm
 let flakeSprite = null;
 
 function snowflakeSprite() {
     if (!flakeSprite) {
-        const c = document.createElement('canvas');
-        c.width = c.height = 32;
-        const g = c.getContext('2d');
+        const [c, g] = makeCanvas(32, 32);
         const grad = g.createRadialGradient(16, 16, 0, 16, 16, 16);
         grad.addColorStop(0, 'rgba(240, 245, 255, 1)');
         grad.addColorStop(0.35, 'rgba(230, 238, 252, 0.85)');

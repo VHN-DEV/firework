@@ -8,6 +8,7 @@
 
 import { season as sceneSeason } from '../state.js';
 import { built, snowCap } from './util.js';
+import { makeCanvas, seededRandom } from '../utils.js';
 
 // Cây đung đưa theo gió (liễu, cây xanh tán rộng, dừa): mỗi mẫu cây dựng sẵn TREE_STEPS mức ngả (một tấm ảnh chung, mỗi hàng
 // một mẫu), mỗi khung chỉ dán đúng mức ngả của từng cây. Ảnh dựng nét hơn màn hình một chút (TREE_RES) cho cây phóng to vẫn
@@ -34,8 +35,7 @@ function growTreeAtlas(atlas, first) {
         const sway = TREE_SWAY[0] + (TREE_SWAY[1] - TREE_SWAY[0]) * step / (TREE_STEPS - 1);
         g.setTransform(k, 0, 0, k, (step * atlas.cw + atlas.cw / 2) * k, ((t + 1) * atlas.ch - atlas.foot) * k);
         // Cùng hạt giống cho mọi mức ngả của một mẫu: chỉ dáng ngả đổi, cành lá giữ nguyên
-        let seed = 131 + t * 977;
-        atlas.draw(g, sz, () => ((seed = (seed * 16807) % 2147483647) / 2147483647), sway, t, atlas.season);
+        atlas.draw(g, sz, seededRandom(131 + t * 977), sway, t, atlas.season);
         if (atlas.season === 'winter') snowCap(atlas.canvas, step * atlas.cw * k, t * atlas.ch * k, atlas.cw * k, atlas.ch * k, k);
         atlas.built[t * TREE_STEPS + step] = true;
     }
@@ -55,15 +55,12 @@ export function treeAtlas(kind, sz, screenK) {
         oak: { kinds: 3, cw: 64 * sz, ch: 50 * sz, foot: 2 * sz, draw: drawOak },
         palm: { kinds: 4, cw: 112 * sz, ch: 112 * sz, foot: 2 * sz, draw: drawPalm }
     }[kind];
-    const c = document.createElement('canvas');
-    c.width = Math.ceil(TREE_STEPS * spec.cw * k);
-    c.height = Math.ceil(spec.kinds * spec.ch * k);
+    // Mùa đông đọc lại từng ô để đắp tuyết: để ảnh ở bộ nhớ thường cho đọc nhanh
+    const [c, g] = makeCanvas(Math.ceil(TREE_STEPS * spec.cw * k), Math.ceil(spec.kinds * spec.ch * k), { willReadFrequently: season === 'winter' });
     const queue = [];
     TREE_ORDER.forEach(step => {
         for (let t = 0; t < spec.kinds; t++) queue.push([t, step]);
     });
-    // Mùa đông đọc lại từng ô để đắp tuyết: để ảnh ở bộ nhớ thường cho đọc nhanh
-    const g = c.getContext('2d', { willReadFrequently: season === 'winter' });
     const atlas = { key, canvas: c, g, k, sz, season, queue, total: queue.length, built: [], ...spec };
     growTreeAtlas(atlas, true);
     treeAtlasCache[kind] = atlas;

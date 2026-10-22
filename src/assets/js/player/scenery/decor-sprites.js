@@ -7,6 +7,7 @@
 // Ảnh trang trí bầu trời: đèn trời, khinh khí cầu, máy bay.
 
 import { hdSprite, sprites } from './util.js';
+import { makeCanvas } from '../utils.js';
 
 export function lanternSprite() {
     if (sprites.lantern) return sprites.lantern;
@@ -91,9 +92,7 @@ export function balloonSprite(scheme) {
 
 export function burnerGlow() {
     if (sprites.burner) return sprites.burner;
-    const c = document.createElement('canvas');
-    c.width = c.height = 120;
-    const g = c.getContext('2d');
+    const [c, g] = makeCanvas(120, 120);
     const glow = g.createRadialGradient(60, 70, 4, 60, 70, 60);
     glow.addColorStop(0, 'rgba(255, 220, 140, 0.9)');
     glow.addColorStop(0.35, 'rgba(255, 150, 60, 0.35)');

@@ -8,6 +8,7 @@
 
 import { moonIllumination } from '../moon.js';
 import { fbm, makeNoise, smooth01, sprites } from './util.js';
+import { makeCanvas, seededRandom } from '../utils.js';
 
 // Mặt trăng thật: bề mặt dựng một lần từng điểm ảnh trên khối cầu (nhìn từ Trái Đất, bắc ở trên, đông bên phải).
 // Biển tối đặt đúng chỗ như trăng thật theo kinh độ, vĩ độ: Đại dương Bão, Biển Mưa, Biển Trong Sáng, Biển Yên Tĩnh,
@@ -84,8 +85,7 @@ function moonSurface(D) {
         height[j] = (hi - 0.5) * 0.012 * (1 - 0.7 * m) + (fine - 0.5) * 0.002;
     }
     // Hố va chạm: rải từng hố lên các điểm quanh nó (nhanh hơn dò mọi hố cho từng điểm)
-    let seed = 913;
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const rnd = seededRandom(913);
     const craters = [
         // [vĩ độ, kinh độ, bán kính (độ), độ sáng đáy hố (cộng thêm), tia sáng dài (độ, 0 = không)]
         [-43.3, -11.2, 1.5, 0.3, 55], [9.6, -20.1, 1.6, 0.2, 22], [8.1, -38, 0.6, 0.3, 14], [23.7, -47.4, 0.7, 0.55, 10],
@@ -247,9 +247,7 @@ export function moonSprite(fraction, radius, scale, warm = 0) {
     Object.keys(sprites).filter(name => name.startsWith('moon')).forEach(name => delete sprites[name]);
     const r = radius * scale;
     const size = Math.ceil(r * 8);
-    const c = document.createElement('canvas');
-    c.width = c.height = size;
-    const g = c.getContext('2d');
+    const [c, g] = makeCanvas(size, size);
     const lit = moonIllumination(fraction);
     const tone = `255, ${Math.round(246 - 40 * warm)}, ${Math.round(226 - 90 * warm)}`;
     g.translate(size / 2, size / 2);
@@ -272,9 +270,7 @@ export function moonSprite(fraction, radius, scale, warm = 0) {
     let disc = moonDisc(fraction, warm, Math.min(256, Math.max(96, Math.ceil((r * 2.3) / 32) * 32)));
     let discR = disc.R;
     while (discR / 2 >= r * 1.05) {
-        const half = document.createElement('canvas');
-        half.width = half.height = Math.ceil(disc.width / 2);
-        const hg = half.getContext('2d');
+        const [half, hg] = makeCanvas(Math.ceil(disc.width / 2), Math.ceil(disc.width / 2));
         hg.imageSmoothingQuality = 'high';
         hg.drawImage(disc, 0, 0, half.width, half.height);
         discR = discR * half.width / disc.width;

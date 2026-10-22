@@ -9,6 +9,7 @@
 
 import { bankNoise, radialGlow } from './util.js';
 import { ashlar, bankLight } from './bank.js';
+import { makeCanvas } from '../utils.js';
 
 // Mặt đá xếp của cầu đá (vẽ từng điểm ảnh, cùng kiểu đá với kè: ashlar). Phủ kiểu source-atop: chỉ tô lên phần đã vẽ
 // (thân cầu), giữ nguyên hình. x, w: đoạn phủ; top: độ cao đỉnh trên chân trời; drop: chân cầu dưới chân trời (tới mép
@@ -18,10 +19,7 @@ export function stoneFacing(g, x, w, top, drop, k) {
     const m = g.getTransform();
     const dx = Math.floor(x * k + m.e);
     const dy = Math.floor(-top * k + m.f);
-    const tex = document.createElement('canvas');
-    tex.width = Math.ceil((x + w) * k + m.e) - dx;
-    tex.height = Math.ceil(drop * k + m.f) - dy;
-    const tg = tex.getContext('2d');
+    const [tex, tg] = makeCanvas(Math.ceil((x + w) * k + m.e) - dx, Math.ceil(drop * k + m.f) - dy);
     const img = tg.createImageData(tex.width, tex.height);
     const noise = bankNoise();
     for (let py = 0; py < tex.height; py++) {
@@ -226,9 +224,7 @@ export function lanternSprites(sz, k) {
     if (lanternSpriteCache.key === key) return lanternSpriteCache.list;
     const size = 20 * sz;
     const list = LANTERN_COLORS.map(rgb => {
-        const c = document.createElement('canvas');
-        c.width = c.height = Math.ceil(size * k);
-        const g = c.getContext('2d');
+        const [c, g] = makeCanvas(Math.ceil(size * k), Math.ceil(size * k));
         g.setTransform(k, 0, 0, k, size / 2 * k, size / 2 * k);
         radialGlow(g, 0, 0, size / 2, rgb, 0.5);
         const body = g.createRadialGradient(-0.6 * sz, -0.8 * sz, 0, 0, 0, 3 * sz);
@@ -262,10 +258,7 @@ export function spanLights(span, sz, k) {
     const pad = 4 * sz;
     const w = span.b - span.a + pad * 2;
     const h = span.rise + pad * 2;
-    const c = document.createElement('canvas');
-    c.width = Math.ceil(w * k);
-    c.height = Math.ceil(h * k);
-    const g = c.getContext('2d');
+    const [c, g] = makeCanvas(Math.ceil(w * k), Math.ceil(h * k));
     g.setTransform(k, 0, 0, k, (pad - span.a) * k, (pad + span.rise - span.deck) * k);
     for (let x = span.a; x <= span.b; x += 4 * sz) {
         const y = span.arc((x - span.a) / (span.b - span.a));

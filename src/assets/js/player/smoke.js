@@ -12,6 +12,7 @@ import MyMath from '../MyMath.js';
 import { COLOR_TUPLES } from './colors.js';
 import { IS_MOBILE, INVISIBLE } from './env.js';
 import { smokeLevel } from './state.js';
+import { makeCanvas } from './utils.js';
 
 // Độ phân giải lớp khói so với điểm ảnh CSS (không nhân mật độ điểm ảnh của màn hình)
 export const SMOKE_RESOLUTION = 0.5;
@@ -44,9 +45,7 @@ function getSprites() {
     if (sprites) return sprites;
     sprites = [];
     for (let v = 0; v < 4; v++) {
-        const canvas = document.createElement('canvas');
-        canvas.width = canvas.height = SPRITE_SIZE;
-        const ctx = canvas.getContext('2d');
+        const [canvas, ctx] = makeCanvas(SPRITE_SIZE, SPRITE_SIZE);
         const c = SPRITE_SIZE / 2;
         for (let k = 0; k < 9; k++) {
             const angle = Math.random() * Math.PI * 2;

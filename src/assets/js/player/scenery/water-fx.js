@@ -9,6 +9,7 @@
 
 import { IS_MOBILE } from '../env.js';
 import { fbm, hash, makeNoise, smooth01 } from './util.js';
+import { makeCanvas, seededRandom } from '../utils.js';
 
 // Vệt sóng sau vật: những mảnh vòng sóng nhỏ tách ra từ hai bên đuôi vật, trôi ra sau, nở rộng, dạt dần sang hai bên
 // rồi tan; mảnh này chưa tan mảnh khác đã tới, mỗi lượt một dáng (chỗ tách, độ cong, độ dài cung) nên mềm và sống như
@@ -166,17 +167,11 @@ export function iceSheet(W, H, surf, k) {
     const key = `${W}_${H}_${surf}_${k.toFixed(3)}`;
     if (iceCache.key === key) return iceCache.canvas;
     const h = H - surf;
-    const c = document.createElement('canvas');
-    c.width = W;
-    c.height = Math.max(1, h);
-    const g = c.getContext('2d');
+    const [c, g] = makeCanvas(W, Math.max(1, h));
     // Mảng tuyết, sương giá: tính thưa (nửa độ phân giải) rồi phóng lên cho mềm
     const sw = Math.max(1, Math.ceil(W / 2));
     const sh = Math.max(1, Math.ceil(h / 2));
-    const small = document.createElement('canvas');
-    small.width = sw;
-    small.height = sh;
-    const sg = small.getContext('2d');
+    const [small, sg] = makeCanvas(sw, sh);
     const img = sg.createImageData(sw, sh);
     const noise = makeNoise(91);
     // Chiếu phối cảnh mặt phẳng băng: hàng cách chân trời r điểm ảnh ở xa 1/r; ngang và dọc trên mặt băng cùng co theo xa
@@ -204,8 +199,7 @@ export function iceSheet(W, H, surf, k) {
     g.imageSmoothingEnabled = true;
     g.drawImage(small, 0, 0, sw, sh, 0, 0, W, h);
     // Vết nứt: đường gãy khúc dài, tẽ nhánh; xa chân trời nằm ngang, gần người xem xiên nhiều hơn
-    let seed = 53;
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const rnd = seededRandom(53);
     const crack = (x, y, a, steps, width) => {
         const path = [[x, y]];
         for (let i = 0; i < steps; i++) {

@@ -7,6 +7,7 @@
 // Thân bờ dưới chân trời (bờ đất, kè gạch, kè đá, bãi cát, chân cầu) theo mùa; chiều cao mặt bờ; bọt sóng bãi cát.
 
 import { bankNoise, fbm, hash, smooth01 } from './util.js';
+import { makeCanvas, seededRandom } from '../utils.js';
 
 // Bờ đất bên kia mặt nước (tông đêm, ánh trăng rọi từ trên): mặt bờ gần phẳng, chỗ lở lõm vào chút; vách đất có lớp và
 // hạt, rễ cây lòi ra gần mép trên, vài hòn cuội lấp ló, sát nước là dải bùn ướt sẫm ánh lên màu trời, chân bờ bị nước
@@ -52,13 +53,9 @@ export function bankSprite(W, bankPx, k, style = '', season = 'summer') {
         return bankCache;
     }
     const look = BANK_SEASONS[season] || BANK_SEASONS.summer;
-    const c = document.createElement('canvas');
-    c.width = W;
-    c.height = bankPx;
-    const g = c.getContext('2d');
+    const [c, g] = makeCanvas(W, bankPx);
     const noise = bankNoise();
-    let seed = 29;
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const rnd = seededRandom(29);
     const bankCss = bankPx / k;
     const edge = new Float32Array(W);
     const strata = new Float32Array(W);
@@ -274,10 +271,7 @@ export function bankLight(noise, X, Y, rel, r, gg, b, sand) {
 
 function styledBankSprite(W, bankPx, k, style, season = 'summer') {
     const snow = season === 'winter' && style !== 'none';
-    const c = document.createElement('canvas');
-    c.width = W;
-    c.height = bankPx;
-    const g = c.getContext('2d');
+    const [c, g] = makeCanvas(W, bankPx);
     const noise = bankNoise();
     const bankCss = bankPx / k;
     const color = BANK_BODIES[style](noise, bankCss);
@@ -308,8 +302,7 @@ function styledBankSprite(W, bankPx, k, style, season = 'summer') {
     g.putImageData(img, 0, 0);
     if (style !== 'none') {
         // Ánh nước lấp lánh sát chân bờ
-        let seed = 41;
-        const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+        const rnd = seededRandom(41);
         for (let x = rnd() * 30 * k; x < W; x += (14 + rnd() * 40) * k) {
             g.fillStyle = `rgba(170, 190, 220, ${0.15 + rnd() * 0.2})`;
             g.fillRect(x, bankPx - Math.max(1, Math.round(2 * k)), (1.5 + rnd() * 3) * k, Math.max(1, Math.round(0.6 * k)));

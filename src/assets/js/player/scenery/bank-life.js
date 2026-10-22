@@ -11,6 +11,7 @@ import { season as sceneSeason } from '../state.js';
 import { fireflyGlow, hash } from './util.js';
 import { BANK_SEASONS, bankDip, bankStyle } from './bank.js';
 import { drawStyledSkyline } from './skylines.js';
+import { makeCanvas, seededRandom } from '../utils.js';
 
 // Những gì nhô lên trên bờ (điểm ảnh CSS): cỏ ngắn lún phún, bụi cỏ cao, khóm lau sậy có bông cỏ nến, bụi cây thấp ở
 // xa, đom đóm. Rải lại khi đổi cỡ khung; cỏ ngắn và bụi cây đứng yên nên dựng sẵn đường vẽ.
@@ -20,8 +21,7 @@ function bankLife(cssW, season = 'summer') {
     const key = `${Math.round(cssW)}_${season}`;
     if (bankLifeCache.key === key) return bankLifeCache;
     const look = BANK_SEASONS[season] || BANK_SEASONS.summer;
-    let seed = 71;
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const rnd = seededRandom(71);
     const fringeColors = look.fringe;
     const fringe = fringeColors.map(() => new Path2D());
     for (let x = 0; x < cssW; x += 0.7 + rnd() * 2) {
@@ -110,10 +110,7 @@ const BANK_STILL_UP = 18;
 function bankStill(life, cssW, k) {
     const key = `${life.key}_${k.toFixed(3)}`;
     if (bankStillCache.key === key) return bankStillCache.canvas;
-    const c = document.createElement('canvas');
-    c.width = Math.ceil(cssW * k);
-    c.height = Math.ceil((BANK_STILL_UP + 4) * k);
-    const g = c.getContext('2d');
+    const [c, g] = makeCanvas(Math.ceil(cssW * k), Math.ceil((BANK_STILL_UP + 4) * k));
     g.setTransform(k, 0, 0, k, 0, BANK_STILL_UP * k);
     g.lineCap = 'round';
     g.fillStyle = life.look.bush;
@@ -162,10 +159,7 @@ let tuftAtlasCache = { key: '', canvas: null };
 function tuftAtlas(life, k) {
     const key = `${life.key}_${k.toFixed(3)}`;
     if (tuftAtlasCache.key === key) return tuftAtlasCache.canvas;
-    const c = document.createElement('canvas');
-    c.width = Math.ceil(TUFT_STEPS * TUFT_W * k);
-    c.height = Math.ceil(life.templates.length * TUFT_H * k);
-    const g = c.getContext('2d');
+    const [c, g] = makeCanvas(Math.ceil(TUFT_STEPS * TUFT_W * k), Math.ceil(life.templates.length * TUFT_H * k));
     g.setTransform(k, 0, 0, k, 0, 0);
     life.templates.forEach((tpl, row) => {
         for (let step = 0; step < TUFT_STEPS; step++) {

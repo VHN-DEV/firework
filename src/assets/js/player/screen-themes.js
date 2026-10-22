@@ -12,6 +12,8 @@
 // SCREEN_EFFECTS kèm cách vẽ trong EFFECT_MAKERS).
 // ---------------------------------------------------------------------------
 
+import { makeCanvas } from './utils.js';
+
 // Kiểu chữ tiêu đề (Google Fonts, có dấu tiếng Việt). scale: cỡ chữ so với mặc định (chữ viết tay nhỏ hơn cùng cỡ);
 // script: kiểu viết tay, tiêu đề VIẾT HOA được đổi sang Viết Hoa Đầu Từ cho dễ đọc
 export const SCREEN_FONTS = {
@@ -176,9 +178,8 @@ const rand = (a, b) => a + Math.random() * (b - a);
 
 // Ảnh vẽ sẵn của một hạt (cỡ s x s điểm ảnh), dùng lại cho mọi hạt cùng kiểu, cùng màu
 function sprite(size, draw) {
-    const c = document.createElement('canvas');
-    c.width = c.height = size;
-    draw(c.getContext('2d'), size);
+    const [c, g] = makeCanvas(size, size);
+    draw(g, size);
     return c;
 }
 

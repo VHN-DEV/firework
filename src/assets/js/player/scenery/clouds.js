@@ -7,6 +7,7 @@
 // Mây đêm: dáng mây theo loại, dựng ảnh mây từng phần cho không khựng khung hình.
 
 import { fbm, hash, makeNoise, smooth01 } from './util.js';
+import { makeCanvas, seededRandom } from '../utils.js';
 
 // Ảnh mây: vẽ thưa (mây mềm nên phóng to vẫn mịn) rồi kéo giãn ra cỡ w x h điểm ảnh CSS. Dáng mây theo loại (cloudShape),
 // nhiễu nhiều lớp làm dày mỏng không đều, mép xơ, có lỗ hở.
@@ -176,18 +177,15 @@ function cloudProfile(shape, x) {
 }
 
 export function* buildCloud(w, h, seed, kind) {
-    let state = seed;
-    const rnd = () => ((state = (state * 16807) % 2147483647) / 2147483647);
+    const rnd = seededRandom(seed);
     const noise = makeNoise(seed);
     const tw = Math.max(8, Math.ceil(w * CLOUD_TEX));
     const th = Math.max(6, Math.ceil(h * CLOUD_TEX));
     const shape = cloudShape(kind, w, h, rnd);
     const { base, warp, scale, grain, cut, soft, max } = shape;
     const toCanvas = data => {
-        const c = document.createElement('canvas');
-        c.width = tw;
-        c.height = th;
-        c.getContext('2d').putImageData(data, 0, 0);
+        const [c, g] = makeCanvas(tw, th);
+        g.putImageData(data, 0, 0);
         return c;
     };
     const maps = [];

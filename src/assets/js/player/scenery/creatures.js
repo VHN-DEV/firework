@@ -8,6 +8,7 @@
 
 import { sprites } from './util.js';
 import { spriteRes } from './water-sprites.js';
+import { makeCanvas } from '../utils.js';
 
 // Vịt trời (nhìn nghiêng, quay sang phải): vịt đực đầu xanh cổ khoang trắng, vịt mái nâu lốm đốm. Tư thế: bơi, chổng
 // đuôi kiếm ăn, cánh giơ lên, cụp xuống. Mặt nước ở hàng 20 (bơi, chổng đuôi).
@@ -15,10 +16,7 @@ export function duckSprite(kind, pose) {
     const S = spriteRes;
     const key = `duck_${kind}_${pose}@${S}`;
     if (sprites[key]) return sprites[key];
-    const c = document.createElement('canvas');
-    c.width = 40 * S;
-    c.height = 28 * S;
-    const g = c.getContext('2d');
+    const [c, g] = makeCanvas(40 * S, 28 * S);
     g.scale(S, S);
     const male = kind === 'male';
     const body = male ? '#8e908a' : '#7d6347';

@@ -4,8 +4,10 @@
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
 
-// Hàm dùng chung của cảnh vật: số ngẫu nhiên theo hạt giống, nhiễu, ảnh vẽ sẵn (nét gấp SPRITE_HD), quầng
-// sáng, tô màu ảnh, tuyết đọng lên mặt trên vật.
+// Hàm dùng chung của cảnh vật: nhiễu, ảnh vẽ sẵn (nét gấp SPRITE_HD), quầng sáng, tô màu ảnh, tuyết đọng lên mặt trên
+// vật, đốm sáng đom đóm. Số ngẫu nhiên theo hạt giống, tạo canvas: player/utils.js.
+
+import { makeCanvas, seededRandom } from '../utils.js';
 
 // Số giả ngẫu nhiên cố định theo chỉ số (mỗi dải sóng giữ nhịp riêng giữa các khung hình)
 export const hash = n => {
@@ -18,10 +20,7 @@ export const hash = n => {
 const SPRITE_HD = 4;
 
 export const hdSprite = (w, h) => {
-    const c = document.createElement('canvas');
-    c.width = w * SPRITE_HD;
-    c.height = h * SPRITE_HD;
-    const g = c.getContext('2d');
+    const [c, g] = makeCanvas(w * SPRITE_HD, h * SPRITE_HD);
     g.scale(SPRITE_HD, SPRITE_HD);
     return [c, g];
 };
@@ -35,9 +34,7 @@ export const bankNoise = () => bankNoiseFn || (bankNoiseFn = makeNoise(57));
 // Đốm sáng mềm của đom đóm (vẽ cộng sáng, phóng to thu nhỏ theo cỡ)
 export function fireflyGlow() {
     if (sprites.firefly) return sprites.firefly;
-    const c = document.createElement('canvas');
-    c.width = c.height = 32;
-    const g = c.getContext('2d');
+    const [c, g] = makeCanvas(32, 32);
     const glow = g.createRadialGradient(16, 16, 0, 16, 16, 16);
     glow.addColorStop(0, 'rgba(235, 255, 170, 1)');
     glow.addColorStop(0.18, 'rgba(200, 245, 120, 0.75)');
@@ -156,8 +153,7 @@ export const sprites = {};
 
 // Nhiễu mượt (value noise) theo hạt giống: dựng hình mây tự nhiên, mép xơ, dày mỏng không đều
 export function makeNoise(seed) {
-    let state = seed;
-    const rnd = () => ((state = (state * 16807) % 2147483647) / 2147483647);
+    const rnd = seededRandom(seed);
     const p = Array.from({ length: 256 }, (_, i) => i);
     for (let i = 255; i > 0; i--) {
         const j = (rnd() * (i + 1)) | 0;

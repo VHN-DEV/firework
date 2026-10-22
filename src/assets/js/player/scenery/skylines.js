@@ -12,6 +12,7 @@ import { radialGlow, snowCap, tintCanvas } from './util.js';
 import { bankStyle } from './bank.js';
 import { drawSwayingTrees, treeAtlas } from './trees.js';
 import { LANTERN_COLORS, archGeometry, archRing, drawLampPost, drawRailing, drawShophouse, lanternSprites, spanLights, stoneFacing } from './skyline-parts.js';
+import { makeCanvas, seededRandom } from '../utils.js';
 
 // Phần nhô lên trời của từng kiểu bờ. build: vẽ phần đứng yên (g) và ánh đèn đứng yên (gl, cộng sáng), trả dữ liệu cho
 // phần chuyển động; before: vẽ mỗi khung trước phần đứng yên (cây đung đưa phía sau lan can, cầu); frame: vẽ mỗi khung
@@ -408,17 +409,13 @@ function skylineLayer(style, cssW, ground, k, drop) {
     if (skylineCache.key === key) return skylineCache;
     const up = Math.ceil(120 * sz);
     const make = () => {
-        const c = document.createElement('canvas');
-        c.width = Math.ceil(cssW * k);
-        c.height = Math.ceil((up + drop + 4) * k);
-        const g = c.getContext('2d');
+        const [c, g] = makeCanvas(Math.ceil(cssW * k), Math.ceil((up + drop + 4) * k));
         g.setTransform(k, 0, 0, k, 0, up * k);
         return [c, g];
     };
     const [canvas, g] = make();
     const [glow, gl] = make();
-    let seed = 97;
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const rnd = seededRandom(97);
     const data = BANK_SKYLINES[style].build(g, gl, { cssW, sz, rnd, ground, k, drop, season }) || {};
     // Mùa đông: tuyết đọng trên lan can, mái nhà, mặt cầu, cột đèn, cỏ
     if (season === 'winter') snowCap(canvas, 0, 0, canvas.width, canvas.height, k);

@@ -7,6 +7,7 @@
 // Ảnh vẽ sẵn của vật trên mặt nước: hoa đăng, khúc gỗ, lá bèo, đá, gò đất (đổi màu theo mùa).
 
 import { built, fbm, hdSprite, makeNoise, snowCap, sprites } from './util.js';
+import { makeCanvas, seededRandom } from '../utils.js';
 
 // Hoa đăng: đế hoa sen giấy, nến cháy ở giữa
 export function floatLanternSprite() {
@@ -68,12 +69,8 @@ function* buildLog(variant, S = 2) {
     const W = 200;
     const H = 52;
     const wl = 34;
-    const c = document.createElement('canvas');
-    c.width = W * S;
-    c.height = H * S;
-    const g = c.getContext('2d');
-    let seed = 11 + variant * 97;
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const [c, g] = makeCanvas(W * S, H * S);
+    const rnd = seededRandom(11 + variant * 97);
     const noise = makeNoise(31 + variant * 53);
     // Gỗ trôi lâu ngày (dáng cong vồng) bạc thành xám; còn lại vỏ nâu sẫm
     const drift = variant === 2;
@@ -205,10 +202,8 @@ function* buildLog(variant, S = 2) {
             d[i + 3] = 255;
         }
     }
-    const body = document.createElement('canvas');
-    body.width = W * S;
-    body.height = H * S;
-    body.getContext('2d').putImageData(img, 0, 0);
+    const [body, bodyCtx] = makeCanvas(W * S, H * S);
+    bodyCtx.putImageData(img, 0, 0);
     g.drawImage(body, 0, 0);
     g.scale(S, S);
     // Mắt gỗ: chỗ lõm sẫm có vân tròn
@@ -286,10 +281,7 @@ export function padSprite(variant) {
     const S = Math.max(3, spriteRes);
     const key = `pad${variant}@${S}`;
     if (sprites[key]) return sprites[key];
-    const c = document.createElement('canvas');
-    c.width = 24 * S;
-    c.height = 10 * S;
-    const g = c.getContext('2d');
+    const [c, g] = makeCanvas(24 * S, 10 * S);
     g.scale(S, S);
     const notch = [0.3, 1.9, 2.6, 1.1][variant];
     g.beginPath();
@@ -391,10 +383,7 @@ function* buildRock(variant, S = 2) {
     const W = 60;
     const H = 34;
     const wl = 24;
-    const c = document.createElement('canvas');
-    c.width = W * S;
-    c.height = H * S;
-    const g = c.getContext('2d');
+    const [c, g] = makeCanvas(W * S, H * S);
     const noise = makeNoise(91 + variant * 17);
     const stones = [
         [[30, 22, 15, 12], [16, 25, 9, 7], [45, 25, 10, 8]],
@@ -465,12 +454,8 @@ function* buildMound(variant, S = 2) {
     const W = 120;
     const H = 44;
     const wl = 34;
-    const c = document.createElement('canvas');
-    c.width = W * S;
-    c.height = H * S;
-    const g = c.getContext('2d');
-    let seed = 41 + variant * 13;
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const [c, g] = makeCanvas(W * S, H * S);
+    const rnd = seededRandom(41 + variant * 13);
     const noise = makeNoise(77 + variant * 29);
     const peak = variant ? 12 : 10;
     // Mép trên: dáng gò lệch một bên (một sườn dốc, một sườn thoải), gồ ghề theo nhiễu
@@ -600,9 +585,7 @@ let leafSprites = {};
 export function fallingLeafSprite(season, i) {
     const key = `${season}_${i}`;
     if (leafSprites[key]) return leafSprites[key];
-    const c = document.createElement('canvas');
-    c.width = c.height = 48;
-    const g = c.getContext('2d');
+    const [c, g] = makeCanvas(48, 48);
     const [fill, vein] = LEAF_COLORS[season][i % LEAF_COLORS[season].length];
     g.translate(24, 24);
     if (season === 'autumn') {
@@ -654,10 +637,7 @@ export function seasonSprite(sprite, season) {
     let made = seasonSprites.get(sprite);
     if (!made) seasonSprites.set(sprite, made = {});
     if (made[season]) return made[season];
-    const c = document.createElement('canvas');
-    c.width = sprite.width;
-    c.height = sprite.height;
-    const g = c.getContext('2d', { willReadFrequently: true });
+    const [c, g] = makeCanvas(sprite.width, sprite.height, { willReadFrequently: true });
     g.drawImage(sprite, 0, 0);
     const img = g.getImageData(0, 0, c.width, c.height);
     const d = img.data;
