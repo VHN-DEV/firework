@@ -73,6 +73,7 @@
 
     // Nút mở (chạm vật thể cũng mở được)
     &__cta {
+        position: relative;
         margin-top: 0.25rem;
         padding: 0.85rem 2.4rem;
         border: none;
@@ -94,6 +95,18 @@
         &:focus-visible {
             outline: 3px solid var(--st-accent, #ffbf36);
             outline-offset: 4px;
+        }
+
+        // Quầng sáng nhịp chờ: lớp riêng chỉ đổi độ mờ (card đồ họa tự làm). Đổi thẳng box-shadow thì trình duyệt phải vẽ lại
+        // bóng mỗi khung suốt lúc chờ người xem chạm
+        &::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            box-shadow: 0 10px 30px rgba(var(--st-main-rgb, 255, 0, 67), 0.55), 0 0 22px rgba(var(--st-accent-rgb, 255, 191, 54), 0.45);
+            opacity: 0;
+            pointer-events: none;
         }
     }
 }
@@ -123,7 +136,11 @@
 
     > .gift-stage__cta {
         // ctaIn backwards (không both): giữ cứng transform cuối thì nút không phóng to khi rê chuột (:hover)
-        animation: ctaIn 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3) 1s backwards, ctaGlow 2.6s ease-in-out 1.6s infinite;
+        animation: ctaIn 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3) 1s backwards;
+
+        &::after {
+            animation: ctaGlow 2.6s ease-in-out 1.6s infinite;
+        }
     }
 
     > .gift-stage__hint {
@@ -162,8 +179,8 @@
 }
 
 @keyframes ctaGlow {
-    0%, 100% { box-shadow: 0 10px 22px rgba(var(--st-main-rgb, 255, 0, 67), 0.35); }
-    50% { box-shadow: 0 10px 30px rgba(var(--st-main-rgb, 255, 0, 67), 0.55), 0 0 22px rgba(var(--st-accent-rgb, 255, 191, 54), 0.45); }
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
 }
 
 // Hộp quà vẽ bằng CSS: thân, nắp, nơ, quầng sáng

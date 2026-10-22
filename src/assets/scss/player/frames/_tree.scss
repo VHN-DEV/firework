@@ -74,7 +74,10 @@
             &:nth-child(4n + 3) { --c: #7fd3ff; }
             &:nth-child(4n) { --c: #fff3c4; }
 
+            // Quầng sáng cố định, nhấp nháy chỉ đổi độ mờ (card đồ họa tự làm); đổi box-shadow mỗi khung thì trình duyệt phải vẽ
+            // lại từng bóng đèn suốt lúc chờ người xem chạm
             .start-screen.is-ready & {
+                box-shadow: 0 0 8px 2px var(--c);
                 animation: treeLightOn 0.3s ease-out calc(0.6s + var(--i) * 0.06s) both,
                     treeTwinkle 1.8s ease-in-out calc(1.4s + var(--i) * 0.23s) infinite;
             }
@@ -175,13 +178,13 @@
 }
 
 @keyframes treeLightOn {
-    from { opacity: 0.25; transform: scale(0.6); }
+    from { opacity: 0.25; transform: scale(0.6); box-shadow: none; }
     to { opacity: 1; transform: none; box-shadow: 0 0 8px 2px var(--c); }
 }
 
 @keyframes treeTwinkle {
-    0%, 100% { opacity: 1; box-shadow: 0 0 8px 2px var(--c); }
-    50% { opacity: 0.45; box-shadow: none; }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
 }
 
 @keyframes treeStar {

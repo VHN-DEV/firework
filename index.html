@@ -64,7 +64,11 @@
     <link rel="apple-touch-icon-precomposed" href="./src/assets/img/firework-burst-icon-v2.png">
     <meta name="msapplication-TileColor" content="#000000">
     <meta name="msapplication-TileImage" content="./src/assets/img/firework-burst-icon-v2.png">
-    
+    <!-- Phông Google (Roboto, phông tiêu đề theo giao diện) được nạp trong CSS, trình duyệt chỉ biết khi đã tải xong CSS:
+         nối sẵn tới máy chủ phông để chữ trên thiệp sớm hiện đúng phông, không nhảy dòng -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <script>
         // Link quà tặng (?config=...): ẩn lời chào chung cho tới khi có lời mời riêng của kịch bản
         if (/[?&]config=/.test(location.search)) document.documentElement.classList.add('has-config');

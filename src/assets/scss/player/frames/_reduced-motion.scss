@@ -5,6 +5,7 @@
 // Giảm chuyển động: bỏ hiệu ứng hiện ra, nhịp chờ (vẫn mở được, chuyển cảnh ngắn)
 @media (prefers-reduced-motion: reduce) {
     .start-screen.frame-gift .gift-stage > *,
+    .start-screen.frame-gift .gift-stage__cta::after,
     .gift-box,
     .gift-box *,
     .hero,
