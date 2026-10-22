@@ -111,12 +111,16 @@ function floatLanternSprite() {
 // nước), top (mặt trên thân, chỗ cò đậu), perch (cò đậu được không); vẽ sẵn gấp đôi cho nét.
 const LOG_KINDS = 5;
 
+// Ảnh vật trên nước vẽ sẵn gấp mấy lần điểm ảnh CSS: theo mật độ điểm ảnh lớp mặt nước đang vẽ (Water.render), màn 2K/4K
+// hay đang vẽ dư thì gấp 4 cho khỏi nhòe khi phóng to
+let spriteRes = 2;
+
 function logSprite(variant) {
-    return built('log' + variant, () => buildLog(variant));
+    const S = spriteRes;
+    return built(`log${variant}@${S}`, () => buildLog(variant, S));
 }
 
-function* buildLog(variant) {
-    const S = 2;
+function* buildLog(variant, S = 2) {
     const W = 200;
     const H = 52;
     const wl = 34;
@@ -224,7 +228,7 @@ function* buildLog(variant) {
     const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
     const capped = variant <= 1 || variant === 3;
     for (let py = 0; py < H * S; py++) {
-        if (py % 8 === 7) yield;
+        if (py % (16 / S) === 16 / S - 1) yield;
         const Y = (py + 0.5) / S;
         for (let px = 0; px < W * S; px++) {
             const X = (px + 0.5) / S;
@@ -336,9 +340,9 @@ function* buildLog(variant) {
 // Vịt trời (nhìn nghiêng, quay sang phải): vịt đực đầu xanh cổ khoang trắng, vịt mái nâu lốm đốm. Tư thế: bơi, chổng
 // đuôi kiếm ăn, cánh giơ lên, cụp xuống. Mặt nước ở hàng 20 (bơi, chổng đuôi).
 function duckSprite(kind, pose) {
-    const key = `duck_${kind}_${pose}`;
+    const S = spriteRes;
+    const key = `duck_${kind}_${pose}@${S}`;
     if (sprites[key]) return sprites[key];
-    const S = 2;
     const c = document.createElement('canvas');
     c.width = 40 * S;
     c.height = 28 * S;
@@ -1613,9 +1617,9 @@ function fireflyGlow() {
 
 // Lá bèo (lá súng) nằm phẳng trên nước (nhìn chếch nên dẹt), có khe hình nêm; kiểu 3 có hoa súng hồng
 function padSprite(variant) {
-    const key = 'pad' + variant;
+    const S = Math.max(3, spriteRes);
+    const key = `pad${variant}@${S}`;
     if (sprites[key]) return sprites[key];
-    const S = 3;
     const c = document.createElement('canvas');
     c.width = 24 * S;
     c.height = 10 * S;
@@ -1689,14 +1693,15 @@ function built(key, make) {
     return sprites[key];
 }
 
-let waterWarm = false;
+const waterWarm = new Set();
 function warmWaterSprites() {
-    if (waterWarm) return;
-    waterWarm = true;
+    const S = spriteRes;
+    if (waterWarm.has(S)) return;
+    waterWarm.add(S);
     const list = [];
-    for (let v = 0; v < LOG_KINDS; v++) list.push(['log' + v, () => buildLog(v)]);
-    for (let v = 0; v < 3; v++) list.push(['rock' + v, () => buildRock(v)]);
-    for (let v = 0; v < 2; v++) list.push(['mound' + v, () => buildMound(v)]);
+    for (let v = 0; v < LOG_KINDS; v++) list.push([`log${v}@${S}`, () => buildLog(v, S)]);
+    for (let v = 0; v < 3; v++) list.push([`rock${v}@${S}`, () => buildRock(v, S)]);
+    for (let v = 0; v < 2; v++) list.push([`mound${v}@${S}`, () => buildMound(v, S)]);
     let item = null;
     let job = null;
     const step = () => {
@@ -1723,11 +1728,11 @@ function warmWaterSprites() {
 // trên trái hứng sáng), vân đá hoa cương lấm tấm, mảng sáng tối, vết nứt mảnh, rêu trên đỉnh, chân đá ướt sẫm. Khung
 // 60 x 34, mặt nước ở hàng 24; vẽ sẵn gấp đôi cho nét.
 function rockSprite(variant) {
-    return built('rock' + variant, () => buildRock(variant));
+    const S = spriteRes;
+    return built(`rock${variant}@${S}`, () => buildRock(variant, S));
 }
 
-function* buildRock(variant) {
-    const S = 2;
+function* buildRock(variant, S = 2) {
     const W = 60;
     const H = 34;
     const wl = 24;
@@ -1745,7 +1750,7 @@ function* buildRock(variant) {
     const img = g.createImageData(W * S, H * S);
     const d = img.data;
     for (let py = 0; py < H * S; py++) {
-        if (py % 8 === 7) yield;
+        if (py % (16 / S) === 16 / S - 1) yield;
         const Y = (py + 0.5) / S;
         for (let px = 0; px < W * S; px++) {
             const X = (px + 0.5) / S;
@@ -1797,11 +1802,11 @@ function* buildRock(variant) {
 // mỗi khung hình (đung đưa theo gió, xem drawRock): ảnh ghi reeds (vị trí gốc, độ cao, màu) theo đơn vị của khung 120 x 44.
 // Mặt nước ở hàng 34. Vẽ sẵn gấp đôi cho nét.
 function moundSprite(variant) {
-    return built('mound' + variant, () => buildMound(variant));
+    const S = spriteRes;
+    return built(`mound${variant}@${S}`, () => buildMound(variant, S));
 }
 
-function* buildMound(variant) {
-    const S = 2;
+function* buildMound(variant, S = 2) {
     const W = 120;
     const H = 44;
     const wl = 34;
@@ -1825,7 +1830,7 @@ function* buildMound(variant) {
     const img = g.createImageData(W * S, H * S);
     const d = img.data;
     for (let px = 0; px < W * S; px++) {
-        if (px % 16 === 15) yield;
+        if (px % (32 / S) === 32 / S - 1) yield;
         const X = (px + 0.5) / S;
         const top = profile(X);
         if (top === Infinity) continue;
@@ -2101,6 +2106,7 @@ export const Water = {
         // Chất lượng 480p trở xuống: vẽ lại cách một khung hình
         if (isLowQuality && this.drawn && (++this.frame & 1)) return;
         this.drawn = true;
+        spriteRes = W / cssW > 1.35 ? 4 : 2;
         warmWaterSprites();
 
         const k = W / cssW;

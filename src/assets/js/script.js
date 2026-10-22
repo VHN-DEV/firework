@@ -447,8 +447,15 @@ const helpContent = {
         header: 'Chất lượng',
         body: 'Như trang xem phim: số càng lớn hình càng nét nhưng càng nặng máy. Tự động (khuyên dùng): bắt đầu theo màn hình và '
             + 'cấu hình máy, nếu thấy giật thì tự hạ xuống, mượt trở lại thì nâng lên. Từ 1080p trở lên vẽ đầy đủ mọi hiệu ứng; '
-            + '720p bớt tia lửa lúc pháo dày đặc nhất; 480p trở xuống nhẹ nhất cho máy yếu, không có khói pháo. Mức cao hơn '
-            + 'độ phân giải màn hình thì vẽ bằng độ phân giải gốc của màn hình.'
+            + '720p bớt tia lửa lúc pháo dày đặc nhất; 480p trở xuống nhẹ nhất cho máy yếu, không có khói pháo. Màn hình không '
+            + 'hiện được nhiều điểm ảnh hơn chính nó: chọn mức cao hơn màn hình thì máy tính mạnh vẽ dư tới gấp đôi rồi thu nhỏ '
+            + 'cho mịn, rõ hơn (nặng máy hơn nhiều); điện thoại, máy yếu vẽ bằng độ phân giải gốc của màn hình. '
+            + 'Muốn thật sự 4K thì cần màn hình 4K.',
+        // Dòng thêm cuối: độ phân giải màn hình này và độ phân giải đang vẽ
+        extra: () => {
+            const res = renderResolution();
+            return `Màn hình này: ${res.screen} điểm ảnh. Đang vẽ: ${res.drawn}${res.extra ? ' (vẽ dư rồi thu nhỏ)' : ''}.`;
+        }
     },
     skyLighting: {
         header: 'Ánh sáng bầu trời',
@@ -550,9 +557,9 @@ function renderApp(state) {
     appNodes.menuInnerWrap.style.opacity = state.openHelpTopic ? 0.12 : 1;
     appNodes.helpModal.classList.toggle('active', !!state.openHelpTopic);
     if (state.openHelpTopic) {
-        const { header, body } = helpContent[state.openHelpTopic];
+        const { header, body, extra } = helpContent[state.openHelpTopic];
         appNodes.helpModalHeader.textContent = header;
-        appNodes.helpModalBody.textContent = body;
+        appNodes.helpModalBody.textContent = extra ? `${body} ${extra()}` : body;
     }
 }
 
@@ -2232,8 +2239,9 @@ function handleResize() {
     frameW = containerW;
     frameH = containerH;
     // Nét theo mật độ điểm ảnh của màn hình (tối đa 2) để trăng, sao không nhòe; chất lượng dưới độ phân giải màn hình thì
-    // vẽ thưa theo (không thưa hơn điểm ảnh CSS)
-    const decoScale = Math.min(2, window.devicePixelRatio || 1, Math.max(1, mainStage.dpr));
+    // vẽ thưa theo (không thưa hơn điểm ảnh CSS); đang vẽ dư (mức cao hơn màn hình) thì vẽ dư theo khung pháo
+    const deviceScale = window.devicePixelRatio || 1;
+    const decoScale = mainStage.dpr > deviceScale ? mainStage.dpr : Math.min(2, deviceScale, Math.max(1, mainStage.dpr));
     decoCanvas.width = Math.round(containerW * decoScale);
     decoCanvas.height = Math.round(containerH * decoScale);
     decoCanvas.style.width = containerW + 'px';
@@ -2312,19 +2320,39 @@ function updateGlobals(timeStep, lag) {
 
 
 // Chất lượng khi xem (Tự động hoặc 144p ... 4320p, xem player/quality.js): giới hạn tia lửa của mức, và vẽ khung pháo
-// đúng số điểm ảnh của mức ở cạnh ngắn (720p: 720), không vượt độ phân giải gốc của màn hình.
+// đúng số điểm ảnh của mức ở cạnh ngắn (720p: 720).
 function applyQualityLimits() {
     const level = qualityLevelSelector();
     Spark.budget = level.sparks;
     // Khung quay video giữ đúng độ phân giải video
     if (IS_RECORD) return;
     const shortSide = Math.min(frameW || window.innerWidth, frameH || window.innerHeight);
-    const dpr = Math.min(window.devicePixelRatio || 1, Number(level.value) / shortSide);
+    const dpr = Math.min(maxRenderScale(), Number(level.value) / shortSide);
     // Đổi mật độ điểm ảnh, hoặc qua lại mức 480p (mặt nước vẽ thưa/nét): dựng lại các lớp
     if (stages.some(stage => stage.dpr !== dpr) || waterLowQuality !== isLowQuality) {
         stages.forEach(stage => { stage.dpr = dpr; });
         handleResize();
     }
+}
+
+// Mức cao hơn độ phân giải màn hình (vd 2160p 4K trên màn 1080p): máy tính mạnh vẽ dư tới gấp đôi mật độ điểm ảnh rồi
+// để trình duyệt thu nhỏ, tia pháo, chữ, vật trên nước mịn và rõ hơn (như "resolution scale" trong game). Chỉ khi người
+// xem tự chọn hoặc kịch bản đặt sẵn mức đó; "Tự động", điện thoại, máy yếu, bản xem nhanh trong builder thì vẽ bằng độ
+// phân giải gốc của màn hình (vẽ dư nặng gấp 4 lần)
+function maxRenderScale() {
+    const native = window.devicePixelRatio || 1;
+    const chosen = store.state.config.quality !== QUALITY_AUTO;
+    if (!chosen || !IS_HIGH_END_DEVICE || IS_MOBILE || IS_PREVIEW) return native;
+    // Tối đa ~16,6 triệu điểm ảnh mỗi lớp (gấp đôi 4K) để không ngốn hết bộ nhớ đồ họa
+    const area = (frameW || window.innerWidth) * (frameH || window.innerHeight);
+    return Math.max(native, Math.min(native * 2, 4, Math.sqrt(3840 * 2160 * 2 / area)));
+}
+
+// Độ phân giải đang vẽ khung pháo và độ phân giải màn hình (điểm ảnh thật), cho phần giải thích Chất lượng
+function renderResolution() {
+    const native = window.devicePixelRatio || 1;
+    const size = scale => `${Math.round(frameW * scale)}×${Math.round(frameH * scale)}`;
+    return { screen: size(native), drawn: size(mainStage.dpr), extra: mainStage.dpr > native + 0.01 };
 }
 
 // Thu phóng trình duyệt, kéo cửa sổ sang màn hình có mật độ điểm ảnh khác: vẽ lại theo mật độ mới cho pháo không nhòe
