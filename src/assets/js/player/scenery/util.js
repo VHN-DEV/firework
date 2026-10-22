@@ -48,7 +48,7 @@ export function fireflyGlow() {
 
 // ---------------------------------------------------------------------------
 // Các kiểu bờ khác (bank-styles.js): kè gạch có lan can và đèn đường, kè đá liễu rủ, bãi cát hàng dừa, phố cổ đèn lồng,
-// cầu vòm đá, cầu sắt rực đèn, biển khơi. Thân bờ (dưới chân trời) vẽ từng điểm ảnh ở lớp mặt nước (BANK_BODIES qua
+// cầu vòm đá, thành phố về đêm, biển khơi. Thân bờ (dưới chân trời) vẽ từng điểm ảnh ở lớp mặt nước (BANK_BODIES qua
 // bankSprite); phần nhô lên trời vẽ ở lớp bầu trời (BANK_SKYLINES) để mặt nước soi được bóng. Phần đứng yên vẽ sẵn một
 // lần theo cỡ khung; liễu, dừa đung đưa theo gió (dựng sẵn nhiều mức ngả), đèn lồng đung đưa, dải đèn đổi màu vẽ mỗi khung.
 // ---------------------------------------------------------------------------

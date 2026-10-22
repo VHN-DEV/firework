@@ -5,11 +5,28 @@
  */
 
 // Hiệu ứng mặt nước dùng chung: bóng phản chiếu gợn sóng, phần chìm khúc xạ, nước rẽ quanh vật, vật trôi
-// né đá, mặt băng mùa đông.
+// né đá, mặt băng mùa đông, vệt sáng của đèn in dài xuống nước.
 
 import { IS_MOBILE } from '../env.js';
 import { fbm, hash, makeNoise, smooth01 } from './util.js';
 import { makeCanvas, seededRandom } from '../utils.js';
+
+// Vệt sáng của một ngọn đèn in dài xuống mặt nước (như ảnh chụp sông về đêm): sóng cắt vệt thành từng nét ngang ngắn
+// lấp lánh, lệch qua lại, xa mép nước thì thưa, mờ và loang rộng. x: tâm; top: mép nước; reach: dài; width: rộng ở mép
+// nước; s: cỡ một nét (cùng đơn vị với tọa độ); seed: lệch nhịp riêng của từng đèn. Vẽ cộng sáng (ctx đặt sẵn lighter).
+export function drawLightStreak(ctx, x, top, reach, width, rgb, alpha, time, seed, s) {
+    if (alpha <= 0.01 || reach <= 0) return;
+    ctx.fillStyle = `rgb(${rgb})`;
+    const n = Math.max(6, Math.round(reach / (2.2 * s)));
+    for (let i = 0; i < n; i++) {
+        const q = i / n;
+        const wobble = Math.sin(time * 0.004 + i * 1.7 + seed * 9) * (1 + 2.5 * q) * s;
+        ctx.globalAlpha = alpha * Math.pow(1 - q, 1.3) * (0.55 + 0.45 * Math.sin(time * 0.006 + i * 2.3 + seed * 5));
+        const w = width * (1 + 0.8 * q) * (0.6 + 0.4 * Math.sin(i * 3.1 + seed * 7 + time * 0.002));
+        ctx.fillRect(x + wobble - w / 2, top + q * reach, w, Math.max(0.5, 0.55 * s));
+    }
+    ctx.globalAlpha = 1;
+}
 
 // Vệt sóng sau vật: những mảnh vòng sóng nhỏ tách ra từ hai bên đuôi vật, trôi ra sau, nở rộng, dạt dần sang hai bên
 // rồi tan; mảnh này chưa tan mảnh khác đã tới, mỗi lượt một dáng (chỗ tách, độ cong, độ dài cung) nên mềm và sống như

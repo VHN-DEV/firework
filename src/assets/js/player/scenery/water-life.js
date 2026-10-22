@@ -4,7 +4,7 @@
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
 
-// Sinh vật, vật trôi trên mặt nước: khúc gỗ, cò, vịt trời, cá, ếch, bong bóng; vòng sóng, tia nước.
+// Sinh vật, vật trôi trên mặt nước: khúc gỗ, cò, vịt trời, cá, ếch, bong bóng, thuyền; vòng sóng, tia nước.
 
 import { IS_MOBILE } from '../env.js';
 import { rand } from './util.js';
@@ -16,6 +16,7 @@ import { DuckLife } from './life/ducks.js';
 import { FishLife } from './life/fish.js';
 import { FrogLife } from './life/frogs.js';
 import { BubbleLife } from './life/bubbles.js';
+import { BoatLife } from './life/boats.js';
 
 // Sinh vật trên mặt nước bật/tắt riêng từng loại (builder, mục "Trên mặt nước"); bong bóng nước luôn có
 const WATER_ALL = { birds: true, ducks: true, fish: true, logs: true, frogs: true, bubbles: true };
@@ -24,7 +25,7 @@ const WATER_ALL = { birds: true, ducks: true, fish: true, logs: true, frogs: tru
 // nên dùng chung this: vòng sóng, tia nước, cỡ theo độ xa...), update(dt, env) mỗi khung, under(ctx, view) vẽ dưới mọi vật
 // (bóng in nước, bong bóng), things(ctx, view) các vật nằm trên mặt nước (vẽ chung với bèo, đá theo tầm xa), over(ctx, view)
 // vẽ trên mọi vật (đang bay, đang nhảy). Thêm loài mới: thêm một module, đưa vào LIFE.
-const LIFE = [LogLife, EgretLife, DuckLife, FishLife, FrogLife, BubbleLife];
+const LIFE = [LogLife, EgretLife, DuckLife, FishLife, FrogLife, BubbleLife, BoatLife];
 
 export const WaterLife = {
     key: '',
@@ -36,6 +37,9 @@ export const WaterLife = {
     fish: [],
     frogs: [],
     bubbles: [],
+    // Thuyền (biển khơi, sông thành phố) và kiểu thuyền đang có ('sea' | 'city')
+    boats: [],
+    boatMode: '',
     ripples: [],
     drops: [],
     next: { log: 0, bird: 0, duck: 0, fish: 0, rise: 0, frog: 0, bubble: 0 },
@@ -56,6 +60,8 @@ export const WaterLife = {
         this.fish = [];
         this.frogs = [];
         this.bubbles = [];
+        this.boats = [];
+        this.boatMode = '';
         this.ripples = [];
         this.drops = [];
         const slow = IS_MOBILE ? 1.3 : 1;

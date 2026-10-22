@@ -252,19 +252,3 @@ export function lanternSprites(sz, k) {
     lanternSpriteCache = { key, list };
     return list;
 }
-
-// Dải đèn trên một nhịp vòm cầu sắt: các đốm sáng trắng dọc vòm (mỗi khung tô màu theo sóng màu)
-export function spanLights(span, sz, k) {
-    const pad = 4 * sz;
-    const w = span.b - span.a + pad * 2;
-    const h = span.rise + pad * 2;
-    const [c, g] = makeCanvas(Math.ceil(w * k), Math.ceil(h * k));
-    g.setTransform(k, 0, 0, k, (pad - span.a) * k, (pad + span.rise - span.deck) * k);
-    for (let x = span.a; x <= span.b; x += 4 * sz) {
-        const y = span.arc((x - span.a) / (span.b - span.a));
-        radialGlow(g, x, y, 3 * sz, '255, 255, 255', 0.9);
-        g.fillStyle = '#fff';
-        g.fillRect(x - 0.4 * sz, y - 0.4 * sz, 0.8 * sz, 0.8 * sz);
-    }
-    return { canvas: c, x: span.a - pad, y: span.deck - span.rise - pad, w, h };
-}

@@ -213,9 +213,9 @@ const BANK_BODIES = {
     // Biển khơi: chỉ một vệt chân trời mờ
     none: () => () => [34, 44, 66]
 };
-// Phố cổ, cầu sắt: chân bờ là kè đá
+// Phố cổ, thành phố: chân bờ là kè đá
 BANK_BODIES.oldtown = BANK_BODIES.stone;
-BANK_BODIES.steel = BANK_BODIES.stone;
+BANK_BODIES.city = BANK_BODIES.stone;
 // Cầu đá: kè xây cùng một kiểu đá với thân cầu (ashlar), gờ đá trên mặt kè
 BANK_BODIES.bridge = noise => (X, Y) => {
     if (Y < 1.1) {

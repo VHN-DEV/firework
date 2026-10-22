@@ -393,6 +393,8 @@ export const waterLifeFlags = (config = burstConfig || {}) => {
         fish: !off && config.waterFish !== false,
         logs: !off && config.waterLogs !== false,
         frogs: !off && config.waterFrogs !== false,
+        // Thuyền: chỉ có ở biển khơi, sông thành phố (mặt nước quyết định theo kiểu bờ)
+        boats: !off && config.waterBoats !== false,
         // Bong bóng nước nổi lên rồi vỡ: luôn có (là một phần của mặt nước)
         bubbles: true
     };

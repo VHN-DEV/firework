@@ -4,19 +4,21 @@
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
 
-// Phần nhô lên trời của từng kiểu bờ (kè gạch, kè đá, bãi cát, phố cổ, cầu đá, cầu sắt), dựng sẵn rồi vẽ
+// Phần nhô lên trời của từng kiểu bờ (kè gạch, kè đá, bãi cát, phố cổ, cầu đá, thành phố), dựng sẵn rồi vẽ
 // mỗi khung kèm cây, đèn.
 
 import { season as sceneSeason } from '../state.js';
 import { radialGlow, snowCap, tintCanvas } from './util.js';
 import { bankStyle } from './bank.js';
 import { drawSwayingTrees, treeAtlas } from './trees.js';
-import { LANTERN_COLORS, archGeometry, archRing, drawLampPost, drawRailing, drawShophouse, lanternSprites, spanLights, stoneFacing } from './skyline-parts.js';
+import { LANTERN_COLORS, archGeometry, archRing, drawLampPost, drawRailing, drawShophouse, lanternSprites, stoneFacing } from './skyline-parts.js';
+import { CITY_SKYLINE } from './city-skyline.js';
 import { makeCanvas, seededRandom } from '../utils.js';
 
 // Phần nhô lên trời của từng kiểu bờ. build: vẽ phần đứng yên (g) và ánh đèn đứng yên (gl, cộng sáng), trả dữ liệu cho
 // phần chuyển động; before: vẽ mỗi khung trước phần đứng yên (cây đung đưa phía sau lan can, cầu); frame: vẽ mỗi khung
-// sau phần đứng yên; lights: vẽ mỗi khung, cộng sáng (đèn đổi màu)
+// sau phần đứng yên; lights: vẽ mỗi khung, cộng sáng (đèn đổi màu); up(ground, sz): cao bao nhiêu trên chân trời (mặc
+// định 120 * sz)
 const BANK_SKYLINES = {
     brick: {
         build(g, gl, { cssW, sz, rnd }) {
@@ -319,83 +321,8 @@ const BANK_SKYLINES = {
             drawSwayingTrees(ctx, treeAtlas('willow', layer.sz, k), layer.data.willows, ground, clock, calm);
         }
     },
-    steel: {
-        build(g, gl, { cssW, sz }) {
-            const x0 = cssW * 0.04;
-            const x1 = cssW * 0.96;
-            const n = Math.max(3, Math.min(6, Math.round((x1 - x0) / (190 * sz))));
-            const spanW = (x1 - x0) / n;
-            const deck = -6 * sz;
-            const rise = Math.min(spanW * 0.26, 36 * sz);
-            // Trụ đá đỡ các nhịp
-            for (let i = 0; i <= n; i++) {
-                const px = x0 + i * spanW;
-                g.fillStyle = '#4f4b45';
-                g.fillRect(px - 3.2 * sz, deck, 6.4 * sz, -deck);
-                g.fillStyle = '#625d55';
-                g.fillRect(px - 4 * sz, deck - 0.8 * sz, 8 * sz, 1.2 * sz);
-            }
-            // Dầm mặt cầu
-            g.fillStyle = '#3c4454';
-            g.fillRect(x0 - 4 * sz, deck - 2 * sz, x1 - x0 + 8 * sz, 2.2 * sz);
-            g.fillStyle = 'rgba(150, 160, 180, 0.35)';
-            g.fillRect(x0, deck - 2 * sz, x1 - x0, 0.35 * sz);
-            const spans = [];
-            for (let i = 0; i < n; i++) {
-                const a = x0 + i * spanW + 2 * sz;
-                const b = a + spanW - 4 * sz;
-                const top = deck - 2 * sz;
-                const arc = t => top - rise * Math.pow(Math.sin(Math.PI * t), 0.85);
-                // Dàn thép: thanh đứng và thanh chéo giữa vòm và mặt cầu
-                const panels = 12;
-                const at = t => a + (b - a) * t;
-                g.strokeStyle = '#4a5468';
-                g.lineWidth = 0.6 * sz;
-                g.beginPath();
-                for (let p = 0; p <= panels; p++) {
-                    const t = p / panels;
-                    g.moveTo(at(t), top);
-                    g.lineTo(at(t), arc(t));
-                }
-                for (let p = 0; p < panels; p++) {
-                    const t0 = p / panels;
-                    const t1 = (p + 1) / panels;
-                    if (p % 2) {
-                        g.moveTo(at(t0), top);
-                        g.lineTo(at(t1), arc(t1));
-                    } else {
-                        g.moveTo(at(t0), arc(t0));
-                        g.lineTo(at(t1), top);
-                    }
-                }
-                g.stroke();
-                // Vòm chính: thanh trên dày, mép trên ánh trăng
-                g.strokeStyle = '#59637a';
-                g.lineWidth = 1.7 * sz;
-                g.beginPath();
-                for (let t = 0; t <= 1.0001; t += 0.02) (t ? g.lineTo(at(t), arc(t)) : g.moveTo(at(t), arc(t)));
-                g.stroke();
-                g.strokeStyle = 'rgba(170, 180, 200, 0.35)';
-                g.lineWidth = 0.4 * sz;
-                g.beginPath();
-                for (let t = 0; t <= 1.0001; t += 0.02) (t ? g.lineTo(at(t), arc(t) - 0.7 * sz) : g.moveTo(at(t), arc(t) - 0.7 * sz));
-                g.stroke();
-                spans.push({ a, b, rise, deck: top, arc });
-            }
-            // Đèn vàng dọc mặt cầu
-            for (let x = x0; x < x1; x += 7 * sz) radialGlow(gl, x, deck - 2.4 * sz, 3.5 * sz, '255, 224, 170', 0.55);
-            return { spans };
-        },
-        lights(ctx, layer, { ground, clock, calm, k }) {
-            if (!layer.data.dots) layer.data.dots = layer.data.spans.map(span => spanLights(span, layer.sz, k));
-            layer.data.dots.forEach((dots, i) => {
-                // Dải đèn mỗi nhịp một màu, cả cầu chuyển màu chầm chậm như sóng lan
-                const hue = (clock * (calm ? 0.004 : 0.012) + i * 48) % 360;
-                const tmp = tintCanvas(dots.canvas, `hsl(${hue | 0}, 90%, 62%)`);
-                ctx.drawImage(tmp, 0, 0, dots.canvas.width, dots.canvas.height, dots.x, ground + dots.y, dots.w, dots.h);
-            });
-        }
-    }
+    // Thành phố về đêm bên sông (city-skyline.js)
+    city: CITY_SKYLINE
 };
 
 export let skylineCache = { key: '' };
@@ -407,7 +334,7 @@ function skylineLayer(style, cssW, ground, k, drop) {
     const season = sceneSeason();
     const key = `${style}_${Math.round(cssW)}_${Math.round(ground)}_${k.toFixed(3)}_${drop.toFixed(2)}_${season}`;
     if (skylineCache.key === key) return skylineCache;
-    const up = Math.ceil(120 * sz);
+    const up = Math.ceil(BANK_SKYLINES[style].up ? BANK_SKYLINES[style].up(ground, sz) : 120 * sz);
     const make = () => {
         const [c, g] = makeCanvas(Math.ceil(cssW * k), Math.ceil((up + drop + 4) * k));
         g.setTransform(k, 0, 0, k, 0, up * k);

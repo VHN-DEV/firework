@@ -38,7 +38,7 @@ const BANKS = {
     oldtown: ['wall', 'none'],
     bridge: ['wall', 'leafy'],
     arch: ['wall', 'willow'],
-    steel: ['wall', 'none'],
+    city: ['wall', 'leafy'],
     none: ['sea', 'none']
 };
 
@@ -51,7 +51,7 @@ export function natureScene({ on = true, volume = NATURE_VOLUME, off = [], water
     const [shore, veg] = BANKS[bank] || BANKS[''];
     const scene = {
         on, volume, off: new Set(off), water, style: style === 'river' ? 'river' : 'lake', shore, veg, season, weather,
-        frozen: water && season === 'winter', life: { ...life }, music
+        frozen: water && season === 'winter' && shore !== 'sea', life: { ...life }, music
     };
     scene.key = JSON.stringify([on, volume, [...scene.off], water, scene.style, shore, veg, season, weather, scene.life, music]);
     return scene;

@@ -28,7 +28,8 @@ export const FishLife = {
         if (this.next.fish <= 0 && flags.fish) {
             this.next.fish = (river ? rand(3000, 7000) : rand(5000, 10000)) * slow;
             const r = Math.random();
-            const type = r < 0.35 ? 'silver' : r < 0.6 ? 'carp' : r < 0.75 ? 'grass' : 'minnow';
+            // Biển: cá thân bạc, đàn cá con (không có cá chép, cá trắm nước ngọt)
+            const type = flags.sea ? (r < 0.5 ? 'silver' : 'minnow') : r < 0.35 ? 'silver' : r < 0.6 ? 'carp' : r < 0.75 ? 'grass' : 'minnow';
             const kind = FISH_TYPES[type];
             const d = rand(0.25, 0.9);
             const s = this.scale(d);

@@ -13,7 +13,8 @@ import { validBankStyle } from '../bank-styles.js';
 import { hash } from './util.js';
 import { fallingLeafSprite, floatLanternSprite, moundSprite, padSprite, rockSprite, seasonSprite, setSpriteRes, warmWaterSprites } from './water-sprites.js';
 import { WaterLife } from './water-life.js';
-import { drawFlowMarks, drawReflection, drawSubmerged, iceSheet, steerAround } from './water-fx.js';
+import { drawFlowMarks, drawLightStreak, drawReflection, drawSubmerged, iceSheet, steerAround } from './water-fx.js';
+import { cityLightStreaks } from './city-skyline.js';
 import { bankBandCss, bankSprite, bankStyle, drawBeachFoam, setBankStyle } from './bank.js';
 import { skylineCache } from './skylines.js';
 import { Decor } from './decor.js';
@@ -59,6 +60,9 @@ function readBackground(el) {
 
 let mirror = null;
 
+// Thành phố: bóng đèn nhà cao tầng thu nhỏ để kéo dài, làm nhòe (xem bước 4)
+let cityGlow = null;
+
 export const Water = {
     drawn: false,
     frame: 0,
@@ -78,15 +82,25 @@ export const Water = {
 
     // sources: các canvas cùng kích thước khung (vẽ theo điểm ảnh CSS cssW x cssH); background: phần tử ảnh nền;
     // style: 'lake' hồ tĩnh lặng | 'river' sông chảy; floating: '' | 'lanterns' hoa đăng | 'petals' cánh hoa;
-    // life: { birds: cò, ducks: vịt trời, fish: cá nhảy, logs: khúc gỗ trôi } (false: tắt hết); plants: lá bèo;
+    // life: { birds: cò, ducks: vịt trời, fish: cá nhảy, logs: khúc gỗ trôi, boats: thuyền } (false: tắt hết); plants: lá bèo;
     // rocks: đá, gò đất giữa dòng
     // bank: kiểu bờ bên kia (bank-styles.js)
     render(ctx, { sources, background, sky, cssW, cssH, time, style, floating, calm, life: lifeFlags, plants, rocks: rocksOn, bank: bankKind }) {
-        // Mùa: đông mặt nước đóng băng (không sóng, không cá, vịt, cò, khúc gỗ, lá bèo, vật trôi)
+        // Mùa: đông mặt nước đóng băng (không sóng, không cá, vịt, cò, khúc gỗ, lá bèo, vật trôi); biển thì không đóng băng
         const season = sceneSeason();
-        const frozen = season === 'winter';
         this.season = season;
-        const life = !frozen && !!lifeFlags && (lifeFlags.birds || lifeFlags.ducks || lifeFlags.fish || lifeFlags.logs || lifeFlags.frogs || lifeFlags.bubbles);
+        // Biển khơi: giữa biển không có đá, gò đất, lá bèo, khúc gỗ, ếch, cò, vịt, lá rụng; xa xa có thuyền câu mực, du
+        // thuyền, tàu khách. Sông thành phố: không có gò đất, đá giữa dòng; có du thuyền nhà hàng, thuyền neo sát bờ
+        const shore = validBankStyle(bankKind);
+        const sea = shore === 'none';
+        const frozen = season === 'winter' && !sea;
+        if (sea) plants = false;
+        if (sea || shore === 'city') rocksOn = false;
+        if (lifeFlags) {
+            lifeFlags = { ...lifeFlags, sea, ...(sea ? { birds: false, ducks: false, frogs: false, logs: false } : {}),
+                boats: !!lifeFlags.boats && (sea ? 'sea' : shore === 'city' ? 'city' : false) };
+        }
+        const life = !frozen && !!lifeFlags && (lifeFlags.birds || lifeFlags.ducks || lifeFlags.fish || lifeFlags.logs || lifeFlags.frogs || lifeFlags.bubbles || !!lifeFlags.boats);
         const level = horizon();
         const { width: W, height: H } = ctx.canvas;
         if (level >= 1 || !W || !H) {
@@ -212,6 +226,22 @@ export const Water = {
             ctx.drawImage(mirror, 0, from + Math.round(7 * k));
         };
         streaks(reflTop);
+        // Thành phố: ánh đèn nhà cao tầng loang dài, nhòe xuống sông như ảnh chụp đêm (phần bóng gần chân trời thu nhỏ rồi
+        // kéo dài theo chiều dọc, phóng lại: vừa dài vừa mịn)
+        if (bankStyle === 'city' && !frozen) {
+            if (!cityGlow) cityGlow = document.createElement('canvas');
+            const gw = Math.max(1, Math.round(W / 8));
+            const gh = Math.max(1, Math.round(depth / 8));
+            if (cityGlow.width !== gw || cityGlow.height !== gh) {
+                cityGlow.width = gw;
+                cityGlow.height = gh;
+            }
+            const gg = cityGlow.getContext('2d');
+            gg.clearRect(0, 0, gw, gh);
+            gg.drawImage(mirror, 0, 0, W, Math.max(1, Math.round(depth * 0.45)), 0, 0, gw, gh);
+            ctx.globalAlpha = 0.32;
+            ctx.drawImage(cityGlow, 0, 0, gw, gh, 0, reflTop, W, (H - reflTop) * 0.95);
+        }
 
         // 5. Dải sóng dài mờ trôi chậm (kết cấu mặt nước), rồi vệt sóng ngắn lấp lánh; vệt nào nằm chỗ có ánh pháo thì
         //    sáng rực lên. Gần chân trời vệt nhỏ, dày; gần người xem vệt dài, thưa (phối cảnh).
@@ -260,6 +290,14 @@ export const Water = {
         const moon = Decor.moonGlow();
         if (moon && moon.light > 0.03 && moon.x > -moon.radius * 4 && moon.x < cssW + moon.radius * 4) {
             this.drawMoonGlade(ctx, moon, k, surf, H, time, river && !frozen, calm || frozen);
+        }
+        // Thành phố: đèn sáng (mặt kính màu, đỉnh tháp, biển quảng cáo, dãy nhà ven sông) in vệt dài lấp lánh xuống sông
+        if (bankStyle === 'city' && skylineCache.style === 'city' && !frozen) {
+            ctx.globalCompositeOperation = 'lighter';
+            // Màu theo cùng đồng hồ với đèn trên nhà (Decor.clock) để vệt đổi màu đúng lúc với mặt kính
+            cityLightStreaks(skylineCache.data, Decor.clock, calm).forEach((s, i) => {
+                drawLightStreak(ctx, s.x * k, reflTop, s.reach * (H - reflTop), s.w * k * 0.45, s.rgb, Math.min(0.6, s.a * 1.4), time, i * 0.61, k);
+            });
         }
         ctx.restore();
 
@@ -336,7 +374,7 @@ export const Water = {
         const floatScale = d => (0.35 + d * 0.9) * (IS_MOBILE ? 0.85 : 1);
         this.syncPlants(plants && !frozen, river, cssW);
         this.syncFloats(frozen ? '' : floating, river);
-        this.syncSeasonFloats(frozen ? '' : season, river, cssW);
+        this.syncSeasonFloats(frozen || sea ? '' : season, river, cssW);
         // Sông thì trôi theo dòng (xa bờ người xem trôi nhanh hơn); hồ thì gần như đứng yên
         const drift = (item, half, still) => {
             item.u += (river ? item.speed * (0.3 + item.d) : item.speed * still) * dt / cssW;
