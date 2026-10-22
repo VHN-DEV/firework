@@ -1,0 +1,40 @@
+// Trình diễn Pháo hoa – giao diện builder (bảng màu, kích thước, mixin)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+// ---------------------------------------------------------------------------
+// Bảng màu & kích thước của builder
+// ---------------------------------------------------------------------------
+$b-bg: #0e1119;
+$b-panel: #1b1f2c;
+$b-panel-2: #212636;
+$b-raised: #2a3044;
+$b-line: rgba(255, 255, 255, 0.09);
+$b-line-strong: rgba(255, 255, 255, 0.16);
+$b-text: #eef1f7;
+$b-muted: #aab2c4;
+$b-faint: #848da3;
+$b-accent: #7c6cff;
+$b-accent-2: #b46cff;
+$b-gold: #f5b443;
+$b-danger: #f2546b;
+$b-success: #2fd39a;
+$b-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+$b-radius: 14px;
+$b-radius-sm: 9px;
+$topbar-h: 60px;
+
+$bp-wide: 1200px; // từ đây trở lên: 3 cột
+$bp-mobile: 768px; // dưới mức này: giao diện điện thoại
+
+@mixin mobile {
+    @media (max-width: #{$bp-mobile - 1px}) {
+        @content;
+    }
+}
+
+@mixin tablet-down {
+    @media (max-width: #{$bp-wide - 1px}) {
+        @content;
+    }
+}

@@ -1,0 +1,76 @@
+// Trình diễn Pháo hoa – giao diện builder (bản quyền, điều khoản)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// Dòng bản quyền và liên kết Điều khoản/Bảo mật
+.legal-links {
+    margin: 1.25rem 0 0;
+    font-size: 0.72rem;
+    color: $b-faint;
+    text-align: center;
+
+    a {
+        color: $b-muted;
+        text-decoration: none;
+
+        &:hover {
+            color: $b-text;
+            text-decoration: underline;
+        }
+    }
+
+    .modal-footer & {
+        align-self: center;
+        margin: 0 auto 0 0;
+        padding-right: 1rem;
+        text-align: left;
+    }
+}
+
+.tips-card {
+    margin-top: 1.5rem;
+    padding: 0.9rem 1rem;
+    border-radius: $b-radius;
+    background: rgba($b-gold, 0.06);
+    border: 1px solid rgba($b-gold, 0.18);
+
+    h4 {
+        font-size: 0.85rem;
+        color: $b-gold;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+    }
+
+    ul {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+    }
+
+    li {
+        font-size: 0.78rem;
+        color: $b-muted;
+        padding-left: 0.9rem;
+        position: relative;
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.55em;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: $b-gold;
+        }
+
+        strong {
+            color: $b-text;
+        }
+    }
+}

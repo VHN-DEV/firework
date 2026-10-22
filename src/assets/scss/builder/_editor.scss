@@ -1,0 +1,413 @@
+// Trình diễn Pháo hoa – giao diện builder (xem nhanh, bảng chỉnh sửa)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// ---------------------------------------------------------------------------
+// Cột phải: xem nhanh + bảng chỉnh sửa
+// ---------------------------------------------------------------------------
+.studio-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 0;
+}
+
+.preview-card {
+    flex-shrink: 0;
+    overflow: hidden;
+
+    &.collapsed {
+        .mini-preview-canvas-container,
+        .mini-preview-info {
+            display: none !important;
+        }
+
+        #btn-toggle-mini-preview i {
+            transform: rotate(180deg);
+        }
+    }
+
+    // Toàn màn hình (nút phóng to)
+    &.fullscreen {
+        border-radius: 0;
+        display: flex;
+        flex-direction: column;
+
+        .mini-preview-canvas-container {
+            flex: 1;
+            height: auto !important;
+        }
+    }
+}
+
+.preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.55rem 0.6rem 0.55rem 1rem;
+}
+
+.preview-title {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 0.92rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    i {
+        color: $b-accent;
+    }
+}
+
+.preview-actions {
+    display: flex;
+    gap: 0.15rem;
+
+    i {
+        transition: transform 0.2s;
+    }
+}
+
+.mini-preview-canvas-container {
+    position: relative;
+    height: 240px;
+    background: #000;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-top: 1px solid $b-line;
+    border-bottom: 1px solid $b-line;
+
+    // Vùng trình diễn giữ đúng tỉ lệ màn hình đang giả lập (máy tính/điện thoại), thước đo bám theo vùng này
+    .mini-preview-stage {
+        position: relative;
+        flex-shrink: 0;
+        overflow: hidden;
+    }
+
+    // Trình phát thật được vẽ ở kích thước màn hình giả lập rồi thu nhỏ bằng transform
+    .mini-preview-frame {
+        position: absolute;
+        top: 0;
+        left: 0;
+        border: 0;
+        transform-origin: 0 0;
+        pointer-events: none;
+        background: #000;
+    }
+
+    // Màn mở quà / màn kết đang hiện: chạm được vào khung
+    .mini-preview-stage.is-interactive .mini-preview-frame {
+        pointer-events: auto;
+    }
+
+    .mini-preview-ruler-x,
+    .mini-preview-ruler-y {
+        position: absolute;
+        z-index: 5;
+        pointer-events: none;
+        display: flex;
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.5);
+        font-family: ui-monospace, monospace;
+        text-shadow: 0 0 3px #000;
+    }
+
+    .mini-preview-ruler-x {
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 14px;
+        justify-content: space-between;
+        align-items: flex-end;
+        padding: 0 4px 2px 24px;
+    }
+
+    .mini-preview-stage.narrow .mini-preview-ruler-x span:not(:first-child, :last-child) {
+        display: none;
+    }
+
+    .mini-preview-ruler-y {
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 24px;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 4px 0 14px 4px;
+    }
+}
+
+.mini-preview-info {
+    padding: 0.45rem 1rem;
+    font-size: 0.75rem;
+    color: $b-muted;
+    text-align: center;
+}
+
+.inspector {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.inspector-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    color: $b-muted;
+    font-size: 0.85rem;
+
+    .empty-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        color: $b-accent;
+        background: rgba($b-accent, 0.12);
+    }
+
+    h3 {
+        color: $b-text;
+        font-size: 1rem;
+    }
+}
+
+.inspector-header {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.8rem 0.75rem 0.8rem 1rem;
+    background: rgba($b-panel, 0.96);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid $b-line;
+
+    .shot-icon {
+        flex-shrink: 0;
+    }
+
+    .inspector-title {
+        flex: 1;
+        min-width: 0;
+
+        h3 {
+            font-size: 1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        span {
+            font-size: 0.75rem;
+            color: $b-muted;
+        }
+    }
+
+    .inspector-close {
+        display: none;
+    }
+}
+
+// Mục có thể thu gọn trong bảng chỉnh sửa
+.insp-section {
+    border-bottom: 1px solid $b-line;
+
+    &:last-child {
+        border-bottom: none;
+    }
+
+    > summary {
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.85rem 1rem;
+        cursor: pointer;
+        font-family: 'Outfit', sans-serif;
+        font-weight: 600;
+        font-size: 0.9rem;
+        user-select: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+
+        > i:first-child {
+            width: 18px;
+            color: $b-accent;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .summary-title {
+            flex: 1;
+        }
+
+        .summary-hint {
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            font-size: 0.75rem;
+            color: $b-faint;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 55%;
+        }
+
+        &::after {
+            content: '\f078';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            font-size: 0.65rem;
+            color: $b-faint;
+            margin-left: 0.25rem;
+            transition: transform 0.2s;
+        }
+    }
+
+    &[open] > summary::after {
+        transform: rotate(180deg);
+    }
+
+    > summary:hover {
+        background: rgba(255, 255, 255, 0.02);
+    }
+}
+
+.insp-body {
+    padding: 0.15rem 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+
+.field-label-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+
+    label {
+        margin-bottom: 0.35rem;
+    }
+
+    output {
+        font-size: 0.75rem;
+        color: $b-text;
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+// Ô số có nút - / +
+.stepper {
+    display: flex;
+
+    input {
+        text-align: center;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+
+    button {
+        width: 34px;
+        flex-shrink: 0;
+        border: 1px solid $b-line-strong;
+        background: $b-raised;
+        color: $b-muted;
+        font-size: 0.75rem;
+
+        &:first-child {
+            border-radius: $b-radius-sm 0 0 $b-radius-sm;
+        }
+
+        &:last-child {
+            border-radius: 0 $b-radius-sm $b-radius-sm 0;
+        }
+
+        &:hover {
+            color: $b-text;
+            background: #343b52;
+        }
+    }
+}
+
+// Lưới chọn loại pháo
+.shell-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: 0.4rem;
+
+    // Lưới chọn khung ảnh: ô nhỏ hơn
+    &.frame-grid {
+        grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+
+        // Biểu tượng khung là SVG nét viền, đổi màu theo trạng thái nút
+        .emoji svg {
+            display: block;
+            width: 1.4rem;
+            height: 1.4rem;
+            margin: 0.1rem 0;
+        }
+    }
+}
+
+.shell-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.5rem 0.25rem 0.45rem;
+    border: 1px solid $b-line;
+    border-radius: 11px;
+    background: $b-panel-2;
+    font-size: 0.72rem;
+    color: $b-muted;
+    line-height: 1.2;
+    text-align: center;
+    transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+
+    .emoji {
+        font-size: 1.25rem;
+        line-height: 1.3;
+    }
+
+    &:hover {
+        color: $b-text;
+        border-color: $b-line-strong;
+    }
+
+    &.selected {
+        color: #fff;
+        border-color: $b-accent;
+        background: rgba($b-accent, 0.18);
+    }
+}

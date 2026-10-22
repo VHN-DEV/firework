@@ -1,0 +1,376 @@
+// Trình diễn Pháo hoa – giao diện builder (nhạc nền, ảnh của pháo ảnh, kho nhạc, kho ảnh)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// Nhạc nền
+.music-upload {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px dashed $b-line-strong;
+    border-radius: $b-radius-sm;
+    background: rgba($b-accent, 0.06);
+    color: $b-text;
+    text-align: left;
+    transition: border-color 0.15s, background-color 0.15s;
+
+    > i {
+        width: 34px;
+        height: 34px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: $b-gradient;
+        color: #fff;
+        font-size: 0.9rem;
+    }
+
+    strong {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    small {
+        color: $b-faint;
+        font-size: 0.72rem;
+    }
+
+    &:hover {
+        border-color: $b-accent;
+        background: rgba($b-accent, 0.12);
+    }
+
+    // Nút kho nhạc: viền liền, nổi hơn nút tải lên
+    &.music-library-btn {
+        margin-bottom: 0.5rem;
+        border-style: solid;
+        border-color: rgba($b-accent, 0.45);
+        background: rgba($b-accent, 0.14);
+    }
+}
+
+// Chọn phần ảnh hiển thị của pháo ảnh
+.crop-modal {
+    max-width: 440px !important;
+}
+
+.crop-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 0;
+    padding: 1rem 1.5rem;
+    overflow-y: auto;
+
+    .field-hint {
+        text-align: center;
+    }
+}
+
+.crop-canvas {
+    width: min(100%, 360px, 52vh);
+    aspect-ratio: 1;
+    border-radius: $b-radius-sm;
+    background: #05060a;
+    cursor: grab;
+    touch-action: none;
+
+    &:active {
+        cursor: grabbing;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $b-accent;
+        outline-offset: 2px;
+    }
+}
+
+.crop-zoom {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: min(100%, 360px);
+
+    input {
+        flex: 1;
+        min-width: 0;
+        accent-color: $b-accent;
+    }
+}
+
+.crop-footer {
+    gap: 0.5rem;
+
+    .btn:first-child {
+        margin-right: auto;
+    }
+}
+
+// Kho nhạc / kho ảnh
+.library-modal {
+    max-width: 720px !important;
+}
+
+.library-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    min-height: 0;
+    padding: 1rem 1.5rem 1.25rem;
+    overflow-y: auto;
+}
+
+.library-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+
+    .template-chip.active {
+        border-color: $b-accent;
+        background: rgba($b-accent, 0.28);
+    }
+}
+
+.library-list {
+    &.is-music {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    &.is-images {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 0.65rem;
+    }
+}
+
+.library-track {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid $b-line;
+    border-radius: $b-radius-sm;
+    background: $b-panel;
+
+    &.in-use {
+        border-color: rgba($b-accent, 0.6);
+    }
+
+    > .btn {
+        flex: none;
+    }
+}
+
+.library-play {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: $b-gradient;
+    color: #fff;
+    font-size: 0.85rem;
+
+    .fa-play {
+        margin-left: 2px;
+    }
+}
+
+.library-track-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+
+    strong {
+        font-size: 0.9rem;
+    }
+
+    > span {
+        color: $b-muted;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+.library-track-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+
+    em {
+        font-style: normal;
+        padding: 0.05rem 0.45rem;
+        border-radius: 99px;
+        background: rgba(255, 255, 255, 0.07);
+        color: $b-muted;
+        font-size: 0.68rem;
+    }
+}
+
+.library-image {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.35rem;
+    border: 1px solid $b-line;
+    border-radius: $b-radius-sm;
+    background: $b-panel;
+    color: $b-text;
+    font-size: 0.78rem;
+    transition: border-color 0.15s, transform 0.15s;
+
+    img {
+        width: 100%;
+        aspect-ratio: 1;
+        object-fit: cover;
+        border-radius: 7px;
+    }
+
+    &:hover {
+        border-color: rgba($b-accent, 0.6);
+        transform: translateY(-2px);
+    }
+
+    &.in-use {
+        border-color: $b-accent;
+        box-shadow: 0 0 0 2px rgba($b-accent, 0.35);
+    }
+}
+
+.library-empty {
+    color: $b-muted;
+    text-align: center;
+    padding: 1.5rem 0;
+}
+
+.library-pick {
+    align-self: flex-start;
+    margin-top: 0.5rem;
+}
+
+// Nút dưới ảnh của pháo ảnh: chọn phần hiển thị, chọn từ kho ảnh
+.image-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+
+    .library-pick {
+        margin-top: 0;
+    }
+}
+
+.music-url-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+
+    input {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .btn {
+        flex-shrink: 0;
+    }
+}
+
+.music-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.75rem;
+    border-radius: $b-radius-sm;
+    background: $b-panel-2;
+    border: 1px solid $b-line-strong;
+
+    audio {
+        width: 100%;
+        height: 36px;
+        color-scheme: dark;
+    }
+}
+
+.music-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.music-disc {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: $b-gradient;
+    color: #fff;
+    // Đĩa nhạc chỉ quay khi đang phát
+    animation: music-spin 4s linear infinite paused;
+
+    .music-card.playing & {
+        animation-play-state: running;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+
+@keyframes music-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.music-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: $b-text;
+}
+
+.music-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    align-items: end;
+}
+
+.music-start-row {
+    display: flex;
+    gap: 0.25rem;
+
+    input {
+        min-width: 0;
+    }
+
+    .icon-btn {
+        width: 36px;
+        height: auto;
+        flex-shrink: 0;
+        border: 1px solid $b-line-strong;
+    }
+}

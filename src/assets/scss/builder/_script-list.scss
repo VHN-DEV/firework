@@ -1,0 +1,52 @@
+// Trình diễn Pháo hoa – giao diện builder (danh sách kịch bản)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// Nhãn trạng thái nằm cùng hàng tác giả/số phát bắn
+.script-badges {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+
+    &:empty {
+        display: none;
+    }
+
+    .gift-badge i {
+        width: auto;
+        margin-right: 0.25rem;
+        color: inherit;
+    }
+
+    .fa-lock {
+        color: $b-gold !important;
+    }
+}
+
+// Luôn nằm sát đáy thẻ để các thẻ cùng hàng thẳng nút
+.script-actions {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: auto;
+    padding-top: 0.35rem;
+
+    // Co được khi thẻ hẹp (màn 320px) thay vì đẩy thẻ tràn khỏi hộp
+    .btn {
+        flex: 1 1 auto;
+        min-width: 0;
+        height: 34px;
+        padding: 0 0.4rem;
+        gap: 0.3rem;
+        font-size: 0.78rem;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+
+    .btn.is-icon {
+        flex: none;
+        width: 36px;
+        padding: 0;
+    }
+}

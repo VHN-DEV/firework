@@ -1,0 +1,308 @@
+// Trình diễn Pháo hoa – giao diện builder (ô nhập liệu)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// ---------------------------------------------------------------------------
+// Ô nhập liệu
+// ---------------------------------------------------------------------------
+label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: $b-muted;
+    margin-bottom: 0.35rem;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="url"],
+input[type="datetime-local"],
+textarea,
+select {
+    width: 100%;
+    height: 38px;
+    padding: 0 0.7rem;
+    background: $b-bg;
+    border: 1px solid $b-line-strong;
+    border-radius: $b-radius-sm;
+    color: $b-text;
+    font-size: 0.875rem;
+    transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+
+    &::placeholder {
+        color: $b-faint;
+    }
+
+    &:hover {
+        border-color: rgba(255, 255, 255, 0.26);
+    }
+
+    &:focus {
+        outline: none;
+        border-color: $b-accent;
+        box-shadow: 0 0 0 3px rgba($b-accent, 0.22);
+    }
+}
+
+input[type="datetime-local"] {
+    color-scheme: dark;
+}
+
+.schedule-modes {
+    margin-top: 0.6rem;
+}
+
+textarea {
+    height: auto;
+    min-height: 76px;
+    padding: 0.55rem 0.7rem;
+    line-height: 1.45;
+    resize: vertical;
+    font-family: inherit;
+}
+
+select {
+    appearance: none;
+    padding-right: 2rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238f98ad' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+    cursor: pointer;
+
+    option {
+        background: $b-panel-2;
+    }
+}
+
+// Ẩn mũi tên tăng/giảm mặc định của ô số (thô và khó bấm trên cảm ứng)
+input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+}
+
+input[type="color"] {
+    width: 38px;
+    height: 38px;
+    padding: 3px;
+    border: 1px solid $b-line-strong;
+    border-radius: $b-radius-sm;
+    background: $b-bg;
+    cursor: pointer;
+    flex-shrink: 0;
+
+    &::-webkit-color-swatch-wrapper {
+        padding: 0;
+    }
+
+    &::-webkit-color-swatch {
+        border: none;
+        border-radius: 6px;
+    }
+}
+
+input[type="range"] {
+    width: 100%;
+    accent-color: $b-accent;
+    cursor: pointer;
+}
+
+// Công tắc bật/tắt
+.switch {
+    appearance: none;
+    width: 40px;
+    height: 23px;
+    border-radius: 23px;
+    background: $b-raised;
+    border: 1px solid $b-line-strong;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.2s, border-color 0.2s;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        background: #cfd5e3;
+        transition: transform 0.2s, background-color 0.2s;
+    }
+
+    &:checked {
+        background: $b-accent;
+        border-color: $b-accent;
+
+        &::after {
+            transform: translateX(17px);
+            background: #fff;
+        }
+    }
+
+    &:focus-visible {
+        outline: 2px solid $b-accent;
+        outline-offset: 2px;
+    }
+}
+
+.switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 0 0 1rem;
+    cursor: pointer;
+
+    strong {
+        display: block;
+        color: $b-text;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    small {
+        color: $b-faint;
+        font-size: 0.75rem;
+    }
+}
+
+.field {
+    margin-bottom: 1rem;
+}
+
+.field-hint {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.72rem;
+    color: $b-faint;
+}
+
+.field-divider {
+    height: 1px;
+    background: $b-line;
+    margin: 1.25rem 0;
+}
+
+.input-with-ext {
+    display: flex;
+
+    input {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    span {
+        display: flex;
+        align-items: center;
+        padding: 0 0.7rem;
+        background: $b-raised;
+        border: 1px solid $b-line-strong;
+        border-left: none;
+        border-radius: 0 $b-radius-sm $b-radius-sm 0;
+        color: $b-muted;
+        font-size: 0.8rem;
+    }
+}
+
+// Ô nhập kèm nút nhỏ bên phải (vd nút chèn biểu tượng)
+.input-with-btn {
+    display: flex;
+
+    input {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    button {
+        width: 42px;
+        flex-shrink: 0;
+        border: 1px solid $b-line-strong;
+        border-left: none;
+        border-radius: 0 $b-radius-sm $b-radius-sm 0;
+        background: $b-raised;
+        font-size: 1.05rem;
+
+        &:hover {
+            background: #343b52;
+        }
+    }
+}
+
+// Bảng biểu tượng chèn vào pháo chữ: cột nhóm bên trái, lưới biểu tượng của nhóm bên phải
+.emoji-picker {
+    display: flex;
+    height: 290px;
+    margin-top: 0.4rem;
+    border: 1px solid $b-line;
+    border-radius: $b-radius-sm;
+    background: $b-panel-2;
+    overflow: hidden;
+
+    button {
+        border: none;
+        background: none;
+        font-size: 1.25rem;
+        line-height: 1;
+    }
+}
+
+.emoji-tabs {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    border-right: 1px solid $b-line;
+    background: $b-raised;
+    overflow-y: auto;
+
+    button {
+        flex: 1 0 auto;
+        width: 40px;
+        min-height: 26px;
+        font-size: 1.05rem;
+        opacity: 0.6;
+
+        &:hover {
+            opacity: 1;
+        }
+
+        &.active {
+            opacity: 1;
+            background: rgba($b-accent, 0.25);
+            box-shadow: inset 3px 0 0 $b-accent;
+        }
+    }
+}
+
+.emoji-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+    grid-auto-rows: 36px;
+    gap: 0.15rem;
+    padding: 0.35rem;
+    overflow-y: auto;
+
+    button {
+        border-radius: 8px;
+
+        &:hover {
+            background: rgba($b-accent, 0.18);
+        }
+    }
+}
+
+input.is-invalid,
+select.is-invalid {
+    border-color: $b-danger !important;
+    box-shadow: 0 0 0 3px rgba($b-danger, 0.2) !important;
+}

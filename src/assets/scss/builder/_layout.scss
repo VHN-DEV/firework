@@ -1,0 +1,310 @@
+// Trình diễn Pháo hoa – giao diện builder (bố cục 3 cột, nhóm cấu hình, thẻ xem trước link)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// ---------------------------------------------------------------------------
+// Bố cục 3 cột
+// ---------------------------------------------------------------------------
+.workspace {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 290px minmax(0, 1fr) 440px;
+    gap: 1rem;
+    padding: 1rem 1.25rem 1.25rem;
+}
+
+.settings-panel,
+.timeline-panel,
+.preview-card,
+.inspector {
+    background: rgba($b-panel, 0.85);
+    border: 1px solid $b-line;
+    border-radius: $b-radius + 4px;
+}
+
+.settings-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.1rem 0.75rem;
+
+    h2 {
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+
+        i {
+            color: $b-accent;
+            font-size: 0.9rem;
+        }
+    }
+
+    .close-panel {
+        display: none;
+    }
+}
+
+.panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.25rem 1.1rem 1.1rem;
+}
+
+// Nhóm gấp/mở trong "Cấu hình chung" (cùng kiểu với các mục của bảng chỉnh phát bắn)
+.settings-group {
+    border-bottom: 1px solid $b-line;
+
+    // Tên nhóm, dưới là dòng tóm tắt (cột trái hẹp nên không đặt cùng hàng)
+    > summary {
+        list-style: none;
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr) auto;
+        align-items: center;
+        column-gap: 0.55rem;
+        row-gap: 0.1rem;
+        padding: 0.8rem 0;
+        cursor: pointer;
+        font-family: 'Outfit', sans-serif;
+        font-weight: 600;
+        font-size: 0.92rem;
+        user-select: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+
+        > i:first-child {
+            grid-row: 1 / span 2;
+            color: $b-accent;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .summary-title {
+            grid-column: 2;
+        }
+
+        // Tóm tắt khi gấp: tên bài nhạc, "Hộp quà · Gửi Mẹ"...
+        .summary-hint {
+            grid-column: 2;
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            font-size: 0.74rem;
+            color: $b-faint;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        &::after {
+            content: '\f078';
+            grid-column: 3;
+            grid-row: 1 / span 2;
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            font-size: 0.65rem;
+            color: $b-faint;
+            transition: transform 0.2s;
+        }
+
+        &:hover .summary-title {
+            color: $b-accent-2;
+        }
+    }
+
+    &[open] > summary {
+        .summary-hint {
+            display: none;
+        }
+
+        &::after {
+            transform: rotate(180deg);
+        }
+    }
+}
+
+.settings-group-body {
+    padding: 0.1rem 0 1.1rem;
+
+    > .field:first-child {
+        margin-top: 0;
+    }
+}
+
+.background-upload-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: $b-radius-sm;
+    overflow: hidden;
+    border: 1px solid $b-line-strong;
+    cursor: pointer;
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .upload-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        background: rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        transition: opacity 0.2s;
+        font-size: 0.8rem;
+        font-weight: 600;
+
+        i {
+            font-size: 1.3rem;
+        }
+    }
+
+    &:hover .upload-overlay {
+        opacity: 1;
+    }
+}
+
+// Nhóm tiêu đề nhỏ trong cột cấu hình
+.group-title {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $b-muted;
+
+    i {
+        color: $b-accent;
+    }
+}
+
+// Thẻ xem trước khi gửi link (giống khung Facebook/Zalo)
+.seo-card {
+    margin-bottom: 1rem;
+    border-radius: $b-radius-sm;
+    overflow: hidden;
+    border: 1px solid $b-line-strong;
+    background: $b-panel-2;
+
+    canvas {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1200 / 630;
+        background: #0c0a22;
+    }
+}
+
+.seo-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.55rem 0.75rem 0.65rem;
+    min-width: 0;
+
+    span,
+    strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+    }
+
+    .seo-card-domain {
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        color: $b-faint;
+        -webkit-line-clamp: 1;
+    }
+
+    strong {
+        font-size: 0.85rem;
+        color: $b-text;
+        line-height: 1.3;
+        -webkit-line-clamp: 2;
+    }
+
+    span:last-child {
+        font-size: 0.75rem;
+        color: $b-muted;
+        line-height: 1.35;
+        -webkit-line-clamp: 2;
+    }
+}
+
+// Nút chọn một trong hai
+.segmented {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+    padding: 3px;
+    border-radius: $b-radius-sm;
+    background: $b-bg;
+    border: 1px solid $b-line-strong;
+
+    button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        min-height: 32px;
+        padding: 0 0.4rem;
+        border: none;
+        border-radius: 7px;
+        background: transparent;
+        color: $b-muted;
+        font-size: 0.75rem;
+        font-weight: 600;
+        transition: background-color 0.15s, color 0.15s;
+
+        &:hover {
+            color: $b-text;
+        }
+
+        &.active {
+            background: rgba($b-accent, 0.28);
+            color: #fff;
+        }
+    }
+}
+
+.seo-image-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 0.6rem;
+
+    > .btn {
+        align-self: flex-start;
+    }
+}
+
+.switch-row.compact {
+    margin: 0;
+
+    strong {
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+}

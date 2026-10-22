@@ -1,0 +1,42 @@
+// Trình diễn Pháo hoa – giao diện builder (khôi phục bản nháp, hoàn tác)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// Thanh hỏi khôi phục bản nháp chưa lưu
+.draft-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem 0.75rem;
+    // Cùng lề với dải "Tạo nhanh theo dịp" ngay bên dưới
+    margin: 1rem 1rem 0;
+    padding: 0.75rem 1rem;
+    border-radius: $b-radius;
+    background: rgba($b-gold, 0.08);
+    border: 1px solid rgba($b-gold, 0.3);
+    color: $b-text;
+    font-size: 0.85rem;
+
+    > i {
+        color: $b-gold;
+    }
+
+    span {
+        flex: 1;
+        min-width: 180px;
+    }
+}
+
+.draft-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+
+// Nút hoàn tác/làm lại: mờ đi khi không còn bước nào
+.history-group .btn.icon:disabled {
+    opacity: 0.35;
+    cursor: default;
+    background: transparent;
+}

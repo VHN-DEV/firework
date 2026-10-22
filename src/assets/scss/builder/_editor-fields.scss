@@ -1,0 +1,276 @@
+// Trình diễn Pháo hoa – giao diện builder (vị trí nổ, ô màu, chip hiệu ứng, ảnh của pháo)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// Khung chọn vị trí nổ
+.xy-pad {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+    border: 1px solid $b-line-strong;
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px) 0 0 / 25% 25%,
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px) 0 0 / 25% 25%,
+        linear-gradient(180deg, #0d1022 0%, #141a33 70%, #1a1f2e 100%);
+    cursor: crosshair;
+    touch-action: none;
+    overflow: hidden;
+
+    &.is-mobile {
+        aspect-ratio: 9 / 16;
+        max-height: 300px;
+        margin: 0 auto;
+    }
+
+    // Mặt đất
+    &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 6%;
+        background: linear-gradient(transparent, rgba(255, 191, 54, 0.12));
+        pointer-events: none;
+    }
+
+    .xy-other {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        margin: -10px 0 0 -10px;
+        border-radius: 50%;
+        border: 1px dashed rgba(255, 255, 255, 0.4);
+        font-size: 0.65rem;
+        color: rgba(255, 255, 255, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+
+    .xy-dot {
+        position: absolute;
+        width: 22px;
+        height: 22px;
+        margin: -11px 0 0 -11px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #fff 0 25%, $b-accent 30% 100%);
+        box-shadow: 0 0 0 4px rgba($b-accent, 0.3), 0 0 22px rgba($b-accent-2, 0.9);
+        pointer-events: none;
+    }
+
+    .xy-trail {
+        position: absolute;
+        bottom: 0;
+        width: 2px;
+        margin-left: -1px;
+        background: linear-gradient(transparent, rgba($b-gold, 0.6));
+        pointer-events: none;
+    }
+}
+
+// Ô màu
+.swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.swatch {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    background: var(--c);
+    box-shadow: inset 0 0 0 2px $b-panel;
+    transition: transform 0.15s, border-color 0.15s;
+
+    &.random {
+        background: conic-gradient(#ff0043, #ffbf36, #14fc56, #1e7fff, #e60aff, #ff0043);
+    }
+
+    &:hover {
+        transform: scale(1.08);
+    }
+
+    &.selected {
+        border-color: #fff;
+
+        &::after {
+            content: '\f00c';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: #000;
+            text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
+        }
+    }
+}
+
+.color-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.color-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    height: 26px;
+    padding: 0 0.35rem 0 0.5rem;
+    border-radius: 13px;
+    background: $b-raised;
+    border: 1px solid $b-line-strong;
+    font-size: 0.72rem;
+
+    .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--tag-color);
+    }
+
+    i {
+        cursor: pointer;
+        opacity: 0.6;
+        padding: 0.2rem;
+
+        &:hover {
+            opacity: 1;
+            color: $b-danger;
+        }
+    }
+}
+
+.color-custom {
+    display: flex;
+    gap: 0.4rem;
+
+    input[type="text"] {
+        flex: 1;
+    }
+}
+
+// Ô tích hiệu ứng dạng "chip"
+.toggle-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.toggle-chip {
+    position: relative;
+    margin: 0;
+
+    input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        height: 32px;
+        padding: 0 0.75rem;
+        border-radius: 16px;
+        border: 1px solid $b-line-strong;
+        background: $b-panel-2;
+        color: $b-muted;
+        font-size: 0.78rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    input:checked + span {
+        color: #fff;
+        border-color: $b-accent;
+        background: rgba($b-accent, 0.2);
+    }
+
+    input:focus-visible + span {
+        outline: 2px solid $b-accent;
+        outline-offset: 2px;
+    }
+
+    input:disabled + span {
+        opacity: 0.6;
+        cursor: default;
+    }
+}
+
+.color-field {
+    display: flex;
+    gap: 0.4rem;
+
+    // Chưa chọn màu (dùng mặc định của loại pháo): làm mờ để không bị hiểu nhầm là màu trắng
+    input[type="color"].is-empty {
+        opacity: 0.3;
+    }
+}
+
+.note {
+    font-size: 0.75rem;
+    color: $b-faint;
+}
+
+// Ảnh của pháo "Hình ảnh"
+.image-upload-btn-large {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 2px dashed rgba($b-accent, 0.4);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    overflow: hidden;
+    cursor: pointer;
+    color: $b-muted;
+    transition: border-color 0.15s, background-color 0.15s;
+
+    &:hover {
+        border-color: $b-accent;
+        background: rgba($b-accent, 0.08);
+    }
+
+    i {
+        font-size: 1.8rem;
+    }
+
+    span {
+        position: relative;
+        z-index: 1;
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 0.2rem 0.6rem;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.55);
+    }
+
+    .full-thumb {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 8px;
+    }
+}

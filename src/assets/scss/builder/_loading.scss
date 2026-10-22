@@ -1,0 +1,61 @@
+// Trình diễn Pháo hoa – giao diện builder (màn hình chờ)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// Màn hình chờ khi đang xử lý
+.global-loading {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5, 6, 10, 0.8);
+    backdrop-filter: blur(6px);
+
+    .loading-content {
+        text-align: center;
+
+        p {
+            margin-top: 1.25rem;
+            color: $b-text;
+            font-weight: 500;
+        }
+    }
+}
+
+.loading-spinner {
+    position: relative;
+    width: 54px;
+    height: 54px;
+    margin: 0 auto;
+
+    .dot1,
+    .dot2 {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: $b-accent;
+        opacity: 0.6;
+        animation: loading-bounce 2s infinite ease-in-out;
+    }
+
+    .dot2 {
+        background: $b-accent-2;
+        animation-delay: -1s;
+    }
+}
+
+@keyframes loading-bounce {
+
+    0%,
+    100% {
+        transform: scale(0);
+    }
+
+    50% {
+        transform: scale(1);
+    }
+}

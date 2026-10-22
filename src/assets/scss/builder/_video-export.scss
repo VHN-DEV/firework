@@ -1,0 +1,117 @@
+// Trình diễn Pháo hoa – giao diện builder (xuất video)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// Xuất video
+.video-modal {
+    max-width: 640px;
+}
+
+.video-setup {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.video-formats {
+    grid-template-columns: repeat(3, 1fr);
+
+    .shell-option {
+        padding: 0.75rem 0.4rem;
+        font-size: 0.82rem;
+
+        .emoji {
+            font-size: 1.5rem;
+        }
+
+        small {
+            display: block;
+            margin-top: 0.2rem;
+            color: $b-faint;
+            font-size: 0.68rem;
+            font-weight: 400;
+        }
+    }
+}
+
+.video-notes {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: $b-muted;
+    font-size: 0.8rem;
+    line-height: 1.55;
+
+    li + li {
+        margin-top: 0.35rem;
+    }
+
+    strong {
+        color: $b-text;
+    }
+}
+
+.video-stage,
+.video-result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+
+    &.hide {
+        display: none;
+    }
+}
+
+.video-stage {
+    padding: 1.5rem 0 0.5rem;
+}
+
+.video-stage-icon {
+    font-size: 2.2rem;
+    color: $b-accent-2;
+    animation: videoPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes videoPulse {
+    50% { opacity: 0.45; transform: scale(0.94); }
+}
+
+// Trong hộp xếp theo cột, flex-basis 100% của .beat-progress (khai báo sau) sẽ thành chiều cao: ghi đè bằng bộ chọn mạnh hơn
+.video-stage .video-progress {
+    flex: none;
+    width: 100%;
+    max-width: 420px;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.12);
+
+    span {
+        background: linear-gradient(90deg, $b-accent, $b-accent-2);
+    }
+}
+
+.video-status {
+    margin: 0;
+    color: $b-muted;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    text-align: center;
+
+    strong {
+        color: $b-text;
+    }
+}
+
+.video-result video {
+    display: block;
+    max-width: 100%;
+    max-height: 52vh;
+    border-radius: $b-radius-sm;
+    background: #000;
+}
+
+.warn {
+    color: $b-gold;
+}

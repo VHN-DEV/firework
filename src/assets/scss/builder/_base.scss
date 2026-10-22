@@ -1,0 +1,101 @@
+// Trình diễn Pháo hoa – giao diện builder (nền tảng)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// ---------------------------------------------------------------------------
+// Nền tảng
+// ---------------------------------------------------------------------------
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.22);
+    }
+}
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    // Font cờ chỉ dùng cho ký tự cờ, khai báo khi máy thiếu cờ (Windows), xem builder.js
+    font-family: 'Twemoji Country Flags', 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    background: $b-bg;
+    background-image:
+        radial-gradient(1200px 600px at 15% -10%, rgba(99, 102, 241, 0.12), transparent 60%),
+        radial-gradient(900px 500px at 110% 10%, rgba(168, 85, 247, 0.08), transparent 60%);
+    color: $b-text;
+    line-height: 1.5;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+    font-family: 'Outfit', 'Inter', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+button,
+input,
+select {
+    font: inherit;
+    color: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+.hide {
+    display: none !important;
+}
+
+.show-mobile,
+.show-tablet {
+    display: none !important;
+}
+
+@include tablet-down {
+    .show-tablet {
+        display: inline-flex !important;
+    }
+}
+
+@include mobile {
+    .hide-mobile {
+        display: none !important;
+    }
+
+    .show-mobile {
+        display: inline-flex !important;
+    }
+}

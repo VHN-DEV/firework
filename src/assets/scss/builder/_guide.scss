@@ -1,0 +1,72 @@
+// Trình diễn Pháo hoa – giao diện builder (hướng dẫn sử dụng)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// Hướng dẫn sử dụng
+.help-guide {
+    .help-content {
+        overflow-y: auto;
+        padding: 1.25rem 1.5rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .help-section {
+        padding: 1rem 1.1rem;
+        border-radius: $b-radius;
+        background: $b-panel;
+        border: 1px solid $b-line;
+
+        h4 {
+            font-size: 0.95rem;
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+
+            i {
+                color: $b-accent;
+            }
+        }
+
+        ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+
+        li,
+        p {
+            font-size: 0.82rem;
+            color: $b-muted;
+        }
+
+        strong {
+            color: $b-text;
+        }
+
+        ol {
+            padding-left: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+    }
+
+    .help-section.wide {
+        grid-column: 1 / -1;
+    }
+
+    .actions-guide {
+        background: linear-gradient(90deg, rgba(99, 102, 241, 0.14), transparent);
+        border-color: rgba($b-accent, 0.3);
+
+        p + p {
+            margin-top: 0.45rem;
+        }
+    }
+}

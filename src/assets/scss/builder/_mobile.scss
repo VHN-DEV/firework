@@ -1,0 +1,388 @@
+// Trình diễn Pháo hoa – giao diện builder (điện thoại)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// ---------------------------------------------------------------------------
+// Điện thoại: xem nhanh ghim trên cùng, bảng chỉnh sửa trượt lên từ dưới
+// ---------------------------------------------------------------------------
+@include mobile {
+    body {
+        font-size: 15px;
+    }
+
+    // Trên ngăn chỉnh sửa (z-index 400) để menu ⋮ không bị ngăn này che mất nửa dưới
+    .topbar {
+        z-index: 450;
+        padding: 0 0.6rem 0 0.75rem;
+        gap: 0.5rem;
+    }
+
+    .brand-logo {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+    }
+
+    // Màn hình hẹp có thêm nút hoàn tác: chỉ giữ logo và tên kịch bản (một dòng, cắt bằng "…")
+    .brand-text strong {
+        display: none;
+    }
+
+    .brand-text span {
+        max-width: 34vw;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 0.85rem;
+        color: $b-text;
+    }
+
+    .history-group .btn.icon {
+        width: 34px;
+    }
+
+    // Xếp các nút sát nhau (bỏ vạch ngăn sau hoàn tác) để tên kịch bản còn chỗ
+    .brand {
+        gap: 0.5rem;
+    }
+
+    .topbar-actions {
+        gap: 0.2rem;
+    }
+
+    .history-group {
+        padding-right: 0;
+        margin-right: 0;
+        border-right: none;
+    }
+
+    #btn-save {
+        padding: 0 0.8rem;
+        margin-left: 0.2rem;
+    }
+
+    // Nút "Cài đặt" chỉ còn biểu tượng, cùng cỡ nút hoàn tác
+    .settings-btn {
+        width: 34px;
+        padding: 0;
+
+        span {
+            display: none;
+        }
+    }
+
+    // Gọn một dòng: chỉ giữ các nút, ẩn đường link dài (nút "Sao chép" vẫn lấy đúng link)
+    .share-bar {
+        margin: 0.5rem 0.75rem 0;
+        padding: 0.4rem 0.4rem 0.4rem 0.75rem;
+        gap: 0.5rem;
+
+        .share-info {
+            > span,
+            strong {
+                display: none;
+            }
+
+            &::after {
+                content: 'Đã lưu';
+                color: $b-text;
+                font-weight: 600;
+            }
+        }
+
+        .share-actions {
+            gap: 0.4rem;
+        }
+
+        .social-share {
+            padding-left: 0.4rem;
+        }
+    }
+
+    .workspace {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        padding: 0;
+        overflow-y: auto;
+    }
+
+    // Hai khối của cột phải tách ra: xem nhanh ghim trên cùng, bảng chỉnh sửa thành ngăn trượt
+    .studio-panel {
+        display: contents;
+    }
+
+    .preview-card {
+        order: -1;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-top: none;
+        background: $b-panel;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .preview-header {
+        padding: 0.35rem 0.4rem 0.35rem 0.85rem;
+    }
+
+    .mini-preview-info {
+        display: none;
+    }
+
+    // Cao theo nội dung để cả trang cuộn một lần (không bị ép bằng phần màn hình còn lại rồi cắt mất dòng thời gian)
+    .timeline-panel {
+        flex: none;
+        overflow: visible;
+        border: none;
+        background: none;
+        border-radius: 0;
+    }
+
+    .timeline-toolbar {
+        padding: 1rem 0.85rem 0.6rem;
+        border-bottom: none;
+
+        h1 {
+            font-size: 1.05rem;
+        }
+    }
+
+    .timeline {
+        overflow: visible;
+        padding: 0.25rem 0.75rem 7rem;
+    }
+
+    .track-view {
+        flex: none;
+        overflow: visible;
+        padding: 0.5rem 0.75rem 7rem;
+    }
+
+    .template-strip {
+        margin: 0.5rem 0.75rem 0.25rem;
+    }
+
+    // Kho nhạc / kho ảnh: nhãn lọc một hàng vuốt ngang
+    .library-body {
+        padding: 0.9rem 1rem 1rem;
+    }
+
+    .library-tags {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        // Có overflow thì chiều cao tối thiểu thành 0: trong cột flex của hộp thoại bị co mất hẳn
+        flex-shrink: 0;
+        margin: 0 -1rem;
+        padding: 0 1rem;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+    }
+
+    .library-track {
+        gap: 0.6rem;
+        padding: 0.6rem;
+    }
+
+    .burst-group {
+        padding-left: 1.35rem;
+    }
+
+    .burst-add {
+        opacity: 1;
+    }
+
+    .shot-row {
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        gap: 0.6rem;
+
+        .shot-actions {
+            display: none;
+        }
+    }
+
+    // Ngăn chỉnh sửa trải từ ngay dưới khung xem nhanh (JS đặt "top") để vừa chỉnh vừa thấy pháo
+    .inspector {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 45vh;
+        bottom: 0;
+        z-index: 400;
+        border-radius: 22px 22px 0 0;
+        background: $b-panel;
+        border-bottom: none;
+        box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.6);
+        transform: translateY(105%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        padding-bottom: env(safe-area-inset-bottom);
+
+        &.open {
+            transform: none;
+        }
+    }
+
+    .inspector-header {
+        border-radius: 22px 22px 0 0;
+        padding-top: 1.1rem;
+
+        // Thanh kéo
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0.45rem;
+            left: 50%;
+            width: 38px;
+            height: 4px;
+            margin-left: -19px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .inspector-close {
+            display: inline-flex;
+        }
+    }
+
+    .inspector-empty {
+        display: none;
+    }
+
+    .grid-3 {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    // Nút đủ lớn cho ngón tay (nút "?" giữ cỡ gọn, vùng chạm rộng ~40px)
+    .icon-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 0.95rem;
+    }
+
+    // Năm nút của khung xem nhanh hẹp hơn một chút để tiêu đề vẫn một dòng ở màn 320px
+    .preview-actions {
+        gap: 0;
+
+        .icon-btn {
+            width: 34px;
+        }
+    }
+
+    .preview-title {
+        white-space: nowrap;
+    }
+
+    // Màn rất hẹp (320px): bỏ chữ "Xem nhanh", giữ biểu tượng và nút "?" để đủ chỗ cho 7 nút
+    @media (max-width: 379px) {
+        .preview-title-text {
+            display: none;
+        }
+
+        .preview-actions .icon-btn {
+            width: 32px;
+        }
+    }
+
+    .help-tip {
+        width: 20px;
+        height: 20px;
+        font-size: 0.65rem;
+
+        &::after {
+            inset: -10px;
+        }
+    }
+
+    .segmented button,
+    .segmented.timeline-views button {
+        min-height: 40px;
+    }
+
+    // Phát bắn trên dải theo giây: hàng cách nhau 34px nên vùng chạm nới đúng 3px mỗi phía, không lấn hàng bên
+    .track-marker::after {
+        content: '';
+        position: absolute;
+        inset: -3px;
+    }
+
+    .scripts-grid {
+        gap: 0.6rem;
+        padding: 0.9rem;
+    }
+
+    .script-item {
+        padding: 0.8rem 0.9rem;
+    }
+
+    // Ngay trên nút nổi "+"
+    .notification-container {
+        left: 0.75rem;
+        right: 0.75rem;
+        bottom: calc(1.1rem + 58px + 0.75rem + env(safe-area-inset-bottom));
+        align-items: stretch;
+
+        .toast {
+            max-width: none;
+            min-width: 0;
+        }
+    }
+
+    .help-guide .help-content {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+
+    .modal-content.large {
+        max-height: 92vh;
+    }
+
+    .scripts-grid {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+
+    #share-modal {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .share-modal {
+        max-height: 94vh !important;
+        border-radius: 22px 22px 0 0;
+    }
+
+    .share-body {
+        padding: 0.9rem 1rem calc(1.25rem + env(safe-area-inset-bottom));
+    }
+
+    .share-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .share-extras {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .share-extras-actions {
+        justify-content: center;
+    }
+
+    // Thanh link gọn trên điện thoại: các nút chỉ còn biểu tượng
+    .share-bar .share-actions .btn span {
+        display: none;
+    }
+
+    .share-bar .share-actions .btn.small {
+        width: 32px;
+        padding: 0;
+    }
+}

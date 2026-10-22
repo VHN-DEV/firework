@@ -1,0 +1,120 @@
+// Trình diễn Pháo hoa – giao diện builder (tạo nhanh theo dịp, hộp chọn mẫu)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// Dải "Tạo nhanh theo dịp" trên dòng thời gian (khi kịch bản còn trống): một hàng, nhãn bên trái, các dịp vuốt ngang
+.template-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0.75rem 1rem 0.25rem;
+    padding: 0.4rem 0 0.4rem 0.85rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(168, 85, 247, 0.12));
+    border: 1px solid rgba($b-accent, 0.35);
+}
+
+.template-strip-head {
+    flex: none;
+    color: $b-text;
+    font-size: 0.82rem;
+    white-space: nowrap;
+
+    i {
+        color: $b-accent-2;
+        margin-right: 0.25rem;
+    }
+}
+
+.template-chips {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    gap: 0.4rem;
+    overflow-x: auto;
+    padding-right: 2.5rem;
+    scrollbar-width: none;
+    // Mờ dần ở mép phải: gợi ý còn dịp khác khi vuốt
+    mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    .template-chip {
+        flex: none;
+        padding: 0.3rem 0.65rem;
+        font-size: 0.78rem;
+        white-space: nowrap;
+
+        .emoji {
+            font-size: 0.9rem;
+        }
+    }
+}
+
+.template-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid $b-line-strong;
+    background: rgba(255, 255, 255, 0.05);
+    color: $b-text;
+    font-size: 0.8rem;
+    transition: background-color 0.15s, border-color 0.15s;
+
+    .emoji {
+        font-size: 1rem;
+    }
+
+    &:hover {
+        border-color: $b-accent;
+        background: rgba($b-accent, 0.2);
+    }
+}
+
+// Hộp chọn mẫu
+.templates-modal {
+    max-width: 640px;
+}
+
+.templates-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem 0;
+    overflow-y: auto;
+
+    .field-hint {
+        margin-top: -0.4rem;
+    }
+}
+
+.templates-lead {
+    margin: 0;
+    color: $b-muted;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.template-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+
+    .shell-option {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.8rem;
+
+        .emoji {
+            font-size: 1.6rem;
+        }
+    }
+}
+
+.templates-actions {
+    margin: 0;
+    padding: 1rem 1.5rem 1.25rem;
+}

@@ -1,0 +1,200 @@
+// Trình diễn Pháo hoa – giao diện builder (mùa, thời tiết, mặt nước, trăng)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// Mùa: "Theo ngày xem" một hàng, bốn mùa một hàng. Mùa, thời tiết: biểu tượng trên, tên dưới (khung hẹp không rớt chữ lệch nhau)
+.segmented.scene-season {
+    grid-template-columns: repeat(4, 1fr);
+
+    [data-season="auto"] {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        gap: 0.4rem;
+    }
+}
+
+.segmented.scene-season button,
+.segmented.scene-weather button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    line-height: 1.15;
+
+    .emoji {
+        font-size: 1.05rem;
+        line-height: 1;
+    }
+}
+
+// Kiểu mặt nước, vật trôi (hiện khi có mặt nước)
+.water-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+
+    &.hide {
+        display: none;
+    }
+
+    > label {
+        margin-top: 0.2rem;
+    }
+}
+
+.segmented.water-floating {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+// 8 pha trăng (biểu tượng)
+.moon-phases {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 3px;
+    margin-top: 0.45rem;
+
+    &.hide {
+        display: none;
+    }
+
+    button {
+        min-height: 34px;
+        padding: 0;
+        border: 1px solid $b-line;
+        border-radius: 8px;
+        background: $b-bg;
+        font-size: 1.05rem;
+        line-height: 1;
+
+        &:hover {
+            border-color: rgba($b-accent, 0.6);
+        }
+
+        &.active {
+            border-color: $b-accent;
+            background: rgba($b-accent, 0.25);
+        }
+    }
+}
+
+.moon-position {
+    margin-top: 0.6rem;
+
+    &.hide {
+        display: none;
+    }
+}
+
+.burst-time {
+    margin-left: auto;
+    color: $b-gold;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+
+    + .burst-add {
+        margin-left: 0;
+    }
+}
+
+#save-actions {
+    margin-top: 1rem;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+
+    .btn {
+        min-width: 110px;
+    }
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1rem 1rem 1.5rem;
+    border-bottom: 1px solid $b-line;
+
+    h3 {
+        justify-content: flex-start;
+    }
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid $b-line;
+}
+
+.spinner {
+    width: 38px;
+    height: 38px;
+    margin: 1rem auto;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: $b-accent;
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.scripts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+    gap: 0.9rem;
+    padding: 1.25rem 1.5rem 1.5rem;
+    overflow-y: auto;
+}
+
+.script-item {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 1rem;
+    border-radius: $b-radius;
+    background: $b-panel;
+    border: 1px solid $b-line;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+
+    &:hover {
+        border-color: rgba($b-accent, 0.6);
+        transform: translateY(-2px);
+    }
+
+    h4 {
+        font-size: 0.95rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+    }
+
+    .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.15rem 0.9rem;
+        font-size: 0.75rem;
+        color: $b-muted;
+
+        i {
+            width: 14px;
+            color: $b-faint;
+        }
+    }
+}

@@ -1,0 +1,181 @@
+// Trình diễn Pháo hoa – giao diện builder (dòng thời gian: danh sách hoặc theo giây)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// Dòng thời gian: danh sách hoặc theo giây
+.timeline-subbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 0.75rem;
+    padding: 0.65rem 1.1rem 0;
+}
+
+.segmented.timeline-views {
+    min-width: 230px;
+
+    button {
+        min-height: 30px;
+    }
+}
+
+.track-tools {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+
+    &.hide {
+        display: none;
+    }
+}
+
+.track-note {
+    margin-right: 0.35rem;
+    color: $b-faint;
+    font-size: 0.72rem;
+}
+
+.track-snap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-right: 0.3rem;
+    color: $b-muted;
+    font-size: 0.75rem;
+    cursor: pointer;
+
+    &.hide {
+        display: none;
+    }
+
+    input {
+        accent-color: $b-accent;
+    }
+}
+
+.track-view {
+    --track-muted: #{$b-muted};
+    --track-accent: #{$b-accent};
+    position: relative;
+    // Không co nhỏ hơn dải thời gian: khung thấp (laptop, có dải tạo nhanh/bản nháp) thì cả cột cuộn
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    padding: 0.75rem 1.1rem 6rem;
+
+    &.hide {
+        display: none;
+    }
+}
+
+.track-scroll {
+    position: relative;
+    flex: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-radius: $b-radius-sm;
+    background: $b-bg;
+    border: 1px solid $b-line;
+}
+
+.track-content {
+    position: relative;
+}
+
+.track-canvas {
+    position: sticky;
+    top: 0;
+    left: 0;
+    display: block;
+    pointer-events: none;
+}
+
+.track-marker {
+    position: absolute;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    height: 28px;
+    padding: 0;
+    border: 1px solid $b-line-strong;
+    border-radius: 8px;
+    background: $b-raised;
+    box-shadow: inset 0 -3px 0 var(--c, #{$b-accent});
+    color: $b-text;
+    font-size: 0.95rem;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+
+    &.is-caption {
+        justify-content: flex-start;
+        padding: 0 0.45rem;
+        font-size: 0.72rem;
+
+        span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    &:hover {
+        z-index: 2;
+        border-color: $b-accent;
+    }
+
+    &.active {
+        z-index: 2;
+        border-color: $b-accent;
+        background: rgba($b-accent, 0.35);
+    }
+
+    &.dragging {
+        z-index: 3;
+        cursor: grabbing;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), inset 0 -3px 0 var(--c, #{$b-accent});
+    }
+
+    &:focus-visible {
+        outline: 2px solid $b-accent;
+        outline-offset: 2px;
+    }
+}
+
+.track-playhead {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 4;
+    width: 2px;
+    margin-left: -1px;
+    background: #ff3b5c;
+    pointer-events: none;
+
+    &.hide {
+        display: none;
+    }
+}
+
+.track-drag-label {
+    position: absolute;
+    z-index: 5;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    background: $b-accent;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+    transform: translate(-50%, -100%);
+
+    &.hide {
+        display: none;
+    }
+}

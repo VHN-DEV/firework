@@ -1,0 +1,224 @@
+// Trình diễn Pháo hoa – giao diện builder (chọn giao diện màn mở quà, màn kết)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// Giao diện màn mở quà & màn kết theo dịp: ô màu xem trước từng bộ, phần tự chỉnh gấp/mở
+.theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+    gap: 0.4rem;
+}
+
+.theme-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.35rem 0.3rem 0.45rem;
+    border: 1px solid $b-line;
+    border-radius: 11px;
+    background: $b-panel-2;
+    color: $b-muted;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    text-align: center;
+    transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+
+    &__swatch {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 30px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--a) 0%, var(--a) 45%, var(--b) 100%);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+        font-size: 1.05rem;
+
+        span {
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+        }
+    }
+
+    &:hover {
+        color: $b-text;
+        border-color: $b-line-strong;
+    }
+
+    &.selected {
+        color: #fff;
+        border-color: $b-accent;
+        background: rgba($b-accent, 0.18);
+    }
+}
+
+.theme-preview-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.55rem;
+}
+
+.theme-custom {
+    margin-top: 0.6rem;
+    border: 1px solid $b-line;
+    border-radius: $b-radius-sm;
+    background: rgba(255, 255, 255, 0.02);
+
+    > summary {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.55rem 0.7rem;
+        color: $b-text;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        list-style: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+
+        i {
+            color: $b-accent;
+        }
+    }
+
+    &__hint {
+        margin-left: auto;
+        color: $b-gold;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    &__body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0.2rem 0.7rem 0.75rem;
+
+        > .btn {
+            align-self: flex-start;
+        }
+    }
+
+    &__label {
+        margin-top: 0.2rem;
+        color: $b-muted;
+        font-size: 0.72rem;
+        font-weight: 600;
+    }
+}
+
+.theme-colors {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.theme-color {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: $b-muted;
+    font-size: 0.75rem;
+    cursor: pointer;
+
+    input[type="color"] {
+        flex-shrink: 0;
+        width: 34px;
+        height: 28px;
+        padding: 2px;
+        border: 1px solid $b-line-strong;
+        border-radius: 7px;
+        background: $b-bg;
+        cursor: pointer;
+    }
+}
+
+.theme-fonts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 0.35rem;
+}
+
+.theme-font {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    padding: 0.35rem 0.25rem;
+    border: 1px solid $b-line;
+    border-radius: 9px;
+    background: $b-panel-2;
+    color: $b-text;
+    transition: border-color 0.15s, background-color 0.15s;
+
+    span {
+        font-size: 1rem;
+        line-height: 1.35;
+        white-space: nowrap;
+    }
+
+    small {
+        color: $b-faint;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.66rem;
+        font-weight: 500;
+    }
+
+    &:hover {
+        border-color: $b-line-strong;
+    }
+
+    &.selected {
+        border-color: $b-accent;
+        background: rgba($b-accent, 0.18);
+    }
+}
+
+.theme-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.theme-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 28px;
+    padding: 0 0.55rem;
+    border: 1px solid $b-line;
+    border-radius: 99px;
+    background: $b-panel-2;
+    color: $b-muted;
+    font-size: 0.72rem;
+    transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+
+    &:hover {
+        color: $b-text;
+        border-color: $b-line-strong;
+    }
+
+    &.selected {
+        color: #fff;
+        border-color: $b-accent;
+        background: rgba($b-accent, 0.18);
+    }
+
+    // Biểu tượng: ô vuông nhỏ chỉ có emoji
+    .theme-icons & {
+        justify-content: center;
+        width: 32px;
+        padding: 0;
+        font-size: 1rem;
+    }
+}
+
+.segmented.theme-cards {
+    grid-template-columns: repeat(3, 1fr);
+}

@@ -1,0 +1,34 @@
+// Trình diễn Pháo hoa – giao diện builder (nút nổi thêm phát bắn)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// ---------------------------------------------------------------------------
+// Nút nổi thêm phát bắn (điện thoại). Không đặt tên ".fab": Font Awesome dùng class đó cho icon thương hiệu.
+// ---------------------------------------------------------------------------
+.fab-add {
+    position: fixed;
+    right: 1.1rem;
+    bottom: calc(1.1rem + env(safe-area-inset-bottom));
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+    border: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    color: #fff;
+    background: $b-gradient;
+    box-shadow: 0 12px 28px rgba(99, 102, 241, 0.5);
+    z-index: 150;
+    transition: transform 0.15s;
+
+    &:active {
+        transform: scale(0.92);
+    }
+}
+
+.sidebar-overlay {
+    display: none;
+}

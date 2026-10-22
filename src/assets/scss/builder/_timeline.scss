@@ -1,0 +1,265 @@
+// Trình diễn Pháo hoa – giao diện builder (dòng thời gian)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// ---------------------------------------------------------------------------
+// Dòng thời gian
+// ---------------------------------------------------------------------------
+.timeline-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden auto;
+}
+
+.timeline-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.1rem 0.85rem;
+    border-bottom: 1px solid $b-line;
+
+    h1 {
+        font-size: 1.15rem;
+    }
+
+    p {
+        font-size: 0.8rem;
+        color: $b-muted;
+    }
+}
+
+.toolbar-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.timeline {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.9rem 1.1rem 6rem;
+}
+
+.burst-group {
+    position: relative;
+    padding-left: 1.6rem;
+    margin-bottom: 1.1rem;
+
+    // Đường nối dọc giữa các đợt
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0.45rem;
+        top: 1.6rem;
+        bottom: -1.1rem;
+        width: 2px;
+        background: linear-gradient($b-line-strong, $b-line);
+    }
+
+    &:last-child::before {
+        display: none;
+    }
+
+    &.is-empty .burst-header {
+        opacity: 0.55;
+    }
+}
+
+.burst-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 32px;
+    margin-bottom: 0.45rem;
+
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0.1rem;
+        top: 0.55rem;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: $b-bg;
+        border: 2px solid $b-accent;
+        box-shadow: 0 0 0 4px rgba($b-accent, 0.15);
+    }
+}
+
+.burst-badge {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 0.92rem;
+}
+
+.burst-info {
+    font-size: 0.75rem;
+    color: $b-muted;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+
+    .warn {
+        color: $b-gold;
+    }
+}
+
+.burst-add {
+    margin-left: auto;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.burst-group:hover .burst-add,
+.burst-add:focus-visible {
+    opacity: 1;
+}
+
+.burst-shots {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.shot-row {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem 0.6rem 0.55rem 0.55rem;
+    background: $b-panel-2;
+    border: 1px solid $b-line;
+    border-radius: $b-radius;
+    cursor: pointer;
+    transition: border-color 0.15s, background-color 0.15s, transform 0.15s;
+
+    &:hover {
+        border-color: $b-line-strong;
+        background: $b-raised;
+    }
+
+    &.active {
+        border-color: rgba($b-accent, 0.8);
+        background: linear-gradient(90deg, rgba($b-accent, 0.16), rgba($b-accent, 0.05));
+        box-shadow: 0 0 0 1px rgba($b-accent, 0.4), 0 8px 22px rgba(0, 0, 0, 0.25);
+    }
+
+    &.is-pause {
+        background: transparent;
+        border-style: dashed;
+    }
+}
+
+.shot-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 1.15rem;
+}
+
+.shot-main {
+    min-width: 0;
+}
+
+.shot-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    font-weight: 600;
+    font-size: 0.88rem;
+    white-space: nowrap;
+    overflow: hidden;
+
+    .shot-index {
+        color: $b-faint;
+        font-weight: 500;
+        font-size: 0.75rem;
+    }
+
+    .shot-text {
+        color: $b-gold;
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+.shot-meta {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.74rem;
+    color: $b-muted;
+    white-space: nowrap;
+    overflow: hidden;
+
+    i {
+        font-size: 0.68rem;
+        margin-right: 0.15rem;
+        color: $b-faint;
+    }
+}
+
+.shot-colors {
+    display: flex;
+    align-items: center;
+
+    .dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 2px solid $b-panel-2;
+        margin-left: -5px;
+        background: var(--c);
+        box-shadow: 0 0 6px var(--c);
+
+        &.random {
+            background: conic-gradient(#ff0043, #ffbf36, #14fc56, #1e7fff, #e60aff, #ff0043);
+            box-shadow: none;
+        }
+    }
+
+    .thumb {
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
+        object-fit: cover;
+        border: 1px solid $b-line-strong;
+    }
+}
+
+.shot-actions {
+    display: flex;
+    gap: 0.1rem;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.shot-row:hover .shot-actions,
+.shot-row.active .shot-actions {
+    opacity: 1;
+}
+
+.timeline-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 3.5rem 1rem;
+    text-align: center;
+    color: $b-muted;
+    border: 2px dashed $b-line-strong;
+    border-radius: $b-radius + 4px;
+
+    i {
+        font-size: 2.2rem;
+        color: $b-accent;
+    }
+}
