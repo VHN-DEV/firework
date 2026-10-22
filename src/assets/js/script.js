@@ -62,9 +62,12 @@ if (IS_PREVIEW || IS_RECORD || new URLSearchParams(window.location.search).get('
     document.querySelector('meta[name="robots"]')?.setAttribute('content', 'noindex, follow');
 }
 // Chất lượng "Tự động" (các mức: player/quality.js): máy mạnh bắt đầu ở độ phân giải gốc của màn hình, ít nhất 1080p
-// cho đủ hiệu ứng; máy yếu bắt đầu ở 720p HD. autoTuner hạ/nâng khi đang xem, không xuống dưới 360p.
+// cho đủ hiệu ứng; máy yếu bắt đầu ở 720p HD. Điện thoại bắt đầu tối đa ở 1080p: màn nhỏ mật độ điểm ảnh rất cao (vd
+// 1170 điểm ảnh cạnh ngắn) mắt gần như không phân biệt được với 1080p mà nhẹ máy hơn nhiều. autoTuner hạ/nâng khi đang
+// xem, không xuống dưới 360p.
 const AUTO_QUALITY_START = (() => {
     if (!IS_HIGH_END_DEVICE) return '720';
+    if (IS_MOBILE) return '1080';
     const native = Math.min(window.innerWidth, window.innerHeight) * (window.devicePixelRatio || 1);
     const fits = QUALITY_LEVELS.filter(level => Number(level.value) >= Math.max(native, 1080));
     return (fits[fits.length - 1] || QUALITY_LEVELS[0]).value;
@@ -321,6 +324,8 @@ function toggleMenu(toggle) {
 // nhận là người xem tự chọn, kịch bản đặt sẵn giá trị khác cũng không ghi đè
 function updateConfig(nextConfig) {
     nextConfig = nextConfig || getConfigFromDOM();
+    // Người xem chọn lại mức chất lượng: thử vẽ dư lại từ đầu
+    if ('quality' in nextConfig && String(nextConfig.quality) !== String(store.state.config.quality)) superSampler.reset();
     VIEWER_KEYS.forEach(key => {
         if (key in nextConfig && String(nextConfig[key]) !== String(store.state.config[key])) {
             store.chosen.add(key);
@@ -2345,8 +2350,50 @@ function maxRenderScale() {
     if (!chosen || !IS_HIGH_END_DEVICE || IS_MOBILE || IS_PREVIEW) return native;
     // Tối đa ~16,6 triệu điểm ảnh mỗi lớp (gấp đôi 4K) để không ngốn hết bộ nhớ đồ họa
     const area = (frameW || window.innerWidth) * (frameH || window.innerHeight);
-    return Math.max(native, Math.min(native * 2, 4, Math.sqrt(3840 * 2160 * 2 / area)));
+    return Math.max(native, Math.min(native * superSampler.limit, 4, Math.sqrt(3840 * 2160 * 2 / area)));
 }
+
+// Vẽ dư tự lùi: đang vẽ dư mà máy không kịp (khung hình trung bình chậm hơn ~54 khung/giây trong 2 giây có pháo, vd card
+// đồ họa tích hợp) thì bớt vẽ dư: gấp đôi -> 1,5 lần -> bằng độ phân giải màn hình. Mức chất lượng đã chọn giữ nguyên;
+// không nâng lại trong lần xem này (chọn lại mức chất lượng thì thử lại từ đầu)
+const superSampler = {
+    limit: 2,
+    last: 0,
+    sum: 0,
+    count: 0,
+    since: 0,
+    waitUntil: 0,
+
+    frame(now) {
+        const dt = this.last ? now - this.last : 0;
+        this.last = now;
+        const extra = mainStage.dpr > (window.devicePixelRatio || 1) + 0.01;
+        if (this.limit <= 1 || !extra || IS_RECORD || !Spark.count || dt <= 0 || dt > 250 || now < this.waitUntil) {
+            this.count = 0;
+            this.sum = 0;
+            return;
+        }
+        if (!this.count) this.since = now;
+        this.sum += dt;
+        this.count++;
+        if (now - this.since < 2000) return;
+        const avg = this.sum / this.count;
+        this.sum = 0;
+        this.count = 0;
+        if (avg > 18.5) {
+            this.limit = this.limit > 1.5 ? 1.5 : 1;
+            // Chờ vẽ lại ở độ phân giải mới rồi mới đo tiếp
+            this.waitUntil = now + 1500;
+            applyQualityLimits();
+        }
+    },
+
+    reset() {
+        this.limit = 2;
+        this.count = 0;
+        this.sum = 0;
+    }
+};
 
 // Độ phân giải đang vẽ khung pháo và độ phân giải màn hình (điểm ảnh thật), cho phần giải thích Chất lượng
 function renderResolution() {
@@ -2388,7 +2435,9 @@ const autoTuner = {
         if (avg > 38) {
             this.good = 0;
             const index = levelIndex(autoQuality);
-            if (++this.bad >= 2 && index < levelIndex(AUTO_QUALITY_FLOOR)) this.change(QUALITY_LEVELS[index + 1].value, now, true);
+            const floor = levelIndex(AUTO_QUALITY_FLOOR);
+            // Giật nặng (dưới ~17 khung/giây) thì hạ ngay, rất nặng (dưới ~11) thì hạ liền hai mức, khỏi bắt người xem chờ
+            if ((++this.bad >= 2 || avg > 60) && index < floor) this.change(QUALITY_LEVELS[Math.min(floor, index + (avg > 90 ? 2 : 1))].value, now, true);
         } else if (avg < 20) {
             this.bad = 0;
             const index = levelIndex(autoQuality);
@@ -2404,7 +2453,7 @@ const autoTuner = {
         if (drop) this.drops++;
         this.bad = 0;
         this.good = 0;
-        this.cooldownUntil = now + 4000;
+        this.cooldownUntil = now + (drop ? 2500 : 4000);
         configDidUpdate();
         renderQualityLabel();
     }
@@ -2459,6 +2508,7 @@ function update(frameTime, lag) {
     if (recording.active && !recording.stepping) return;
     if (!isRunning()) return;
     autoTuner.frame(performance.now());
+    superSampler.frame(performance.now());
     // Kịch bản khớp nhịp: chờ nhạc kêu rồi pháo mới bay tiếp
     if (syncShow.holds(frameTime)) return;
 

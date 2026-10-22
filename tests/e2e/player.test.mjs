@@ -376,8 +376,9 @@ export async function run(browser, base, { check }) {
         removeConfig('zz_e2e_viewer');
 
         // Chất lượng theo độ phân giải: mặc định Tự động (máy mạnh: độ phân giải gốc); 480p trên điện thoại 390×844 vẽ cạnh
-        // ngắn đúng 480 điểm ảnh; bản lưu cũ "Cao" (3) thành 2160p, vẫn đủ độ phân giải gốc
-        for (const [stored, value, ratio] of [[null, 'auto', 3], ['480', '480', 480 / 390], ['3', '2160', 3]]) {
+        // ngắn đúng 480 điểm ảnh; bản lưu cũ "Cao" (3) thành 2160p, vẫn đủ độ phân giải gốc. Điện thoại để "Tự động" bắt đầu
+        // ở 1080p (màn nhỏ mật độ rất cao, 1080p mắt không phân biệt được mà nhẹ máy hơn)
+        for (const [stored, value, ratio] of [[null, 'auto', 1080 / 390], ['480', '480', 480 / 390], ['3', '2160', 3]]) {
             page = await openPage(browser);
             await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 3 });
             await page.evaluateOnNewDocument(q => {
@@ -392,7 +393,7 @@ export async function run(browser, base, { check }) {
                 label: document.querySelector('.quality-ui option[value="auto"]').textContent,
                 ratio: document.getElementById('trails-canvas').width / document.getElementById('trails-canvas').clientWidth
             }));
-            const name = { auto: 'chất lượng mặc định "Tự động", máy mạnh vẽ đủ độ phân giải', 480: 'chất lượng 480p: cạnh ngắn vẽ đúng 480 điểm ảnh',
+            const name = { auto: 'chất lượng mặc định "Tự động": điện thoại mạnh bắt đầu ở 1080p', 480: 'chất lượng 480p: cạnh ngắn vẽ đúng 480 điểm ảnh',
                 2160: 'bản lưu cũ chất lượng "Cao" đổi thành 2160p, vẽ đủ độ phân giải' }[value];
             check(name, q.value === value && (value !== 'auto' || /^Tự động \(\d+p\)$/.test(q.label)) && Math.abs(q.ratio - ratio) < 0.01, JSON.stringify(q));
             await page.close();
