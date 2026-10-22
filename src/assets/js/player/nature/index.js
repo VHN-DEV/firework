@@ -203,7 +203,8 @@ export const NatureSound = {
         });
     },
 
-    // Sự việc của cảnh vật (u: 0-1 theo bề ngang; d: độ xa, 0 xa - 1 gần; extra: xem scene.js eventSound, thêm delay (ms))
+    // Sự việc của cảnh vật (u: 0-1 theo bề ngang; d: độ xa, 0 xa - 1 gần; extra: xem scene.js eventSound, thêm delay (ms),
+    // pitch (giọng cao thấp: 1 vừa))
     event(name, u, d, extra) {
         const scene = this.scene;
         if (!scene || !scene.on) return;
@@ -220,7 +221,8 @@ export const NatureSound = {
         const gain = sound.gain * (0.25 + 0.75 * Math.pow(near, 1.2));
         const pan = clamp(((Number.isFinite(u) ? u : 0.5) * 2 - 1) * 0.85, -0.95, 0.95);
         const lowpass = 2000 + 14000 * near * near;
-        const rate = 0.96 + Math.random() * 0.08;
+        // pitch: giọng con vật to nhỏ (ếch to kêu trầm)
+        const rate = (0.96 + Math.random() * 0.08) * (Number(extra && extra.pitch) || 1);
         // Trễ một chút cho khớp hình (ếch: to nhất lúc túi kêu căng nhất)
         const delay = Math.max(0, Number(extra && extra.delay) || 0);
         if (capture) {

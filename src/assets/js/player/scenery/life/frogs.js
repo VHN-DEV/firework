@@ -5,7 +5,7 @@
  */
 
 // Ếch: ló đầu khỏi mặt nước, nhảy lên lá bèo, đá, gò đất ngồi phập phồng túi kêu, đớp đom đóm, nhảy tõm
-// xuống nước.
+// xuống nước. Con to con nhỏ: nhái bé tí kêu the thé, ếch to nhảy xa, tõm to, kêu trầm.
 
 import { IS_MOBILE } from '../../env.js';
 import { drawFrog } from '../creatures.js';
@@ -15,9 +15,10 @@ import { moundSprite, rockSprite } from '../water-sprites.js';
 export const FrogLife = {
     // Hàm riêng của loại này, gộp vào WaterLife (dùng chung this: vòng sóng, tia nước, cỡ theo độ xa...)
     methods: {
-        // Ếch mới: ló đầu ở chỗ nước gần đá, gò đất, lá bèo hoặc sát bờ
+        // Ếch mới: ló đầu ở chỗ nước gần đá, gò đất, lá bèo hoặc sát bờ; size: cỡ so với con vừa (nhiều con vừa, ít con
+        // nhỏ, hiếm con to)
         makeFrog(cssW, rocks, pads) {
-            return { state: 'peek', ...this.frogWaterSpot(cssW, rocks, pads), dir: Math.random() < 0.5 ? 1 : -1, t: 0, dur: rand(3000, 6500), seed: Math.random(), sacIn: rand(900, 2600), sac: 0, blinkIn: rand(1500, 4000), blink: 0, perch: null };
+            return { state: 'peek', ...this.frogWaterSpot(cssW, rocks, pads), dir: Math.random() < 0.5 ? 1 : -1, t: 0, dur: rand(3000, 6500), seed: Math.random(), sacIn: rand(900, 2600), sac: 0, blinkIn: rand(1500, 4000), blink: 0, perch: null, size: 0.6 + Math.pow(Math.random(), 1.4) };
         },
 
         frogWaterSpot(cssW, rocks, pads, near) {
@@ -54,7 +55,7 @@ export const FrogLife = {
         // Chỗ nhảy tới gần đó: lá bèo, đá, gò đất chưa có ai (cò, ếch khác); không có thì null
         frogTarget(frog, cssW, rocks, pads) {
             const s = this.scale(frog.d);
-            const reach = 70 * s;
+            const reach = 70 * s * Math.sqrt(frog.size);
             const taken = p => this.frogs.some(f => f !== frog && f.perch && (f.perch.pad === p || f.perch.rock === p));
             const options = [
                 ...pads.filter(p => !taken(p) && Math.abs(p.u * cssW - frog.x) < reach && Math.abs(p.d - frog.d) < 0.14).map(pad => ({ pad, ox: rand(-2, 2) })),
@@ -67,11 +68,11 @@ export const FrogLife = {
         // Nhảy vồng từ chỗ đang ở tới chỗ mới (tới mặt nước thì tõm xuống)
         frogHop(frog, to, cssW, topCss, depthCss) {
             const from = frog.perch ? this.frogPerchPoint(frog.perch, cssW, topCss, depthCss) : { x: frog.x, y: this.surfaceY(frog.d, topCss, depthCss), d: frog.d };
-            if (!frog.perch) this.splash(frog.x, frog.d, topCss, depthCss, 0.35, 'frogs');
-            else if (frog.perch.pad) this.ring(from.x, frog.d, 0.5, 900);
+            if (!frog.perch) this.splash(frog.x, frog.d, topCss, depthCss, 0.35 * frog.size, 'frogs');
+            else if (frog.perch.pad) this.ring(from.x, frog.d, 0.5 * frog.size, 900);
             const end = this.frogPerchPoint(to, cssW, topCss, depthCss);
             frog.dir = end.x >= from.x ? 1 : -1;
-            frog.hop = { from, to, t: 0, dur: rand(420, 600), h: rand(14, 22) * this.scale(frog.d) + Math.abs(end.x - from.x) * 0.18 };
+            frog.hop = { from, to, t: 0, dur: rand(420, 600) * Math.pow(frog.size, 0.3), h: rand(14, 22) * this.scale(frog.d) * Math.pow(frog.size, 0.7) + Math.abs(end.x - from.x) * 0.18 };
             frog.perch = null;
             frog.state = 'hop';
         },
@@ -94,12 +95,12 @@ export const FrogLife = {
                 frog.state = 'under';
                 frog.t = 0;
                 frog.dur = rand(1500, 3000);
-                this.splash(frog.x, frog.d, topCss, depthCss, 0.35, 'frogs');
+                this.splash(frog.x, frog.d, topCss, depthCss, 0.35 * frog.size, 'frogs');
                 return;
             }
             if (frog.state === 'peek') {
                 // Ló đầu: dập dềnh theo sóng, trôi theo dòng; hết lúc thì nhảy lên chỗ gần đó hoặc lặn mất
-                if (frog.t < dt + 1) this.ring(frog.x, frog.d, 0.45, 1400);
+                if (frog.t < dt + 1) this.ring(frog.x, frog.d, 0.45 * frog.size, 1400);
                 frog.x += this.flow(frog.d, river) * dt;
                 if (frog.t >= frog.dur) {
                     const to = Math.random() < 0.7 ? this.frogTarget(frog, cssW, rocks, pads) : null;
@@ -108,7 +109,7 @@ export const FrogLife = {
                         frog.state = Math.random() < 0.4 ? 'under' : 'gone';
                         frog.t = 0;
                         frog.dur = rand(1500, 3500);
-                        this.ring(frog.x, frog.d, 0.5, 1300);
+                        this.ring(frog.x, frog.d, 0.5 * frog.size, 1300);
                         this.bubbleUp(frog.x, frog.d, 2);
                     }
                 }
@@ -141,7 +142,7 @@ export const FrogLife = {
                         frog.dur = rand(2500, 6000);
                     } else if (end.water) {
                         // Tõm xuống nước: tia nước, vòng sóng, bong bóng; lặn một lúc rồi có khi ló đầu chỗ khác
-                        this.splash(end.x, end.d, topCss, depthCss, 0.45, 'frogs');
+                        this.splash(end.x, end.d, topCss, depthCss, 0.45 * frog.size, 'frogs');
                         this.bubbleUp(end.x, end.d, 2);
                         Object.assign(frog, { state: Math.random() < 0.55 ? 'under' : 'gone', x: end.x, d: end.d, t: 0, dur: rand(1800, 4000) });
                     } else {
@@ -149,7 +150,7 @@ export const FrogLife = {
                         frog.state = 'sit';
                         frog.t = 0;
                         frog.dur = rand(4000, 9000);
-                        if (hop.to.pad) this.ring(end.x, end.d, 0.55, 1000);
+                        if (hop.to.pad) this.ring(end.x, end.d, 0.55 * frog.size, 1000);
                     }
                 }
             } else if (frog.state === 'sit' || frog.state === 'aim') {
@@ -161,8 +162,9 @@ export const FrogLife = {
                 if (frog.sacIn <= 0) {
                     frog.sac = 700;
                     frog.sacIn = rand(1600, 4200);
-                    // Phồng túi kêu thì kêu "ộp" (có lần chỉ phồng không kêu), to nhất đúng lúc túi căng nhất; mỗi con một giọng
-                    if (Math.random() < 0.8) this.sound('frog', frog.x, frog.d, { seed: frog.seed, delay: 120 });
+                    // Phồng túi kêu thì kêu "ộp" (có lần chỉ phồng không kêu), to nhất đúng lúc túi căng nhất; mỗi con một giọng,
+                    // con to kêu trầm, con nhỏ the thé
+                    if (Math.random() < 0.8) this.sound('frog', frog.x, frog.d, { seed: frog.seed, delay: 120, pitch: 1 / Math.sqrt(frog.size) });
                 }
                 frog.sac = Math.max(0, frog.sac - dt);
                 frog.tongue = Math.max(0, (frog.tongue || 0) - dt);
@@ -171,11 +173,12 @@ export const FrogLife = {
                     const bug = frog.bug;
                     bug.t += dt;
                     const come = Math.max(0, 1 - bug.t / 1400);
-                    bug.x = frog.x + frog.dir * (6 + 30 * come) * s + Math.sin(bug.t * 0.006) * 4 * s;
-                    bug.y = frog.y - (16 + 10 * come) * s + Math.sin(bug.t * 0.009 + 1) * 3 * s;
+                    const fs = s * frog.size;
+                    bug.x = frog.x + frog.dir * (6 + 30 * come) * fs + Math.sin(bug.t * 0.006) * 4 * s;
+                    bug.y = frog.y - (16 + 10 * come) * fs + Math.sin(bug.t * 0.009 + 1) * 3 * s;
                     if (bug.t >= bug.wait) {
                         frog.state = 'leap';
-                        frog.hop = { t: 0, dur: 480, h: 18 * s };
+                        frog.hop = { t: 0, dur: 480 * Math.pow(frog.size, 0.3), h: 18 * fs };
                     }
                 } else if (frog.t >= frog.dur) {
                     const r = Math.random();
@@ -185,14 +188,14 @@ export const FrogLife = {
                     } else {
                         const to = r < 0.72 ? this.frogTarget(frog, cssW, rocks, pads) : null;
                         // Không có chỗ nào gần: nhảy tõm xuống nước ngay cạnh
-                        this.frogHop(frog, to || { x: frog.x + frog.dir * rand(14, 26) * s, d: Math.min(0.97, frog.d + rand(0.005, 0.03)) }, cssW, topCss, depthCss);
+                        this.frogHop(frog, to || { x: frog.x + frog.dir * rand(14, 26) * s * frog.size, d: Math.min(0.97, frog.d + rand(0.005, 0.03)) }, cssW, topCss, depthCss);
                     }
                 }
             }
         },
 
         drawFrogNow(ctx, frog, topCss, depthCss) {
-            const u = 1.3 * this.scale(frog.d);
+            const u = 1.3 * this.scale(frog.d) * frog.size;
             ctx.globalAlpha = 1;
             if (frog.state === 'peek') {
                 drawFrog(ctx, frog.x, this.surfaceY(frog.d, topCss, depthCss) + Math.sin(frog.t * 0.004) * 0.3 * u, u, frog.dir, 'peek', { blink: frog.blink > 0 });

@@ -51,8 +51,10 @@ export const DuckLife = {
                 const tx = rand(0.25, 0.75) * cssW;
                 const y0 = topCss * rand(0.2, 0.5);
                 for (let i = 0; i < n; i++) {
+                    const kind = i === 0 || Math.random() < 0.5 ? 'male' : 'female';
+                    // Mỗi con một cỡ (vịt đực nhỉnh hơn vịt mái)
                     this.ducks.push({
-                        kind: i === 0 || Math.random() < 0.5 ? 'male' : 'female',
+                        kind, size: rand(0.9, 1.1) * (kind === 'male' ? 1.04 : 0.95),
                         state: 'fly', dir, x: (dir > 0 ? -30 : cssW + 30) - dir * i * rand(14, 22), y: y0 + rand(-8, 8),
                         d: Math.min(0.95, d + rand(-0.06, 0.06)), tx: tx + (i - n / 2) * rand(14, 24), vx: 0, vy: 0,
                         flap: rand(0, 200), seed: Math.random(), stay: rand(14000, 26000), feed: rand(2000, 6000), dive: 0, paddle: rand(0, 900),
@@ -63,7 +65,7 @@ export const DuckLife = {
         }
         this.ducks.forEach(duck => {
             duck.flap += dt;
-            const s = this.scale(duck.d);
+            const s = this.scale(duck.d) * duck.size;
             const sy = this.surfaceY(duck.d, topCss, depthCss);
             if (duck.state === 'fly') {
                 duck.tx += this.flow(duck.d, river) * 0.5 * dt;
@@ -141,7 +143,7 @@ export const DuckLife = {
     under(ctx, { topCss, depthCss, time, reach }) {
         this.ducks.forEach(duck => {
             if (duck.state !== 'fly' && duck.state !== 'leave') return;
-            const s = this.scale(duck.d);
+            const s = this.scale(duck.d) * duck.size;
             const surf = this.surfaceY(duck.d, topCss, depthCss);
             if (surf - duck.y < 0 || surf - duck.y > reach) return;
             const pose = Math.floor(duck.flap / 85) % 2 ? 'up' : 'down';
@@ -152,14 +154,14 @@ export const DuckLife = {
 
     things(ctx, { k, time }) {
         return this.ducks.filter(duck => duck.state === 'swim' || duck.state === 'dabble').map(duck => ({
-            d: duck.d, draw: () => this.drawDuck(ctx, duck, duck.state, this.scale(duck.d), k, time)
+            d: duck.d, draw: () => this.drawDuck(ctx, duck, duck.state, this.scale(duck.d) * duck.size, k, time)
         }));
     },
 
     over(ctx, { k }) {
         this.ducks.forEach(duck => {
             if (duck.state !== 'fly' && duck.state !== 'leave') return;
-            this.drawDuck(ctx, duck, Math.floor(duck.flap / 85) % 2 ? 'up' : 'down', this.scale(duck.d), k);
+            this.drawDuck(ctx, duck, Math.floor(duck.flap / 85) % 2 ? 'up' : 'down', this.scale(duck.d) * duck.size, k);
         });
     }
 };

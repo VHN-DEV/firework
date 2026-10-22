@@ -19,7 +19,7 @@ export const EgretLife = {
             const dir = Math.random() < 0.5 ? 1 : -1;
             const bird = {
                 state: 'fly', dir, x: dir > 0 ? -30 : cssW + 30, y: topCss * rand(0.2, 0.55), ph: Math.random() * 6, t: 0, seed: Math.random(),
-                rest: rand(9000, 18000), act: null, legs: 'fly', d: 0.5, u: 1, pose: { ...EGRET_POSE, legs: 'fly' }
+                rest: rand(9000, 18000), act: null, legs: 'fly', d: 0.5, u: 1, size: rand(0.85, 1.15), pose: { ...EGRET_POSE, legs: 'fly' }
             };
             const logs = this.logs.filter(log => !log.bird && logSprite(log.variant).perch && log.x > cssW * 0.15 && log.x < cssW * 0.6);
             // Đá, gò đất chưa có cò nào đang đậu (dấu cũ của cò đã đi khỏi cảnh thì bỏ qua)
@@ -63,7 +63,7 @@ export const EgretLife = {
                 return { x: rock.x + sprite.perchX * w, y: surf - w * (sprite.wl - sprite.top) / sprite.width, d: rock.d, surf };
             }
             const surf = this.surfaceY(perch.d, topCss, depthCss);
-            return { x: perch.x, y: surf + 3 * 0.9 * this.scale(perch.d), d: perch.d, surf, wade: true };
+            return { x: perch.x, y: surf + 3 * 0.9 * bird.size * this.scale(perch.d), d: perch.d, surf, wade: true };
         },
 
         // Việc tiếp theo lúc đứng: ngó nghiêng, rỉa lông, đứng nghỉ; lội thì rình (bước chậm) rồi mổ, có khi được cá
@@ -96,7 +96,7 @@ export const EgretLife = {
                 }
             }
             const feet = this.egretFeet(bird, topCss, depthCss);
-            const u = 0.9 * this.scale(feet.d);
+            const u = 0.9 * bird.size * this.scale(feet.d);
             bird.d = feet.d;
             bird.u = u;
             const p = bird.pose;
