@@ -48,6 +48,10 @@ const HELP_TIPS = {
         + 'mình ngắm pháo với dáng cô đơn (cúi đầu, thở dài, nhìn sang bên cạnh trống trải, lau nước mắt). <strong>Cả hai</strong>: chàng '
         + 'trai, cô gái từ hai phía đi lại gặp nhau ở giữa, nắm tay, tựa vai, ôm nhau ngước nhìn pháo hoa. Trời mưa, tuyết thì che ô; cặp '
         + 'đôi gặp nhau thì cô gái gập ô, chàng trai che ô cho cô. Lần đầu xem cần tải thêm khoảng 4 MB.',
+    nearBank: 'Bật (mặc định): người ngắm pháo đứng ở bờ bên này, sát người xem, thấy rõ dáng người. Tắt: bỏ dải bờ bên này, '
+        + 'người đứng nhỏ xa xa ở bờ bên kia, ngay dưới chỗ pháo bắn lên; bờ bên kia là <strong>cầu vòm cong</strong> hoặc '
+        + '<strong>cầu nhiều vòm</strong> thì người đi lên giữa cầu theo độ vồng của mặt cầu, lan can cầu che phần dưới người. '
+        + '<strong>Biển khơi</strong> không có bờ bên kia nên người vẫn đứng ở bờ bên này.',
     floating: '<strong>Hoa đăng</strong>: đèn hoa sen thả nước, ánh nến in bóng xuống nước. <strong>Cánh hoa</strong>: cánh hoa hồng, trắng '
         + 'lác đác trên mặt nước. Kiểu "Sông chảy" thì chúng trôi theo dòng, "Hồ tĩnh lặng" thì gần như đứng yên, dập dềnh.',
     waterThings: '<ul>'

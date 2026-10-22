@@ -31,7 +31,7 @@ import { saveConfig } from './builder/config.js';
 import { initEditHistory, redo, undo } from './builder/history.js';
 import { setupNatureSound } from './builder/nature-ui.js';
 import { initScreenThemeControls, initSettingsGroups, previewScreen, renderSchedule, renderStartFrames, resetScreenTheme, setOpenMode, setScreenThemeField, setScreenThemePreset, setStartFrame } from './builder/settings.js';
-import { renderScene, renderSky, renderSmoke, renderViewer, setBank, setPeople, setClouds, setFloating, setMeteors, setMilkyWay, setMoonMode, setMoonPhase, setSeason, setSmoke, setStars, setViewerOption, setWater, setWaterStyle, setWeather, toggleDecor } from './builder/scene.js';
+import { renderScene, renderSky, renderSmoke, renderViewer, setBank, setNearBank, setPeople, setClouds, setFloating, setMeteors, setMilkyWay, setMoonMode, setMoonPhase, setSeason, setSmoke, setStars, setViewerOption, setWater, setWaterStyle, setWeather, toggleDecor } from './builder/scene.js';
 import { createFromTemplate, openTemplatesModal, renderTemplateChips, selectOccasion, startBlankScript, updateTemplateStrip } from './builder/templates-ui.js';
 import { afterMusicStartChange, applyBeatShow, drawBeatChart, openBeatModal, setBeatDensity } from './builder/beat-ui.js';
 import { checkGiftOpens, copyTrackingLink, enableOpenNotifications, renderNotifyOpen, startGiftWatch } from './builder/gift-watch.js';
@@ -102,6 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('viewer-scale')?.addEventListener('change', (e) => setViewerOption('scaleFactor', e.target.value ? Number(e.target.value) : ''));
     document.getElementById('viewer-fullscreen')?.addEventListener('change', (e) => setViewerOption('fullscreen', e.target.checked || ''));
     document.getElementById('viewer-controls')?.addEventListener('change', (e) => setViewerOption('hideControls', e.target.checked ? false : ''));
+    document.getElementById('near-bank')?.addEventListener('change', (e) => setNearBank(e.target.checked));
     document.getElementById('tap-to-launch')?.addEventListener('change', (e) => {
         state.tapToLaunch = e.target.checked;
         renderViewer();

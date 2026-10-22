@@ -101,7 +101,8 @@ function holdPoint(m, w, h = 0.86) {
 // Cặp đôi
 // ---------------------------------------------------------------------------
 export class Duo {
-    constructor(man, woman, { halfW, umbrella }) {
+    // start: đi vào từ cách giữa bờ bao xa (mét; mặc định từ ngoài mép khung); together: hai người cùng xuất phát
+    constructor(man, woman, { halfW, umbrella, start: from, together = false }) {
         this.m = man;
         this.w = woman;
         this.umbrella = umbrella;
@@ -109,7 +110,7 @@ export class Duo {
         this.t = 0;
         this.g = null;
         this.last = '';
-        const start = halfW + 0.9;
+        const start = from ?? halfW + 0.9;
         man.x = -start;
         woman.x = start;
         man.z = 0;
@@ -122,7 +123,7 @@ export class Duo {
         const tm = walkTime(man, start + this.stopM);
         const tw = walkTime(woman, start - this.stopW);
         this.startM = 0.6;
-        this.startW = Math.max(0.4, this.startM + tm - tw + 0.6);
+        this.startW = together ? 0.6 : Math.max(0.4, this.startM + tm - tw + 0.6);
         man.play('idle', { fade: 0.01 });
         woman.play('idle', { fade: 0.01 });
         // Đứng ngoài khung chờ tới lượt
@@ -373,7 +374,7 @@ export class Duo {
 // Một mình
 // ---------------------------------------------------------------------------
 export class Solo {
-    constructor(actor, { halfW, umbrella }) {
+    constructor(actor, { halfW, umbrella, start: from }) {
         this.a = actor;
         this.umbrella = umbrella;
         this.phase = 'wait';
@@ -381,7 +382,7 @@ export class Solo {
         this.g = null;
         this.last = '';
         this.dir = actor.sex === 'm' ? 1 : -1;
-        const start = halfW + 0.9;
+        const start = from ?? halfW + 0.9;
         actor.x = -this.dir * start;
         actor.z = 0;
         actor.yaw = actor.goalYaw = this.dir * Math.PI / 2;

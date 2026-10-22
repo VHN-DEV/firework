@@ -101,6 +101,7 @@ export function getFinalConfig() {
         waterStyle: state.water && state.waterStyle === 'river' ? 'river' : undefined,
         bank: state.water && state.bank ? state.bank : undefined,
         people: state.water && state.people ? state.people : undefined,
+        nearBank: state.water && state.people && !state.nearBank ? false : undefined,
         floating: state.water && state.floating ? state.floating : undefined,
         ...Object.fromEntries(WATER_THINGS.map(key => [key, state.water && !state[key] ? false : undefined])),
         viewer: Object.keys(state.viewer).length ? { ...state.viewer } : undefined,
@@ -402,6 +403,7 @@ export function loadConfigIntoState(config, filename, { migrate = true } = {}) {
     state.waterStyle = config.waterStyle === 'river' ? 'river' : 'lake';
     state.bank = validBankStyle(config.bank);
     state.people = validPeople(config.people);
+    state.nearBank = config.nearBank !== false;
     state.floating = ['lanterns', 'petals'].includes(config.floating) ? config.floating : '';
     // Kịch bản cũ ghi waterLife: false (tắt cả cò, vịt, cá, gỗ)
     WATER_THINGS.forEach(key => {

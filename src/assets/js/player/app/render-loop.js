@@ -74,7 +74,7 @@ export function update(frameTime, lag) {
     Decor.sync(sceneSelector(), frameW, frameH);
     Decor.update(timeStep);
     // Người ngắm pháo (chỉ khi có mặt nước)
-    People.sync(burstConfig && validPeople(burstConfig.people), frameW, frameH);
+    People.sync(burstConfig && validPeople(burstConfig.people), frameW, frameH, !burstConfig || burstConfig.nearBank !== false);
     People.update(timeStep, { time: now(), scale: scaleFactorSelector() });
     Smoke.update(timeStep, !burstConfig || !SMOKE_LEVELS[burstConfig.smoke]);
 

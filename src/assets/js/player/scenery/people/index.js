@@ -5,7 +5,9 @@
  */
 
 // Người ngắm pháo bên bờ (kịch bản `people`: 'man' | 'woman' | 'couple', chỉ khi có mặt nước): nhân vật anime đứng
-// trên bờ bên này ở đáy khung, quay lưng về phía người xem, nhìn ra mặt nước. Vẽ trên lớp riêng phía trên các lớp pháo
+// trên bờ bên này ở đáy khung, quay lưng về phía người xem, nhìn ra mặt nước. Tắt bờ bên này (`nearBank: false`) thì
+// người ở bờ bên kia: nhỏ theo tỉ lệ xa, đi dọc bờ vào giữa; bờ có cầu (cầu vòm, cầu nhiều vòm) thì đi lên giữa cầu theo
+// độ vồng của mặt cầu, lan can phía trước che phần dưới người. Biển khơi không có bờ bên kia nên vẫn đứng bờ bên này. Vẽ trên lớp riêng phía trên các lớp pháo
 // (ghép bình thường, không "lighten") nên che được ánh pháo, bóng pháo dưới nước. Phần dựng hình nhân vật (three.js,
 // mô hình, biên đạo) tải riêng khi kịch bản có người (stage3d.js); trong lúc tải chỉ có bờ đất.
 // Ngoài nhân vật: bóng đổ về phía người xem trên mặt đất (pháo ở trước mặt họ), trời mưa đất ướt in bóng người; hạt mưa
@@ -16,6 +18,8 @@ import { INVISIBLE } from '../../env.js';
 import { Star } from '../../particles.js';
 import { makeCanvas } from '../../utils.js';
 import { Weather } from '../weather.js';
+import { bankStyle } from '../bank.js';
+import { skylineCache } from '../skylines.js';
 import { drawGround, groundKind } from './ground.js';
 
 // Góc nhìn hơi từ trên xuống: điểm xa hơn lên cao chừng này phần
@@ -108,8 +112,9 @@ export const People = {
         return this.stagePromise;
     },
 
-    // kind: '' | 'man' | 'woman' | 'couple'. Đổi người, mùa hoặc mưa/tạnh thì dựng lại (đi vào từ đầu)
-    sync(kind, cssW, cssH) {
+    // kind: '' | 'man' | 'woman' | 'couple'; near: có bờ bên này (tắt thì người ở bờ bên kia). Đổi người, chỗ đứng, mùa
+    // hoặc mưa/tạnh thì dựng lại (đi vào từ đầu)
+    sync(kind, cssW, cssH, near = true) {
         const level = horizon();
         if (level >= 1 || !kind || !cssW || !cssH || this.failed) {
             this.show = null;
@@ -119,8 +124,10 @@ export const People = {
             return;
         }
         const umbrella = ['rain', 'snow'].includes(sceneWeather());
-        this.layoutFor(cssW, cssH, level);
-        const key = `${kind}_${sceneSeason()}_${umbrella}`;
+        const far = !near && bankStyle !== 'none';
+        if (far) this.farLayout(cssW, cssH, level);
+        else this.layoutFor(cssW, cssH, level);
+        const key = `${kind}_${sceneSeason()}_${umbrella}_${far ? `far_${bankStyle}` : 'near'}`;
         if (key === this.key) return;
         this.key = key;
         this.show = null;
@@ -143,7 +150,11 @@ export const People = {
                 }
                 this.actors = actors;
                 this.time = 0;
-                this.show = kind === 'couple' ? new mod.Duo(actors[0], actors[1], { halfW, umbrella }) : new mod.Solo(actors[0], { halfW, umbrella });
+                // Bờ bên kia: đi vào từ hai đầu cầu (hoặc cách giữa bờ ít bước), hiện dần, hai người cùng xuất phát
+                const deck = far ? this.deck() : null;
+                const start = far ? (deck ? Math.min(12, Math.max(4, (deck.to - deck.from) / 2 / this.layout.ppm + 1.2)) : 7) : undefined;
+                const opts = { halfW, umbrella, start, together: far };
+                this.show = kind === 'couple' ? new mod.Duo(actors[0], actors[1], opts) : new mod.Solo(actors[0], opts);
             });
         }).catch(e => {
             this.failed = true;
@@ -167,6 +178,21 @@ export const People = {
         const edge = EDGE * TILT * ppm;
         const band = edge + 0.3 * ppm;
         this.layout = { cssW, cssH, ppm, top: cssH - band, gy: cssH - band + edge, cx: cssW / 2, halfW: cssW / 2 / ppm, horizonY };
+    },
+
+    // Bờ bên kia: người nhỏ theo tỉ lệ xa (cỡ lan can cầu, cột đèn), chân đứng trên chân trời (mặt bờ)
+    farLayout(cssW, cssH, level) {
+        const horizonY = level * cssH;
+        const sz = Math.max(0.6, Math.min(1.25, Math.min(horizonY / 420, cssW / 700)));
+        const ppm = 19 * sz / MAN_HEIGHT;
+        this.layout = { far: true, cssW, cssH, ppm, top: cssH, gy: horizonY, cx: cssW / 2, halfW: cssW / 2 / ppm, horizonY };
+    },
+
+    // Mặt cầu của kiểu bờ đang vẽ (cầu vòm, cầu nhiều vòm): { at(x): độ cao so với chân trời (âm là lên trên), from, to:
+    // đoạn có lan can, rail: lan can cao bao nhiêu } (điểm ảnh CSS), không có cầu thì null
+    deck() {
+        const c = skylineCache;
+        return c && c.style === bankStyle && c.data && c.data.deck ? c.data.deck : null;
     },
 
     // Chỗ pháo đang nổ: trung bình vị trí các hạt đang cháy (tọa độ pháo nhân hệ số thu phóng ra điểm ảnh CSS)
@@ -205,13 +231,18 @@ export const People = {
         this.trackFocus(dt, scale);
         const L = this.layout;
         const wind = (windAt(time) - 0.6) * 0.7 + 0.25;
+        const up = clamp((L.horizonY - this.focus.y) / Math.max(1, L.horizonY), 0, 1);
         const focus = {
             x: (this.focus.x - L.cx) / L.ppm,
-            pitch: 0.25 + 0.45 * clamp((L.horizonY - this.focus.y) / Math.max(1, L.horizonY), 0, 1)
+            // Ở bờ bên kia pháo nổ ngay trên đầu: ngẩng cao hơn
+            pitch: L.far ? 0.55 + 0.3 * up : 0.25 + 0.45 * up
         };
         const env = { wind, focus, time: this.time, burst: this.burst };
         this.show.update(dt, env);
+        const deck = L.far ? this.deck() : null;
         this.actors.forEach(a => {
+            // Trên cầu: đứng theo độ vồng của mặt cầu
+            a.y = deck ? Math.max(0, -deck.at(L.cx + a.x * L.ppm) / L.ppm) : 0;
             a.update(dt);
             this.placeUmbrella(a, dt);
         });
@@ -273,7 +304,7 @@ export const People = {
             }
         });
         // Mưa rơi xuống mặt đất quanh chỗ người đứng
-        if (weather === 'rain' && Math.random() < dt * 26) {
+        if (weather === 'rain' && !L.far && Math.random() < dt * 26) {
             const x = L.cx + (Math.random() - 0.5) * Math.min(L.cssW, 4 * L.ppm);
             const y = L.top + 2 + Math.random() * (L.cssH - L.top - 3);
             this.splashes.push({ x, y, t: 0, life: 0.14, vy: -14, vx: 0, ground: true });
@@ -337,11 +368,11 @@ export const People = {
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = 'source-over';
         ctx.clearRect(0, 0, W, H);
-        drawGround(ctx, { W, top: L.top, k, kind: groundKind(bank || ''), season: sceneSeason(), wet, sky, time, calm });
+        if (!L.far) drawGround(ctx, { W, top: L.top, k, kind: groundKind(bank || ''), season: sceneSeason(), wet, sky, time, calm });
         const stage = this.stage;
         if (!this.show || !stage) return;
-        // Chất lượng 480p trở xuống: dựng nhân vật thưa hơn cho máy yếu đỡ nặng
-        stage.setView({ cssW: L.cssW, cssH: L.cssH, k: isLowQuality ? Math.min(k, 1) : k, cx: L.cx, gy: L.gy, ppm: L.ppm, tilt: TILT });
+        // Chất lượng 480p trở xuống: dựng nhân vật thưa hơn cho máy yếu đỡ nặng. Bờ bên kia: nhìn gần như ngang
+        stage.setView({ cssW: L.cssW, cssH: L.cssH, k: isLowQuality ? Math.min(k, 1) : k, cx: L.cx, gy: L.gy, ppm: L.ppm, tilt: L.far ? 0.08 : TILT });
         stage.setLight(sky, (this.focus.x - L.cx) / L.ppm);
         stage.render();
         const box = this.bounds();
@@ -355,11 +386,40 @@ export const People = {
         // Vùng tương ứng trên lớp dựng hình (chất lượng thấp thì lớp dựng hình thưa hơn lớp này)
         const r = stage.size.k / k;
         const src = [x0 * r, y0 * r, Math.max(1, w * r), Math.max(1, h * r)];
+        if (L.far) {
+            this.farFigures(ctx, stage.canvas, src, x0, y0, w, h, k);
+            return;
+        }
         this.shadows(ctx, stage.canvas, src, x0, y0, w, h, k, I, wet);
         this.breath(ctx, k);
         // Chỉ chép vùng quanh nhân vật
         ctx.drawImage(stage.canvas, ...src, x0, y0, w, h);
         this.front(ctx, k, sky, time, box);
+    },
+
+    // Người ở bờ bên kia: hiện dần lúc mới bước vào; trên cầu thì lan can phía trước che phần dưới người (cắt bỏ phần nằm
+    // dưới mép trên lan can, để lộ lan can vẽ ở lớp bầu trời)
+    farFigures(ctx, canvas, src, x0, y0, w, h, k) {
+        const L = this.layout;
+        const deck = this.deck();
+        ctx.save();
+        if (deck) {
+            ctx.setTransform(k, 0, 0, k, 0, 0);
+            const clip = new Path2D();
+            clip.rect(0, 0, L.cssW, L.cssH);
+            const line = x => L.horizonY + deck.at(x) - deck.rail;
+            clip.moveTo(deck.from, line(deck.from));
+            for (let x = deck.from; x <= deck.to; x += 2) clip.lineTo(x, line(x));
+            clip.lineTo(deck.to, line(deck.to));
+            clip.lineTo(deck.to, L.cssH);
+            clip.lineTo(deck.from, L.cssH);
+            clip.closePath();
+            ctx.clip(clip, 'evenodd');
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+        }
+        ctx.globalAlpha = clamp(this.time / 1.2, 0, 1);
+        ctx.drawImage(canvas, ...src, x0, y0, w, h);
+        ctx.restore();
     },
 
     // Bóng đổ trên mặt đất về phía người xem (thu nhỏ rồi phóng to cho nhòe), bóng tiếp đất dưới chân, đất ướt in bóng

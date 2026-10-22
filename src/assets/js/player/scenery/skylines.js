@@ -225,8 +225,9 @@ const BANK_SKYLINES = {
                 trees.push({ x: x0 - (22 + i * 46 + rnd() * 16) * sz, t: (rnd() * 3) | 0, phase: rnd() * 6, s: 1.05 - i * 0.08 });
                 trees.push({ x: x1 + (22 + i * 46 + rnd() * 16) * sz, t: (rnd() * 3) | 0, phase: rnd() * 6, s: 1.05 - i * 0.08 });
             }
-            // foot: khoảng chân cầu (không có kè); openings: lòng các vòm (tâm ở mép nước)
-            return { trees, foot: [x0, x1], openings: arches.map(({ cx: ax, r }) => ({ cx: ax, rx: r, ry: r })) };
+            // foot: khoảng chân cầu (không có kè); openings: lòng các vòm (tâm ở mép nước); deck: mặt cầu (độ cao so với chân
+            // trời theo hoành độ, đoạn có lan can, lan can cao bao nhiêu) cho người ngắm pháo đi lên cầu
+            return { trees, foot: [x0, x1], openings: arches.map(({ cx: ax, r }) => ({ cx: ax, rx: r, ry: r })), deck: { at: deckAt, from, to, rail: 3.9 * sz } };
         },
         before(ctx, layer, { ground, clock, calm, k }) {
             drawSwayingTrees(ctx, treeAtlas('oak', layer.sz, k), layer.data.trees, ground, clock, calm);
@@ -314,7 +315,8 @@ const BANK_SKYLINES = {
             }
             g.stroke();
             // foot: khoảng chân cầu (không có kè); openings: lòng vòm (tâm ở mép nước)
-            return { oaks, willows: [{ x: cx - half - 24 * sz, t: 0, phase: 1.3, s: 1.25 }], foot: [cx - half, cx + half], openings: [{ cx, rx: R, ry: R }] };
+            return { oaks, willows: [{ x: cx - half - 24 * sz, t: 0, phase: 1.3, s: 1.25 }], foot: [cx - half, cx + half], openings: [{ cx, rx: R, ry: R }],
+                deck: { at: deckAt, from, to, rail: 6.8 * sz } };
         },
         before(ctx, layer, { ground, clock, calm, k }) {
             drawSwayingTrees(ctx, treeAtlas('oak', layer.sz, k), layer.data.oaks, ground, clock, calm);

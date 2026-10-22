@@ -63,6 +63,26 @@ export async function run(browser, base, { check }) {
         const solo = await waitFor(f => f.center > 200 && f.left < f.center * 0.25, 20);
         check('một mình, trời mưa: cô gái che ô đi ra giữa bờ', solo.center > 200, JSON.stringify(solo));
 
+        // Tắt bờ bên này: người ở bờ bên kia, đi lên giữa cầu vòm (dải chân trời giữa khung), không còn dải bờ ở đáy
+        await post(page, { loop: true, events, water: 'half', bank: 'arch', people: 'couple', nearBank: false });
+        let bridge = null;
+        for (let i = 0; i < 40; i++) {
+            await sleep(500);
+            bridge = await page.evaluate(() => {
+                const c = document.getElementById('front-canvas');
+                const g = c.getContext('2d');
+                const band = (from, to, x0 = 0, x1 = 1) => {
+                    const d = g.getImageData(Math.round(c.width * x0), Math.round(c.height * from), Math.round(c.width * (x1 - x0)), Math.round(c.height * (to - from))).data;
+                    let n = 0;
+                    for (let i = 3; i < d.length; i += 4) if (d[i] > 150) n++;
+                    return n;
+                };
+                return { top: band(0.36, 0.5, 0.4, 0.6), low: band(0.55, 1) };
+            });
+            if (bridge.top > 40) break;
+        }
+        check('tắt bờ bên này: người lên giữa cầu bên kia, không còn bờ bên này', bridge.top > 40 && bridge.low === 0, JSON.stringify(bridge));
+
         await post(page, { loop: true, events, water: 'half' });
         await sleep(600);
         const none = await figures(page);
@@ -135,6 +155,17 @@ export async function run(browser, base, { check }) {
         const hint = await builder.$eval('#people-hint', e => e.textContent).catch(() => '');
         check('builder: chọn "Cả hai" thì lưu people: "couple", tóm tắt, gợi ý ghi rõ',
             saved && saved.people === 'couple' && /Cả hai/.test(active) && /người ngắm pháo/i.test(summary) && /gặp nhau/.test(hint), JSON.stringify({ saved, active, summary, hint }));
+        // Công tắc bờ bên này hiện khi có người; tắt thì lưu nearBank: false
+        const nearShown = await builder.$eval('.near-bank-row', e => !e.classList.contains('hide'));
+        await builder.evaluate(() => {
+            setBank('arch');
+            document.getElementById('near-bank').click();
+        });
+        await sleep(1200);
+        const farDraft = await builder.evaluate(() => (JSON.parse(localStorage.getItem('firework_builder_draft') || 'null') || {}).config || {});
+        const nearHint = await builder.$eval('#near-bank-hint', e => e.textContent);
+        check('builder: tắt bờ bên này thì lưu nearBank: false, gợi ý người đi lên giữa cầu',
+            nearShown && farDraft.nearBank === false && /giữa cầu/.test(nearHint), JSON.stringify({ nearShown, nearBank: farDraft.nearBank, nearHint }));
         await builder.evaluate(() => document.querySelector('[data-water=""]').click());
         await sleep(1200);
         const off = await draft();

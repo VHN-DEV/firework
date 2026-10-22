@@ -180,6 +180,13 @@ function renderBankStyles() {
     document.getElementById('bank-hint').textContent = (BANK_STYLES.find(b => b.value === state.bank) || BANK_STYLES[0]).hint;
 }
 
+// Bờ bên này: tắt thì người ngắm pháo đứng ở bờ bên kia
+export function setNearBank(on) {
+    state.nearBank = !!on;
+    renderScene();
+    refreshMiniPreview();
+}
+
 // Người ngắm pháo: một chàng trai, một cô gái hoặc cả hai
 export function setPeople(value) {
     state.people = validPeople(value);
@@ -206,6 +213,17 @@ export function renderScene() {
     renderBankStyles();
     const peopleHint = document.getElementById('people-hint');
     if (peopleHint) peopleHint.textContent = (PEOPLE_OPTIONS.find(p => p.value === state.people) || PEOPLE_OPTIONS[0]).hint;
+    // Bờ bên này: chỉ có ý nghĩa khi có người ngắm pháo
+    document.querySelector('.near-bank-row')?.classList.toggle('hide', !state.people);
+    const near = document.getElementById('near-bank');
+    if (near) near.checked = state.nearBank;
+    const nearHint = document.getElementById('near-bank-hint');
+    if (nearHint) {
+        nearHint.textContent = state.nearBank ? 'Người đứng ở bờ bên này, sát người xem'
+            : state.bank === 'none' ? 'Biển khơi không có bờ bên kia nên người vẫn đứng ở bờ bên này'
+                : ['bridge', 'arch'].includes(state.bank) ? 'Người đi lên giữa cầu bên kia, lan can che một phần người'
+                    : 'Người đứng nhỏ xa xa ở bờ bên kia';
+    }
     // Chỉ hiện thứ có trên mặt nước của kiểu bờ đang chọn: giữa biển chỉ có cá, thuyền; sông thành phố có thuyền, không có
     // đá, gò đất; các kiểu bờ khác không có thuyền
     const things = state.bank === 'none' ? ['waterFish', 'waterBoats']

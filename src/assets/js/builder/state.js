@@ -26,6 +26,8 @@ export const state = {
     bank: '',
     // Người ngắm pháo đứng ở bờ bên này ('' không, 'man', 'woman', 'couple'), xem player/people-options.js
     people: '',
+    // Có bờ bên này (tắt: người ngắm pháo đứng ở bờ bên kia, bờ có cầu thì đi lên giữa cầu)
+    nearBank: true,
     // Mùa ('' hạ, 'auto' theo ngày xem, 'spring', 'autumn', 'winter') và thời tiết ('' / 'rain' / 'snow'), xem player/seasons.js
     season: '',
     weather: '',

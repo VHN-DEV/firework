@@ -96,6 +96,8 @@ export class Actor3D {
         this.current = null;
         this.prevTimes = new Map();
         this.x = 0;
+        // Độ cao chỗ đứng (mét): đứng trên mặt cầu vồng thì cao dần lên giữa cầu
+        this.y = 0;
         this.z = 0;
         this.yaw = 0;
         this.goalYaw = 0;
@@ -208,7 +210,7 @@ export class Actor3D {
         // Giữ hông tại chỗ theo chiều tiến (đã chuyển thành bước đi của cả người), giữ lắc ngang, nhún lên xuống
         const hips = this.bone('hips');
         hips.position.z = this.hipsRest.z;
-        this.root.position.set(this.x, 0, -this.z);
+        this.root.position.set(this.x, this.y, -this.z);
         this.root.rotation.y = -this.yaw;
         this.root.updateMatrixWorld(true);
         this.overlay(dt);
