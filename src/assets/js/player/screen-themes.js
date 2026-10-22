@@ -517,10 +517,12 @@ export function createScreenAmbient(host) {
     let key = '';
     const hidden = () => host.classList.contains('hide') || host.classList.contains('remove') || !host.isConnected;
 
+    // Dừng hẳn: trả luôn bộ nhớ canvas (cỡ cả màn hình nhân mật độ điểm ảnh, ~14 MB ở điện thoại nét gấp 3) thay vì giữ suốt
+    // màn trình diễn; lần chạy sau vòng vẽ tự đặt lại cỡ
     const stop = () => {
         cancelAnimationFrame(frame);
         frame = 0;
-        if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+        if (canvas) canvas.width = canvas.height = 0;
     };
 
     function start(theme, { lowQuality = false } = {}) {

@@ -415,7 +415,11 @@ export class NightSky {
         if (fade <= 0) return;
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = fade;
-        ctx.drawImage(this.layer, drift.x * 0.6 - this.margin, drift.y * 0.6 - this.pad, this.width + 2 * this.margin, this.height + this.pad);
+        // Dán đúng lưới điểm ảnh thật, đúng cỡ lớp đã dựng (độ nét layerK): bầu trời trôi chậm nên vị trí thường lẻ, cỡ khung
+        // nhân k cũng lẻ (vd 444 × 2,625); lệch như vậy thì từng sao mờ 1 điểm ảnh loang ra 2×2 điểm, nhạt và nhòe đi
+        const x = Math.round((drift.x * 0.6 - this.margin) * k) / k;
+        const y = Math.round((drift.y * 0.6 - this.pad) * k) / k;
+        ctx.drawImage(this.layer, x, y, this.layer.width / this.layerK, this.layer.height / this.layerK);
         ctx.globalAlpha = 1;
     }
 

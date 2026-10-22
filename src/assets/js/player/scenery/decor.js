@@ -271,6 +271,9 @@ export const Decor = {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, W, H);
         ctx.setTransform(k, 0, 0, k, 0, 0);
+        // Ảnh vẽ sẵn nét gấp nhiều lần (khinh khí cầu, đèn trời gấp 4, đốm sao) thường vẽ nhỏ hơn nhiều: thu nhỏ mịn (mipmap).
+        // Mặc định 'low' chỉ lấy 4 điểm mẫu, đường may, sọc mảnh, nan đèn lởm chởm và lấp lóa khi vật trôi
+        ctx.imageSmoothingQuality = 'medium';
         const ground = this.groundY();
         const drift = this.skyDrift();
         const light = this.moon ? this.moonLight : 0;
