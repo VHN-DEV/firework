@@ -61,8 +61,13 @@ if ($action === 'delete') {
         exit;
     }
 
-    // Sanitize
-    $filename = preg_replace('/[^a-zA-Z0-9_-]/', '', $filename);
+    // Sanitize: chữ thường như lúc lưu (save_config.php). Không hạ chữ thì "Victim" lọt qua kiểm tra mã chủ (mã chỉ nhận
+    // chữ thường) mà trên ổ đĩa không phân biệt hoa thường (Windows, macOS) vẫn xóa đúng victim.json của người khác
+    $filename = strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '', $filename));
+    if (!preg_match('/^[a-z0-9_-]{1,80}$/', $filename)) {
+        echo json_encode(['success' => false, 'message' => 'Tên file không hợp lệ.']);
+        exit;
+    }
     $filePath = $targetDir . $filename . '.json';
 
     if (file_exists($filePath)) {

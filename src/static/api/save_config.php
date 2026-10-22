@@ -49,6 +49,11 @@ if (empty($filename)) {
     echo json_encode(['success' => false, 'message' => 'Tên file không hợp lệ.']);
     exit;
 }
+// Mã chủ chỉ cấp cho tên tới 80 ký tự (tracking.inc.php): tên dài hơn thì ai cũng lưu đè, xóa được
+if (strlen($filename) > 80) {
+    echo json_encode(['success' => false, 'message' => 'Tên file quá dài (tối đa 80 ký tự).']);
+    exit;
+}
 if (!$isPreview && strpos($filename, 'preview_temp') === 0) {
     echo json_encode(['success' => false, 'message' => 'Tên file này dành cho bản xem thử, hãy đặt tên khác.']);
     exit;

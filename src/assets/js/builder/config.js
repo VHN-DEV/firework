@@ -184,6 +184,12 @@ export async function saveConfig(isPreview = false) {
     }
 
     let filename = document.getElementById('filename').value.trim();
+    // Máy chủ lưu tên chữ thường (link, mã chủ theo tên đó): dùng chữ thường ngay từ đầu, nếu không lần lưu sau tra mã chủ
+    // theo tên có chữ hoa không thấy, kịch bản bị tách thành một bản mới mỗi lần bấm Lưu
+    if (!isPreview && !isStaticEnv && filename !== filename.toLowerCase()) {
+        filename = filename.toLowerCase();
+        document.getElementById('filename').value = filename;
+    }
 
     if (isPreview) {
         // Máy chủ đặt tên ngẫu nhiên cho mỗi lần xem thử; trang tĩnh lưu trong trình duyệt của mình nên dùng tên chung
