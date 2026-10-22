@@ -4,7 +4,7 @@
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
 
-// Bầu trời đêm: sao, trăng, mây, đèn trời, khinh khí cầu, máy bay; phần nhô lên của bờ.
+// Bầu trời đêm: sao, Dải Ngân Hà, sao băng (night-sky.js), trăng, mây, đèn trời, khinh khí cầu, máy bay; phần nhô lên của bờ.
 
 import MyMath from '../../MyMath.js';
 import { IS_MOBILE } from '../env.js';
@@ -16,13 +16,13 @@ import { drawBankSkyline, drawButterflies } from './bank-life.js';
 import { BALLOON_SCHEMES, balloonSprite, burnerGlow, drawPlane, lanternSprite } from './decor-sprites.js';
 import { moonSprite } from './moon-sprite.js';
 import { buildCloud } from './clouds.js';
-
-const STAR_COLORS = ['255, 255, 255', '210, 225, 255', '255, 240, 215', '190, 210, 255'];
+import { NightSky } from './night-sky.js';
 
 export const Decor = {
     scene: null,
     items: [],
-    stars: [],
+    // Bầu trời sao (NightSky) hoặc null
+    sky: null,
     moon: null,
     clouds: [],
     wind: 0,
@@ -46,10 +46,12 @@ export const Decor = {
         this.width = cssW;
         this.height = cssH;
         this.items = [];
-        this.stars = [];
         this.moon = null;
         this.clouds = [];
-        if (!scene || !cssW || !cssH) return;
+        if (!scene || !cssW || !cssH) {
+            this.sky = null;
+            return;
+        }
         const decor = scene.decor || [];
         if (decor.includes('lanterns')) {
             const count = IS_MOBILE ? 9 : 16;
@@ -60,24 +62,11 @@ export const Decor = {
             for (let i = 0; i < count; i++) this.items.push(this.balloon(i, count, true));
         }
         if (decor.includes('planes')) this.items.push(this.plane(MyMath.random(1000, 4000)));
-        if (scene.stars) {
-            const count = { few: IS_MOBILE ? 40 : 70, many: IS_MOBILE ? 90 : 170 }[scene.stars] || 0;
-            const ground = this.groundY();
-            // Có ảnh nền thành phố: sao chỉ ở phần trời phía trên
-            const band = scene.background ? 0.45 : 0.92;
-            for (let i = 0; i < count; i++) {
-                this.stars.push({
-                    x: Math.random() * cssW,
-                    y: Math.pow(Math.random(), 1.3) * ground * band,
-                    size: Math.random() < 0.08 ? MyMath.random(1.5, 2) : MyMath.random(0.6, 1.4),
-                    fill: `rgb(${STAR_COLORS[(Math.random() * STAR_COLORS.length) | 0]})`,
-                    alpha: MyMath.random(0.45, 1),
-                    twinkle: Math.random() * Math.PI * 2,
-                    speed: MyMath.random(0.0015, 0.004)
-                });
-            }
-            this.stars.sort((a, b) => (a.fill < b.fill ? -1 : a.fill > b.fill ? 1 : 0));
-        }
+        // Sao, Dải Ngân Hà (scene.milkyWay: '' | 'faint' | 'bright'), sao băng (scene.meteors: '' | 'few' | 'shower'). Có ảnh
+        // nền thành phố: chỉ ở phần trời phía trên. Cùng bầu trời như trước thì giữ nguyên (không rải lại)
+        this.sky = scene.stars || scene.milkyWay || scene.meteors
+            ? NightSky.reuse(this.sky, { width: cssW, height: this.groundY() * (scene.background ? 0.45 : 1), stars: scene.stars, milkyWay: scene.milkyWay, meteors: scene.meteors })
+            : null;
         if (scene.moon) {
             const ground = this.groundY();
             this.moon = {
@@ -225,7 +214,7 @@ export const Decor = {
     },
 
     active() {
-        return this.items.length > 0 || this.stars.length > 0 || !!this.moon || this.clouds.length > 0 || horizon() < 1;
+        return this.items.length > 0 || !!this.sky || !!this.moon || this.clouds.length > 0 || horizon() < 1;
     },
 
     groundY() {
@@ -283,6 +272,7 @@ export const Decor = {
     update(timeStep) {
         if (!this.active()) return;
         this.clock += timeStep;
+        if (this.sky) this.sky.update(timeStep);
         const ground = this.groundY();
         this.clouds.forEach(cloud => {
             cloud.x += cloud.vx * timeStep;
@@ -354,6 +344,9 @@ export const Decor = {
         const drift = this.skyDrift();
         const light = this.moon ? this.moonLight : 0;
 
+        // Ngân Hà, sao mờ: vẽ trước ánh trăng (trăng sáng làm chúng chìm đi như ngoài đời)
+        if (this.sky) this.sky.drawBackdrop(ctx, k, drift);
+
         // Ánh trăng: cả bầu trời sáng xanh lên (trăng càng tròn càng sáng, mây che thì tối lại), sáng nhất quanh trăng,
         // sát chân trời sáng hơn một chút. Mặt nước phản chiếu lớp này nên cũng sáng theo.
         if (light > 0.01) {
@@ -372,26 +365,11 @@ export const Decor = {
             ctx.fillRect(0, 0, this.width, ground);
         }
 
-        // Sao: lấp lánh nhẹ, mờ dần sát chân trời; trăng càng sáng sao càng mờ. Xếp theo màu nên ít khi phải đổi màu vẽ.
-        // Sao càng gần trăng càng bị ánh trăng lấn mất
-        const starDim = 1 - 0.6 * light;
-        const glare = this.moon ? this.moon.radius * 9 : 1;
-        const gx = this.moon ? this.moon.x + drift.x : 0;
-        const gy = this.moon ? this.moon.y + drift.y : 0;
-        let fill = '';
-        this.stars.forEach(star => {
-            const x = (star.x + drift.x * 0.6 + this.width) % this.width;
-            const y = star.y + drift.y * 0.6;
-            const near = Math.min(1, Math.max(0, (ground - y) / (ground * 0.15)));
-            const twinkle = calm ? 0.85 : 0.65 + 0.35 * Math.sin(star.twinkle + this.clock * star.speed);
-            const lost = light * Math.exp(-((x - gx) ** 2 + (y - gy) ** 2) / (glare * glare));
-            ctx.globalAlpha = star.alpha * twinkle * near * starDim * (1 - 0.95 * lost);
-            if (star.fill !== fill) {
-                fill = star.fill;
-                ctx.fillStyle = fill;
-            }
-            ctx.fillRect(x - star.size / 2, y - star.size / 2, star.size, star.size);
-        });
+        // Sao sáng, vệ tinh, sao băng: trăng càng sáng càng mờ, gần trăng bị ánh trăng lấn mất
+        if (this.sky) {
+            const moon = this.moon && { x: this.moon.x + drift.x, y: this.moon.y + drift.y, glare: this.moon.radius * 9 };
+            this.sky.draw(ctx, k, { drift, light, moon, calm });
+        }
 
         if (this.moon) {
             const { fraction, radius, warm } = this.moon;

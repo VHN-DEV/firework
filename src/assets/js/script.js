@@ -410,7 +410,7 @@ setSeason(() => {
 
 setWeather(() => (burstConfig && validWeather(burstConfig.weather)) || '');
 
-// Bầu trời đêm theo kịch bản: sao, trăng, trang trí. Kịch bản cũ ghi decor dạng chữ ("both" = đèn trời + khinh khí cầu).
+// Bầu trời đêm theo kịch bản: sao, Dải Ngân Hà, sao băng, trăng, trang trí. Kịch bản cũ ghi decor dạng chữ ("both" = đèn trời + khinh khí cầu).
 const DECOR_KINDS = ['lanterns', 'balloons', 'planes'];
 
 const DECOR_ALIASES = { lanterns: ['lanterns'], balloons: ['balloons'], both: ['lanterns', 'balloons'] };
@@ -424,7 +424,7 @@ let skyCache = { config: undefined, background: undefined, key: '', scene: null 
 export function sceneSelector() {
     const background = !!store.state.config.showBackground;
     if (skyCache.config === burstConfig && skyCache.background === background) return skyCache.scene;
-    const key = burstConfig ? JSON.stringify([burstConfig.decor, burstConfig.stars, burstConfig.moon, burstConfig.clouds, background]) : '';
+    const key = burstConfig ? JSON.stringify([burstConfig.decor, burstConfig.stars, burstConfig.milkyWay, burstConfig.meteors, burstConfig.moon, burstConfig.clouds, background]) : '';
     if (burstConfig && key === skyCache.key) {
         skyCache.config = burstConfig;
         return skyCache.scene;
@@ -435,13 +435,15 @@ export function sceneSelector() {
             ? burstConfig.decor.filter(kind => DECOR_KINDS.includes(kind))
             : DECOR_ALIASES[burstConfig.decor] || [];
         const stars = ['few', 'many'].includes(burstConfig.stars) ? burstConfig.stars : '';
+        const milkyWay = ['faint', 'bright'].includes(burstConfig.milkyWay) ? burstConfig.milkyWay : '';
+        const meteors = ['few', 'shower'].includes(burstConfig.meteors) ? burstConfig.meteors : '';
         const m = burstConfig.moon;
         const phase = m && Number.isInteger(Number(m.phase)) ? MOON_PHASES[Math.max(0, Math.min(7, Number(m.phase)))] : null;
         const moon = m && typeof m === 'object'
             ? { fraction: phase ? phase.fraction : moonFraction(new Date()), x: clampPercent(m.x, 78), y: clampPercent(m.y, 80) }
             : null;
         const clouds = ['few', 'many'].includes(burstConfig.clouds) ? burstConfig.clouds : '';
-        if (decor.length || stars || moon || clouds) scene = { decor, stars, moon, clouds, background };
+        if (decor.length || stars || milkyWay || meteors || moon || clouds) scene = { decor, stars, milkyWay, meteors, moon, clouds, background };
     }
     skyCache = { config: burstConfig, background, key, scene };
     return scene;
