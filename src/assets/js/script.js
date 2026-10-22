@@ -40,7 +40,7 @@ import { imageParticleCache, getProcessedImage, ImageBurst } from './player/imag
 import { imageCacheKey } from './player/image-frame.js';
 import { Shell } from './player/shell.js';
 import { Smoke, SMOKE_RESOLUTION } from './player/smoke.js';
-import { Water, Decor, Weather, WATER_RESOLUTION } from './player/scenery.js';
+import { Water, Decor, Weather, WATER_RESOLUTION } from './player/scenery/index.js';
 import { resolveSeason, validWeather } from './player/seasons.js';
 import { MOON_PHASES, moonFraction } from './player/moon.js';
 import { START_FRAMES, frameText } from './player/start-frames.js';
