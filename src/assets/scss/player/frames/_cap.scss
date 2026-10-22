@@ -1,0 +1,178 @@
+// Trình diễn Pháo hoa – giao diện trình phát (mũ tốt nghiệp)
+// Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+// Mũ tốt nghiệp (startFrame: "cap"): mũ rơi xuống xoay về cân bằng, nảy nhẹ; cuộn bằng hiện ra bên dưới; chờ thì tua rua
+// đung đưa; mở thì mũ tung lên rồi mờ, cuộn bằng mở ra, pháo giấy bung một lần
+.cap {
+    left: 10%;
+    width: 80%;
+    top: 4%;
+    height: 50%;
+    transition: transform 0.8s cubic-bezier(0.3, 0, 0.4, 1), opacity 0.8s;
+
+    .start-screen.is-ready & {
+        animation: capDrop 0.7s cubic-bezier(0.3, 0.7, 0.4, 1) 0.1s both;
+    }
+
+    // Mặt mũ vuông nhìn chéo thành hình thoi
+    &__board {
+        left: 0;
+        right: 0;
+        top: 4%;
+        height: 56%;
+        clip-path: polygon(50% 0, 100% 46%, 50% 92%, 0 46%);
+        background: linear-gradient(160deg, #47516e 0%, #232a40 50%, #141a2c 100%);
+    }
+
+    &__base {
+        left: 24%;
+        right: 24%;
+        top: 34%;
+        height: 50%;
+        border-radius: 0 0 46% 46% / 0 0 34% 34%;
+        background: linear-gradient(90deg, #121726, #2a3248 45%, #1a2032);
+        box-shadow: 0 10px 18px rgba(0, 0, 0, 0.4);
+    }
+
+    &__button {
+        left: 47%;
+        width: 6%;
+        top: 25%;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: var(--st-accent, #ffd166);
+    }
+
+    // Dây tua rua chạy từ nút ra mép mũ rồi rủ xuống, đung đưa
+    &__cord {
+        left: 50%;
+        top: 28%;
+        width: 40%;
+        height: 2px;
+        background: var(--st-accent, #ffd166);
+        transform-origin: 0 50%;
+        transform: rotate(17deg);
+    }
+
+    &__tassel {
+        right: 0;
+        top: 0;
+        width: 2px;
+        height: calc(var(--s) * 0.24);
+        background: var(--st-accent, #ffd166);
+        transform-origin: 50% 0;
+        transform: rotate(-17deg);
+
+        &::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            width: calc(var(--s) * 0.05);
+            height: calc(var(--s) * 0.09);
+            margin-left: calc(var(--s) * -0.025);
+            border-radius: 40% 40% 20% 20%;
+            background: repeating-linear-gradient(90deg, var(--st-accent, #ffd166) 0 2px, var(--st-accent-dark, #d9a530) 2px 3px);
+        }
+
+        .start-screen.is-ready & {
+            animation: tasselSwing 2.6s ease-in-out 0.9s infinite;
+        }
+    }
+}
+
+// Cuộn bằng: ống giấy kem có bóng tròn, nơ đỏ giữa; mở thì tờ bằng trải xuống từ cuộn
+.diploma {
+    left: 16%;
+    width: 68%;
+    top: 64%;
+    height: 17%;
+
+    .start-screen.is-ready & {
+        animation: diplomaIn 0.5s ease-out 0.65s both;
+    }
+
+    &__roll {
+        inset: 0;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #d8ccb0 0%, #fffaf0 35%, #f2e8d2 70%, #b8a888 100%);
+        box-shadow: 0 8px 14px rgba(0, 0, 0, 0.4);
+
+        &::before,
+        &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 9%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(circle, #a89878 0 25%, #e8dcc4 30%);
+        }
+
+        &::before {
+            left: 0;
+        }
+
+        &::after {
+            right: 0;
+        }
+    }
+
+    &__ribbon {
+        left: 45%;
+        width: 10%;
+        top: -8%;
+        height: 116%;
+        background: var(--st-main, #2856d6);
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
+    }
+
+    &__sheet {
+        left: 6%;
+        right: 6%;
+        top: 50%;
+        height: 240%;
+        border-radius: 0 0 4px 4px;
+        background:
+            radial-gradient(circle at 78% 78%, var(--st-accent, #ffd166) 0 8%, var(--st-accent-dark, #d9a530) 9% 11%, transparent 12%),
+            repeating-linear-gradient(180deg, transparent 0 14%, rgba(110, 90, 60, 0.28) 14% 16%) 20% 22% / 60% 50% no-repeat,
+            #fffaf0;
+        box-shadow: 0 10px 18px rgba(0, 0, 0, 0.35);
+        transform-origin: 50% 0;
+        transform: scaleY(0);
+        transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) 0.15s;
+    }
+}
+
+.start-screen.gift-opening .cap {
+    transform: translateY(6%) rotate(-3deg);
+}
+
+.start-screen.gift-open {
+    .cap {
+        transform: translateY(-160%) rotate(-28deg);
+        opacity: 0;
+    }
+
+    .diploma__sheet {
+        transform: scaleY(1);
+    }
+}
+
+@keyframes capDrop {
+    0% { opacity: 0; transform: translateY(-80%) rotate(-12deg); }
+    60% { opacity: 1; transform: translateY(4%) rotate(2deg); }
+    80% { transform: translateY(-3%) rotate(-1deg); }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes tasselSwing {
+    0%, 100% { transform: rotate(-17deg); }
+    50% { transform: rotate(-9deg); }
+}
+
+@keyframes diplomaIn {
+    from { opacity: 0; transform: scaleX(0.3); }
+    to { opacity: 1; transform: none; }
+}

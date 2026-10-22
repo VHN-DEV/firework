@@ -1,0 +1,365 @@
+// Trình diễn Pháo hoa – giao diện trình phát (khung có vật thể chính, hộp quà, pháo giấy)
+// Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+// ---------------------------------------------------------------------------
+// Khung bắt đầu "Hộp quà" (startFrame: "gift")
+// ---------------------------------------------------------------------------
+.start-screen.frame-gift .start-screen__content {
+    display: none;
+}
+
+.gift-stage {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 560px;
+    padding: 1.5rem;
+    text-align: center;
+
+    .start-screen.frame-gift & {
+        display: flex;
+    }
+
+    // Đang tải lời mời riêng của kịch bản
+    .has-config .start-screen:not(.is-ready) & {
+        opacity: 0;
+        animation: none;
+    }
+
+    &__title {
+        margin: 0 0 0.75rem;
+        color: #fff;
+        font-family: var(--st-font, inherit);
+        font-size: calc(clamp(2rem, 8vw, 3rem) * var(--st-font-scale, 1));
+        font-weight: var(--st-font-weight, 700);
+        line-height: 1.15;
+        letter-spacing: -0.5px;
+        text-shadow: 0 0 22px rgba(var(--st-accent-rgb, 255, 191, 54), 0.35);
+    }
+
+    &__message {
+        max-width: 30em;
+        margin: 0 0 0.5rem;
+        color: rgba(255, 255, 255, 0.75);
+        font-size: 1.05rem;
+        line-height: 1.6;
+
+        &:empty {
+            display: none;
+        }
+    }
+
+    &__from {
+        margin: 0;
+        color: var(--st-accent, #ffbf36);
+        font-style: italic;
+
+        &:empty {
+            display: none;
+        }
+    }
+
+    &__hint {
+        margin: 0.75rem 0 0;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.9rem;
+
+        &:empty {
+            display: none;
+        }
+    }
+
+    // Nút mở (chạm vật thể cũng mở được)
+    &__cta {
+        margin-top: 0.25rem;
+        padding: 0.85rem 2.4rem;
+        border: none;
+        border-radius: 3rem;
+        background: linear-gradient(135deg, var(--st-main, #ff0043) 0%, var(--st-accent, #ffbf36) 100%);
+        color: #fff;
+        font-family: inherit;
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        cursor: pointer;
+        box-shadow: 0 10px 22px rgba(var(--st-main-rgb, 255, 0, 67), 0.35);
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+        &:hover {
+            transform: scale(1.05);
+        }
+
+        &:focus-visible {
+            outline: 3px solid var(--st-accent, #ffbf36);
+            outline-offset: 4px;
+        }
+    }
+}
+
+// Hiện lần lượt: vật thể trước (hiệu ứng riêng của từng khung), rồi tiêu đề, lời nhắn, người gửi, nút; nút sáng nhẹ theo
+// nhịp chờ. Chạm mở: chữ, nút lui đi để vật thể là tâm điểm
+.start-screen.frame-gift.is-ready .gift-stage {
+    > * {
+        animation: stageRise 0.5s ease-out both;
+    }
+
+    > .gift-stage__hero {
+        animation: heroIn 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.25) 0.1s both;
+    }
+
+    > .gift-stage__title {
+        animation-delay: 0.7s;
+    }
+
+    > .gift-stage__message {
+        animation-delay: 0.8s;
+    }
+
+    > .gift-stage__from {
+        animation-delay: 0.85s;
+    }
+
+    > .gift-stage__cta {
+        animation: ctaIn 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3) 1s both, ctaGlow 2.6s ease-in-out 1.6s infinite;
+    }
+
+    > .gift-stage__hint {
+        animation-delay: 1.15s;
+    }
+}
+
+.start-screen.frame-gift.gift-opening .gift-stage {
+    > .gift-stage__title,
+    > .gift-stage__message,
+    > .gift-stage__from,
+    > .gift-stage__cta,
+    > .gift-stage__hint {
+        animation: stageAway 0.35s ease-in forwards;
+    }
+}
+
+@keyframes stageRise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes stageAway {
+    to { opacity: 0; transform: translateY(-6px); }
+}
+
+@keyframes heroIn {
+    0% { opacity: 0; transform: translateY(12px) scale(0.75); }
+    60% { opacity: 1; transform: translateY(-4px) scale(1.03); }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes ctaIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes ctaGlow {
+    0%, 100% { box-shadow: 0 10px 22px rgba(var(--st-main-rgb, 255, 0, 67), 0.35); }
+    50% { box-shadow: 0 10px 30px rgba(var(--st-main-rgb, 255, 0, 67), 0.55), 0 0 22px rgba(var(--st-accent-rgb, 255, 191, 54), 0.45); }
+}
+
+// Hộp quà vẽ bằng CSS: thân, nắp, nơ, quầng sáng
+.gift-box {
+    --s: clamp(140px, 38vw, 190px);
+    position: relative;
+    width: var(--s);
+    height: var(--s);
+    margin: 2.75rem 0 1.5rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transform-origin: 50% 90%;
+    animation: giftIdle 2.6s ease-in-out infinite;
+
+    &:focus-visible {
+        outline: 3px solid var(--st-accent, #ffbf36);
+        outline-offset: 10px;
+        border-radius: 18px;
+    }
+
+    &:hover {
+        animation-duration: 1.3s;
+    }
+
+    &__glow {
+        position: absolute;
+        left: 50%;
+        top: 58%;
+        width: 190%;
+        height: 190%;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(var(--st-accent-rgb, 255, 191, 54), 0.38) 0%, rgba(var(--st-main-rgb, 255, 0, 67), 0.16) 35%, transparent 65%);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        animation: giftGlow 2.6s ease-in-out infinite;
+    }
+
+    &__body {
+        position: absolute;
+        left: 8%;
+        right: 8%;
+        bottom: 0;
+        height: 58%;
+        border-radius: 10px;
+        background:
+            linear-gradient(90deg, transparent 43%, var(--st-accent-light, #ffd34d) 43%, var(--st-accent, #ffbf36) 57%, transparent 57%),
+            linear-gradient(160deg, var(--st-main-light, #ff4f7b) 0%, var(--st-main, #e0144c) 55%, var(--st-main-dark, #a80d3a) 100%);
+        box-shadow: inset 0 -12px 20px rgba(0, 0, 0, 0.25), 0 18px 30px rgba(0, 0, 0, 0.45);
+        overflow: hidden;
+    }
+
+    // Vệt sáng vàng quét ngang thân hộp một lần lúc hộp vừa hiện
+    &__shine {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(105deg, transparent 30%, rgba(255, 244, 205, 0.6) 50%, transparent 70%);
+        transform: translateX(-130%);
+
+        .start-screen.is-ready & {
+            animation: heroShine 0.7s ease-in-out 0.75s both;
+        }
+    }
+
+    &__lid {
+        position: absolute;
+        left: 2%;
+        right: 2%;
+        top: 30%;
+        height: 17%;
+        border-radius: 8px;
+        background:
+            linear-gradient(90deg, transparent 42%, var(--st-accent-light, #ffe07a) 42%, var(--st-accent, #ffbf36) 58%, transparent 58%),
+            linear-gradient(160deg, var(--st-main-light, #ff6b91) 0%, var(--st-main, #f0215a) 60%, var(--st-main-dark, #c4104a) 100%);
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
+        transform-origin: 50% 100%;
+        animation: giftLidHop 2.6s ease-in-out infinite;
+        transition: transform 0.75s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.75s;
+    }
+
+    &__bow {
+        position: absolute;
+        bottom: 100%;
+        width: calc(var(--s) * 0.25);
+        height: calc(var(--s) * 0.17);
+        border: calc(var(--s) * 0.045) solid var(--st-accent, #ffcf40);
+        border-radius: 50%;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+
+        &--left {
+            right: 50%;
+            transform-origin: right bottom;
+            transform: rotate(-28deg);
+        }
+
+        &--right {
+            left: 50%;
+            transform-origin: left bottom;
+            transform: rotate(28deg);
+        }
+    }
+
+    &__knot {
+        position: absolute;
+        left: 50%;
+        bottom: 86%;
+        width: calc(var(--s) * 0.11);
+        height: calc(var(--s) * 0.1);
+        border-radius: 35%;
+        background: linear-gradient(160deg, var(--st-accent-light, #ffe07a), var(--st-accent-dark, #f5a623));
+        transform: translateX(-50%);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+}
+
+// Chạm vào: rung mạnh -> bung nắp, lóe sáng
+.start-screen.gift-opening .gift-box {
+    animation: giftShake 0.52s linear;
+}
+
+.start-screen.gift-open {
+    .gift-box {
+        animation: none;
+    }
+
+    .gift-box__lid {
+        animation: none;
+        transform: translateY(-230%) rotate(-28deg);
+        opacity: 0;
+    }
+
+    .gift-box__body {
+        animation: giftBodyPop 0.45s ease-out;
+    }
+
+    .gift-box__glow {
+        animation: giftFlash 0.9s ease-out forwards;
+    }
+}
+
+// Pháo giấy và ruy băng (lớp phủ trên cùng, vẫn rơi khi màn trình diễn bắt đầu)
+.confetti-layer {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2100;
+    pointer-events: none;
+}
+
+@keyframes giftIdle {
+    0%, 55%, 100% { transform: rotate(0) scale(1); }
+    62% { transform: rotate(-7deg) scale(1.04); }
+    70% { transform: rotate(6deg) scale(1.04); }
+    78% { transform: rotate(-4deg) scale(1.02); }
+    86% { transform: rotate(2deg); }
+}
+
+@keyframes giftLidHop {
+    0%, 55%, 100% { transform: translateY(0) rotate(0); }
+    64% { transform: translateY(-14%) rotate(-3deg); }
+    74% { transform: translateY(-6%) rotate(3deg); }
+    84% { transform: translateY(0) rotate(0); }
+}
+
+@keyframes giftGlow {
+    0%, 100% { opacity: 0.75; transform: translate(-50%, -50%) scale(0.95); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+}
+
+@keyframes giftShake {
+    0%, 100% { transform: rotate(0) scale(1.04); }
+    10% { transform: rotate(-11deg) scale(1.06); }
+    20% { transform: rotate(10deg) scale(1.06); }
+    30% { transform: rotate(-10deg) scale(1.07); }
+    40% { transform: rotate(9deg) scale(1.07); }
+    50% { transform: rotate(-8deg) scale(1.08); }
+    60% { transform: rotate(8deg) scale(1.08); }
+    70% { transform: rotate(-6deg) scale(1.09); }
+    80% { transform: rotate(5deg) scale(1.09); }
+    90% { transform: rotate(-3deg) scale(1.1); }
+}
+
+@keyframes giftBodyPop {
+    0% { transform: scale(1.1, 0.9); }
+    60% { transform: scale(0.96, 1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes giftFlash {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(3.6); }
+}
+
+@keyframes heroShine {
+    from { transform: translateX(-130%); }
+    to { transform: translateX(130%); }
+}

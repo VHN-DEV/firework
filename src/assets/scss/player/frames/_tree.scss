@@ -1,0 +1,207 @@
+// Trình diễn Pháo hoa – giao diện trình phát (cây thông Giáng sinh)
+// Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+// Cây thông Giáng sinh (startFrame: "tree"): hộp quà rơi xuống gốc cây nảy nhẹ, dây đèn sáng lần lượt, ngôi sao sáng sau
+// cùng; chờ thì đèn nhấp nháy luân phiên, sao lấp lánh; mở thì nắp hộp bật lên, sao lóe, tia sáng bay lên như sao
+.tree {
+    left: 12%;
+    width: 76%;
+    top: 0;
+    height: 92%;
+
+    &__trunk {
+        left: 45%;
+        width: 10%;
+        top: 80%;
+        height: 12%;
+        border-radius: 2px;
+        background: linear-gradient(90deg, #4a2c18, #6b4226 50%, #3a2212);
+    }
+
+    &__tier {
+        clip-path: polygon(50% 0, 100% 100%, 0 100%);
+        background: linear-gradient(150deg, #4a9a5a 0%, #23673a 45%, #12401f 100%);
+
+        // Tuyết đọng mép dưới từng tầng
+        &::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 12%;
+            background: radial-gradient(ellipse at 50% 0, rgba(240, 246, 255, 0.85) 45%, transparent 47%) 0 0 / 18% 100% repeat-x;
+            opacity: 0.75;
+        }
+
+        &--1 {
+            left: 28%;
+            width: 44%;
+            top: 8%;
+            height: 34%;
+        }
+
+        &--2 {
+            left: 19%;
+            width: 62%;
+            top: 26%;
+            height: 36%;
+        }
+
+        &--3 {
+            left: 9%;
+            width: 82%;
+            top: 46%;
+            height: 37%;
+        }
+    }
+
+    // Dây đèn: mỗi bóng một màu, sáng lần lượt rồi nhấp nháy luân phiên
+    &__lights {
+        inset: 0;
+
+        i {
+            width: 6.5%;
+            aspect-ratio: 1;
+            margin: -3.25% 0 0 -3.25%;
+            border-radius: 50%;
+            background: var(--c, var(--st-accent, #ffd166));
+            opacity: 0.25;
+
+            &:nth-child(4n + 1) { --c: var(--st-accent, #ffd166); }
+            &:nth-child(4n + 2) { --c: #ff5a5f; }
+            &:nth-child(4n + 3) { --c: #7fd3ff; }
+            &:nth-child(4n) { --c: #fff3c4; }
+
+            .start-screen.is-ready & {
+                animation: treeLightOn 0.3s ease-out calc(0.6s + var(--i) * 0.06s) both,
+                    treeTwinkle 1.8s ease-in-out calc(1.4s + var(--i) * 0.23s) infinite;
+            }
+        }
+    }
+
+    &__star {
+        left: 41%;
+        width: 18%;
+        top: -4%;
+        aspect-ratio: 1;
+        clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+        background: radial-gradient(circle at 50% 45%, #fffbe0, var(--st-accent, #ffd166) 60%, #e0a020);
+        opacity: 0.35;
+
+        .start-screen.is-ready & {
+            animation: treeStar 0.5s ease-out 1.2s both, treeStarPulse 2.4s ease-in-out 1.8s infinite;
+        }
+    }
+
+    // Hộp quà nhỏ dưới gốc cây (màu theo giao diện)
+    &__gift {
+        left: 56%;
+        width: 32%;
+        top: 70%;
+        height: 26%;
+
+        .start-screen.is-ready & {
+            animation: treeGiftDrop 0.6s cubic-bezier(0.3, 0.7, 0.4, 1) 0.3s both;
+        }
+    }
+
+    &__gift-body {
+        left: 6%;
+        right: 6%;
+        bottom: 0;
+        height: 70%;
+        border-radius: 3px;
+        background:
+            linear-gradient(90deg, transparent 42%, var(--st-accent, #ffd166) 42% 58%, transparent 58%),
+            linear-gradient(160deg, var(--st-main-light, #ff6b6b), var(--st-main, #c41e3a) 60%, var(--st-main-dark, #8a1028));
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.4);
+    }
+
+    &__gift-lid {
+        left: 0;
+        right: 0;
+        top: 12%;
+        height: 24%;
+        border-radius: 3px;
+        background:
+            linear-gradient(90deg, transparent 40%, var(--st-accent-light, #ffe08a) 40% 60%, transparent 60%),
+            linear-gradient(160deg, var(--st-main-light, #ff6b6b), var(--st-main, #c41e3a));
+        transition: transform 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.6s;
+
+        &::before,
+        &::after {
+            content: '';
+            position: absolute;
+            bottom: 90%;
+            width: 30%;
+            height: 90%;
+            border: 2.5px solid var(--st-accent, #ffd166);
+            border-radius: 50%;
+        }
+
+        &::before {
+            right: 50%;
+            transform: rotate(-25deg);
+        }
+
+        &::after {
+            left: 50%;
+            transform: rotate(25deg);
+        }
+    }
+}
+
+.start-screen.gift-opening .tree__gift {
+    animation: giftShake 0.45s linear;
+}
+
+.start-screen.gift-open {
+    .tree__gift-lid {
+        transform: translateY(-260%) rotate(-30deg);
+        opacity: 0;
+    }
+
+    .tree__star {
+        animation: treeStarFlare 0.8s ease-out both;
+    }
+
+    .tree__lights i {
+        animation: none;
+        opacity: 1;
+        box-shadow: 0 0 10px 3px var(--c);
+    }
+}
+
+@keyframes treeLightOn {
+    from { opacity: 0.25; transform: scale(0.6); }
+    to { opacity: 1; transform: none; box-shadow: 0 0 8px 2px var(--c); }
+}
+
+@keyframes treeTwinkle {
+    0%, 100% { opacity: 1; box-shadow: 0 0 8px 2px var(--c); }
+    50% { opacity: 0.45; box-shadow: none; }
+}
+
+@keyframes treeStar {
+    from { opacity: 0.35; transform: scale(0.7); }
+    to { opacity: 1; transform: none; filter: drop-shadow(0 0 10px var(--st-accent, #ffd166)); }
+}
+
+@keyframes treeStarPulse {
+    0%, 100% { filter: drop-shadow(0 0 8px var(--st-accent, #ffd166)); }
+    50% { filter: drop-shadow(0 0 16px var(--st-accent, #ffd166)); transform: scale(1.06); }
+}
+
+@keyframes treeStarFlare {
+    40% { transform: scale(1.5); filter: drop-shadow(0 0 22px #fff3c4); }
+    100% { transform: scale(1.1); filter: drop-shadow(0 0 12px var(--st-accent, #ffd166)); }
+}
+
+@keyframes treeGiftDrop {
+    0% { opacity: 0; transform: translateY(-220%); }
+    60% { opacity: 1; transform: translateY(0); }
+    80% { transform: translateY(-10%); }
+    100% { opacity: 1; transform: none; }
+}

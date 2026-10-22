@@ -1,0 +1,72 @@
+// Trình diễn Pháo hoa – giao diện trình phát (tiêu đề trên màn trình diễn)
+// Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+/* Config Overlay */
+.config-overlay {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1500;
+    text-align: center;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: opacity 2s ease-in-out;
+    width: 100%;
+    max-width: 800px;
+    // Hiện dần sau khi khung bắt đầu (thiệp chào, hộp quà) đã mờ hẳn, không đè lên chữ của khung
+    animation: overlayIn 1s ease-out 0.7s backwards;
+
+    h1 {
+        font-size: 4rem;
+        font-weight: 700;
+        color: #fff;
+        text-shadow: 0 0 20px rgba(255, 255, 255, 0.5), 0 0 40px rgba(255, 191, 54, 0.3);
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+        color: rgba(255, 255, 255, 0.8);
+        margin: 0;
+        font-weight: 400;
+    }
+
+    p {
+        font-size: 1.2rem;
+        color: #ffbf36;
+        margin: 0;
+        font-style: italic;
+    }
+
+    &.fade-out { opacity: 0; }
+
+    @keyframes overlayIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @media (max-width: 600px) {
+        padding: 0 16px;
+        // Cho phép xuống dòng: tiêu đề dài (vd "CHÚC MỪNG SINH NHẬT") không bị cắt mất hai bên màn hình
+        h1 { font-size: clamp(1.5rem, 7vw, 2.5rem); overflow-wrap: break-word; }
+        h2 { font-size: clamp(1rem, 4.5vw, 1.2rem); }
+    }
+}
+
+// Bản xem nhanh trong builder: màn kết không cần lời mời tạo màn pháo hoa
+.is-preview .end-screen__create {
+    display: none;
+}
+
+// Khung dựng video (ẩn trong builder hoặc trang xem): chỉ còn bầu trời
+.is-record-mode {
+    .controls,
+    .end-screen {
+        display: none !important;
+    }
+}

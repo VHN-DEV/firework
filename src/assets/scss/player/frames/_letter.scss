@@ -1,0 +1,148 @@
+// Trình diễn Pháo hoa – giao diện trình phát (thư tình)
+// Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+// Phong thư tình (startFrame: "letter"): viền trái tim vẽ dần bằng ánh sáng, phong thư hiện ở giữa; chờ thì trái tim đập
+// nhẹ; mở thì nắp thư lật lên, lá thư nhô ra, trái tim nảy rồi tan thành cánh hoa, tim nhỏ
+.letter__heart {
+    position: absolute;
+    left: -8%;
+    top: -6%;
+    width: 116%;
+    height: 112%;
+    overflow: visible;
+
+    path {
+        fill: rgba(var(--st-main-rgb, 255, 45, 111), 0.1);
+        stroke: var(--st-accent, #ffb3c7);
+        stroke-width: 2.2;
+        stroke-linejoin: round;
+        stroke-dasharray: 310;
+        stroke-dashoffset: 310;
+        filter: drop-shadow(0 0 4px rgba(var(--st-accent-rgb, 255, 179, 199), 0.9));
+    }
+
+    .start-screen.is-ready & path {
+        animation: heartDraw 1s ease-out 0.15s both;
+    }
+
+    .start-screen.is-ready & {
+        transform-origin: 50% 55%;
+        animation: heartBeat 2.8s ease-in-out 1.4s infinite;
+    }
+
+    .start-screen.gift-open & {
+        animation: heartPop 0.7s ease-out forwards;
+    }
+}
+
+.letter {
+    left: 19%;
+    width: 62%;
+    top: 34%;
+    height: 42%;
+    perspective: 500px;
+
+    .start-screen.is-ready & {
+        animation: stageRise 0.6s ease-out 0.45s both;
+    }
+
+    &__back {
+        inset: 0;
+        border-radius: 6px;
+        background: linear-gradient(160deg, var(--st-main, #ff2d6f), var(--st-main-dark, #b81d50));
+    }
+
+    // Lá thư: giấy kem có dòng kẻ, một trái tim nhỏ
+    &__paper {
+        z-index: 1;
+        left: 7%;
+        right: 7%;
+        top: 6%;
+        height: 86%;
+        border-radius: 3px;
+        background:
+            radial-gradient(circle at 50% 30%, var(--st-main, #ff2d6f) 0 7%, transparent 8%),
+            repeating-linear-gradient(180deg, transparent 0 16%, rgba(120, 90, 90, 0.22) 16% 18%) 0 45% / 100% 50% no-repeat,
+            #fffaf2;
+        transition: transform 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.15) 0.25s;
+    }
+
+    // Mặt trước: hai vạt chéo dưới (khe chữ V ở trên)
+    &__front {
+        z-index: 2;
+        inset: 0;
+        border-radius: 6px;
+        clip-path: polygon(0 0, 50% 55%, 100% 0, 100% 100%, 0 100%);
+        background: linear-gradient(165deg, var(--st-main-light, #ff7ba3), var(--st-main, #ff2d6f) 70%);
+        box-shadow: 0 14px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    &__flap {
+        z-index: 3;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 58%;
+        clip-path: polygon(0 0, 100% 0, 50% 100%);
+        background: linear-gradient(180deg, var(--st-main-dark, #b81d50), var(--st-main, #ff2d6f));
+        transform-origin: 50% 0;
+        transition: transform 0.55s cubic-bezier(0.4, 0, 0.6, 1), z-index 0s 0.27s;
+    }
+
+    // Dấu sáp hình tim ở đỉnh nắp thư
+    &__seal {
+        z-index: 4;
+        left: 50%;
+        top: 58%;
+        width: 22%;
+        aspect-ratio: 1;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: radial-gradient(circle at 38% 32%, var(--st-accent-light, #ffd6e0), var(--st-accent, #ffb3c7) 55%, var(--st-accent-dark, #e07a96));
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+        color: var(--st-main-dark, #b81d50);
+        font-size: calc(var(--s) * 0.075);
+        line-height: 1;
+        transform: translate(-50%, -50%);
+        transition: transform 0.35s ease-in, opacity 0.35s;
+    }
+}
+
+.start-screen.gift-opening .letter {
+    animation: lixiShake 0.38s linear;
+}
+
+.start-screen.gift-open .letter {
+    .letter__flap {
+        z-index: 0;
+        transform: rotateX(180deg);
+    }
+
+    .letter__paper {
+        transform: translateY(-62%);
+    }
+
+    .letter__seal {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.6);
+    }
+}
+
+@keyframes heartDraw {
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes heartBeat {
+    0%, 60%, 100% { transform: scale(1); }
+    15% { transform: scale(1.04); }
+    30% { transform: scale(0.99); }
+    45% { transform: scale(1.03); }
+}
+
+@keyframes heartPop {
+    30% { transform: scale(1.12); opacity: 1; }
+    100% { transform: scale(1.35); opacity: 0; }
+}

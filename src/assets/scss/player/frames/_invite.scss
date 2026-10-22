@@ -1,0 +1,145 @@
+// Trình diễn Pháo hoa – giao diện trình phát (thiệp cưới)
+// Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+// Thiệp cưới (startFrame: "invite"): thiệp màu kem viền vàng trượt lên, vệt sáng champagne chạy quanh; chờ thì đứng yên;
+// mở thì dấu sáp tan, hai cánh thiệp mở ra hai bên, đôi nhẫn sáng lên, vệt sáng champagne quét ngang, cánh hoa rơi
+.invite {
+    left: 13%;
+    width: 74%;
+    top: 2%;
+    height: 92%;
+    perspective: 700px;
+
+    // Bên trong: nền kem, viền vàng, đôi nhẫn lồng nhau
+    &__inside {
+        inset: 0;
+        overflow: hidden;
+        border-radius: 6px;
+        background:
+            radial-gradient(circle at 50% 42%, rgba(var(--st-accent-rgb, 243, 220, 168), 0.55) 0 26%, transparent 46%),
+            #fbf4e6;
+        box-shadow: inset 0 0 0 calc(var(--s) * 0.02) #fbf4e6, inset 0 0 0 calc(var(--s) * 0.028) var(--st-main, #b8862b), 0 16px 28px rgba(0, 0, 0, 0.45);
+
+        // Vệt sáng champagne quét ngang khi mở
+        &::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(105deg, transparent 30%, rgba(255, 246, 220, 0.85) 50%, transparent 70%);
+            transform: translateX(-130%);
+        }
+    }
+
+    &__rings {
+        left: 22%;
+        width: 56%;
+        top: 30%;
+        height: 26%;
+        transform: scale(0.85);
+        opacity: 0.6;
+        transition: transform 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.4) 0.35s, opacity 0.6s 0.35s;
+
+        i {
+            top: 0;
+            height: 100%;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            border: calc(var(--s) * 0.028) solid var(--st-main, #b8862b);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6), 0 0 0 1px rgba(120, 80, 20, 0.35);
+
+            &:first-child {
+                left: 12%;
+            }
+
+            &:last-child {
+                right: 12%;
+            }
+        }
+    }
+
+    // Hai cánh thiệp, mở quanh mép ngoài
+    &__door {
+        top: 0;
+        width: 50%;
+        height: 100%;
+        background:
+            radial-gradient(circle at 50% 50%, rgba(var(--st-main-rgb, 184, 134, 43), 0.12) 0 1.5px, transparent 2px) 0 0 / 14px 14px,
+            linear-gradient(160deg, #fffaf0, #f3e6cc);
+        box-shadow: inset 0 0 0 calc(var(--s) * 0.014) var(--st-main, #b8862b), 0 10px 20px rgba(0, 0, 0, 0.3);
+        transition: transform 0.7s cubic-bezier(0.45, 0, 0.25, 1);
+
+        &--l {
+            left: 0;
+            border-radius: 6px 0 0 6px;
+            transform-origin: 0 50%;
+        }
+
+        &--r {
+            right: 0;
+            border-radius: 0 6px 6px 0;
+            transform-origin: 100% 50%;
+        }
+    }
+
+    &__seal {
+        left: 50%;
+        top: 50%;
+        width: 22%;
+        aspect-ratio: 1;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: radial-gradient(circle at 38% 32%, #e8b0a0, #a8323c 55%, #6e1622);
+        box-shadow: 0 0 0 calc(var(--s) * 0.01) var(--st-main, #b8862b), 0 3px 8px rgba(0, 0, 0, 0.35);
+        color: var(--st-accent, #f3dca8);
+        font-size: calc(var(--s) * 0.075);
+        line-height: 1;
+        transform: translate(-50%, -50%);
+        transition: transform 0.3s ease-in, opacity 0.3s;
+    }
+
+    // Viền vàng sáng lên một lần lúc thiệp vừa hiện
+    .start-screen.is-ready & {
+        animation: inviteGlow 1.2s ease-in-out 0.6s both;
+    }
+}
+
+.start-screen.frame-invite.is-ready .gift-stage > .gift-stage__hero {
+    animation: inviteIn 0.8s ease-out 0.1s both;
+}
+
+.start-screen.gift-opening .invite__seal {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+}
+
+.start-screen.gift-opening .invite__door--l {
+    transform: rotateY(-118deg);
+}
+
+.start-screen.gift-opening .invite__door--r {
+    transform: rotateY(118deg);
+}
+
+.start-screen.gift-open .invite {
+    .invite__rings {
+        transform: scale(1.08);
+        opacity: 1;
+        filter: drop-shadow(0 0 8px rgba(var(--st-accent-rgb, 243, 220, 168), 0.9));
+    }
+
+    .invite__inside::after {
+        animation: heroShine 0.9s ease-in-out both;
+    }
+}
+
+@keyframes inviteIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes inviteGlow {
+    50% { filter: drop-shadow(0 0 14px rgba(var(--st-accent-rgb, 243, 220, 168), 0.9)); }
+}

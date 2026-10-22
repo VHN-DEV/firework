@@ -1,0 +1,423 @@
+// Trình diễn Pháo hoa – giao diện trình phát (nút điều khiển, menu, giải thích)
+// Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use '../variables' as *;
+
+.controls {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    padding-bottom: 50px;
+    display: flex;
+    justify-content: space-between;
+    transition: opacity 0.3s, visibility 0.3s;
+    z-index: 10;
+
+    @media (min-width: $tablet) {
+        visibility: visible;
+        &.hide:hover {
+            opacity: 1;
+        }
+    }
+}
+
+.menu {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    transition: opacity 0.3s, visibility 0.3s;
+    // Trên tiêu đề màn trình diễn (.config-overlay), dưới bảng chia sẻ, tạo video (.sheet)
+    z-index: 1550;
+
+    &__inner-wrap {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 16px;
+        transition: opacity 0.3s;
+    }
+
+    // Một bảng duy nhất, cuộn chung khi màn hình thấp (không còn khung cuộn lồng bên trong)
+    &__panel {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-width: 420px;
+        max-height: 100%;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 14px 20px 16px;
+        border-radius: 18px;
+        background: rgba(17, 19, 28, 0.94);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+
+        // Màn hẹp (360px): tên cài đặt vẫn một dòng
+        @media (max-width: 380px) {
+            padding: 12px 14px 14px;
+
+            .form-option {
+                gap: 6px;
+
+                label {
+                    font-size: 0.9rem;
+                    white-space: nowrap;
+                }
+
+                select {
+                    min-width: 0;
+                    width: 112px;
+                    padding: 0 4px;
+                    font-size: 0.85rem;
+                }
+            }
+        }
+    }
+
+    &__top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-right: -12px;
+    }
+
+    &__header {
+        font-size: 1.35rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: #fff;
+    }
+
+    &__group {
+        margin: 14px 0 2px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.45);
+    }
+
+    &__builder-link {
+        margin: 18px 0 4px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+        p {
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            line-height: 1.45;
+            color: rgba(255, 255, 255, 0.6);
+        }
+    }
+
+    // Mỗi dòng: tên cài đặt, nút "?", ô chọn/công tắc ở bên phải
+    .form-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 48px;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+        &:last-child {
+            border-bottom: none;
+        }
+
+        label {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.88);
+            user-select: none;
+            cursor: pointer;
+        }
+
+        select {
+            margin-left: auto;
+            min-width: 128px;
+            height: 36px;
+            padding: 0 8px;
+            font-size: 0.9rem;
+            font-family: "Roboto", arial, sans-serif;
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 9px;
+            cursor: pointer;
+
+            &:focus-visible {
+                outline: 2px solid #8b5cf6;
+                outline-offset: 1px;
+            }
+
+            option {
+                background-color: #11131c;
+            }
+        }
+
+        // Công tắc bật/tắt (giống builder) thay cho ô vuông xám
+        &--checkbox input {
+            appearance: none;
+            -webkit-appearance: none;
+            position: relative;
+            flex-shrink: 0;
+            margin: 0 0 0 auto;
+            width: 46px;
+            height: 26px;
+            border-radius: 13px;
+            background: rgba(255, 255, 255, 0.18);
+            cursor: pointer;
+            transition: background-color 0.2s;
+
+            &::before {
+                content: '';
+                position: absolute;
+                top: 3px;
+                left: 3px;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: #fff;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+                transition: transform 0.2s;
+            }
+
+            &:checked {
+                background: linear-gradient(135deg, #6366f1, #a855f7);
+
+                &::before {
+                    transform: translateX(20px);
+                }
+            }
+
+            &:focus-visible {
+                outline: 2px solid #8b5cf6;
+                outline-offset: 2px;
+            }
+        }
+    }
+}
+
+// Nút "?" giải thích cài đặt (giống builder); vùng chạm rộng hơn hình tròn
+.menu-help {
+    position: relative;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font: 700 0.68rem/1 "Roboto", arial, sans-serif;
+    cursor: help;
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: -10px;
+    }
+
+    &:hover,
+    &:focus-visible {
+        border-color: #8b5cf6;
+        background: #8b5cf6;
+        color: #fff;
+        outline: none;
+    }
+}
+
+.btn-builder {
+    width: 100%;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    color: white !important;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+    border: none;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    opacity: 1 !important;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+        background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+        color: white !important;
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+
+    svg {
+        flex-shrink: 0;
+    }
+}
+
+.close-menu-btn {
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.btn {
+    opacity: 0.5;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    user-select: none;
+    cursor: default;
+    transition: opacity 0.3s;
+
+    &--bright {
+        opacity: 0.5;
+    }
+
+    @media (min-width: $tablet) {
+        &:hover { opacity: 0.9; }
+        &--bright:hover { opacity: 0.75; }
+    }
+
+    svg {
+        display: block;
+        margin: auto;
+    }
+}
+
+.credits {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 0.78em;
+    opacity: 0.55;
+
+    a {
+        color: rgba(255, 255, 255, 0.5);
+        text-decoration: none;
+        &:hover, &:active {
+            color: rgba(255, 255, 255, 0.75);
+            text-decoration: underline;
+        }
+    }
+}
+
+.help-modal {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    top: 0; bottom: 0; left: 0; right: 0;
+    visibility: hidden;
+    transition-property: visibility;
+    transition-duration: 0.25s;
+    // Mở từ menu Cài đặt (nút "?"): nằm trên menu
+    z-index: 1560;
+
+    &__overlay {
+        position: absolute;
+        top: 0; bottom: 0; left: 0; right: 0;
+        opacity: 0;
+        transition-property: opacity;
+        transition-timing-function: ease-in;
+        transition-duration: 0.25s;
+    }
+
+    &__dialog {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        max-width: 400px;
+        max-height: calc(100vh - 100px);
+        margin: 16px;
+        padding: 20px 22px;
+        border-radius: 18px;
+        background: rgba(17, 19, 28, 0.97);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+        opacity: 0;
+        transform: scale(0.9, 0.9);
+        transition-property: opacity, transform;
+        transition-timing-function: ease-in;
+        transition-duration: 0.25s;
+
+        @media (min-width: $tablet) {
+            font-size: 1.25rem;
+            max-width: 500px;
+        }
+    }
+
+    &__header {
+        font-size: 1.3em;
+        font-weight: 600;
+        text-align: center;
+        color: #fff;
+    }
+
+    &__body {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 1em 0;
+        padding: 1em 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.25);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.75);
+    }
+
+    &__close-btn {
+        flex-shrink: 0;
+        outline: none;
+        border: none;
+        border-radius: 10px;
+        padding: 0.5em 1.6em;
+        margin-top: 0.36em;
+        font-family: "Roboto", arial, sans-serif;
+        font-size: 0.95em;
+        font-weight: 600;
+        color: #fff;
+        background-color: rgba(255, 255, 255, 0.12);
+        cursor: pointer;
+        transition: color 0.3s, background-color 0.3s;
+
+        &:hover, &:active, &:focus-visible {
+            color: #fff;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+        }
+    }
+
+    &.active {
+        visibility: visible;
+        transition-duration: 0.4s;
+
+        .help-modal__overlay {
+            opacity: 1;
+            transition-timing-function: ease-out;
+            transition-duration: 0.4s;
+        }
+
+        .help-modal__dialog {
+            opacity: 1;
+            transform: scale(1, 1);
+            transition-timing-function: ease-out;
+            transition-duration: 0.4s;
+        }
+    }
+}

@@ -1,0 +1,14 @@
+// Trình diễn Pháo hoa – giao diện trình phát (giảm chuyển động)
+// Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+// Giảm chuyển động: bỏ hiệu ứng hiện ra, nhịp chờ (vẫn mở được, chuyển cảnh ngắn)
+@media (prefers-reduced-motion: reduce) {
+    .start-screen.frame-gift .gift-stage > *,
+    .gift-box,
+    .gift-box *,
+    .hero,
+    .hero * {
+        animation: none !important;
+    }
+}

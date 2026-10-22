@@ -1,0 +1,181 @@
+// Trình diễn Pháo hoa – giao diện trình phát (đèn lồng đón trăng)
+// Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+// Đèn lồng đón trăng (startFrame: "lantern"): trăng hiện ra sau mây, đèn lồng trượt lên và sáng dần; chờ thì mây trôi,
+// đèn đung đưa quanh chỗ treo; mở thì đèn bừng sáng, vòng sáng lan rộng, tia sáng bay
+.lantern-moon {
+    left: 44%;
+    top: -16%;
+    width: 64%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle at 42% 40%, #fffbe8 0%, #fff0c0 45%, #f5d78a 100%);
+    box-shadow: 0 0 40px 12px rgba(255, 226, 150, 0.35);
+    opacity: 0;
+
+    .start-screen.is-ready & {
+        animation: moonIn 0.9s ease-out 0.2s both;
+    }
+}
+
+.lantern-cloud {
+    // Mây đêm mềm: thân tím than mờ dần ra mép, mép trên ánh trăng
+    height: 14%;
+    border-radius: 50%;
+    background:
+        radial-gradient(ellipse at 50% 30%, rgba(255, 232, 190, 0.38) 0%, transparent 45%),
+        radial-gradient(ellipse at 50% 55%, rgba(58, 44, 78, 0.9) 0%, rgba(58, 44, 78, 0.55) 45%, rgba(58, 44, 78, 0) 70%);
+    filter: blur(2px);
+
+    &--a {
+        left: 30%;
+        top: 8%;
+        width: 60%;
+    }
+
+    &--b {
+        left: 62%;
+        top: 22%;
+        width: 50%;
+        height: 9%;
+    }
+
+    .start-screen.is-ready & {
+        animation: cloudDrift 7s ease-in-out infinite alternate;
+    }
+
+    .start-screen.is-ready &--b {
+        animation-duration: 9s;
+        animation-direction: alternate-reverse;
+    }
+}
+
+.lantern {
+    left: 28%;
+    width: 44%;
+    top: 4%;
+    height: 94%;
+    transform-origin: 50% 0;
+
+    .start-screen.is-ready & {
+        animation: lanternSway 3.4s ease-in-out 1.2s infinite;
+    }
+
+    &__string {
+        left: 49%;
+        width: 2%;
+        top: 0;
+        height: 13%;
+        background: #3a2a1a;
+    }
+
+    &__cap {
+        left: 26%;
+        right: 26%;
+        height: 6%;
+        border-radius: 3px;
+        background: linear-gradient(180deg, #ffe08a, var(--st-accent, #ffcf6b) 50%, #b8862b);
+
+        &--top {
+            top: 12%;
+        }
+
+        &--bottom {
+            top: 77%;
+        }
+    }
+
+    // Thân đèn tròn, nan dọc; ánh nến bên trong sáng dần
+    &__body {
+        left: 4%;
+        right: 4%;
+        top: 17%;
+        height: 61%;
+        overflow: hidden;
+        border-radius: 50% / 46%;
+        background:
+            repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.16) 0 2px, transparent 2px 16%),
+            radial-gradient(ellipse at 50% 50%, var(--st-main-light, #ff9a4a) 0%, var(--st-main, #e8590c) 55%, var(--st-main-dark, #9a3206) 100%);
+        box-shadow: 0 0 24px 4px rgba(var(--st-main-rgb, 232, 89, 12), 0.45);
+    }
+
+    &__light {
+        inset: 0;
+        background: radial-gradient(ellipse at 50% 55%, rgba(255, 246, 200, 0.95) 0%, rgba(255, 210, 120, 0.6) 30%, transparent 70%);
+        opacity: 0.15;
+
+        .start-screen.is-ready & {
+            animation: lanternGlow 0.6s ease-out 0.7s both, lanternFlicker 2.2s ease-in-out 1.4s infinite alternate;
+        }
+    }
+
+    &__tassel {
+        left: 44%;
+        width: 12%;
+        top: 83%;
+        height: 16%;
+        border-radius: 0 0 40% 40%;
+        background: repeating-linear-gradient(90deg, #d0302a 0 2px, #8a1a16 2px 3px);
+    }
+
+    &__ring {
+        left: 50%;
+        top: 48%;
+        width: 60%;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        border: 3px solid rgba(255, 230, 160, 0.9);
+        transform: translate(-50%, -50%) scale(0.3);
+        opacity: 0;
+    }
+}
+
+.start-screen.gift-open {
+    .lantern {
+        animation: none;
+    }
+
+    .lantern__light {
+        animation: none;
+        opacity: 1;
+    }
+
+    .lantern__body {
+        box-shadow: 0 0 50px 18px rgba(255, 200, 110, 0.7);
+    }
+
+    .lantern__ring {
+        animation: lanternRing 0.9s ease-out both;
+    }
+}
+
+@keyframes moonIn {
+    from { opacity: 0; transform: translate(-8%, 10%) scale(0.92); }
+    to { opacity: 0.95; transform: none; }
+}
+
+@keyframes cloudDrift {
+    from { transform: translateX(-10%); }
+    to { transform: translateX(10%); }
+}
+
+@keyframes lanternSway {
+    0%, 100% { transform: rotate(-4deg); }
+    50% { transform: rotate(4deg); }
+}
+
+@keyframes lanternGlow {
+    from { opacity: 0.15; }
+    to { opacity: 0.85; }
+}
+
+@keyframes lanternFlicker {
+    from { opacity: 0.85; }
+    to { opacity: 0.7; }
+}
+
+@keyframes lanternRing {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.3); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(3.4); }
+}

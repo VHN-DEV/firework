@@ -1,0 +1,62 @@
+// Trình diễn Pháo hoa – giao diện trình phát (vật thể chính dùng chung)
+// Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+// ---------------------------------------------------------------------------
+// Vật thể chính của các khung bắt đầu khác (bao lì xì, bánh sinh nhật, đèn lồng...): vẽ bằng CSS, màu theo giao diện của
+// dịp (--st-main, --st-accent). Mỗi khung: hiệu ứng hiện ra (đè lên heroIn của ô vật thể), nhịp chờ, lấy đà
+// (.gift-opening) và bung ra (.gift-open)
+// ---------------------------------------------------------------------------
+.hero {
+    --s: clamp(150px, 40vw, 200px);
+    position: relative;
+    display: block;
+    width: var(--s);
+    height: var(--s);
+    margin: 2.25rem 0 1.25rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    &:focus-visible {
+        outline: 3px solid var(--st-accent, #ffbf36);
+        outline-offset: 10px;
+        border-radius: 18px;
+    }
+
+    span,
+    i,
+    b {
+        position: absolute;
+        display: block;
+    }
+
+    // Quầng sáng sau vật thể; mở quà thì lóe rộng ra
+    &__glow {
+        left: 50%;
+        top: 55%;
+        width: 190%;
+        height: 190%;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(var(--st-accent-rgb, 255, 191, 54), 0.36) 0%, rgba(var(--st-main-rgb, 255, 0, 67), 0.15) 35%, transparent 65%);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        animation: giftGlow 2.6s ease-in-out infinite;
+
+        .start-screen.gift-open & {
+            animation: giftFlash 0.9s ease-out forwards;
+        }
+    }
+}
+
+// Giảm chớp sáng: không lóe sáng khi mở
+.start-screen.gift-calm.gift-open {
+    .hero__glow,
+    .gift-box__glow {
+        animation: none;
+        opacity: 0.6;
+    }
+}

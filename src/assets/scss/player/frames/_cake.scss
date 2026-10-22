@@ -1,0 +1,182 @@
+// Trình diễn Pháo hoa – giao diện trình phát (bánh sinh nhật)
+// Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+// Bánh sinh nhật (startFrame: "cake"): bánh phóng lên, nến thắp lần lượt, bóng bay hai bên bay lên; chờ thì lửa nến lay
+// nhẹ, bóng bay bồng bềnh; mở thì lửa bùng sáng, bánh thu nhỏ, pháo giấy bung từ hai bên màn hình
+.cake {
+    inset: 0;
+    transition: transform 0.5s ease-in;
+
+    &__plate {
+        left: 8%;
+        right: 8%;
+        top: 86%;
+        height: 7%;
+        border-radius: 50%;
+        background: linear-gradient(#f4f4f8, #b8bcc8);
+        box-shadow: 0 8px 14px rgba(0, 0, 0, 0.45);
+    }
+
+    // Tầng bánh: thân màu theo giao diện, lớp kem phủ trên chảy giọt
+    &__tier {
+        border-radius: 7% / 10%;
+        background: linear-gradient(90deg, var(--st-main-dark, #c42d7d), var(--st-main, #ff4fa3) 35%, var(--st-main-light, #ff8cc4) 60%, var(--st-main, #ff4fa3) 85%);
+        box-shadow: inset 0 -6px 10px rgba(0, 0, 0, 0.18);
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: -1%;
+            right: -1%;
+            top: -2%;
+            height: 42%;
+            border-radius: 8px 8px 0 0;
+            background:
+                radial-gradient(circle at 50% 0, #fff6ee 58%, transparent 61%) 0 100% / 14% 48% repeat-x,
+                linear-gradient(#fffaf4, #fff1e4) 0 0 / 100% 64% no-repeat;
+        }
+
+        &--low {
+            left: 14%;
+            right: 14%;
+            top: 60%;
+            height: 28%;
+        }
+
+        &--top {
+            left: 27%;
+            right: 27%;
+            top: 40%;
+            height: 23%;
+            background: linear-gradient(90deg, #d9a35c, #f2c98a 40%, #fbe2b8 60%, #e8b672 90%);
+        }
+    }
+
+    // Nến sọc, lửa hình giọt nước: thắp lần lượt rồi lay nhẹ
+    &__candles {
+        left: 30%;
+        right: 30%;
+        top: 25%;
+        height: 16%;
+
+        i {
+            left: calc(6% + var(--i) * 20%);
+            width: 8%;
+            top: 0;
+            height: 100%;
+            border-radius: 2px;
+            background: repeating-linear-gradient(135deg, #fff 0 3px, var(--st-accent, #ffd166) 3px 6px);
+        }
+
+        b {
+            left: 50%;
+            bottom: 100%;
+            width: 180%;
+            height: 0;
+            padding-bottom: 300%;
+            margin-left: -90%;
+            border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+            background: radial-gradient(ellipse at 50% 72%, #fff 0 18%, #ffe27a 35%, #ff9a2e 70%, rgba(255, 120, 30, 0) 72%);
+            box-shadow: 0 0 10px 3px rgba(255, 190, 80, 0.5);
+            transform-origin: 50% 100%;
+            transform: scale(0);
+
+            .start-screen.is-ready & {
+                animation: flameOn 0.35s ease-out calc(0.6s + var(--i) * 0.13s) both,
+                    flameFlicker 1.4s ease-in-out calc(1.3s + var(--i) * 0.17s) infinite alternate;
+            }
+        }
+    }
+}
+
+// Bóng bay hai bên: bay lên rồi bồng bềnh
+.cake-balloon {
+    width: 19%;
+    height: 24%;
+    border-radius: 50% 50% 48% 48% / 56% 56% 44% 44%;
+    background: radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.65) 0 9%, transparent 11%), var(--b, var(--st-main, #ff4fa3));
+    box-shadow: inset -4px -6px 10px rgba(0, 0, 0, 0.18);
+
+    &::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 100%;
+        width: 1px;
+        height: 150%;
+        background: rgba(255, 255, 255, 0.45);
+    }
+
+    &--a {
+        --b: var(--st-accent, #ffd166);
+        left: -22%;
+        top: 14%;
+    }
+
+    &--b {
+        --b: var(--st-main, #ff4fa3);
+        right: -20%;
+        top: 4%;
+    }
+
+    &--c {
+        --b: #7fc8ff;
+        right: -34%;
+        top: 30%;
+        width: 15%;
+        height: 19%;
+    }
+
+    .start-screen.is-ready & {
+        animation: balloonRise 1s ease-out 0.35s both, balloonBob 3.2s ease-in-out 1.4s infinite;
+    }
+
+    .start-screen.is-ready &--b {
+        animation-delay: 0.5s, 1.6s;
+    }
+
+    .start-screen.is-ready &--c {
+        animation-delay: 0.65s, 1.9s;
+    }
+}
+
+.start-screen.gift-opening .cake {
+    transform: scale(1.04);
+}
+
+.start-screen.gift-open {
+    .cake {
+        transform: scale(0.9);
+    }
+
+    .cake__candles b {
+        animation: flameFlare 0.6s ease-out both;
+    }
+}
+
+@keyframes flameOn {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes flameFlicker {
+    0% { transform: scale(1) skewX(0); }
+    50% { transform: scale(0.94, 1.06) skewX(-3deg); }
+    100% { transform: scale(1.04, 0.96) skewX(2deg); }
+}
+
+@keyframes flameFlare {
+    40% { transform: scale(1.6); box-shadow: 0 0 22px 8px rgba(255, 210, 120, 0.85); }
+    100% { transform: scale(1.15); box-shadow: 0 0 14px 4px rgba(255, 190, 80, 0.6); }
+}
+
+@keyframes balloonRise {
+    from { opacity: 0; transform: translateY(70%); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes balloonBob {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-8%) rotate(2deg); }
+}

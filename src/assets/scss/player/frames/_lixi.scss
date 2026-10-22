@@ -1,0 +1,192 @@
+// Trình diễn Pháo hoa – giao diện trình phát (bao lì xì)
+// Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+// Bao lì xì (startFrame: "lixi"): rơi xuống nảy nhẹ, viền vàng lóe sáng, hai đồng xu trang trí rơi rồi mờ; chờ thì nghiêng
+// qua lại; chạm vào thì nắp lật lên, thiệp lộc vàng nhô ra, xu vàng bung lên
+.start-screen.frame-lixi.is-ready .gift-stage > .gift-stage__hero {
+    animation: lixiDrop 0.75s cubic-bezier(0.3, 0.7, 0.4, 1) 0.1s both;
+}
+
+.lixi {
+    left: 20%;
+    width: 60%;
+    top: 0;
+    height: 94%;
+    perspective: 520px;
+    transform-origin: 50% 0;
+
+    .start-screen.is-ready & {
+        animation: lixiSway 3s ease-in-out 1.3s infinite;
+    }
+
+    // Thiệp lộc vàng bên trong, mở thì nhô lên
+    &__card {
+        z-index: 1;
+        left: 9%;
+        right: 9%;
+        top: 5%;
+        height: 60%;
+        border-radius: 4px;
+        background:
+            linear-gradient(var(--st-main, #d7141a), var(--st-main, #d7141a)) 50% 22% / 46% 3px no-repeat,
+            linear-gradient(170deg, #fff6d6, var(--st-accent-light, #ffe07a) 55%, var(--st-accent, #ffbf36));
+        box-shadow: inset 0 0 0 3px rgba(var(--st-main-rgb, 215, 20, 26), 0.55), 0 2px 6px rgba(0, 0, 0, 0.3);
+        transition: transform 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.15) 0.22s;
+    }
+
+    // Thân bao: đỏ son có hoa văn chéo mờ, viền vàng hai lớp
+    &__body {
+        z-index: 2;
+        inset: 0;
+        border-radius: 9px;
+        background:
+            repeating-linear-gradient(45deg, rgba(var(--st-accent-rgb, 255, 191, 54), 0.08) 0 3px, transparent 3px 11px),
+            repeating-linear-gradient(-45deg, rgba(var(--st-accent-rgb, 255, 191, 54), 0.06) 0 3px, transparent 3px 11px),
+            linear-gradient(165deg, var(--st-main-light, #ff4f4f) 0%, var(--st-main, #d7141a) 50%, var(--st-main-dark, #8f0d12) 100%);
+        box-shadow:
+            inset 0 0 0 calc(var(--s) * 0.022) var(--st-main-dark, #8f0d12),
+            inset 0 0 0 calc(var(--s) * 0.034) var(--st-accent, #ffbf36),
+            0 16px 28px rgba(0, 0, 0, 0.45);
+
+        .start-screen.is-ready & {
+            animation: lixiEdge 0.5s ease-out 0.75s;
+        }
+    }
+
+    // Chữ "Lộc" trên đồng tiền vàng
+    &__emblem {
+        z-index: 3;
+        left: 50%;
+        top: 58%;
+        width: 46%;
+        aspect-ratio: 1;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: radial-gradient(circle at 38% 32%, #fff3b8, var(--st-accent, #ffbf36) 55%, var(--st-accent-dark, #c98a12));
+        box-shadow: 0 0 0 calc(var(--s) * 0.012) var(--st-accent-dark, #c98a12), 0 3px 8px rgba(0, 0, 0, 0.3);
+        color: var(--st-main-dark, #8f0d12);
+        font: 800 calc(var(--s) * 0.1) / 1 Georgia, 'Times New Roman', serif;
+        transform: translate(-50%, -50%);
+        transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+    }
+
+    // Nắp hình chữ V, viền vàng; mở thì lật lên (nửa chừng thì nằm sau thiệp)
+    &__flap {
+        z-index: 4;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 38%;
+        transform-origin: 50% 0;
+        transition: transform 0.55s cubic-bezier(0.4, 0, 0.6, 1), z-index 0s 0.27s;
+
+        i {
+            inset: 0;
+            clip-path: polygon(0 0, 100% 0, 100% 30%, 50% 100%, 0 30%);
+            border-radius: 9px 9px 0 0;
+        }
+    }
+
+    &__flap-edge {
+        background: var(--st-accent, #ffbf36);
+        transform: translateY(calc(var(--s) * 0.024));
+    }
+
+    &__flap-face {
+        background: linear-gradient(180deg, var(--st-main-dark, #8f0d12), var(--st-main, #d7141a) 95%);
+    }
+
+    // Đồng xu trang trí: rơi xuống cạnh bao rồi mờ dần (chỉ một lần lúc hiện ra)
+    &__coin {
+        z-index: 5;
+        bottom: 6%;
+        width: 13%;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #fff3b8, var(--st-accent, #ffbf36) 55%, var(--st-accent-dark, #c98a12));
+        box-shadow: inset 0 0 0 2px var(--st-accent-dark, #c98a12);
+        opacity: 0;
+
+        &::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 28%;
+            height: 28%;
+            background: var(--st-main-dark, #8f0d12);
+            transform: translate(-50%, -50%);
+        }
+
+        &--a {
+            left: 4%;
+        }
+
+        &--b {
+            right: 3%;
+            width: 11%;
+        }
+
+        .start-screen.is-ready &--a {
+            animation: lixiCoin 1.2s ease-in 0.8s both;
+        }
+
+        .start-screen.is-ready &--b {
+            animation: lixiCoin 1.2s ease-in 0.95s both;
+        }
+    }
+}
+
+.start-screen.gift-opening .lixi {
+    animation: lixiShake 0.38s linear;
+}
+
+.start-screen.gift-open .lixi {
+    animation: none;
+
+    .lixi__flap {
+        z-index: 0;
+        transform: rotateX(180deg);
+    }
+
+    .lixi__card {
+        transform: translateY(-55%);
+    }
+
+    .lixi__emblem {
+        transform: translate(-50%, -50%) scale(1.12);
+    }
+}
+
+@keyframes lixiDrop {
+    0% { opacity: 0; transform: translateY(-90px) rotate(-8deg); }
+    55% { opacity: 1; transform: translateY(0) rotate(1deg); }
+    75% { transform: translateY(-8px) rotate(0); }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes lixiSway {
+    0%, 100% { transform: rotate(-2.5deg); }
+    50% { transform: rotate(2.5deg); }
+}
+
+@keyframes lixiEdge {
+    50% { filter: drop-shadow(0 0 12px rgba(var(--st-accent-rgb, 255, 191, 54), 0.95)); }
+}
+
+@keyframes lixiCoin {
+    0% { opacity: 0; transform: translateY(-34px) scale(0.6); }
+    25% { opacity: 1; transform: translateY(0) scale(1); }
+    70% { opacity: 1; transform: translateY(16px); }
+    100% { opacity: 0; transform: translateY(30px); }
+}
+
+@keyframes lixiShake {
+    0%, 100% { transform: rotate(0); }
+    20% { transform: rotate(-6deg) scale(1.03); }
+    45% { transform: rotate(5deg) scale(1.05); }
+    70% { transform: rotate(-3deg) scale(1.06); }
+}

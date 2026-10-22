@@ -1,0 +1,116 @@
+// Trình diễn Pháo hoa – giao diện trình phát (hoa nở)
+// Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+// Hoa nở (startFrame: "flower"): nụ hoa hiện ra, từng cánh nở dần (hai lớp), nhụy sáng; chờ thì hoa đung đưa; mở thì
+// cánh hoa tỏa ra ngoài rồi mờ, nhụy sáng bừng, cánh hoa bay
+.flower {
+    inset: 0;
+    transform-origin: 50% 100%;
+
+    .start-screen.is-ready & {
+        animation: flowerSway 3.4s ease-in-out 1.6s infinite;
+    }
+
+    &__stem {
+        left: 48.8%;
+        width: 2.4%;
+        top: 42%;
+        height: 56%;
+        border-radius: 2px;
+        background: linear-gradient(90deg, #2c6a34, #4a9a52, #2c6a34);
+    }
+
+    &__leaf {
+        top: 66%;
+        width: 22%;
+        height: 10%;
+        border-radius: 0 100% 0 100%;
+        background: linear-gradient(135deg, #5ab866, #2c7a3a);
+
+        &--l {
+            right: 51%;
+            transform: rotate(-24deg) scaleX(-1);
+        }
+
+        &--r {
+            left: 51%;
+            top: 76%;
+            transform: rotate(24deg);
+        }
+    }
+
+    // Tâm hoa: các cánh xoay quanh điểm này, gốc cánh ở tâm
+    &__head {
+        left: 50%;
+        top: 40%;
+        width: 0;
+        height: 0;
+    }
+
+    .petal {
+        left: calc(var(--s) * -0.1);
+        bottom: 0;
+        width: calc(var(--s) * 0.2);
+        height: calc(var(--s) * 0.32);
+        border-radius: 50% 50% 50% 50% / 64% 64% 36% 36%;
+        background: linear-gradient(to top, var(--st-main-dark, #8a2ec0), var(--st-main, #b14ee8) 35%, var(--st-main-light, #d38af5) 75%, var(--st-accent, #ffc2e2));
+        box-shadow: inset 0 -4px 8px rgba(0, 0, 0, 0.15);
+        transform-origin: 50% 100%;
+        transform: rotate(var(--a));
+        transition: transform 0.6s ease-out, opacity 0.6s;
+
+        &--in {
+            left: calc(var(--s) * -0.075);
+            width: calc(var(--s) * 0.15);
+            height: calc(var(--s) * 0.22);
+            background: linear-gradient(to top, var(--st-main, #b14ee8), var(--st-main-light, #d38af5) 50%, var(--st-accent-light, #ffe0f0));
+        }
+
+        .start-screen.is-ready & {
+            animation: petalBloom 0.6s cubic-bezier(0.3, 0.8, 0.4, 1.1) calc(0.3s + var(--i) * 0.05s) both;
+        }
+    }
+
+    &__core {
+        left: calc(var(--s) * -0.06);
+        top: calc(var(--s) * -0.06);
+        width: calc(var(--s) * 0.12);
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: radial-gradient(circle, #fff8d0, var(--st-accent, #ffc2e2) 55%, #e8a020);
+        box-shadow: 0 0 12px 4px rgba(255, 230, 160, 0.55);
+        transform: scale(0);
+        transition: transform 0.5s ease-out, box-shadow 0.5s;
+
+        .start-screen.is-ready & {
+            animation: flameOn 0.4s ease-out 0.95s both;
+        }
+    }
+}
+
+.start-screen.gift-open .flower {
+    animation: none;
+
+    .petal {
+        animation: none;
+        opacity: 0;
+        transform: rotate(var(--a)) translateY(-45%) scale(1.25);
+    }
+
+    .flower__core {
+        animation: none;
+        transform: scale(2.2);
+        box-shadow: 0 0 30px 14px rgba(255, 236, 180, 0.8);
+    }
+}
+
+@keyframes petalBloom {
+    from { opacity: 0; transform: rotate(calc(var(--a) * 0.08)) scale(0.35); }
+    to { opacity: 1; transform: rotate(var(--a)); }
+}
+
+@keyframes flowerSway {
+    0%, 100% { transform: rotate(-2.5deg); }
+    50% { transform: rotate(2.5deg); }
+}

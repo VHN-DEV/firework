@@ -1,0 +1,313 @@
+// Trình diễn Pháo hoa – giao diện trình phát (đếm ngược hẹn giờ)
+// Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use '../variables' as *;
+
+// ---------------------------------------------------------------------------
+// Hẹn giờ mở quà: màn đếm ngược (openAt)
+// ---------------------------------------------------------------------------
+.start-screen.frame-countdown {
+    .start-screen__content,
+    .gift-stage {
+        display: none;
+    }
+}
+
+.countdown-stage {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 640px;
+    padding: 1.5rem;
+    text-align: center;
+
+    .start-screen.frame-countdown & {
+        display: flex;
+        animation: fadeInScale 0.8s ease-out;
+    }
+
+    &__eyebrow {
+        margin: 0 0 0.5rem;
+        color: var(--st-accent, #ffbf36);
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+    }
+
+    &__title {
+        margin: 0 0 1.5rem;
+        color: #fff;
+        font-family: var(--st-font, inherit);
+        font-size: calc(clamp(1.6rem, 6vw, 2.4rem) * var(--st-font-scale, 1));
+        font-weight: var(--st-font-weight, 700);
+    }
+
+    &__timer {
+        display: flex;
+        justify-content: center;
+        gap: clamp(0.5rem, 3vw, 1.25rem);
+
+        > div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: clamp(64px, 18vw, 110px);
+            padding: 0.9rem 0.5rem 0.7rem;
+            border-radius: 1.1rem;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        // Còn dưới 1 ngày: ẩn ô "ngày"
+        > div:first-child {
+            display: none;
+
+            .start-screen.has-days & {
+                display: flex;
+            }
+        }
+
+        span {
+            color: #fff;
+            font-size: clamp(2rem, 10vw, 3.6rem);
+            font-weight: 700;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 0 22px rgba(var(--st-accent-rgb, 255, 191, 54), 0.45);
+        }
+
+        small {
+            margin-top: 0.45rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .start-screen.is-final & {
+            display: none;
+        }
+    }
+
+    // 10 giây cuối: một con số thật lớn, đập theo từng giây
+    &__final {
+        display: none;
+        color: #fff;
+        font-size: clamp(7rem, 38vw, 15rem);
+        font-weight: 800;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 0 40px rgba(var(--st-accent-rgb, 255, 191, 54), 0.7), 0 0 90px rgba(var(--st-main-rgb, 255, 0, 67), 0.45);
+
+        .start-screen.is-final & {
+            display: block;
+        }
+
+        &.is-beat {
+            animation: countdownBeat 1s ease-out;
+        }
+    }
+
+    &__date {
+        margin: 1.25rem 0 0;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.95rem;
+
+        &::first-letter {
+            text-transform: uppercase;
+        }
+    }
+
+    &__message {
+        max-width: 30em;
+        margin: 1rem 0 0;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.05rem;
+        line-height: 1.6;
+
+        &:empty {
+            display: none;
+        }
+    }
+
+    &__ready {
+        margin-top: 1.75rem;
+        padding: 0.95rem 2.2rem;
+        border: none;
+        border-radius: 3rem;
+        background: linear-gradient(135deg, var(--st-main, #ff0043) 0%, var(--st-accent, #ffbf36) 100%);
+        color: #fff;
+        font-size: 1.05rem;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 10px 20px rgba(var(--st-main-rgb, 255, 0, 67), 0.3);
+        transition: transform 0.2s, opacity 0.2s;
+
+        &:hover:not(:disabled) {
+            transform: scale(1.04);
+        }
+
+        &:disabled {
+            cursor: default;
+            background: rgba(20, 252, 86, 0.18);
+            box-shadow: none;
+            color: #8dffb0;
+        }
+
+        &[hidden] {
+            display: none;
+        }
+    }
+
+    &__hint {
+        margin: 0.9rem 0 0;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.85rem;
+    }
+}
+
+@keyframes countdownBeat {
+    0% { transform: scale(1.35); opacity: 0.3; }
+    25% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.92); opacity: 0.85; }
+}
+
+.end-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 400;
+    @include flex-center;
+    padding: 1rem;
+    // Người xem vẫn chạm được vào bầu trời phía sau để tự bắn pháo
+    pointer-events: none;
+    transition: opacity 0.8s ease, visibility 0.8s;
+
+    &.hide {
+        opacity: 0;
+        visibility: hidden;
+    }
+
+    &__content {
+        pointer-events: auto;
+        width: 460px;
+        max-width: 100%;
+        padding: 2.25rem 2rem;
+        text-align: center;
+        border-radius: 1.75rem;
+        background: rgba(10, 10, 16, 0.72);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+        animation: fadeInScale 0.8s ease-out;
+    }
+
+    &.hide &__content {
+        animation: none;
+    }
+
+    &__icon {
+        font-size: 3rem;
+        line-height: 1;
+        margin-bottom: 1rem;
+    }
+
+    &__title {
+        margin: 0 0 0.75rem;
+        color: #fff;
+        font-family: var(--st-font, inherit);
+        font-size: calc(clamp(1.5rem, 6vw, 2.1rem) * var(--st-font-scale, 1));
+        font-weight: var(--st-font-weight, 700);
+        line-height: 1.25;
+        text-shadow: 0 0 20px rgba(var(--st-accent-rgb, 255, 191, 54), 0.35);
+    }
+
+    &__message {
+        margin: 0 0 0.75rem;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.05rem;
+        line-height: 1.6;
+
+        &:empty {
+            display: none;
+        }
+    }
+
+    &__from {
+        margin: 0 0 1.5rem;
+        color: var(--st-accent, #ffbf36);
+        font-style: italic;
+
+        &:empty {
+            display: none;
+        }
+    }
+
+    &__actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+    }
+
+    &__replay,
+    &__share,
+    &__create {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        padding: 0 1.4rem;
+        border-radius: 999px;
+        // <button> và <a> cùng phông chữ, giãn chữ
+        font-family: inherit;
+        letter-spacing: inherit;
+        font-size: 0.95rem;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+
+        &:hover {
+            transform: translateY(-1px);
+        }
+    }
+
+    &__replay {
+        border: none;
+        color: #fff;
+        background: linear-gradient(135deg, var(--st-main, #ff0043) 0%, var(--st-accent, #ffbf36) 100%);
+        box-shadow: 0 10px 20px rgba(var(--st-main-rgb, 255, 0, 67), 0.3);
+    }
+
+    &__share {
+        border: 1px solid rgba(168, 85, 247, 0.55);
+        color: #fff;
+        background: rgba(99, 102, 241, 0.22);
+
+        &:hover {
+            background: rgba(99, 102, 241, 0.34);
+        }
+    }
+
+    &__create {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.14);
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .start-screen__gift {
+        animation: none;
+    }
+}
