@@ -16,6 +16,8 @@ import { Decor, Water, Weather } from '../scenery/index.js';
 import { recording } from './recording.js';
 import { autoTuner, superSampler } from './quality-tuning.js';
 import { colorSky, currentSkyColor } from './sky-color.js';
+import { currentNatureScene } from './nature-scene.js';
+import { NatureSound } from '../nature/index.js';
 import { SMOKE_LEVELS, appNodes, burstConfig, currentFrame, decoCanvas, decoCtx, frameH, frameW, horizonSelector, isRunning, mainStage, reduceFlashingSelector, scaleFactorSelector, sceneSelector, skyLightingSelector, smokeCanvas, smokeCtx, speedBarOpacity, store, syncShow, trailsStage, updateGlobals, waterCtx, waterLifeFlags } from '../../script.js';
 
 // Bỏ phần tử thứ i: đưa phần tử cuối vào chỗ của nó thay vì splice (splice dồn cả mảng, hàng nghìn tia lửa tắt mỗi
@@ -29,6 +31,7 @@ export function update(frameTime, lag) {
     // Đang dựng video: chỉ vòng dựng (renderVideo) cho mô phỏng bước tiếp, theo đúng nhịp khung hình của video
     if (recording.active && !recording.stepping) return;
     if (!isRunning()) return;
+    NatureSound.update(currentNatureScene());
     autoTuner.frame(performance.now());
     superSampler.frame(performance.now());
     // Kịch bản khớp nhịp: chờ nhạc kêu rồi pháo mới bay tiếp

@@ -9,6 +9,7 @@
 import { IS_MOBILE } from '../env.js';
 import { rand } from './util.js';
 import { depthScale, flowSpeed } from './water-fx.js';
+import { sceneSound } from './sound-hook.js';
 import { LogLife } from './life/logs.js';
 import { EgretLife } from './life/egrets.js';
 import { DuckLife } from './life/ducks.js';
@@ -27,6 +28,8 @@ const LIFE = [LogLife, EgretLife, DuckLife, FishLife, FrogLife, BubbleLife];
 
 export const WaterLife = {
     key: '',
+    // Bề ngang cảnh (điểm ảnh CSS): đổi vị trí ra 0-1 khi báo tiếng
+    cssW: 0,
     logs: [],
     birds: [],
     ducks: [],
@@ -46,6 +49,7 @@ export const WaterLife = {
     },
 
     reset(river, cssW, flags = WATER_ALL) {
+        this.cssW = cssW;
         this.logs = [];
         this.birds = [];
         this.ducks = [];
@@ -66,8 +70,14 @@ export const WaterLife = {
         return topCss + d * depthCss;
     },
 
-    // Vòng sóng lan và tia nước bắn lên tại một điểm trên mặt nước
-    splash(x, d, topCss, depthCss, size) {
+    // Báo một sự việc có tiếng ở chỗ x (điểm ảnh CSS), độ xa d (xem sound-hook.js)
+    sound(name, x, d, extra) {
+        sceneSound(name, this.cssW ? x / this.cssW : 0.5, d, extra);
+    },
+
+    // Vòng sóng lan và tia nước bắn lên tại một điểm trên mặt nước; who: con gì làm nước bắn (tiếng thuộc nhóm của nó)
+    splash(x, d, topCss, depthCss, size, who = 'water') {
+        this.sound('splash', x, d, { size, who });
         const s = this.scale(d);
         const y = this.surfaceY(d, topCss, depthCss);
         this.ripples.push({ x, d, age: 0, life: 1500, r0: 3 * s * size }, { x, d, age: -180, life: 1500, r0: 2 * s * size });
@@ -86,6 +96,7 @@ export const WaterLife = {
     // (tắt thì bỏ ngay)
     update(dt, river, cssW, topCss, depthCss, rocks = [], flags = WATER_ALL, pads = []) {
         const slow = IS_MOBILE ? 1.3 : 1;
+        this.cssW = cssW;
         if (!flags.logs) this.logs = [];
         if (!flags.ducks) this.ducks = [];
         if (!flags.fish) this.fish = [];

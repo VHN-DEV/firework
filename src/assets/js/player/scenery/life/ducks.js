@@ -76,7 +76,9 @@ export const DuckLife = {
                     duck.state = 'swim';
                     duck.y = sy;
                     duck.vx = duck.dir * 0.05;
-                    this.splash(duck.x, duck.d, topCss, depthCss, 0.6);
+                    this.splash(duck.x, duck.d, topCss, depthCss, 0.6, 'ducks');
+                    // Vịt mái đầu đàn đáp xuống thì gọi cả đàn
+                    if (duck.kind === 'female' && Math.random() < 0.5) this.sound('quack', duck.x, duck.d, { kind: 'female', series: true, seed: duck.seed });
                 } else {
                     duck.x += dx / dist * step;
                     duck.y += dy / dist * step;
@@ -94,6 +96,12 @@ export const DuckLife = {
                 duck.x += (duck.vx + this.flow(duck.d, river) * 0.5) * dt;
                 steerAround(duck, duck.x, 12 * s, rocks, dt, depthCss, Math.sign(duck.vx + this.flow(duck.d, river) * 0.5));
                 duck.y = this.surfaceY(duck.d, topCss, depthCss) + Math.sin(duck.flap * 0.004) * 0.3 * s;
+                // Thỉnh thoảng kêu: vịt mái "quạc" (có khi cả tràng nhỏ dần), vịt đực khàn khàn
+                duck.quack = (duck.quack ?? rand(2000, 9000)) - dt;
+                if (duck.quack <= 0) {
+                    duck.quack = rand(5000, 15000);
+                    this.sound('quack', duck.x, duck.d, { kind: duck.kind, series: Math.random() < 0.35, seed: duck.seed });
+                }
                 if (duck.state === 'swim') {
                     duck.paddle -= dt;
                     if (duck.paddle <= 0) {
@@ -118,7 +126,8 @@ export const DuckLife = {
                     duck.state = 'leave';
                     duck.vx = duck.dir * 0.11;
                     duck.vy = -0.04;
-                    this.splash(duck.x, duck.d, topCss, depthCss, 0.6);
+                    this.splash(duck.x, duck.d, topCss, depthCss, 0.6, 'ducks');
+                    this.sound('wings', duck.x, duck.d, { seed: duck.seed });
                 }
             } else {
                 duck.x += duck.vx * dt;

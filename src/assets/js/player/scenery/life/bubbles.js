@@ -34,6 +34,7 @@ export const BubbleLife = {
             if (b.t >= b.life) {
                 const s = this.scale(b.d);
                 this.ring(b.x, b.d, 0.25 + b.r * 0.1, 700);
+                this.sound('bubble', b.x, b.d);
                 const y = this.surfaceY(b.d, topCss, depthCss);
                 for (let i = 0; i < 2; i++) this.drops.push({ x: b.x, y, base: y, vx: rand(-0.03, 0.03) * s, vy: -rand(0.03, 0.06) * s, size: rand(0.6, 1) * s });
             }

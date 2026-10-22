@@ -17,3 +17,4 @@
 export { Water, WATER_RESOLUTION } from './water.js';
 export { Decor } from './decor.js';
 export { Weather } from './weather.js';
+export { setSceneSoundListener } from './sound-hook.js';

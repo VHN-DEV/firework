@@ -9,7 +9,7 @@
 // player/app/: fullscreen, help-content, shell-picker (chọn pháo ngẫu nhiên), countdown (hẹn giờ mở quà), recording (dựng
 // video, chụp ảnh), sequences (chuỗi bắn tự động), event-shots (phát bắn theo kịch bản, khớp nhịp nhạc), input (chạm,
 // phím), quality-tuning (độ phân giải, vẽ dư, chất lượng tự động), viewer-defaults, render-loop (cập nhật, vẽ mỗi khung),
-// sky-color (màu trời theo pháo).
+// sky-color (màu trời theo pháo), nature-scene (cảnh để nghe âm thanh thiên nhiên, xem player/nature/).
 
 import '../scss/style.scss';
 import fscreen from './fscreen@1.0.1.js';
@@ -32,7 +32,8 @@ import { getProcessedImage, imageParticleCache } from './player/image-burst.js';
 import { imageCacheKey } from './player/image-frame.js';
 import { Shell } from './player/shell.js';
 import { SMOKE_RESOLUTION } from './player/smoke.js';
-import { WATER_RESOLUTION } from './player/scenery/index.js';
+import { WATER_RESOLUTION, setSceneSoundListener } from './player/scenery/index.js';
+import { NatureSound } from './player/nature/index.js';
 import { resolveSeason, validWeather } from './player/seasons.js';
 import { MOON_PHASES, moonFraction } from './player/moon.js';
 import { START_FRAMES, frameText } from './player/start-frames.js';
@@ -49,6 +50,7 @@ import { handleKeydown, handlePointerEnd, handlePointerMove, handlePointerStart,
 import { AUTO_QUALITY_START, applyQualityLimits, autoQuality, renderQualityLabel, superSampler } from './player/app/quality-tuning.js';
 import { applyViewerDefaults } from './player/app/viewer-defaults.js';
 import { update } from './player/app/render-loop.js';
+import { currentNatureScene, natureSceneOf } from './player/app/nature-scene.js';
 
 // Assign to window for global access (needed by HTML and other scripts)
 window.fscreen = fscreen;
@@ -169,6 +171,8 @@ export const store = {
             longExposure: false,
             // Giảm chớp sáng (người nhạy cảm với ánh sáng nhấp nháy): mặc định theo cài đặt "giảm chuyển động" của máy
             reduceFlashing: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+            // Âm thanh thiên nhiên của cảnh (tiếng nước, gió lá, ếch, dế...): người xem tắt được trong Cài đặt
+            natureSound: true,
             scaleFactor: getDefaultScaleFactor()
         }
     },
@@ -213,6 +217,7 @@ export const store = {
                     config.skyLighting = data.skyLighting;
                     config.scaleFactor = data.scaleFactor || getDefaultScaleFactor();
                     if (typeof data.reduceFlashing === 'boolean') config.reduceFlashing = data.reduceFlashing;
+                    if (typeof data.natureSound === 'boolean') config.natureSound = data.natureSound;
                     if (Array.isArray(data.chosen)) {
                         data.chosen.forEach(key => this.chosen.add(key));
                     } else {
@@ -247,6 +252,7 @@ export const store = {
             skyLighting: value('skyLighting'),
             scaleFactor: value('scaleFactor'),
             reduceFlashing: value('reduceFlashing'),
+            natureSound: config.natureSound,
             chosen: [...this.chosen].filter(key => PERSISTED_VIEWER_KEYS.includes(key))
         };
         this.saved = data;
@@ -379,8 +385,7 @@ const WATER_LEVELS = { third: 2 / 3, half: 0.5 };
 export const horizonSelector = () => (burstConfig && WATER_LEVELS[burstConfig.water]) || 1;
 
 // Sinh vật trên mặt nước bật/tắt riêng từng loại; kịch bản cũ ghi waterLife: false là tắt hết
-export const waterLifeFlags = () => {
-    const config = burstConfig || {};
+export const waterLifeFlags = (config = burstConfig || {}) => {
     const off = config.waterLife === false;
     return {
         birds: !off && config.waterBirds !== false,
@@ -488,6 +493,8 @@ export const appNodes = {
     fullscreen: '.fullscreen',
     reduceFlashing: '.reduce-flashing',
     reduceFlashingToggle: '.start-screen__a11y',
+    natureSound: '.nature-sound',
+    natureSoundOption: '.form-option--nature',
 
     // Giao diện trợ giúp
     helpModal: '.help-modal',
@@ -538,6 +545,9 @@ function renderApp(state) {
     appNodes.reduceFlashing.checked = flashForced || state.config.reduceFlashing;
     appNodes.reduceFlashing.disabled = flashForced;
     renderReduceFlashingToggle();
+    // Kịch bản tắt hẳn âm thanh thiên nhiên: không còn gì để người xem bật
+    appNodes.natureSound.checked = state.config.natureSound !== false;
+    appNodes.natureSoundOption.classList.toggle('remove', !!(burstConfig && burstConfig.natureSound === false));
     appNodes.scaleFactor.value = (state.config.scaleFactor || 1).toFixed(2);
 
     appNodes.menuInnerWrap.style.opacity = state.openHelpTopic ? 0.12 : 1;
@@ -583,6 +593,7 @@ function getConfigFromDOM() {
         // Đang khóa theo kịch bản: giữ lựa chọn riêng của người xem
         reduceFlashing: appNodes.reduceFlashing.disabled ? store.state.config.reduceFlashing : appNodes.reduceFlashing.checked,
         hideControls: appNodes.hideControls.checked,
+        natureSound: appNodes.natureSound.checked,
         // Lưu trữ giá trị dưới dạng số.
         scaleFactor: parseFloat(appNodes.scaleFactor.value)
     };
@@ -614,6 +625,11 @@ function renderReduceFlashingToggle(config = burstConfig) {
 }
 
 appNodes.hideControls.addEventListener('click', () => setTimeout(updateConfig, 0));
+
+appNodes.natureSound.addEventListener('click', () => setTimeout(updateConfig, 0));
+
+// Cảnh vật báo sự việc có tiếng (ếch kêu, cá quẫy...): phát theo cài đặt âm thanh thiên nhiên
+setSceneSoundListener((name, u, d, extra) => NatureSound.event(name, u, d, extra));
 
 const stopAndRun = (fn) => (e) => {
     e.stopPropagation();
@@ -966,6 +982,7 @@ async function renderVideo({ config: source, options }) {
         showTitleOverlay(config);
         const composer = recording.composer = createFrameComposer({ width, height, ...frameSources(), now });
         await composer.load();
+        await NatureSound.prepare(currentNatureScene());
 
         timing.frames = performance.now();
         const step = 1000 / fps;
@@ -1052,7 +1069,8 @@ const viewerShare = setupViewerShare({
     configName: CONFIG_NAME,
     preview: IS_PREVIEW,
     off: IS_RECORD || IS_HEADER,
-    reduceFlashing: reduceFlashingSelector
+    reduceFlashing: reduceFlashingSelector,
+    natureSound: () => store.state.config.natureSound !== false
 });
 
 // Kịch bản tạo bởi builder phiên bản cũ dùng tọa độ 0-1 thay vì 0-100 (mọi phát bắn dồn vào góc dưới trái).
@@ -1742,6 +1760,8 @@ else if (IS_HEADER) {
     // Đợi người xem mở khung bắt đầu của kịch bản (thiệp chào, hộp quà...), xem START_FRAMES.
     // Hẹn giờ mở quà chưa tới thì đếm ngược trước.
     configRequest.then(config => {
+        // Dựng sẵn tiếng thiên nhiên (ở luồng riêng) trong lúc người xem còn ở màn mở quà
+        NatureSound.prepare(natureSceneOf(config));
         if (isLockedUntilLater(config)) startCountdown(config);
         // Thiệp chào chung đã hiện (mạng chậm): vẫn báo đã mở link và hiện dòng "Người gửi sẽ biết..."
         else if (startFrameMounted) reportGiftEvent('view', config);

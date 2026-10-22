@@ -67,7 +67,7 @@ export const FrogLife = {
         // Nhảy vồng từ chỗ đang ở tới chỗ mới (tới mặt nước thì tõm xuống)
         frogHop(frog, to, cssW, topCss, depthCss) {
             const from = frog.perch ? this.frogPerchPoint(frog.perch, cssW, topCss, depthCss) : { x: frog.x, y: this.surfaceY(frog.d, topCss, depthCss), d: frog.d };
-            if (!frog.perch) this.splash(frog.x, frog.d, topCss, depthCss, 0.35);
+            if (!frog.perch) this.splash(frog.x, frog.d, topCss, depthCss, 0.35, 'frogs');
             else if (frog.perch.pad) this.ring(from.x, frog.d, 0.5, 900);
             const end = this.frogPerchPoint(to, cssW, topCss, depthCss);
             frog.dir = end.x >= from.x ? 1 : -1;
@@ -92,7 +92,7 @@ export const FrogLife = {
                 frog.state = 'under';
                 frog.t = 0;
                 frog.dur = rand(1500, 3000);
-                this.splash(frog.x, frog.d, topCss, depthCss, 0.35);
+                this.splash(frog.x, frog.d, topCss, depthCss, 0.35, 'frogs');
                 return;
             }
             if (frog.state === 'peek') {
@@ -139,7 +139,7 @@ export const FrogLife = {
                         frog.dur = rand(2500, 6000);
                     } else if (end.water) {
                         // Tõm xuống nước: tia nước, vòng sóng, bong bóng; lặn một lúc rồi có khi ló đầu chỗ khác
-                        this.splash(end.x, end.d, topCss, depthCss, 0.45);
+                        this.splash(end.x, end.d, topCss, depthCss, 0.45, 'frogs');
                         this.bubbleUp(end.x, end.d, 2);
                         Object.assign(frog, { state: Math.random() < 0.55 ? 'under' : 'gone', x: end.x, d: end.d, t: 0, dur: rand(1800, 4000) });
                     } else {
@@ -159,6 +159,8 @@ export const FrogLife = {
                 if (frog.sacIn <= 0) {
                     frog.sac = 700;
                     frog.sacIn = rand(1600, 4200);
+                    // Phồng túi kêu thì kêu "ộp" (có lần chỉ phồng không kêu), to nhất đúng lúc túi căng nhất; mỗi con một giọng
+                    if (Math.random() < 0.8) this.sound('frog', frog.x, frog.d, { seed: frog.seed, delay: 120 });
                 }
                 frog.sac = Math.max(0, frog.sac - dt);
                 frog.tongue = Math.max(0, (frog.tongue || 0) - dt);

@@ -33,6 +33,12 @@ export const helpContent = {
         header: 'Thu phóng',
         body: 'Phóng to hoặc thu nhỏ toàn bộ pháo hoa, giống như đứng gần hay xa hơn. Trên điện thoại, thu nhỏ một chút giúp những quả pháo lớn không tràn khỏi màn hình.'
     },
+    natureSound: {
+        header: 'Âm thanh thiên nhiên',
+        body: 'Tiếng của khung cảnh: nước chảy, sóng vỗ bờ, gió lùa qua lá, dế kêu, ếch kêu, vịt, cò, cá quẫy nước, mưa rơi. '
+            + 'Chỉ có tiếng của những thứ đang có trong cảnh, nhỏ hơn tiếng pháo. Tắt nếu chỉ muốn nghe pháo và nhạc. Nút loa '
+            + 'tắt hết mọi âm thanh.'
+    },
     fullscreen: {
         header: 'Toàn màn hình',
         body: 'Bật/tắt chế độ toàn màn hình.'

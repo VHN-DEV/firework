@@ -118,6 +118,11 @@ export const EgretLife = {
                 const near = dist < 60;
                 const step = Math.min(dist, (near ? 0.035 + 0.06 * dist / 60 : 0.11) * dt);
                 bird.ph += dt * Math.PI * 2 / (near ? 380 : 780);
+                if (near && !bird.braked) {
+                    // Sắp đáp: vỗ cánh hãm lại
+                    bird.braked = true;
+                    this.sound('egretWings', bird.x, feet.d, { seed: bird.seed });
+                }
                 if (near) {
                     // Sắp đáp: xòe cánh hãm lại, đưa chân ra trước, ngả thân ra sau
                     Object.assign(target, { wing: 1.0 + 0.28 * Math.sin(bird.ph), lag: 0.35, neck: 0.5, tilt: -0.45, legA: Math.PI / 2 - 0.35 });
@@ -129,7 +134,7 @@ export const EgretLife = {
                     bird.state = 'land';
                     bird.t = 0;
                     bird.legs = 'stand';
-                    if (feet.wade) this.splash(feet.x, feet.d, topCss, depthCss, 0.5);
+                    if (feet.wade) this.splash(feet.x, feet.d, topCss, depthCss, 0.5, 'birds');
                 } else {
                     bird.x += dx / dist * step;
                     bird.y += dy / dist * step;
@@ -179,7 +184,7 @@ export const EgretLife = {
                         Object.assign(target, { stalk: 1, crouch: 0.5, tilt: feet.wade ? -0.05 : 0.15, strike: q < 0.55 ? 1 : 0, headY: q < 0.55 ? reach : 0 });
                         if (q > 0.3 && !act.splashed) {
                             act.splashed = true;
-                            this.splash(feet.x + bird.dir * (feet.wade ? 20 : 17) * u, feet.d + (feet.wade ? 0 : 0.02), topCss, depthCss, 0.45);
+                            this.splash(feet.x + bird.dir * (feet.wade ? 20 : 17) * u, feet.d + (feet.wade ? 0 : 0.02), topCss, depthCss, 0.45, 'birds');
                         }
                     } else if (act.type === 'catch') {
                         // Ngửa cổ nuốt cá
@@ -201,7 +206,10 @@ export const EgretLife = {
                 bird.y = feet.y - 11 * u * (1 - 0.25 * p.crouch);
                 if (bird.t > 240) {
                     this.freeEgretPerch(bird);
-                    if (feet.wade) this.splash(feet.x, feet.d, topCss, depthCss, 0.6);
+                    if (feet.wade) this.splash(feet.x, feet.d, topCss, depthCss, 0.6, 'birds');
+                    // Cất cánh: vỗ cánh mạnh, nhiều khi kêu khàn một tiếng
+                    this.sound('egretWings', feet.x, feet.d, { seed: bird.seed });
+                    if (Math.random() < 0.55) this.sound('egret', feet.x, feet.d, { seed: Math.random() });
                     bird.state = 'leave';
                     bird.t = 0;
                     bird.legs = 'fly';

@@ -43,9 +43,10 @@ async function shareFile(file, title) {
  * composeFrame(): Promise<canvas> khung hình đang hiện; describe(): { title, description } của màn trình diễn;
  * pauseShow(paused): tạm dừng/chạy tiếp, trả về trạng thái tạm dừng trước đó; configName: tên kịch bản (link quà) hoặc null;
  * preview: bản xem nhanh trong builder (chỉ báo cho người tạo biết nút dùng làm gì); reduceFlashing(): không chớp khi chụp;
+ * natureSound(): người xem đang nghe âm thanh thiên nhiên (tắt thì video tạo ra cũng không có);
  * off: không dùng tới (khung dựng video, ảnh đầu trang hồ sơ).
  */
-export function setupViewerShare({ composeFrame, describe, pauseShow, configName, preview, reduceFlashing, off }) {
+export function setupViewerShare({ composeFrame, describe, pauseShow, configName, preview, reduceFlashing, natureSound = () => true, off }) {
     const bar = $('.moment-bar');
     const endShare = $('.end-screen__share');
     const shareSheet = $('.share-sheet');
@@ -336,7 +337,7 @@ export function setupViewerShare({ composeFrame, describe, pauseShow, configName
         video.job = createVideoJob({
             format: VIDEO_FORMATS.find(f => f.value === video.format),
             quality: video.quality,
-            config: show.config,
+            config: natureSound() ? show.config : { ...show.config, natureSound: false },
             length: video.length,
             onProgress(progress, phase) {
                 if (video.step !== 'rendering') return;

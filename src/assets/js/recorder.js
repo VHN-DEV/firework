@@ -387,7 +387,9 @@ export async function createMp4Writer({ width, height, fps, bitrate }) {
 /**
  * Trộn tiếng cho video dài `duration` giây: tiếng pháo đã ghi lại (sounds: { at, buffer, rate, gain }) qua âm lượng
  * chung effectsVolume, và nhạc nền (music: { buffer, offset (giây), volume, loop, start, end (ms) }) to dần 1,2 giây
- * lúc bắt đầu, nhỏ dần 4 giây lúc kết thúc như khi xem thật.
+ * lúc bắt đầu, nhỏ dần 4 giây lúc kết thúc như khi xem thật. Tiếng thiên nhiên (bus: 'nature', không theo âm lượng tiếng
+ * pháo) có thêm: pan (-1 trái, 1 phải), lowpass (Hz, tiếng ở xa), loop (tiếng nền lặp), fade (giây to dần), until (ms
+ * lúc thôi phát, nhỏ dần 1,5 giây).
  */
 export async function mixAudio({ duration, sounds, effectsVolume, music }) {
     const ctx = new OfflineAudioContext(2, Math.max(1, Math.ceil(duration * SAMPLE_RATE)), SAMPLE_RATE);
@@ -396,14 +398,41 @@ export async function mixAudio({ duration, sounds, effectsVolume, music }) {
     effects.connect(ctx.destination);
     sounds.forEach(sound => {
         if (sound.at / 1000 >= duration) return;
+        const t0 = Math.max(0, sound.at / 1000);
         const source = ctx.createBufferSource();
         source.buffer = sound.buffer;
         source.playbackRate.value = sound.rate;
+        source.loop = !!sound.loop;
         const gain = ctx.createGain();
-        gain.gain.value = sound.gain;
-        source.connect(gain);
-        gain.connect(effects);
-        source.start(Math.max(0, sound.at / 1000));
+        if (sound.fade) {
+            gain.gain.setValueAtTime(0, t0);
+            gain.gain.linearRampToValueAtTime(sound.gain, t0 + sound.fade);
+        } else {
+            gain.gain.value = sound.gain;
+        }
+        let node = source;
+        if (sound.lowpass) {
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = sound.lowpass;
+            node.connect(filter);
+            node = filter;
+        }
+        if (sound.pan && ctx.createStereoPanner) {
+            const panner = ctx.createStereoPanner();
+            panner.pan.value = sound.pan;
+            node.connect(panner);
+            node = panner;
+        }
+        node.connect(gain);
+        gain.connect(sound.bus === 'nature' ? ctx.destination : effects);
+        source.start(t0);
+        if (sound.until !== undefined) {
+            const t1 = Math.max(t0 + (sound.fade || 0), sound.until / 1000);
+            gain.gain.setValueAtTime(sound.gain, t1);
+            gain.gain.linearRampToValueAtTime(0, t1 + 1.5);
+            source.stop(t1 + 1.6);
+        }
     });
     if (music && music.buffer && music.start !== null && music.start / 1000 < duration) {
         const source = ctx.createBufferSource();

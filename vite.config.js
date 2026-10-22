@@ -34,6 +34,16 @@ export default defineConfig({
   publicDir: 'src/static',
   // Trang chia sẻ s/<tên>.html (ảnh + tiêu đề khi gửi link), sitemap.xml, robots.txt
   plugins: [seoPlugin({ configsDir: resolve(__dirname, 'src/static/configs') }), legalFilesPlugin()],
+  // Worker dựng âm thanh thiên nhiên: cùng thư mục, cùng thông báo bản quyền như các file JS khác
+  worker: {
+    rollupOptions: {
+      output: {
+        banner: jsBanner,
+        entryFileNames: 'assets/js/[name]-[hash].js',
+        chunkFileNames: 'assets/js/[name]-[hash].js'
+      }
+    }
+  },
   build: {
     rollupOptions: {
       input: {

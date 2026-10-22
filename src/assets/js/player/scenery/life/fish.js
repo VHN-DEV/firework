@@ -52,7 +52,7 @@ export const FishLife = {
             const size = fish.type === 'minnow' ? 0.4 : fish.type === 'silver' ? 0.8 : 1.1;
             if (fish.t >= 0 && !fish.started) {
                 fish.started = true;
-                this.splash(fish.x, fish.d, topCss, depthCss, size * 0.9);
+                this.splash(fish.x, fish.d, topCss, depthCss, size * 0.9, 'fish');
             }
             // Nước rỏ xuống từ mình cá lúc đang bay
             if (fish.started && fish.t < fish.life * 0.7) {
@@ -66,7 +66,7 @@ export const FishLife = {
             }
             if (fish.t >= fish.life && !fish.done) {
                 fish.done = true;
-                this.splash(fish.x + fish.dx, fish.d, topCss, depthCss, size);
+                this.splash(fish.x + fish.dx, fish.d, topCss, depthCss, size, 'fish');
             }
         });
         this.fish = this.fish.filter(fish => !fish.done);
@@ -80,6 +80,7 @@ export const FishLife = {
             const x = rand(0.05, 0.95) * cssW;
             this.ring(x, d, 0.6, 1800);
             this.ring(x, d, 0.4, 1800, 260);
+            this.sound('plip', x, d);
         }
     },
 
