@@ -55,7 +55,7 @@ export async function run(browser, base, { check }) {
             filename: document.getElementById('filename').value, shots: document.querySelectorAll('.shot-row').length,
             frame: document.querySelector('#start-frame-grid .shell-option.selected')?.textContent.trim()
         }));
-        check('mẫu theo dịp điền đủ kịch bản', created.title.includes('20/10') && created.recipient === 'E2E Test' && created.filename === ID && created.shots > 25 && created.frame.endsWith('Hộp quà'), JSON.stringify(created));
+        check('mẫu theo dịp điền đủ kịch bản', created.title.includes('20/10') && created.recipient === 'E2E Test' && created.filename === ID && created.shots > 25 && created.frame.endsWith('Hoa nở'), JSON.stringify(created));
 
         // Dòng thời gian theo giây: kéo một phát sang phải ~1 giây, các phát khác giữ nguyên thời điểm, Ctrl+Z hoàn tác
         await page.evaluate(() => setTimelineView('track'));
@@ -115,7 +115,7 @@ export async function run(browser, base, { check }) {
         await page.evaluate(() => closeShareModal());
         const file = path.join(DIST, 'configs', `${ID}.json`);
         const cfg = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null;
-        check('lưu kịch bản qua API', cfg && cfg.recipient === 'E2E Test' && cfg.startFrame === 'gift' && cfg.events[0].launchStyle === 'stealth',
+        check('lưu kịch bản qua API', cfg && cfg.recipient === 'E2E Test' && cfg.startFrame === 'flower' && cfg.events[0].launchStyle === 'stealth',
             cfg ? JSON.stringify({ r: cfg.recipient, f: cfg.startFrame, l: cfg.events[0].launchStyle }) : 'không có file');
         check('tắt "Chạm màn hình để bắn pháo": lưu tapToLaunch: false, tóm tắt nhóm ghi rõ',
             cfg && cfg.tapToLaunch === false && tapSummary.includes('Khóa chạm bắn pháo'), JSON.stringify({ tap: cfg && cfg.tapToLaunch, tapSummary }));
@@ -151,9 +151,9 @@ export async function run(browser, base, { check }) {
             tap: document.getElementById('tap-to-launch').checked,
             share: document.getElementById('receiver-share').checked
         }));
-        check('mở lại kịch bản đã lưu', reopened.recipient === 'E2E Test' && reopened.frame.endsWith('Hộp quà') && reopened.tap === false && reopened.share === false, JSON.stringify(reopened));
+        check('mở lại kịch bản đã lưu', reopened.recipient === 'E2E Test' && reopened.frame.endsWith('Hoa nở') && reopened.tap === false && reopened.share === false, JSON.stringify(reopened));
 
-        // Xem nhanh như người nhận: nút quà hiện đúng hộp quà, chạm mở trong khung thì chạy từ đầu kèm tiêu đề
+        // Xem nhanh như người nhận: nút quà hiện đúng màn mở quà, chạm mở trong khung thì chạy từ đầu kèm tiêu đề
         const preview = () => page.frames().find(f => f.url().includes('preview=1'));
         await page.click('#btn-gift-mini');
         await sleep(1000);
@@ -162,9 +162,9 @@ export async function run(browser, base, { check }) {
             title: document.querySelector('.gift-stage__title').textContent
         }));
         const clickable = await page.$eval('#mini-preview-stage', e => e.classList.contains('is-interactive'));
-        check('xem nhanh như người nhận: hiện hộp quà, cho chạm vào khung', gift.shown && gift.title === 'Gửi E2E Test' && clickable, JSON.stringify(gift));
-        // Khung thu nhỏ bằng CSS transform: quy đổi tọa độ hộp quà ra tọa độ trang
-        const inner = await preview().$eval('.gift-box', b => { const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: innerWidth }; });
+        check('xem nhanh như người nhận: hiện màn mở quà, cho chạm vào khung', gift.shown && gift.title === 'Gửi E2E Test' && clickable, JSON.stringify(gift));
+        // Khung thu nhỏ bằng CSS transform: quy đổi tọa độ vật thể (mẫu 20/10: hoa nở) ra tọa độ trang
+        const inner = await preview().$eval('.gift-stage__hero > *', b => { const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: innerWidth }; });
         const outer = await page.$eval('#mini-preview-frame', f => { const r = f.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width }; });
         await page.mouse.click(outer.x + inner.x * outer.w / inner.w, outer.y + inner.y * outer.w / inner.w);
         await sleep(2500);
@@ -172,7 +172,7 @@ export async function run(browser, base, { check }) {
             hidden: document.querySelector('.start-screen').classList.contains('hide'),
             title: document.querySelector('.config-overlay h1')?.textContent || ''
         }));
-        check('chạm hộp quà trong khung xem nhanh: mở quà, chạy từ đầu kèm tiêu đề', opened.hidden && opened.title.length > 0, JSON.stringify(opened));
+        check('chạm vật thể mở quà trong khung xem nhanh: mở quà, chạy từ đầu kèm tiêu đề', opened.hidden && opened.title.length > 0, JSON.stringify(opened));
 
         // Nhân bản phát bắn: bản sao hiện ngay trong danh sách, ngay sau phát gốc
         await page.evaluate(() => setTimelineView('list'));

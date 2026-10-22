@@ -45,7 +45,7 @@ export async function run(browser, base, { check }) {
         await recipient.waitForSelector('.start-screen.is-ready');
         check('người nhận được báo trước "Người gửi sẽ biết khi bạn mở quà"',
             /Người gửi sẽ biết khi bạn mở quà/.test(await recipient.$eval('.start-screen__legal', e => e.textContent)));
-        await recipient.tap('.gift-box');
+        await recipient.tap('.gift-stage__cta');
         await sleep(1500);
         let s = await status(key);
         check('ghi nhận người nhận mở link và mở quà (điện thoại)', s.ok && s.counts.view === 1 && s.counts.open === 1 && s.events[0].d === 'mobile', JSON.stringify(s.counts));

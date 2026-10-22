@@ -160,7 +160,15 @@ const LAUNCH_STYLES = [
 const START_FRAMES = [
     { value: '', name: 'Thiệp chào', icon: '💌', hint: 'Thiệp với lời mời và nút "Mở quà".' },
     { value: 'gift', name: 'Hộp quà', icon: '🎁', hint: 'Hộp quà phóng nhẹ vào giữa, vệt sáng vàng quét qua, rung rinh; chạm vào thì bung nắp, nổ tung ruy băng và pháo giấy rồi mới bắt đầu.' },
-    { value: 'lixi', name: 'Bao lì xì', icon: '🧧', hint: 'Bao lì xì rơi xuống nảy nhẹ, viền vàng lóe sáng, nghiêng qua lại; chạm vào thì nắp lật lên, thiệp lộc nhô ra, xu vàng bung lên.' }
+    { value: 'lixi', name: 'Bao lì xì', icon: '🧧', hint: 'Bao lì xì rơi xuống nảy nhẹ, viền vàng lóe sáng, nghiêng qua lại; chạm vào thì nắp lật lên, thiệp lộc nhô ra, xu vàng bung lên.' },
+    { value: 'tree', name: 'Cây thông', icon: '🎄', hint: 'Hộp quà rơi xuống gốc thông, dây đèn sáng lần lượt, ngôi sao sáng sau cùng; chạm vào thì nắp hộp bật lên, tia sáng bay lên như sao.' },
+    { value: 'cake', name: 'Bánh sinh nhật', icon: '🎂', hint: 'Bánh hai tầng, nến thắp lần lượt, bóng bay hai bên; chạm vào thì lửa nến bùng sáng, pháo giấy bung từ hai bên màn hình.' },
+    { value: 'letter', name: 'Thư tình', icon: '💌', hint: 'Trái tim vẽ dần bằng ánh sáng, phong thư có dấu sáp hình tim; chạm vào thì nắp thư lật lên, lá thư nhô ra, tim tan thành cánh hoa.' },
+    { value: 'invite', name: 'Thiệp cưới', icon: '💍', hint: 'Thiệp màu kem viền vàng, dấu sáp ở giữa; chạm vào thì hai cánh thiệp mở ra, đôi nhẫn sáng lên, vệt sáng champagne, cánh hoa rơi.' },
+    { value: 'cap', name: 'Mũ tốt nghiệp', icon: '🎓', hint: 'Mũ tốt nghiệp rơi xuống, tua rua đung đưa, cuộn bằng bên dưới; chạm vào thì mũ tung lên, cuộn bằng mở ra, pháo giấy bung.' },
+    { value: 'flower', name: 'Hoa nở', icon: '🌷', hint: 'Nụ hoa nở dần từng cánh, nhụy sáng, hoa đung đưa; chạm vào thì cánh hoa tỏa ra, nhụy sáng bừng, cánh hoa bay.' },
+    { value: 'book', name: 'Sách tri ân', icon: '📖', hint: 'Cuốn sách mở bìa, nhành hoa bên cạnh; chạm vào thì thiệp tri ân nâng lên khỏi trang sách, vệt sáng vàng chạy lên.' },
+    { value: 'lantern', name: 'Đèn lồng', icon: '🏮', hint: 'Trăng hiện sau mây, đèn lồng sáng dần, đung đưa; chạm vào thì đèn bừng sáng, vòng sáng lan rộng.' }
 ];
 
 // Biểu tượng khung vẽ bằng SVG nét viền: emoji không có hình bo góc hay "không khung" đúng nghĩa
@@ -1165,7 +1173,10 @@ const HELP_TIPS = {
     screenTheme: 'Bộ giao diện cho màn mở quà, màn đếm ngược và màn kết: màu, kiểu chữ tiêu đề, hiệu ứng nền (tuyết rơi, hoa mai đào, '
         + 'trái tim bay...), biểu tượng và kiểu thiệp. Chọn bộ theo dịp rồi mở "Tùy chỉnh giao diện" để đổi riêng từng phần.',
     startFrame: 'Màn hình đầu tiên khi mở link. Trình duyệt chỉ cho phát âm thanh sau một lần chạm nên người xem luôn mở quà trước. '
-        + '<strong>Thiệp chào</strong>: lời mời và nút Mở quà. <strong>Hộp quà</strong>: hộp rung rinh, chạm vào thì bung ruy băng.',
+        + '<strong>Thiệp chào</strong>: lời mời và nút Mở quà. Các kiểu còn lại có một vật thể chính hiện ra trước (hộp quà, bao lì xì, '
+        + 'cây thông, bánh sinh nhật, thư tình, thiệp cưới, mũ tốt nghiệp, hoa nở, sách tri ân, đèn lồng), rồi tới lời chúc và nút mở; '
+        + 'chạm vật thể hoặc nút thì chạy hiệu ứng mở (nắp bật, thư mở, hoa nở bung...) rồi mới vào pháo hoa. Màu sắc, kiểu chữ theo '
+        + '<strong>Giao diện</strong> bên dưới nên kiểu nào cũng hợp với dịp nào, vd giao diện Tết với bao lì xì hay hộp quà.',
     recipient: 'Tên người nhận. Có tên thì link mở bằng "Gửi [tên]" và nút "Mở quà"; để trống thì hiện lời chào chung.',
     introMessage: 'Một hai câu trên thiệp hoặc hộp quà trước khi mở. VD: <em>Bật loa lên và mở quà nhé!</em>',
     outroMessage: 'Lời chúc trên màn kết, hiện khi chạy hết một lượt (chỉ khi tắt <strong>Tự động lặp lại</strong>). Để trống thì dùng Dòng phụ.',

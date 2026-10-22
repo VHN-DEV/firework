@@ -20,6 +20,7 @@ import * as api from './api.test.mjs';
 import * as screenTheme from './screen-theme.test.mjs';
 import * as bankStyles from './bank-styles.test.mjs';
 import * as seasons from './seasons.test.mjs';
+import * as startFrames from './start-frames.test.mjs';
 
 if (!fs.existsSync(path.join(DIST, 'index.html'))) {
     console.error('Chưa có bản build: chạy "npm run build" trước (hoặc dùng "npm test").');
@@ -31,7 +32,7 @@ const browser = await launchBrowser();
 const all = [];
 let crashed = false;
 try {
-    for (const [name, suite] of [['Trình phát', player], ['Builder', builder], ['Xếp pháo theo nhịp nhạc', beat], ['Xuất video', video], ['Người nhận chụp, chia sẻ, tạo video', viewerShare], ['Báo mở quà', gift], ['Giao diện màn mở quà, màn kết', screenTheme], ['Kiểu bờ bên kia mặt nước', bankStyles], ['Mùa, thời tiết', seasons], ['API máy chủ', api], ['Trang & bản build', pages]]) {
+    for (const [name, suite] of [['Trình phát', player], ['Builder', builder], ['Xếp pháo theo nhịp nhạc', beat], ['Xuất video', video], ['Người nhận chụp, chia sẻ, tạo video', viewerShare], ['Báo mở quà', gift], ['Giao diện màn mở quà, màn kết', screenTheme], ['Kiểu bờ bên kia mặt nước', bankStyles], ['Mùa, thời tiết', seasons], ['Khung bắt đầu', startFrames], ['API máy chủ', api], ['Trang & bản build', pages]]) {
         console.log(`\n${name}`);
         const reporter = createReporter(name);
         try {

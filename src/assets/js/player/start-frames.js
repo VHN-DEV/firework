@@ -44,6 +44,106 @@ const HEROES = {
         </span>
         <span class="lixi__coin lixi__coin--a"></span>
         <span class="lixi__coin lixi__coin--b"></span>
+    </button>`,
+    // Cây thông: ba tầng lá, dây đèn sáng lần lượt, ngôi sao sáng sau cùng; hộp quà rơi xuống gốc cây
+    tree: `<button type="button" class="hero hero--tree">
+        <span class="hero__glow"></span>
+        <span class="tree">
+            <span class="tree__trunk"></span>
+            <span class="tree__tier tree__tier--3"></span>
+            <span class="tree__tier tree__tier--2"></span>
+            <span class="tree__tier tree__tier--1"></span>
+            <span class="tree__lights">${[[50, 24], [42, 34], [58, 36], [36, 50], [50, 52], [64, 49], [30, 70], [43, 72], [57, 71], [70, 69]]
+        .map(([x, y], i) => `<i style="left:${x}%;top:${y}%;--i:${i}"></i>`).join('')}</span>
+            <span class="tree__star"></span>
+        </span>
+        <span class="tree__gift" data-burst><span class="tree__gift-body"></span><span class="tree__gift-lid"></span></span>
+    </button>`,
+    // Bánh sinh nhật hai tầng phủ kem chảy, năm cây nến thắp lần lượt; bóng bay hai bên bay lên
+    cake: `<button type="button" class="hero hero--cake">
+        <span class="hero__glow"></span>
+        <span class="cake-balloon cake-balloon--a"></span>
+        <span class="cake-balloon cake-balloon--b"></span>
+        <span class="cake-balloon cake-balloon--c"></span>
+        <span class="cake" data-burst>
+            <span class="cake__plate"></span>
+            <span class="cake__tier cake__tier--low"></span>
+            <span class="cake__tier cake__tier--top"></span>
+            <span class="cake__candles">${[0, 1, 2, 3, 4].map(i => `<i style="--i:${i}"><b></b></i>`).join('')}</span>
+        </span>
+    </button>`,
+    // Trái tim vẽ dần bằng ánh sáng, phong thư có dấu sáp hình tim ở giữa
+    letter: `<button type="button" class="hero hero--letter">
+        <span class="hero__glow"></span>
+        <svg class="letter__heart" viewBox="0 0 100 92" aria-hidden="true"><path d="M50 86C22 66 5 50 5 30 5 15 16 5 30 5c10 0 17 6 20 14 3-8 10-14 20-14 14 0 25 10 25 25 0 20-17 36-45 56z"/></svg>
+        <span class="letter">
+            <span class="letter__back"></span>
+            <span class="letter__paper" data-burst></span>
+            <span class="letter__front"></span>
+            <span class="letter__flap"></span>
+            <span class="letter__seal">♥</span>
+        </span>
+    </button>`,
+    // Thiệp cưới gấp hai cánh, dấu sáp ở giữa; mở thì hai cánh mở ra, bên trong là đôi nhẫn
+    invite: `<button type="button" class="hero hero--invite">
+        <span class="hero__glow"></span>
+        <span class="invite">
+            <span class="invite__inside" data-burst><span class="invite__rings"><i></i><i></i></span></span>
+            <span class="invite__door invite__door--l"></span>
+            <span class="invite__door invite__door--r"></span>
+            <span class="invite__seal">♥</span>
+        </span>
+    </button>`,
+    // Mũ tốt nghiệp có tua rua đung đưa, cuộn bằng thắt nơ bên dưới
+    cap: `<button type="button" class="hero hero--cap">
+        <span class="hero__glow"></span>
+        <span class="diploma" data-burst>
+            <span class="diploma__sheet"></span>
+            <span class="diploma__roll"></span>
+            <span class="diploma__ribbon"></span>
+        </span>
+        <span class="cap">
+            <span class="cap__base"></span>
+            <span class="cap__board"></span>
+            <span class="cap__button"></span>
+            <span class="cap__cord"><i class="cap__tassel"></i></span>
+        </span>
+    </button>`,
+    // Bông hoa: nụ khép, từng cánh nở ra (hai lớp cánh), nhụy sáng; thân, lá
+    flower: `<button type="button" class="hero hero--flower">
+        <span class="hero__glow"></span>
+        <span class="flower">
+            <span class="flower__stem"></span>
+            <span class="flower__leaf flower__leaf--l"></span>
+            <span class="flower__leaf flower__leaf--r"></span>
+            <span class="flower__head" data-burst>${[0, 1, 2, 3, 4, 5, 6, 7].map(i => `<i class="petal" style="--a:${i * 45}deg;--i:${i}"></i>`).join('')}${[0, 1, 2, 3, 4, 5].map(i => `<i class="petal petal--in" style="--a:${i * 60 + 30}deg;--i:${i + 8}"></i>`).join('')}<b class="flower__core"></b></span>
+        </span>
+    </button>`,
+    // Cuốn sách: bìa mở ra từ gáy, trang có dòng chữ, thiệp tri ân kẹp trong sách, nhành hoa bên cạnh
+    book: `<button type="button" class="hero hero--book">
+        <span class="hero__glow"></span>
+        <span class="book">
+            <span class="book__shell"></span>
+            <span class="book__page"></span>
+            <span class="book__card" data-burst></span>
+            <span class="book__cover"><i class="book__cover-front"></i><i class="book__cover-back"></i></span>
+        </span>
+        <span class="book__sprig"><i></i><i></i><i></i></span>
+    </button>`,
+    // Đèn lồng tròn đỏ cam, chóp vàng, tua rua; trăng tròn sau mây
+    lantern: `<button type="button" class="hero hero--lantern">
+        <span class="hero__glow"></span>
+        <span class="lantern-moon"></span>
+        <span class="lantern-cloud lantern-cloud--a"></span>
+        <span class="lantern-cloud lantern-cloud--b"></span>
+        <span class="lantern" data-burst>
+            <span class="lantern__string"></span>
+            <span class="lantern__cap lantern__cap--top"></span>
+            <span class="lantern__body"><i class="lantern__light"></i></span>
+            <span class="lantern__cap lantern__cap--bottom"></span>
+            <span class="lantern__tassel"></span>
+        </span>
+        <span class="lantern__ring"></span>
     </button>`
 };
 
@@ -93,7 +193,23 @@ export const START_FRAMES = {
     // Hộp quà: phóng nhẹ vào giữa, vệt sáng vàng quét qua, rung rinh; mở thì rung mạnh, bung nắp, nổ ruy băng, pháo giấy
     gift: heroFrame({ id: 'gift', label: 'Mở hộp quà', cta: 'Mở quà', burst: 'confetti' }),
     // Bao lì xì: rơi xuống nảy nhẹ, viền vàng lóe sáng, đồng xu trang trí; mở thì nắp lật lên, thiệp lộc nhô ra, xu vàng bung
-    lixi: heroFrame({ id: 'lixi', label: 'Mở bao lì xì', cta: 'Mở lì xì', burst: 'coins', prep: 380, hold: 1000 })
+    lixi: heroFrame({ id: 'lixi', label: 'Mở bao lì xì', cta: 'Mở lì xì', burst: 'coins', prep: 380, hold: 1000 }),
+    // Cây thông: quà rơi xuống gốc cây, đèn sáng lần lượt, sao sáng sau cùng; mở thì nắp hộp bật, tia sáng bay lên như sao
+    tree: heroFrame({ id: 'tree', label: 'Mở quà Giáng sinh', cta: 'Mở quà Giáng sinh', burst: 'sparkles', prep: 450 }),
+    // Bánh sinh nhật: nến thắp lần lượt, bóng bay; mở thì lửa bùng sáng, pháo giấy bung từ hai bên màn hình
+    cake: heroFrame({ id: 'cake', label: 'Nhận quà sinh nhật', cta: 'Nhận quà sinh nhật', burst: 'sides', prep: 400 }),
+    // Phong thư tình: trái tim vẽ dần bằng ánh sáng; mở thì nắp thư lật, lá thư nhô ra, tim tan thành cánh hoa
+    letter: heroFrame({ id: 'letter', label: 'Mở thư', cta: 'Khám phá món quà', burst: 'hearts', prep: 380, hold: 1000 }),
+    // Thiệp cưới: hai cánh thiệp mở ra, đôi nhẫn sáng, vệt sáng champagne, cánh hoa rơi
+    invite: heroFrame({ id: 'invite', label: 'Mở thiệp cưới', cta: 'Mở thiệp', burst: 'petals', prep: 650, hold: 1000 }),
+    // Mũ tốt nghiệp: mũ tung lên, cuộn bằng mở ra, pháo giấy bung một lần
+    cap: heroFrame({ id: 'cap', label: 'Tung mũ nhận quà', cta: 'Nhận quà', burst: 'confetti', prep: 300 }),
+    // Hoa nở: cánh hoa tỏa ra, nhụy sáng bừng, cánh hoa bay
+    flower: heroFrame({ id: 'flower', label: 'Mở quà', cta: 'Khám phá quà tặng', burst: 'petals', prep: 300, hold: 1000 }),
+    // Sách tri ân: thiệp nâng lên khỏi trang sách, vệt sáng vàng chạy lên
+    book: heroFrame({ id: 'book', label: 'Mở thiệp tri ân', cta: 'Mở quà', burst: 'sparkles', prep: 350 }),
+    // Đèn lồng đón trăng: đèn bừng sáng, vòng sáng lan rộng
+    lantern: heroFrame({ id: 'lantern', label: 'Thắp đèn lồng', cta: 'Thắp đèn nhận quà', burst: 'sparkles', prep: 350 })
 };
 
 // Lấy đà -> bung ra, hạt bay, tiếng mở quà -> vào màn trình diễn. Giảm chớp sáng: bớt hạt, không lóe sáng

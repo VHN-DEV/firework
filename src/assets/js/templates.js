@@ -6,12 +6,14 @@
 
 // Chọn dịp + tên người nhận/người gửi -> kịch bản hoàn chỉnh để chỉnh tiếp trong builder.
 // Các dịp chỉ khác nội dung (lời chúc, chữ trên trời, hình, bảng màu); bố cục các đợt bắn dùng chung trong buildShow().
-// theme: giao diện màn mở quà và màn kết (SCREEN_THEMES trong player/screen-themes.js).
+// theme: giao diện màn mở quà và màn kết (SCREEN_THEMES trong player/screen-themes.js); frame: khung bắt đầu (START_FRAMES
+// trong player/start-frames.js); season, weather: mùa, thời tiết của cảnh (player/seasons.js).
 // Thêm dịp mới: thêm một mục vào OCCASIONS.
 export const OCCASIONS = [
     {
         id: 'sinh_nhat', name: 'Sinh nhật', icon: '🎂', who: 'bạn',
         theme: 'birthday',
+        frame: 'cake',
         palette: ['Gold', 'Red', 'Purple'],
         shapes: ['Trái tim', 'Ngôi sao'],
         texts: ['HAPPY BIRTHDAY', 'TUỔI MỚI RỰC RỠ'],
@@ -24,6 +26,7 @@ export const OCCASIONS = [
     {
         id: 'tot_nghiep', name: 'Tốt nghiệp', icon: '🎓', who: 'bạn',
         theme: 'graduation',
+        frame: 'cap',
         palette: ['Gold', 'Blue', 'White'],
         shapes: ['Ngôi sao', 'Kim cương'],
         texts: ['CONGRATULATIONS', 'TƯƠNG LAI RỰC RỠ'],
@@ -36,6 +39,7 @@ export const OCCASIONS = [
     {
         id: 'dam_cuoi', name: 'Đám cưới', icon: '💍', who: 'hai bạn',
         theme: 'wedding',
+        frame: 'invite',
         palette: ['Red', 'Gold', '#ff6ad5'],
         shapes: ['Trái tim', 'Kim cương'],
         texts: ['HAPPY WEDDING', 'TRĂM NĂM HẠNH PHÚC'],
@@ -48,6 +52,7 @@ export const OCCASIONS = [
     {
         id: 'tinh_yeu', name: 'Tình yêu, kỷ niệm', icon: '💖', who: 'người thương',
         theme: 'love',
+        frame: 'letter',
         palette: ['Red', '#ff6ad5', 'Purple'],
         shapes: ['Trái tim', 'Bông sen'],
         texts: ['I LOVE YOU', 'MÃI BÊN NHAU'],
@@ -60,6 +65,7 @@ export const OCCASIONS = [
     {
         id: 'phu_nu_8_3', name: 'Quốc tế Phụ nữ 8/3', icon: '🌷', who: 'bạn',
         theme: 'women',
+        frame: 'flower',
         palette: ['Purple', '#ff6ad5', 'Gold'],
         shapes: ['Bông sen', 'Trái tim'],
         texts: ["HAPPY WOMEN'S DAY", 'LUÔN XINH ĐẸP'],
@@ -72,6 +78,7 @@ export const OCCASIONS = [
     {
         id: 'phu_nu_20_10', name: 'Phụ nữ Việt Nam 20/10', icon: '💐', who: 'bạn',
         theme: 'women',
+        frame: 'flower',
         palette: ['#ff6ad5', 'Gold', 'Purple'],
         shapes: ['Bông sen', 'Trái tim'],
         texts: ['CHÚC MỪNG 20/10', 'LUÔN RẠNG RỠ'],
@@ -84,6 +91,7 @@ export const OCCASIONS = [
     {
         id: 'nha_giao_20_11', name: 'Nhà giáo 20/11', icon: '📚', who: 'thầy cô',
         theme: 'teacher',
+        frame: 'book',
         palette: ['Gold', 'Red', 'White'],
         shapes: ['Ngôi sao', 'Bông sen'],
         texts: ["HAPPY TEACHER'S DAY", 'TRI ÂN THẦY CÔ'],
@@ -96,6 +104,7 @@ export const OCCASIONS = [
     {
         id: 'nam_moi', name: 'Năm mới, Tết', icon: '🧧', who: 'bạn',
         theme: 'tet',
+        frame: 'lixi',
         // Mùa xuân: cánh hoa đào bay
         season: 'spring',
         palette: ['Red', 'Gold', 'Green'],
@@ -110,6 +119,7 @@ export const OCCASIONS = [
     {
         id: 'giang_sinh', name: 'Giáng sinh', icon: '🎄', who: 'bạn',
         theme: 'noel',
+        frame: 'tree',
         // Mùa đông, tuyết rơi
         season: 'winter',
         weather: 'snow',
@@ -121,6 +131,20 @@ export const OCCASIONS = [
         intro: r => `Ông già Noel gửi tới ${r} một món quà nhỏ. Mở ra xem nhé!`,
         outro: 'Merry Christmas! Chúc mùa lễ hội thật ấm áp bên những người thân yêu.',
         seoTitle: r => `🎄 Quà Giáng sinh dành tặng ${r}`
+    },
+    {
+        id: 'trung_thu', name: 'Trung thu', icon: '🏮', who: 'bạn',
+        theme: 'midautumn',
+        frame: 'lantern',
+        season: 'autumn',
+        palette: ['Gold', 'Red', '#ff9a3c'],
+        shapes: ['Ngôi sao', 'Bông sen'],
+        texts: ['TRUNG THU VUI VẺ', 'TRĂNG RẰM SUM VẦY'],
+        title: 'TRUNG THU VUI VẺ',
+        subtitle: r => `Chúc ${r} một mùa trăng rằm thật đầm ấm, sum vầy bên những người thân yêu!`,
+        intro: r => `Trăng sáng, đèn lồng đã thắp. Có một món quà nhỏ dành cho ${r}!`,
+        outro: 'Trung thu vui vẻ! Chúc mọi điều tròn đầy như vầng trăng rằm.',
+        seoTitle: r => `🏮 Quà Trung thu dành tặng ${r}`
     }
 ];
 
@@ -232,7 +256,7 @@ export function buildTemplate(occasionId, { recipient = '', sender = '' } = {}) 
         author: from ? `Từ: ${from}` : '',
         recipient: name || undefined,
         // Món quà mở bằng hộp quà rung rinh, nổ ruy băng; màn mở quà, màn kết theo giao diện của dịp
-        startFrame: 'gift',
+        startFrame: o.frame || 'gift',
         screenTheme: o.theme ? { preset: o.theme } : undefined,
         season: o.season,
         weather: o.weather,

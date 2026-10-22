@@ -1443,6 +1443,1298 @@ body {
     70% { transform: rotate(-3deg) scale(1.06); }
 }
 
+// Cây thông Giáng sinh (startFrame: "tree"): hộp quà rơi xuống gốc cây nảy nhẹ, dây đèn sáng lần lượt, ngôi sao sáng sau
+// cùng; chờ thì đèn nhấp nháy luân phiên, sao lấp lánh; mở thì nắp hộp bật lên, sao lóe, tia sáng bay lên như sao
+.tree {
+    left: 12%;
+    width: 76%;
+    top: 0;
+    height: 92%;
+
+    &__trunk {
+        left: 45%;
+        width: 10%;
+        top: 80%;
+        height: 12%;
+        border-radius: 2px;
+        background: linear-gradient(90deg, #4a2c18, #6b4226 50%, #3a2212);
+    }
+
+    &__tier {
+        clip-path: polygon(50% 0, 100% 100%, 0 100%);
+        background: linear-gradient(150deg, #4a9a5a 0%, #23673a 45%, #12401f 100%);
+
+        // Tuyết đọng mép dưới từng tầng
+        &::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 12%;
+            background: radial-gradient(ellipse at 50% 0, rgba(240, 246, 255, 0.85) 45%, transparent 47%) 0 0 / 18% 100% repeat-x;
+            opacity: 0.75;
+        }
+
+        &--1 {
+            left: 28%;
+            width: 44%;
+            top: 8%;
+            height: 34%;
+        }
+
+        &--2 {
+            left: 19%;
+            width: 62%;
+            top: 26%;
+            height: 36%;
+        }
+
+        &--3 {
+            left: 9%;
+            width: 82%;
+            top: 46%;
+            height: 37%;
+        }
+    }
+
+    // Dây đèn: mỗi bóng một màu, sáng lần lượt rồi nhấp nháy luân phiên
+    &__lights {
+        inset: 0;
+
+        i {
+            width: 6.5%;
+            aspect-ratio: 1;
+            margin: -3.25% 0 0 -3.25%;
+            border-radius: 50%;
+            background: var(--c, var(--st-accent, #ffd166));
+            opacity: 0.25;
+
+            &:nth-child(4n + 1) { --c: var(--st-accent, #ffd166); }
+            &:nth-child(4n + 2) { --c: #ff5a5f; }
+            &:nth-child(4n + 3) { --c: #7fd3ff; }
+            &:nth-child(4n) { --c: #fff3c4; }
+
+            .start-screen.is-ready & {
+                animation: treeLightOn 0.3s ease-out calc(0.6s + var(--i) * 0.06s) both,
+                    treeTwinkle 1.8s ease-in-out calc(1.4s + var(--i) * 0.23s) infinite;
+            }
+        }
+    }
+
+    &__star {
+        left: 41%;
+        width: 18%;
+        top: -4%;
+        aspect-ratio: 1;
+        clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+        background: radial-gradient(circle at 50% 45%, #fffbe0, var(--st-accent, #ffd166) 60%, #e0a020);
+        opacity: 0.35;
+
+        .start-screen.is-ready & {
+            animation: treeStar 0.5s ease-out 1.2s both, treeStarPulse 2.4s ease-in-out 1.8s infinite;
+        }
+    }
+
+    // Hộp quà nhỏ dưới gốc cây (màu theo giao diện)
+    &__gift {
+        left: 56%;
+        width: 32%;
+        top: 70%;
+        height: 26%;
+
+        .start-screen.is-ready & {
+            animation: treeGiftDrop 0.6s cubic-bezier(0.3, 0.7, 0.4, 1) 0.3s both;
+        }
+    }
+
+    &__gift-body {
+        left: 6%;
+        right: 6%;
+        bottom: 0;
+        height: 70%;
+        border-radius: 3px;
+        background:
+            linear-gradient(90deg, transparent 42%, var(--st-accent, #ffd166) 42% 58%, transparent 58%),
+            linear-gradient(160deg, var(--st-main-light, #ff6b6b), var(--st-main, #c41e3a) 60%, var(--st-main-dark, #8a1028));
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.4);
+    }
+
+    &__gift-lid {
+        left: 0;
+        right: 0;
+        top: 12%;
+        height: 24%;
+        border-radius: 3px;
+        background:
+            linear-gradient(90deg, transparent 40%, var(--st-accent-light, #ffe08a) 40% 60%, transparent 60%),
+            linear-gradient(160deg, var(--st-main-light, #ff6b6b), var(--st-main, #c41e3a));
+        transition: transform 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.6s;
+
+        &::before,
+        &::after {
+            content: '';
+            position: absolute;
+            bottom: 90%;
+            width: 30%;
+            height: 90%;
+            border: 2.5px solid var(--st-accent, #ffd166);
+            border-radius: 50%;
+        }
+
+        &::before {
+            right: 50%;
+            transform: rotate(-25deg);
+        }
+
+        &::after {
+            left: 50%;
+            transform: rotate(25deg);
+        }
+    }
+}
+
+.start-screen.gift-opening .tree__gift {
+    animation: giftShake 0.45s linear;
+}
+
+.start-screen.gift-open {
+    .tree__gift-lid {
+        transform: translateY(-260%) rotate(-30deg);
+        opacity: 0;
+    }
+
+    .tree__star {
+        animation: treeStarFlare 0.8s ease-out both;
+    }
+
+    .tree__lights i {
+        animation: none;
+        opacity: 1;
+        box-shadow: 0 0 10px 3px var(--c);
+    }
+}
+
+@keyframes treeLightOn {
+    from { opacity: 0.25; transform: scale(0.6); }
+    to { opacity: 1; transform: none; box-shadow: 0 0 8px 2px var(--c); }
+}
+
+@keyframes treeTwinkle {
+    0%, 100% { opacity: 1; box-shadow: 0 0 8px 2px var(--c); }
+    50% { opacity: 0.45; box-shadow: none; }
+}
+
+@keyframes treeStar {
+    from { opacity: 0.35; transform: scale(0.7); }
+    to { opacity: 1; transform: none; filter: drop-shadow(0 0 10px var(--st-accent, #ffd166)); }
+}
+
+@keyframes treeStarPulse {
+    0%, 100% { filter: drop-shadow(0 0 8px var(--st-accent, #ffd166)); }
+    50% { filter: drop-shadow(0 0 16px var(--st-accent, #ffd166)); transform: scale(1.06); }
+}
+
+@keyframes treeStarFlare {
+    40% { transform: scale(1.5); filter: drop-shadow(0 0 22px #fff3c4); }
+    100% { transform: scale(1.1); filter: drop-shadow(0 0 12px var(--st-accent, #ffd166)); }
+}
+
+@keyframes treeGiftDrop {
+    0% { opacity: 0; transform: translateY(-220%); }
+    60% { opacity: 1; transform: translateY(0); }
+    80% { transform: translateY(-10%); }
+    100% { opacity: 1; transform: none; }
+}
+
+// Bánh sinh nhật (startFrame: "cake"): bánh phóng lên, nến thắp lần lượt, bóng bay hai bên bay lên; chờ thì lửa nến lay
+// nhẹ, bóng bay bồng bềnh; mở thì lửa bùng sáng, bánh thu nhỏ, pháo giấy bung từ hai bên màn hình
+.cake {
+    inset: 0;
+    transition: transform 0.5s ease-in;
+
+    &__plate {
+        left: 8%;
+        right: 8%;
+        top: 86%;
+        height: 7%;
+        border-radius: 50%;
+        background: linear-gradient(#f4f4f8, #b8bcc8);
+        box-shadow: 0 8px 14px rgba(0, 0, 0, 0.45);
+    }
+
+    // Tầng bánh: thân màu theo giao diện, lớp kem phủ trên chảy giọt
+    &__tier {
+        border-radius: 7% / 10%;
+        background: linear-gradient(90deg, var(--st-main-dark, #c42d7d), var(--st-main, #ff4fa3) 35%, var(--st-main-light, #ff8cc4) 60%, var(--st-main, #ff4fa3) 85%);
+        box-shadow: inset 0 -6px 10px rgba(0, 0, 0, 0.18);
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: -1%;
+            right: -1%;
+            top: -2%;
+            height: 42%;
+            border-radius: 8px 8px 0 0;
+            background:
+                radial-gradient(circle at 50% 0, #fff6ee 58%, transparent 61%) 0 100% / 14% 48% repeat-x,
+                linear-gradient(#fffaf4, #fff1e4) 0 0 / 100% 64% no-repeat;
+        }
+
+        &--low {
+            left: 14%;
+            right: 14%;
+            top: 60%;
+            height: 28%;
+        }
+
+        &--top {
+            left: 27%;
+            right: 27%;
+            top: 40%;
+            height: 23%;
+            background: linear-gradient(90deg, #d9a35c, #f2c98a 40%, #fbe2b8 60%, #e8b672 90%);
+        }
+    }
+
+    // Nến sọc, lửa hình giọt nước: thắp lần lượt rồi lay nhẹ
+    &__candles {
+        left: 30%;
+        right: 30%;
+        top: 25%;
+        height: 16%;
+
+        i {
+            left: calc(6% + var(--i) * 20%);
+            width: 8%;
+            top: 0;
+            height: 100%;
+            border-radius: 2px;
+            background: repeating-linear-gradient(135deg, #fff 0 3px, var(--st-accent, #ffd166) 3px 6px);
+        }
+
+        b {
+            left: 50%;
+            bottom: 100%;
+            width: 180%;
+            height: 0;
+            padding-bottom: 300%;
+            margin-left: -90%;
+            border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+            background: radial-gradient(ellipse at 50% 72%, #fff 0 18%, #ffe27a 35%, #ff9a2e 70%, rgba(255, 120, 30, 0) 72%);
+            box-shadow: 0 0 10px 3px rgba(255, 190, 80, 0.5);
+            transform-origin: 50% 100%;
+            transform: scale(0);
+
+            .start-screen.is-ready & {
+                animation: flameOn 0.35s ease-out calc(0.6s + var(--i) * 0.13s) both,
+                    flameFlicker 1.4s ease-in-out calc(1.3s + var(--i) * 0.17s) infinite alternate;
+            }
+        }
+    }
+}
+
+// Bóng bay hai bên: bay lên rồi bồng bềnh
+.cake-balloon {
+    width: 19%;
+    height: 24%;
+    border-radius: 50% 50% 48% 48% / 56% 56% 44% 44%;
+    background: radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.65) 0 9%, transparent 11%), var(--b, var(--st-main, #ff4fa3));
+    box-shadow: inset -4px -6px 10px rgba(0, 0, 0, 0.18);
+
+    &::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 100%;
+        width: 1px;
+        height: 150%;
+        background: rgba(255, 255, 255, 0.45);
+    }
+
+    &--a {
+        --b: var(--st-accent, #ffd166);
+        left: -22%;
+        top: 14%;
+    }
+
+    &--b {
+        --b: var(--st-main, #ff4fa3);
+        right: -20%;
+        top: 4%;
+    }
+
+    &--c {
+        --b: #7fc8ff;
+        right: -34%;
+        top: 30%;
+        width: 15%;
+        height: 19%;
+    }
+
+    .start-screen.is-ready & {
+        animation: balloonRise 1s ease-out 0.35s both, balloonBob 3.2s ease-in-out 1.4s infinite;
+    }
+
+    .start-screen.is-ready &--b {
+        animation-delay: 0.5s, 1.6s;
+    }
+
+    .start-screen.is-ready &--c {
+        animation-delay: 0.65s, 1.9s;
+    }
+}
+
+.start-screen.gift-opening .cake {
+    transform: scale(1.04);
+}
+
+.start-screen.gift-open {
+    .cake {
+        transform: scale(0.9);
+    }
+
+    .cake__candles b {
+        animation: flameFlare 0.6s ease-out both;
+    }
+}
+
+@keyframes flameOn {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes flameFlicker {
+    0% { transform: scale(1) skewX(0); }
+    50% { transform: scale(0.94, 1.06) skewX(-3deg); }
+    100% { transform: scale(1.04, 0.96) skewX(2deg); }
+}
+
+@keyframes flameFlare {
+    40% { transform: scale(1.6); box-shadow: 0 0 22px 8px rgba(255, 210, 120, 0.85); }
+    100% { transform: scale(1.15); box-shadow: 0 0 14px 4px rgba(255, 190, 80, 0.6); }
+}
+
+@keyframes balloonRise {
+    from { opacity: 0; transform: translateY(70%); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes balloonBob {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-8%) rotate(2deg); }
+}
+
+// Phong thư tình (startFrame: "letter"): viền trái tim vẽ dần bằng ánh sáng, phong thư hiện ở giữa; chờ thì trái tim đập
+// nhẹ; mở thì nắp thư lật lên, lá thư nhô ra, trái tim nảy rồi tan thành cánh hoa, tim nhỏ
+.letter__heart {
+    position: absolute;
+    left: -8%;
+    top: -6%;
+    width: 116%;
+    height: 112%;
+    overflow: visible;
+
+    path {
+        fill: rgba(var(--st-main-rgb, 255, 45, 111), 0.1);
+        stroke: var(--st-accent, #ffb3c7);
+        stroke-width: 2.2;
+        stroke-linejoin: round;
+        stroke-dasharray: 310;
+        stroke-dashoffset: 310;
+        filter: drop-shadow(0 0 4px rgba(var(--st-accent-rgb, 255, 179, 199), 0.9));
+    }
+
+    .start-screen.is-ready & path {
+        animation: heartDraw 1s ease-out 0.15s both;
+    }
+
+    .start-screen.is-ready & {
+        transform-origin: 50% 55%;
+        animation: heartBeat 2.8s ease-in-out 1.4s infinite;
+    }
+
+    .start-screen.gift-open & {
+        animation: heartPop 0.7s ease-out forwards;
+    }
+}
+
+.letter {
+    left: 19%;
+    width: 62%;
+    top: 34%;
+    height: 42%;
+    perspective: 500px;
+
+    .start-screen.is-ready & {
+        animation: stageRise 0.6s ease-out 0.45s both;
+    }
+
+    &__back {
+        inset: 0;
+        border-radius: 6px;
+        background: linear-gradient(160deg, var(--st-main, #ff2d6f), var(--st-main-dark, #b81d50));
+    }
+
+    // Lá thư: giấy kem có dòng kẻ, một trái tim nhỏ
+    &__paper {
+        z-index: 1;
+        left: 7%;
+        right: 7%;
+        top: 6%;
+        height: 86%;
+        border-radius: 3px;
+        background:
+            radial-gradient(circle at 50% 30%, var(--st-main, #ff2d6f) 0 7%, transparent 8%),
+            repeating-linear-gradient(180deg, transparent 0 16%, rgba(120, 90, 90, 0.22) 16% 18%) 0 45% / 100% 50% no-repeat,
+            #fffaf2;
+        transition: transform 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.15) 0.25s;
+    }
+
+    // Mặt trước: hai vạt chéo dưới (khe chữ V ở trên)
+    &__front {
+        z-index: 2;
+        inset: 0;
+        border-radius: 6px;
+        clip-path: polygon(0 0, 50% 55%, 100% 0, 100% 100%, 0 100%);
+        background: linear-gradient(165deg, var(--st-main-light, #ff7ba3), var(--st-main, #ff2d6f) 70%);
+        box-shadow: 0 14px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    &__flap {
+        z-index: 3;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 58%;
+        clip-path: polygon(0 0, 100% 0, 50% 100%);
+        background: linear-gradient(180deg, var(--st-main-dark, #b81d50), var(--st-main, #ff2d6f));
+        transform-origin: 50% 0;
+        transition: transform 0.55s cubic-bezier(0.4, 0, 0.6, 1), z-index 0s 0.27s;
+    }
+
+    // Dấu sáp hình tim ở đỉnh nắp thư
+    &__seal {
+        z-index: 4;
+        left: 50%;
+        top: 58%;
+        width: 22%;
+        aspect-ratio: 1;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: radial-gradient(circle at 38% 32%, var(--st-accent-light, #ffd6e0), var(--st-accent, #ffb3c7) 55%, var(--st-accent-dark, #e07a96));
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+        color: var(--st-main-dark, #b81d50);
+        font-size: calc(var(--s) * 0.075);
+        line-height: 1;
+        transform: translate(-50%, -50%);
+        transition: transform 0.35s ease-in, opacity 0.35s;
+    }
+}
+
+.start-screen.gift-opening .letter {
+    animation: lixiShake 0.38s linear;
+}
+
+.start-screen.gift-open .letter {
+    .letter__flap {
+        z-index: 0;
+        transform: rotateX(180deg);
+    }
+
+    .letter__paper {
+        transform: translateY(-62%);
+    }
+
+    .letter__seal {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.6);
+    }
+}
+
+@keyframes heartDraw {
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes heartBeat {
+    0%, 60%, 100% { transform: scale(1); }
+    15% { transform: scale(1.04); }
+    30% { transform: scale(0.99); }
+    45% { transform: scale(1.03); }
+}
+
+@keyframes heartPop {
+    30% { transform: scale(1.12); opacity: 1; }
+    100% { transform: scale(1.35); opacity: 0; }
+}
+
+// Thiệp cưới (startFrame: "invite"): thiệp màu kem viền vàng trượt lên, vệt sáng champagne chạy quanh; chờ thì đứng yên;
+// mở thì dấu sáp tan, hai cánh thiệp mở ra hai bên, đôi nhẫn sáng lên, vệt sáng champagne quét ngang, cánh hoa rơi
+.invite {
+    left: 13%;
+    width: 74%;
+    top: 2%;
+    height: 92%;
+    perspective: 700px;
+
+    // Bên trong: nền kem, viền vàng, đôi nhẫn lồng nhau
+    &__inside {
+        inset: 0;
+        overflow: hidden;
+        border-radius: 6px;
+        background:
+            radial-gradient(circle at 50% 42%, rgba(var(--st-accent-rgb, 243, 220, 168), 0.55) 0 26%, transparent 46%),
+            #fbf4e6;
+        box-shadow: inset 0 0 0 calc(var(--s) * 0.02) #fbf4e6, inset 0 0 0 calc(var(--s) * 0.028) var(--st-main, #b8862b), 0 16px 28px rgba(0, 0, 0, 0.45);
+
+        // Vệt sáng champagne quét ngang khi mở
+        &::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(105deg, transparent 30%, rgba(255, 246, 220, 0.85) 50%, transparent 70%);
+            transform: translateX(-130%);
+        }
+    }
+
+    &__rings {
+        left: 22%;
+        width: 56%;
+        top: 30%;
+        height: 26%;
+        transform: scale(0.85);
+        opacity: 0.6;
+        transition: transform 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.4) 0.35s, opacity 0.6s 0.35s;
+
+        i {
+            top: 0;
+            height: 100%;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            border: calc(var(--s) * 0.028) solid var(--st-main, #b8862b);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6), 0 0 0 1px rgba(120, 80, 20, 0.35);
+
+            &:first-child {
+                left: 12%;
+            }
+
+            &:last-child {
+                right: 12%;
+            }
+        }
+    }
+
+    // Hai cánh thiệp, mở quanh mép ngoài
+    &__door {
+        top: 0;
+        width: 50%;
+        height: 100%;
+        background:
+            radial-gradient(circle at 50% 50%, rgba(var(--st-main-rgb, 184, 134, 43), 0.12) 0 1.5px, transparent 2px) 0 0 / 14px 14px,
+            linear-gradient(160deg, #fffaf0, #f3e6cc);
+        box-shadow: inset 0 0 0 calc(var(--s) * 0.014) var(--st-main, #b8862b), 0 10px 20px rgba(0, 0, 0, 0.3);
+        transition: transform 0.7s cubic-bezier(0.45, 0, 0.25, 1);
+
+        &--l {
+            left: 0;
+            border-radius: 6px 0 0 6px;
+            transform-origin: 0 50%;
+        }
+
+        &--r {
+            right: 0;
+            border-radius: 0 6px 6px 0;
+            transform-origin: 100% 50%;
+        }
+    }
+
+    &__seal {
+        left: 50%;
+        top: 50%;
+        width: 22%;
+        aspect-ratio: 1;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: radial-gradient(circle at 38% 32%, #e8b0a0, #a8323c 55%, #6e1622);
+        box-shadow: 0 0 0 calc(var(--s) * 0.01) var(--st-main, #b8862b), 0 3px 8px rgba(0, 0, 0, 0.35);
+        color: var(--st-accent, #f3dca8);
+        font-size: calc(var(--s) * 0.075);
+        line-height: 1;
+        transform: translate(-50%, -50%);
+        transition: transform 0.3s ease-in, opacity 0.3s;
+    }
+
+    // Viền vàng sáng lên một lần lúc thiệp vừa hiện
+    .start-screen.is-ready & {
+        animation: inviteGlow 1.2s ease-in-out 0.6s both;
+    }
+}
+
+.start-screen.frame-invite.is-ready .gift-stage > .gift-stage__hero {
+    animation: inviteIn 0.8s ease-out 0.1s both;
+}
+
+.start-screen.gift-opening .invite__seal {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+}
+
+.start-screen.gift-opening .invite__door--l {
+    transform: rotateY(-118deg);
+}
+
+.start-screen.gift-opening .invite__door--r {
+    transform: rotateY(118deg);
+}
+
+.start-screen.gift-open .invite {
+    .invite__rings {
+        transform: scale(1.08);
+        opacity: 1;
+        filter: drop-shadow(0 0 8px rgba(var(--st-accent-rgb, 243, 220, 168), 0.9));
+    }
+
+    .invite__inside::after {
+        animation: heroShine 0.9s ease-in-out both;
+    }
+}
+
+@keyframes inviteIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes inviteGlow {
+    50% { filter: drop-shadow(0 0 14px rgba(var(--st-accent-rgb, 243, 220, 168), 0.9)); }
+}
+
+// Mũ tốt nghiệp (startFrame: "cap"): mũ rơi xuống xoay về cân bằng, nảy nhẹ; cuộn bằng hiện ra bên dưới; chờ thì tua rua
+// đung đưa; mở thì mũ tung lên rồi mờ, cuộn bằng mở ra, pháo giấy bung một lần
+.cap {
+    left: 10%;
+    width: 80%;
+    top: 4%;
+    height: 50%;
+    transition: transform 0.8s cubic-bezier(0.3, 0, 0.4, 1), opacity 0.8s;
+
+    .start-screen.is-ready & {
+        animation: capDrop 0.7s cubic-bezier(0.3, 0.7, 0.4, 1) 0.1s both;
+    }
+
+    // Mặt mũ vuông nhìn chéo thành hình thoi
+    &__board {
+        left: 0;
+        right: 0;
+        top: 4%;
+        height: 56%;
+        clip-path: polygon(50% 0, 100% 46%, 50% 92%, 0 46%);
+        background: linear-gradient(160deg, #47516e 0%, #232a40 50%, #141a2c 100%);
+    }
+
+    &__base {
+        left: 24%;
+        right: 24%;
+        top: 34%;
+        height: 50%;
+        border-radius: 0 0 46% 46% / 0 0 34% 34%;
+        background: linear-gradient(90deg, #121726, #2a3248 45%, #1a2032);
+        box-shadow: 0 10px 18px rgba(0, 0, 0, 0.4);
+    }
+
+    &__button {
+        left: 47%;
+        width: 6%;
+        top: 25%;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: var(--st-accent, #ffd166);
+    }
+
+    // Dây tua rua chạy từ nút ra mép mũ rồi rủ xuống, đung đưa
+    &__cord {
+        left: 50%;
+        top: 28%;
+        width: 40%;
+        height: 2px;
+        background: var(--st-accent, #ffd166);
+        transform-origin: 0 50%;
+        transform: rotate(17deg);
+    }
+
+    &__tassel {
+        right: 0;
+        top: 0;
+        width: 2px;
+        height: calc(var(--s) * 0.24);
+        background: var(--st-accent, #ffd166);
+        transform-origin: 50% 0;
+        transform: rotate(-17deg);
+
+        &::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            width: calc(var(--s) * 0.05);
+            height: calc(var(--s) * 0.09);
+            margin-left: calc(var(--s) * -0.025);
+            border-radius: 40% 40% 20% 20%;
+            background: repeating-linear-gradient(90deg, var(--st-accent, #ffd166) 0 2px, var(--st-accent-dark, #d9a530) 2px 3px);
+        }
+
+        .start-screen.is-ready & {
+            animation: tasselSwing 2.6s ease-in-out 0.9s infinite;
+        }
+    }
+}
+
+// Cuộn bằng: ống giấy kem có bóng tròn, nơ đỏ giữa; mở thì tờ bằng trải xuống từ cuộn
+.diploma {
+    left: 16%;
+    width: 68%;
+    top: 64%;
+    height: 17%;
+
+    .start-screen.is-ready & {
+        animation: diplomaIn 0.5s ease-out 0.65s both;
+    }
+
+    &__roll {
+        inset: 0;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #d8ccb0 0%, #fffaf0 35%, #f2e8d2 70%, #b8a888 100%);
+        box-shadow: 0 8px 14px rgba(0, 0, 0, 0.4);
+
+        &::before,
+        &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 9%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(circle, #a89878 0 25%, #e8dcc4 30%);
+        }
+
+        &::before {
+            left: 0;
+        }
+
+        &::after {
+            right: 0;
+        }
+    }
+
+    &__ribbon {
+        left: 45%;
+        width: 10%;
+        top: -8%;
+        height: 116%;
+        background: var(--st-main, #2856d6);
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
+    }
+
+    &__sheet {
+        left: 6%;
+        right: 6%;
+        top: 50%;
+        height: 240%;
+        border-radius: 0 0 4px 4px;
+        background:
+            radial-gradient(circle at 78% 78%, var(--st-accent, #ffd166) 0 8%, var(--st-accent-dark, #d9a530) 9% 11%, transparent 12%),
+            repeating-linear-gradient(180deg, transparent 0 14%, rgba(110, 90, 60, 0.28) 14% 16%) 20% 22% / 60% 50% no-repeat,
+            #fffaf0;
+        box-shadow: 0 10px 18px rgba(0, 0, 0, 0.35);
+        transform-origin: 50% 0;
+        transform: scaleY(0);
+        transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) 0.15s;
+    }
+}
+
+.start-screen.gift-opening .cap {
+    transform: translateY(6%) rotate(-3deg);
+}
+
+.start-screen.gift-open {
+    .cap {
+        transform: translateY(-160%) rotate(-28deg);
+        opacity: 0;
+    }
+
+    .diploma__sheet {
+        transform: scaleY(1);
+    }
+}
+
+@keyframes capDrop {
+    0% { opacity: 0; transform: translateY(-80%) rotate(-12deg); }
+    60% { opacity: 1; transform: translateY(4%) rotate(2deg); }
+    80% { transform: translateY(-3%) rotate(-1deg); }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes tasselSwing {
+    0%, 100% { transform: rotate(-17deg); }
+    50% { transform: rotate(-9deg); }
+}
+
+@keyframes diplomaIn {
+    from { opacity: 0; transform: scaleX(0.3); }
+    to { opacity: 1; transform: none; }
+}
+
+// Hoa nở (startFrame: "flower"): nụ hoa hiện ra, từng cánh nở dần (hai lớp), nhụy sáng; chờ thì hoa đung đưa; mở thì
+// cánh hoa tỏa ra ngoài rồi mờ, nhụy sáng bừng, cánh hoa bay
+.flower {
+    inset: 0;
+    transform-origin: 50% 100%;
+
+    .start-screen.is-ready & {
+        animation: flowerSway 3.4s ease-in-out 1.6s infinite;
+    }
+
+    &__stem {
+        left: 48.8%;
+        width: 2.4%;
+        top: 42%;
+        height: 56%;
+        border-radius: 2px;
+        background: linear-gradient(90deg, #2c6a34, #4a9a52, #2c6a34);
+    }
+
+    &__leaf {
+        top: 66%;
+        width: 22%;
+        height: 10%;
+        border-radius: 0 100% 0 100%;
+        background: linear-gradient(135deg, #5ab866, #2c7a3a);
+
+        &--l {
+            right: 51%;
+            transform: rotate(-24deg) scaleX(-1);
+        }
+
+        &--r {
+            left: 51%;
+            top: 76%;
+            transform: rotate(24deg);
+        }
+    }
+
+    // Tâm hoa: các cánh xoay quanh điểm này, gốc cánh ở tâm
+    &__head {
+        left: 50%;
+        top: 40%;
+        width: 0;
+        height: 0;
+    }
+
+    .petal {
+        left: calc(var(--s) * -0.1);
+        bottom: 0;
+        width: calc(var(--s) * 0.2);
+        height: calc(var(--s) * 0.32);
+        border-radius: 50% 50% 50% 50% / 64% 64% 36% 36%;
+        background: linear-gradient(to top, var(--st-main-dark, #8a2ec0), var(--st-main, #b14ee8) 35%, var(--st-main-light, #d38af5) 75%, var(--st-accent, #ffc2e2));
+        box-shadow: inset 0 -4px 8px rgba(0, 0, 0, 0.15);
+        transform-origin: 50% 100%;
+        transform: rotate(var(--a));
+        transition: transform 0.6s ease-out, opacity 0.6s;
+
+        &--in {
+            left: calc(var(--s) * -0.075);
+            width: calc(var(--s) * 0.15);
+            height: calc(var(--s) * 0.22);
+            background: linear-gradient(to top, var(--st-main, #b14ee8), var(--st-main-light, #d38af5) 50%, var(--st-accent-light, #ffe0f0));
+        }
+
+        .start-screen.is-ready & {
+            animation: petalBloom 0.6s cubic-bezier(0.3, 0.8, 0.4, 1.1) calc(0.3s + var(--i) * 0.05s) both;
+        }
+    }
+
+    &__core {
+        left: calc(var(--s) * -0.06);
+        top: calc(var(--s) * -0.06);
+        width: calc(var(--s) * 0.12);
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: radial-gradient(circle, #fff8d0, var(--st-accent, #ffc2e2) 55%, #e8a020);
+        box-shadow: 0 0 12px 4px rgba(255, 230, 160, 0.55);
+        transform: scale(0);
+        transition: transform 0.5s ease-out, box-shadow 0.5s;
+
+        .start-screen.is-ready & {
+            animation: flameOn 0.4s ease-out 0.95s both;
+        }
+    }
+}
+
+.start-screen.gift-open .flower {
+    animation: none;
+
+    .petal {
+        animation: none;
+        opacity: 0;
+        transform: rotate(var(--a)) translateY(-45%) scale(1.25);
+    }
+
+    .flower__core {
+        animation: none;
+        transform: scale(2.2);
+        box-shadow: 0 0 30px 14px rgba(255, 236, 180, 0.8);
+    }
+}
+
+@keyframes petalBloom {
+    from { opacity: 0; transform: rotate(calc(var(--a) * 0.08)) scale(0.35); }
+    to { opacity: 1; transform: rotate(var(--a)); }
+}
+
+@keyframes flowerSway {
+    0%, 100% { transform: rotate(-2.5deg); }
+    50% { transform: rotate(2.5deg); }
+}
+
+// Sách tri ân (startFrame: "book"): cuốn sách phóng lên, bìa mở ra từ gáy, nhành hoa hiện bên cạnh; mở thì thiệp tri ân
+// nâng lên khỏi trang sách, vệt sáng vàng chạy từ dưới lên, tia sáng bay
+.book {
+    left: 4%;
+    width: 92%;
+    top: 26%;
+    height: 50%;
+    perspective: 900px;
+
+    // Bìa sau làm nền (lộ viền quanh trang)
+    &__shell {
+        left: 47%;
+        right: -2%;
+        top: -3%;
+        bottom: -5%;
+        border-radius: 3px 8px 8px 3px;
+        background: linear-gradient(160deg, var(--st-main-light, #3cc278), var(--st-main, #1f9d55) 50%, var(--st-main-dark, #12663a));
+        box-shadow: 0 14px 24px rgba(0, 0, 0, 0.45);
+
+        .start-screen.is-ready & {
+            animation: bookShell 0.6s ease-in-out 0.5s both;
+        }
+    }
+
+    // Trang phải: giấy kem, dòng chữ mờ, bóng gáy sách
+    &__page {
+        left: 50%;
+        width: 48%;
+        top: 0;
+        height: 100%;
+        border-radius: 0 6px 6px 0;
+        background:
+            linear-gradient(90deg, rgba(0, 0, 0, 0.18), transparent 14%),
+            repeating-linear-gradient(180deg, transparent 0 12%, rgba(100, 90, 70, 0.22) 12% 13.5%) 18% 18% / 70% 64% no-repeat,
+            #fffaf0;
+    }
+
+    // Thiệp tri ân kẹp trong sách: nâng lên khi mở
+    &__card {
+        left: 60%;
+        width: 30%;
+        top: 14%;
+        height: 72%;
+        border-radius: 4px;
+        background:
+            radial-gradient(circle at 50% 36%, var(--st-main, #1f9d55) 0 9%, transparent 10%),
+            linear-gradient(var(--st-main, #1f9d55), var(--st-main, #1f9d55)) 50% 66% / 56% 4% no-repeat,
+            linear-gradient(var(--st-main, #1f9d55), var(--st-main, #1f9d55)) 50% 76% / 40% 4% no-repeat,
+            linear-gradient(170deg, #fffbe8, var(--st-accent, #ffe08a));
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        transition: transform 0.75s cubic-bezier(0.2, 0.9, 0.3, 1.2), box-shadow 0.75s;
+    }
+
+    // Bìa trước: mặt ngoài màu theo giao diện có khung vàng, mặt trong là trang trái; mở quanh gáy sách (giữa)
+    &__cover {
+        left: 50%;
+        width: 48%;
+        top: 0;
+        height: 100%;
+        transform-origin: 0 50%;
+        transform-style: preserve-3d;
+
+        .start-screen.is-ready & {
+            animation: bookOpen 0.9s cubic-bezier(0.45, 0, 0.25, 1) 0.5s both;
+        }
+
+        i {
+            inset: 0;
+            backface-visibility: hidden;
+        }
+    }
+
+    &__cover-front {
+        border-radius: 0 6px 6px 0;
+        background:
+            linear-gradient(var(--st-accent, #ffe08a), var(--st-accent, #ffe08a)) 50% 40% / 50% 4% no-repeat,
+            linear-gradient(var(--st-accent, #ffe08a), var(--st-accent, #ffe08a)) 50% 52% / 34% 3% no-repeat,
+            linear-gradient(160deg, var(--st-main-light, #3cc278), var(--st-main, #1f9d55) 50%, var(--st-main-dark, #12663a));
+        box-shadow: inset 0 0 0 calc(var(--s) * 0.02) rgba(var(--st-accent-rgb, 255, 224, 138), 0.75);
+    }
+
+    &__cover-back {
+        border-radius: 6px 0 0 6px;
+        transform: rotateY(180deg);
+        background:
+            linear-gradient(270deg, rgba(0, 0, 0, 0.18), transparent 14%),
+            repeating-linear-gradient(180deg, transparent 0 12%, rgba(100, 90, 70, 0.22) 12% 13.5%) 82% 18% / 70% 64% no-repeat,
+            #fffaf0;
+    }
+
+    // Vệt sáng vàng chạy từ dưới lên khi mở
+    &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: -60%;
+        bottom: -10%;
+        background: linear-gradient(0deg, transparent 30%, rgba(255, 240, 190, 0.55) 50%, transparent 70%);
+        opacity: 0;
+        pointer-events: none;
+    }
+}
+
+.book__sprig {
+    left: -4%;
+    top: 46%;
+    width: 18%;
+    height: 40%;
+    border-left: 2px solid #3f7a3a;
+    border-radius: 60% 0 0 0;
+    transform: rotate(-14deg);
+    transform-origin: 50% 100%;
+
+    i {
+        width: calc(var(--s) * 0.075);
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: radial-gradient(circle, #fff6c8 0 22%, var(--st-accent, #ffe08a) 26% 60%, var(--st-accent-dark, #e0b040));
+
+        &:nth-child(1) { left: -30%; top: -8%; }
+        &:nth-child(2) { left: 10%; top: 14%; }
+        &:nth-child(3) { left: -45%; top: 32%; }
+    }
+
+    .start-screen.is-ready & {
+        animation: flameOn 0.5s ease-out 1.15s both;
+    }
+}
+
+.start-screen.gift-open .book {
+    .book__card {
+        transform: translateY(-78%) rotate(-5deg) scale(1.3);
+        box-shadow: 0 0 24px 6px rgba(var(--st-accent-rgb, 255, 224, 138), 0.7);
+    }
+
+    &::after {
+        animation: bookSweep 0.9s ease-out both;
+    }
+}
+
+@keyframes bookOpen {
+    from { transform: rotateY(0); }
+    to { transform: rotateY(-180deg); }
+}
+
+@keyframes bookShell {
+    from { left: 47%; }
+    to { left: -2%; border-radius: 8px; }
+}
+
+@keyframes bookSweep {
+    0% { opacity: 1; transform: translateY(60%); }
+    100% { opacity: 0; transform: translateY(-40%); }
+}
+
+// Đèn lồng đón trăng (startFrame: "lantern"): trăng hiện ra sau mây, đèn lồng trượt lên và sáng dần; chờ thì mây trôi,
+// đèn đung đưa quanh chỗ treo; mở thì đèn bừng sáng, vòng sáng lan rộng, tia sáng bay
+.lantern-moon {
+    left: 44%;
+    top: -16%;
+    width: 64%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle at 42% 40%, #fffbe8 0%, #fff0c0 45%, #f5d78a 100%);
+    box-shadow: 0 0 40px 12px rgba(255, 226, 150, 0.35);
+    opacity: 0;
+
+    .start-screen.is-ready & {
+        animation: moonIn 0.9s ease-out 0.2s both;
+    }
+}
+
+.lantern-cloud {
+    // Mây đêm mềm: thân tím than mờ dần ra mép, mép trên ánh trăng
+    height: 14%;
+    border-radius: 50%;
+    background:
+        radial-gradient(ellipse at 50% 30%, rgba(255, 232, 190, 0.38) 0%, transparent 45%),
+        radial-gradient(ellipse at 50% 55%, rgba(58, 44, 78, 0.9) 0%, rgba(58, 44, 78, 0.55) 45%, rgba(58, 44, 78, 0) 70%);
+    filter: blur(2px);
+
+    &--a {
+        left: 30%;
+        top: 8%;
+        width: 60%;
+    }
+
+    &--b {
+        left: 62%;
+        top: 22%;
+        width: 50%;
+        height: 9%;
+    }
+
+    .start-screen.is-ready & {
+        animation: cloudDrift 7s ease-in-out infinite alternate;
+    }
+
+    .start-screen.is-ready &--b {
+        animation-duration: 9s;
+        animation-direction: alternate-reverse;
+    }
+}
+
+.lantern {
+    left: 28%;
+    width: 44%;
+    top: 4%;
+    height: 94%;
+    transform-origin: 50% 0;
+
+    .start-screen.is-ready & {
+        animation: lanternSway 3.4s ease-in-out 1.2s infinite;
+    }
+
+    &__string {
+        left: 49%;
+        width: 2%;
+        top: 0;
+        height: 13%;
+        background: #3a2a1a;
+    }
+
+    &__cap {
+        left: 26%;
+        right: 26%;
+        height: 6%;
+        border-radius: 3px;
+        background: linear-gradient(180deg, #ffe08a, var(--st-accent, #ffcf6b) 50%, #b8862b);
+
+        &--top {
+            top: 12%;
+        }
+
+        &--bottom {
+            top: 77%;
+        }
+    }
+
+    // Thân đèn tròn, nan dọc; ánh nến bên trong sáng dần
+    &__body {
+        left: 4%;
+        right: 4%;
+        top: 17%;
+        height: 61%;
+        overflow: hidden;
+        border-radius: 50% / 46%;
+        background:
+            repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.16) 0 2px, transparent 2px 16%),
+            radial-gradient(ellipse at 50% 50%, var(--st-main-light, #ff9a4a) 0%, var(--st-main, #e8590c) 55%, var(--st-main-dark, #9a3206) 100%);
+        box-shadow: 0 0 24px 4px rgba(var(--st-main-rgb, 232, 89, 12), 0.45);
+    }
+
+    &__light {
+        inset: 0;
+        background: radial-gradient(ellipse at 50% 55%, rgba(255, 246, 200, 0.95) 0%, rgba(255, 210, 120, 0.6) 30%, transparent 70%);
+        opacity: 0.15;
+
+        .start-screen.is-ready & {
+            animation: lanternGlow 0.6s ease-out 0.7s both, lanternFlicker 2.2s ease-in-out 1.4s infinite alternate;
+        }
+    }
+
+    &__tassel {
+        left: 44%;
+        width: 12%;
+        top: 83%;
+        height: 16%;
+        border-radius: 0 0 40% 40%;
+        background: repeating-linear-gradient(90deg, #d0302a 0 2px, #8a1a16 2px 3px);
+    }
+
+    &__ring {
+        left: 50%;
+        top: 48%;
+        width: 60%;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        border: 3px solid rgba(255, 230, 160, 0.9);
+        transform: translate(-50%, -50%) scale(0.3);
+        opacity: 0;
+    }
+}
+
+.start-screen.gift-open {
+    .lantern {
+        animation: none;
+    }
+
+    .lantern__light {
+        animation: none;
+        opacity: 1;
+    }
+
+    .lantern__body {
+        box-shadow: 0 0 50px 18px rgba(255, 200, 110, 0.7);
+    }
+
+    .lantern__ring {
+        animation: lanternRing 0.9s ease-out both;
+    }
+}
+
+@keyframes moonIn {
+    from { opacity: 0; transform: translate(-8%, 10%) scale(0.92); }
+    to { opacity: 0.95; transform: none; }
+}
+
+@keyframes cloudDrift {
+    from { transform: translateX(-10%); }
+    to { transform: translateX(10%); }
+}
+
+@keyframes lanternSway {
+    0%, 100% { transform: rotate(-4deg); }
+    50% { transform: rotate(4deg); }
+}
+
+@keyframes lanternGlow {
+    from { opacity: 0.15; }
+    to { opacity: 0.85; }
+}
+
+@keyframes lanternFlicker {
+    from { opacity: 0.85; }
+    to { opacity: 0.7; }
+}
+
+@keyframes lanternRing {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.3); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(3.4); }
+}
+
 // Giảm chuyển động: bỏ hiệu ứng hiện ra, nhịp chờ (vẫn mở được, chuyển cảnh ngắn)
 @media (prefers-reduced-motion: reduce) {
     .start-screen.frame-gift .gift-stage > *,
