@@ -554,7 +554,8 @@ export function createScreenAmbient(host) {
             }
             const w = window.innerWidth;
             const h = window.innerHeight;
-            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            // Nét theo màn hình (điện thoại nét gấp 3 cũng không nhòe)
+            const dpr = Math.min(window.devicePixelRatio || 1, 3);
             if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
                 canvas.width = Math.round(w * dpr);
                 canvas.height = Math.round(h * dpr);

@@ -250,7 +250,8 @@ function launchParticles(kind, x, y, calm) {
     document.body.appendChild(canvas);
     const W = window.innerWidth;
     const H = window.innerHeight;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Nét theo màn hình (điện thoại nét gấp 3 cũng không nhòe)
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
     canvas.width = W * dpr;
     canvas.height = H * dpr;
     const ctx = canvas.getContext('2d');

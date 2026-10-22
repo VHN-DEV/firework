@@ -64,13 +64,22 @@ const hash = n => {
     return v - Math.floor(v);
 };
 
+// Ảnh nhỏ vẽ sẵn (hoa đăng, đèn trời, khinh khí cầu) dựng nét gấp SPRITE_HD so với cỡ thiết kế: đủ cho màn hình nét gấp 3
+// và mức vẽ dư, vẽ ra không bị phóng to (nhòe)
+const SPRITE_HD = 4;
+const hdSprite = (w, h) => {
+    const c = document.createElement('canvas');
+    c.width = w * SPRITE_HD;
+    c.height = h * SPRITE_HD;
+    const g = c.getContext('2d');
+    g.scale(SPRITE_HD, SPRITE_HD);
+    return [c, g];
+};
+
 // Hoa đăng: đế hoa sen giấy, nến cháy ở giữa
 function floatLanternSprite() {
     if (sprites.floatLantern) return sprites.floatLantern;
-    const c = document.createElement('canvas');
-    c.width = 48;
-    c.height = 40;
-    const g = c.getContext('2d');
+    const [c, g] = hdSprite(48, 40);
     const glow = g.createRadialGradient(24, 18, 1, 24, 18, 20);
     glow.addColorStop(0, 'rgba(255, 210, 120, 0.85)');
     glow.addColorStop(1, 'rgba(255, 150, 60, 0)');
@@ -4702,10 +4711,7 @@ const sprites = {};
 
 function lanternSprite() {
     if (sprites.lantern) return sprites.lantern;
-    const c = document.createElement('canvas');
-    c.width = 48;
-    c.height = 64;
-    const g = c.getContext('2d');
+    const [c, g] = hdSprite(48, 64);
     // Quầng sáng
     const halo = g.createRadialGradient(24, 34, 2, 24, 34, 26);
     halo.addColorStop(0, 'rgba(255, 170, 70, 0.55)');
@@ -4740,10 +4746,7 @@ function balloonSprite(scheme) {
     const key = 'balloon' + scheme;
     if (sprites[key]) return sprites[key];
     const [a, b] = BALLOON_SCHEMES[scheme % BALLOON_SCHEMES.length];
-    const c = document.createElement('canvas');
-    c.width = 120;
-    c.height = 160;
-    const g = c.getContext('2d');
+    const [c, g] = hdSprite(120, 160);
     const envelope = () => {
         g.beginPath();
         g.moveTo(60, 8);

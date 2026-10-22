@@ -2251,10 +2251,11 @@ function handleResize() {
     smokeCanvas.style.height = containerH + 'px';
     frameW = containerW;
     frameH = containerH;
-    // Nét theo mật độ điểm ảnh của màn hình (tối đa 2) để trăng, sao không nhòe; chất lượng dưới độ phân giải màn hình thì
-    // vẽ thưa theo (không thưa hơn điểm ảnh CSS); đang vẽ dư (mức cao hơn màn hình) thì vẽ dư theo khung pháo
+    // Nét theo mật độ điểm ảnh của màn hình (cả màn nét gấp 3 của điện thoại) để trăng, sao, cây, mặt nước không nhòe; chất
+    // lượng dưới độ phân giải màn hình thì vẽ thưa theo khung pháo (không thưa hơn điểm ảnh CSS); đang vẽ dư (mức cao hơn
+    // màn hình) thì vẽ dư theo khung pháo
     const deviceScale = window.devicePixelRatio || 1;
-    const decoScale = mainStage.dpr > deviceScale ? mainStage.dpr : Math.min(2, deviceScale, Math.max(1, mainStage.dpr));
+    const decoScale = mainStage.dpr > deviceScale ? mainStage.dpr : Math.min(deviceScale, Math.max(1, mainStage.dpr));
     decoCanvas.width = Math.round(containerW * decoScale);
     decoCanvas.height = Math.round(containerH * decoScale);
     decoCanvas.style.width = containerW + 'px';
