@@ -1385,13 +1385,37 @@ function bankDip(X) {
     return Math.max(0, (fbm(noise, X / 80, 0.5, 3) - 0.5) * 3.2 + (noise(X / 7, 4.2) - 0.5) * 0.7);
 }
 
-function bankSprite(W, bankPx, k, style = '') {
-    const key = `${W}_${bankPx}_${k.toFixed(3)}_${style}`;
+// Bờ đất theo mùa. cap: màu cỏ phủ mặt bờ [r, biên độ r, g, biên độ g, b, biên độ b]; fringe: cỏ ngắn; bush, bushLight:
+// bụi cây ở xa và chỗ hứng sáng (mùa đông là tuyết đọng); tuft: 4 màu bụi cỏ, 4 màu lau; head: bông của khóm lau
+// ('cattail' cỏ nến, 'plume' bông lau trắng mùa thu); reeds: tỉ lệ khóm lau; flowers: hoa dại lấm tấm (xuân); flies:
+// đom đóm (hạ); snow: tuyết phủ (đông)
+const BANK_SEASONS = {
+    spring: {
+        cap: [32, 20, 52, 32, 26, 12], fringe: ['#2a4421', '#36552a', '#436634', '#223a1f'], bush: '#18271a', bushLight: 'rgba(66, 100, 58, 0.55)',
+        tuft: ['#2e4a28', '#3a5a30', '#4a6c3a', '#26402a', '#4a5e38', '#5a6a3c', '#4e6a3a', '#52603a'], head: '', reeds: 0.1, flowers: true
+    },
+    summer: {
+        cap: [28, 20, 44, 30, 26, 14], fringe: ['#24391f', '#2e4628', '#395532', '#1f3120'], bush: '#16231a', bushLight: 'rgba(52, 78, 56, 0.55)',
+        tuft: ['#2a4228', '#365231', '#43603a', '#223823', '#45583a', '#56623c', '#625c3f', '#4d5838'], head: 'cattail', reeds: 0.13, flies: true
+    },
+    autumn: {
+        cap: [50, 22, 44, 20, 24, 10], fringe: ['#4a4222', '#5a4f28', '#6a5c30', '#3a3420'], bush: '#2a1c12', bushLight: 'rgba(132, 80, 38, 0.55)',
+        tuft: ['#5a5028', '#6a5c2e', '#7a6a36', '#4a4224', '#6a6040', '#7a7048', '#5e5638', '#706644'], head: 'plume', reeds: 0.3
+    },
+    winter: {
+        cap: [28, 20, 44, 30, 26, 14], fringe: ['#4a4436', '#5a5444', '#3c372c', '#6a6454'], bush: '#1e1c1a', bushLight: 'rgba(196, 204, 222, 0.8)',
+        tuft: ['#4a4538', '#565040', '#3e3a30', '#605a48', '#5a5040', '#6a5e48', '#4e4636', '#625844'], head: '', reeds: 0.13, snow: true
+    }
+};
+
+function bankSprite(W, bankPx, k, style = '', season = 'summer') {
+    const key = `${W}_${bankPx}_${k.toFixed(3)}_${style}_${season}`;
     if (bankCache.key === key) return bankCache;
     if (BANK_BODIES[style]) {
-        bankCache = { key, canvas: styledBankSprite(W, bankPx, k, style), over: 0 };
+        bankCache = { key, canvas: styledBankSprite(W, bankPx, k, style, season), over: 0 };
         return bankCache;
     }
+    const look = BANK_SEASONS[season] || BANK_SEASONS.summer;
     const c = document.createElement('canvas');
     c.width = W;
     c.height = bankPx;
@@ -1425,12 +1449,19 @@ function bankSprite(W, bankPx, k, style = '') {
             let r = (46 + 24 * n) * layer;
             let gg = (36 + 18 * n) * layer;
             let b = (27 + 12 * n) * layer;
-            if (depth < grass[x]) {
-                // Mặt bờ phủ cỏ
+            if (look.snow && depth < grass[x] * 1.8 + 1.4) {
+                // Mùa đông: tuyết phủ dày trên mặt bờ, mặt tuyết gợn
+                const sn = noise(X / 2 + 9, Y * 1.1);
+                r = 146 + 22 * sn;
+                gg = 154 + 22 * sn;
+                b = 174 + 20 * sn;
+            } else if (depth < grass[x]) {
+                // Mặt bờ phủ cỏ (theo mùa)
                 const gn = noise(X / 1.4 + 9, Y * 1.3);
-                r = 28 + 20 * gn;
-                gg = 44 + 30 * gn;
-                b = 26 + 14 * gn;
+                const [r0, rn, g0, gn0, b0, bn] = look.cap;
+                r = r0 + rn * gn;
+                gg = g0 + gn0 * gn;
+                b = b0 + bn * gn;
             } else {
                 // Rễ cây lòi ra: vệt sẫm mảnh ngoằn ngoèo gần mép trên
                 if (rel < 0.45 && Math.abs(fbm(noise, X / 5 + 70, Y / 7 + 3, 2) - 0.5) < 0.012) {
@@ -1480,12 +1511,13 @@ function bankSprite(W, bankPx, k, style = '') {
 // xa, đom đóm. Rải lại khi đổi cỡ khung; cỏ ngắn và bụi cây đứng yên nên dựng sẵn đường vẽ.
 let bankLifeCache = { key: -1 };
 
-function bankLife(cssW) {
-    const key = Math.round(cssW);
+function bankLife(cssW, season = 'summer') {
+    const key = `${Math.round(cssW)}_${season}`;
     if (bankLifeCache.key === key) return bankLifeCache;
+    const look = BANK_SEASONS[season] || BANK_SEASONS.summer;
     let seed = 71;
     const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-    const fringeColors = ['#24391f', '#2e4628', '#395532', '#1f3120'];
+    const fringeColors = look.fringe;
     const fringe = fringeColors.map(() => new Path2D());
     for (let x = 0; x < cssW; x += 0.7 + rnd() * 2) {
         const base = bankDip(x) + 0.6;
@@ -1532,14 +1564,36 @@ function bankLife(cssW) {
     }
     const tufts = [];
     for (let x = rnd() * 10; x < cssW; x += 5 + rnd() * 16) {
-        const reed = rnd() < 0.13;
+        const reed = rnd() < look.reeds;
         tufts.push({ x, phase: rnd() * 6, base: bankDip(x) + 0.6, template: reed ? TUFT_GRASS + ((rnd() * TUFT_REEDS) | 0) : (rnd() * TUFT_GRASS) | 0 });
     }
-    const flies = Array.from({ length: Math.max(4, Math.round(cssW / (IS_MOBILE ? 60 : 110))) }, () => ({
+    // Đom đóm chỉ có mùa hạ
+    const flies = look.flies ? Array.from({ length: Math.max(4, Math.round(cssW / (IS_MOBILE ? 60 : 110))) }, () => ({
         x: rnd() * cssW, h: 3 + rnd() * 22, roam: 10 + rnd() * 30, speed: 0.00015 + rnd() * 0.0003, phase: rnd() * 100,
         rate: 0.0012 + rnd() * 0.0016, size: 1.6 + rnd() * 1.4
-    }));
-    bankLifeCache = { key, fringe, fringeColors, bushes, bushLight, templates, tufts, flies };
+    })) : [];
+    // Mùa xuân: hoa dại lấm tấm trên bờ cỏ (hồng, trắng, vàng, tím nhạt dưới ánh trăng)
+    const flowerColors = ['#c98aa0', '#d8ccd4', '#cdb860', '#a87cb4'];
+    const flowers = flowerColors.map(() => new Path2D());
+    if (look.flowers) {
+        for (let x = rnd() * 6; x < cssW; x += 1.5 + rnd() * 6) {
+            const y = bankDip(x) + 0.4 - rnd() * 2.6;
+            const r = 0.45 + rnd() * 0.35;
+            const path = flowers[(rnd() * flowerColors.length) | 0];
+            path.moveTo(x + r, y);
+            path.arc(x, y, r, 0, Math.PI * 2);
+        }
+    }
+    // Mùa đông: tuyết đọng thành gò nhỏ dọc mặt bờ, cỏ khô lún phún nhô lên
+    const drifts = new Path2D();
+    if (look.snow) {
+        for (let x = 0; x < cssW; x += 2 + rnd() * 6) {
+            const w = 3 + rnd() * 7;
+            drifts.moveTo(x + w, bankDip(x) + 0.8);
+            drifts.ellipse(x, bankDip(x) + 0.8, w, 0.8 + rnd() * 1.1, 0, Math.PI, Math.PI * 2);
+        }
+    }
+    bankLifeCache = { key, season, look, fringe, fringeColors, bushes, bushLight, templates, tufts, flies, flowers, flowerColors, drifts };
     return bankLifeCache;
 }
 
@@ -1556,14 +1610,24 @@ function bankStill(life, cssW, k) {
     const g = c.getContext('2d');
     g.setTransform(k, 0, 0, k, 0, BANK_STILL_UP * k);
     g.lineCap = 'round';
-    g.fillStyle = '#16231a';
+    g.fillStyle = life.look.bush;
     g.fill(life.bushes);
-    g.fillStyle = 'rgba(52, 78, 56, 0.55)';
+    g.fillStyle = life.look.bushLight;
     g.fill(life.bushLight);
+    if (life.look.snow) {
+        g.fillStyle = '#b8c0d2';
+        g.fill(life.drifts);
+    }
     g.lineWidth = 0.6;
     life.fringe.forEach((path, i) => {
+        // Mùa đông chỉ còn lác đác cỏ khô nhô khỏi tuyết
+        if (life.look.snow && i % 2) return;
         g.strokeStyle = life.fringeColors[i];
         g.stroke(path);
+    });
+    life.flowers.forEach((path, i) => {
+        g.fillStyle = life.flowerColors[i];
+        g.fill(path);
     });
     bankStillCache = { key, canvas: c };
     return c;
@@ -1580,7 +1644,6 @@ const TUFT_SWAY = [-0.45, 1.6];
 const TUFT_W = 36;
 const TUFT_H = 24;
 const TUFT_FOOT = 3;
-const TUFT_COLORS = ['#2a4228', '#365231', '#43603a', '#223823', '#45583a', '#56623c', '#625c3f', '#4d5838'];
 let tuftAtlasCache = { key: '', canvas: null };
 
 function tuftAtlas(life, k) {
@@ -1597,14 +1660,22 @@ function tuftAtlas(life, k) {
             const ox = step * TUFT_W + TUFT_W / 2;
             const base = row * TUFT_H + TUFT_H - TUFT_FOOT;
             // Lá thon: chân rộng, ngọn nhọn, uốn theo đường cong qua điểm giữa
-            tpl.blades.forEach(blade => {
+            const look = life.look;
+            // Mùa đông: gò tuyết dưới gốc bụi
+            if (look.snow) {
+                g.fillStyle = '#9ea7ba';
+                g.beginPath();
+                g.ellipse(ox, base + 0.6, tpl.reed ? 4 : 5, 1.8, 0, Math.PI, Math.PI * 2);
+                g.fill();
+            }
+            tpl.blades.forEach((blade, bi) => {
                 const bx = ox + blade.dx;
                 const bend = (sway * (tpl.reed ? 0.55 : 1) + blade.lean / blade.h) * blade.h * 0.45;
                 const tipY = base - blade.h * (1 - 0.15 * Math.min(1, Math.abs(bend) / blade.h));
                 const midX = bx * 0.25 + (bx + bend * 0.2) * 0.5 + (bx + bend) * 0.25;
                 const midY = base * 0.25 + (base - blade.h * 0.55) * 0.5 + tipY * 0.25;
                 const half = tpl.reed ? 0.6 : 0.55;
-                g.fillStyle = TUFT_COLORS[(tpl.reed ? 4 : 0) + blade.color];
+                g.fillStyle = look.tuft[(tpl.reed ? 4 : 0) + blade.color];
                 g.beginPath();
                 g.moveTo(bx - half, base);
                 g.lineTo(midX - half * 0.72, midY);
@@ -1613,15 +1684,32 @@ function tuftAtlas(life, k) {
                 g.lineTo(bx + half, base);
                 g.closePath();
                 g.fill();
-                if (blade.cattail) {
+                if (blade.cattail && look.head) {
                     g.save();
-                    g.fillStyle = '#4a321e';
                     g.translate(bx + bend * 0.85, base - blade.h * 0.82);
                     g.rotate(Math.atan2(bend, blade.h));
                     g.beginPath();
-                    g.ellipse(0, 0, 0.8, 2.2, 0, 0, Math.PI * 2);
+                    if (look.head === 'plume') {
+                        // Bông lau trắng mùa thu: chùm tơ mềm rủ theo gió, lõi sáng
+                        g.fillStyle = 'rgba(176, 168, 150, 0.85)';
+                        g.ellipse(bend * 0.08, -0.6, 1.5, 3.8, 0.25, 0, Math.PI * 2);
+                        g.fill();
+                        g.fillStyle = 'rgba(214, 208, 192, 0.8)';
+                        g.beginPath();
+                        g.ellipse(bend * 0.08 - 0.3, -1, 0.8, 2.8, 0.25, 0, Math.PI * 2);
+                    } else {
+                        g.fillStyle = '#4a321e';
+                        g.ellipse(0, 0, 0.8, 2.2, 0, 0, Math.PI * 2);
+                    }
                     g.fill();
                     g.restore();
+                }
+                // Mùa xuân: bụi cỏ nở hoa ở ngọn lá cao nhất
+                if (look.flowers && !tpl.reed && bi === 0 && row % 3 === 0) {
+                    g.fillStyle = ['#d898b0', '#e0d6dc', '#d6c070', '#b48cc0'][row % 4];
+                    g.beginPath();
+                    g.arc(bx + bend, tipY, 1, 0, Math.PI * 2);
+                    g.fill();
                 }
             });
         }
@@ -1640,7 +1728,7 @@ function drawBankSkyline(ctx, cssW, ground, clock, calm, glow, drop) {
         drawStyledSkyline(ctx, cssW, ground, clock, calm, glow, drop);
         return;
     }
-    const life = bankLife(cssW);
+    const life = bankLife(cssW, sceneSeason());
     const k = ctx.getTransform().a || 1;
     const still = bankStill(life, cssW, k);
     const atlas = tuftAtlas(life, k);
@@ -1822,7 +1910,8 @@ function bankLight(noise, X, Y, rel, r, gg, b, sand) {
     return [r * lit, gg * lit, b * lit];
 }
 
-function styledBankSprite(W, bankPx, k, style) {
+function styledBankSprite(W, bankPx, k, style, season = 'summer') {
+    const snow = season === 'winter' && style !== 'none';
     const c = document.createElement('canvas');
     c.width = W;
     c.height = bankPx;
@@ -1839,6 +1928,13 @@ function styledBankSprite(W, bankPx, k, style) {
         for (let x = 0; x < W; x++) {
             const X = (x + 0.5) / k;
             let [r, gg, b] = color(X, Y);
+            // Mùa đông: tuyết phủ mặt kè (bãi cát: tuyết loang lổ)
+            if (snow && (Y < 1.8 + 1.6 * noise(X / 5 + 3, 7) || (sand && rel < 0.55 && fbm(noise, X / 9 + 40, Y / 3, 2) > 0.5))) {
+                const sn = noise(X / 2 + 9, Y * 1.1);
+                r = 152 + 20 * sn;
+                gg = 160 + 20 * sn;
+                b = 180 + 18 * sn;
+            }
             if (style !== 'none') [r, gg, b] = bankLight(noise, X, Y, rel, r, gg, b, sand);
             const i = (y * W + x) * 4;
             d[i] = Math.min(255, r);
@@ -1945,6 +2041,56 @@ function archRing(g, cx, cy, R, ring, sz) {
     g.fillRect(cx - ring * 0.4, cy - R - ring - 0.6 * sz, ring * 0.8, ring + 1.2 * sz);
 }
 
+// Tuyết đọng: đắp một lớp tuyết lên mặt trên của mọi thứ đã vẽ trong vùng (x, y, w, h: điểm ảnh thật) của canvas: điểm có
+// hình mà ngay phía trên trống (mặt trên cành cây, lan can, mái nhà, mặt cầu, đá) thì phủ tuyết dày vài điểm ảnh, dày mỏng
+// lốm đốm, mép tuyết nhô lên khỏi mặt vật; vật mảnh (cành nhỏ) chỉ phủ nửa trên; cạnh dốc đứng (thân cây, cột) đọng ít.
+// k: mật độ điểm ảnh (độ dày tính theo điểm ảnh CSS)
+function snowCap(canvas, x, y, w, h, k, depth = 1.4) {
+    x = Math.max(0, Math.floor(x));
+    y = Math.max(0, Math.floor(y));
+    w = Math.min(canvas.width - x, Math.ceil(w));
+    h = Math.min(canvas.height - y, Math.ceil(h));
+    if (w <= 0 || h <= 1) return;
+    const g = canvas.getContext('2d');
+    const img = g.getImageData(x, y, w, h);
+    const d = img.data;
+    const alpha = new Uint8Array(w * h);
+    for (let i = 0; i < w * h; i++) alpha[i] = d[i * 4 + 3];
+    const noise = bankNoise();
+    const deep = Math.max(1, depth * k);
+    for (let px = 0; px < w; px++) {
+        for (let py = 1; py < h; py++) {
+            const i = py * w + px;
+            if (alpha[i] < 140 || alpha[i - w] > 60) continue;
+            // Độ dày của vật ở cột này (vật mảnh chỉ phủ nửa trên)
+            let run = 0;
+            while (py + run < h && alpha[i + run * w] >= 100 && run < deep * 3) run++;
+            const left = px > 0 ? alpha[i - w - 1] : 0;
+            const right = px < w - 1 ? alpha[i - w + 1] : 0;
+            const steep = (left > 140 ? 1 : 0) + (right > 140 ? 1 : 0);
+            const X = (x + px) / k;
+            const thick = Math.min(run * 0.6, deep * (0.55 + 0.7 * noise(X / 3.2, (y + py) / k / 7)) * (steep ? 0.4 : 1));
+            for (let t = 0; t < thick; t++) {
+                const o = (i + t * w) * 4;
+                const a = Math.min(1, thick - t) * 0.94;
+                const shade = 1 - 0.18 * t / Math.max(1, thick);
+                d[o] = d[o] * (1 - a) + 196 * shade * a;
+                d[o + 1] = d[o + 1] * (1 - a) + 204 * shade * a;
+                d[o + 2] = d[o + 2] * (1 - a) + 222 * shade * a;
+            }
+            const o = (i - w) * 4;
+            const up = Math.min(230, 190 * Math.min(1, thick / 2.2));
+            if (up > d[o + 3]) {
+                d[o] = 200;
+                d[o + 1] = 208;
+                d[o + 2] = 226;
+                d[o + 3] = up;
+            }
+        }
+    }
+    g.putImageData(img, x, y);
+}
+
 // Chiều cao mặt bờ từ chân trời xuống mép nước (điểm ảnh CSS; cssH: chiều cao khung)
 const bankBandCss = cssH => Math.max(8, Math.min(16, cssH * 0.018));
 
@@ -2022,14 +2168,16 @@ function growTreeAtlas(atlas, first) {
         g.setTransform(k, 0, 0, k, (step * atlas.cw + atlas.cw / 2) * k, ((t + 1) * atlas.ch - atlas.foot) * k);
         // Cùng hạt giống cho mọi mức ngả của một mẫu: chỉ dáng ngả đổi, cành lá giữ nguyên
         let seed = 131 + t * 977;
-        atlas.draw(g, sz, () => ((seed = (seed * 16807) % 2147483647) / 2147483647), sway, t);
+        atlas.draw(g, sz, () => ((seed = (seed * 16807) % 2147483647) / 2147483647), sway, t, atlas.season);
+        if (atlas.season === 'winter') snowCap(atlas.canvas, step * atlas.cw * k, t * atlas.ch * k, atlas.cw * k, atlas.ch * k, k);
         atlas.built[t * TREE_STEPS + step] = true;
     }
 }
 
 function treeAtlas(kind, sz, screenK) {
     const k = screenK * TREE_RES;
-    const key = `${kind}_${sz.toFixed(3)}_${k.toFixed(3)}`;
+    const season = sceneSeason();
+    const key = `${kind}_${sz.toFixed(3)}_${k.toFixed(3)}_${season}`;
     const cached = treeAtlasCache[kind];
     if (cached && cached.key === key) {
         if (cached.queue.length) growTreeAtlas(cached, false);
@@ -2047,7 +2195,9 @@ function treeAtlas(kind, sz, screenK) {
     TREE_ORDER.forEach(step => {
         for (let t = 0; t < spec.kinds; t++) queue.push([t, step]);
     });
-    const atlas = { key, canvas: c, g: c.getContext('2d'), k, sz, queue, total: queue.length, built: [], ...spec };
+    // Mùa đông đọc lại từng ô để đắp tuyết: để ảnh ở bộ nhớ thường cho đọc nhanh
+    const g = c.getContext('2d', { willReadFrequently: season === 'winter' });
+    const atlas = { key, canvas: c, g, k, sz, season, queue, total: queue.length, built: [], ...spec };
     growTreeAtlas(atlas, true);
     treeAtlasCache[kind] = atlas;
     return atlas;
@@ -2076,7 +2226,16 @@ function drawSwayingTrees(ctx, atlas, trees, ground, clock, calm) {
 // Liễu rủ: thân ngắn to, nghiêng ra phía nước, chia vài cành lớn vươn cong lên tạo vòm tán rộng gần bằng chiều cao;
 // từ mặt vòm, hàng trăm cành mảnh cong ra rồi rủ thẳng xuống, cành phía ngoài dài gần chạm đất, dọc cành lá liễu thon.
 // Mành phía ngoài, phía trên hứng ánh trăng; lòng tán tối. Gió thổi: cả mành ngả theo, cành càng dài đầu càng đưa xa.
-function drawWillow(g, sz, rnd, sway, kind) {
+// Màu lá liễu theo mùa (tối tới sáng): xuân lộc non xanh vàng, hạ xanh đậm, thu ngả vàng; đông trụi lá, chỉ còn cành
+// mảnh màu nâu xám
+const WILLOW_COLORS = {
+    spring: ['#101a0c', '#172612', '#203318', '#2a4220', '#365429', '#456833', '#567d3e'],
+    summer: ['#0c1610', '#122016', '#192b1d', '#213725', '#2c4630', '#3a573c', '#4d6c4c'],
+    autumn: ['#1a160a', '#262010', '#352d15', '#463c1b', '#5a4d22', '#73622a', '#8f7a34'],
+    winter: ['#15120e', '#1c1813', '#241f18', '#2c261d', '#352d22', '#3f3628', '#4a402f']
+};
+
+function drawWillow(g, sz, rnd, sway, kind, season = 'summer') {
     const h = (44 + kind * 5 + rnd() * 6) * sz;
     const half = h * (0.5 + rnd() * 0.1);
     const lean = (kind === 1 ? -1 : 1) * (2 + rnd() * 3) * sz;
@@ -2111,7 +2270,8 @@ function drawWillow(g, sz, rnd, sway, kind) {
         g.stroke();
     }
     // Cành mảnh rủ từ mặt vòm: lớp trong tối vẽ trước, lớp ngoài sáng vẽ sau
-    const colors = ['#0c1610', '#122016', '#192b1d', '#213725', '#2c4630', '#3a573c', '#4d6c4c'];
+    const colors = WILLOW_COLORS[season] || WILLOW_COLORS.summer;
+    const bare = season === 'winter';
     const leaves = colors.map(() => new Path2D());
     const strands = colors.map(() => new Path2D());
     // Cành rủ kết thành từng mành (mỗi mành một chỗ trên vòm, dài ngắn khác nhau), giữa các mành có khe hở thấy thân,
@@ -2148,8 +2308,10 @@ function drawWillow(g, sz, rnd, sway, kind) {
         strands[si].quadraticCurveTo(cx, cy, ex, ey);
         // Lá thon dọc cành, chĩa chếch xuống xen hai bên; ngọn cành lá thưa, nhỏ dần
         const phase = rnd() * 6;
-        const n = 10 + ((hang / sz / 3) | 0);
+        const n = bare ? 0 : 10 + ((hang / sz / 3) | 0);
         for (let j = 1; j <= n; j++) {
+            // Mùa thu lá thưa dần
+            if (season === 'autumn' && (j + i) % 3 === 0) continue;
             const t = j / n;
             const px = (1 - t) * (1 - t) * sx + 2 * (1 - t) * t * cx + t * t * ex;
             const py = (1 - t) * (1 - t) * sy + 2 * (1 - t) * t * cy + t * t * ey;
@@ -2165,7 +2327,7 @@ function drawWillow(g, sz, rnd, sway, kind) {
     g.lineCap = 'butt';
     colors.forEach((color, i) => {
         g.strokeStyle = color;
-        g.lineWidth = 0.3 * sz;
+        g.lineWidth = (bare ? 0.38 : 0.3) * sz;
         g.stroke(strands[i]);
         g.lineWidth = 0.6 * sz;
         g.stroke(leaves[i]);
@@ -2175,7 +2337,24 @@ function drawWillow(g, sz, rnd, sway, kind) {
 // Cây xanh tán rộng (như sấu, bàng ven hồ): thân thẳng chia ba bốn cành lớn đỡ tán tròn rộng; tán gồm nhiều chùm lá
 // chen nhau, giữa các chùm có chỗ hở thấy trời và thấy cành; mỗi chùm sáng phía trên (ánh trăng), tối phía dưới, lòng
 // tán tối sâu, mép tán lởm chởm lá. Gió thổi: ngọn ngả nhiều hơn gốc, lá rung khẽ.
-function drawOak(g, sz, rnd, sway, kind) {
+// Màu lá cây tán rộng (tối tới sáng): xanh hạ, lộc non xuân, vàng, đỏ cam mùa thu, hoa đào hồng, hoa trắng
+const OAK_COLORS = {
+    summer: ['#0b160e', '#102013', '#162a19', '#1e3521', '#28432a', '#345435', '#456843', '#5a7d55'],
+    fresh: ['#0e1a0c', '#152612', '#1e3418', '#2a4520', '#3a5a2a', '#4d7036', '#628844', '#7aa055'],
+    gold: ['#1e1606', '#2e220a', '#45330f', '#5e4614', '#7a5c1a', '#977322', '#b28a2c', '#cba23a'],
+    red: ['#200c06', '#33140a', '#4c1e0f', '#682a14', '#85381a', '#a24a22', '#bb5e2c', '#d07838'],
+    pink: ['#2a161d', '#3e2029', '#582d39', '#74404d', '#915663', '#ad6f7c', '#c88b97', '#e0a8b2'],
+    white: ['#26262a', '#36363c', '#4a4a52', '#61616a', '#7a7a84', '#93939c', '#adadb5', '#c6c6cc']
+};
+// Mỗi mẫu cây (0, 1, 2) theo mùa: các loại lá, hoa và tỉ lệ. Xuân: cây đào nở rộ, cây lộc non điểm hoa trắng, cây hoa
+// trắng; thu: cây lá vàng, cây lá đỏ cam, cây lá đổi màu lẫn lộn
+const OAK_MIX = {
+    summer: [[['summer', 1]], [['summer', 1]], [['summer', 1]]],
+    spring: [[['pink', 0.82], ['fresh', 0.18]], [['fresh', 0.85], ['white', 0.15]], [['white', 0.55], ['fresh', 0.45]]],
+    autumn: [[['gold', 0.85], ['fresh', 0.15]], [['red', 0.7], ['gold', 0.3]], [['gold', 0.45], ['red', 0.35], ['fresh', 0.2]]]
+};
+
+function drawOak(g, sz, rnd, sway, kind, season = 'summer') {
     const h = (34 + kind * 4 + rnd() * 6) * sz;
     const bend = y => sway * 3 * sz * Math.pow(Math.min(1, Math.max(0, -y) / h), 1.6);
     const crownY = -h * 0.62;
@@ -2216,13 +2395,48 @@ function drawOak(g, sz, rnd, sway, kind) {
         g.quadraticCurveTo(mx + bend(my), my, lump.x + bend(lump.y), lump.y);
         g.stroke();
     });
-    // Lá: hàng trăm lá nhỏ mỗi chùm, dày ở giữa, thưa ở mép; sáng theo hướng trăng chiếu (trên, hơi trái)
-    const colors = ['#0b160e', '#102013', '#162a19', '#1e3521', '#28432a', '#345435', '#456843', '#5a7d55'];
-    const paths = colors.map(() => new Path2D());
+    if (season === 'winter') {
+        // Mùa đông trơ cành: từ đầu mỗi cành lớn tỏa nhiều cành nhỏ, mỗi cành nhỏ lại tẽ nhánh con (tuyết đọng lên sau)
+        const twigs = new Path2D();
+        const shoots = new Path2D();
+        const line = (path, x1, y1, x2, y2) => {
+            path.moveTo(x1 + bend(y1), y1);
+            path.lineTo(x2 + bend(y2), y2);
+        };
+        lumps.forEach(lump => {
+            for (let i = 0; i < 7; i++) {
+                const a = -Math.PI / 2 + (rnd() - 0.5) * 2.5;
+                const len = lump.r * (0.6 + rnd() * 0.6);
+                const x2 = lump.x + Math.cos(a) * len;
+                const y2 = lump.y + Math.sin(a) * len;
+                line(twigs, lump.x, lump.y, x2, y2);
+                [-1, 1].forEach(side => {
+                    const t = 0.4 + rnd() * 0.35;
+                    const sx = lump.x + (x2 - lump.x) * t;
+                    const sy = lump.y + (y2 - lump.y) * t;
+                    const b = a + side * (0.4 + rnd() * 0.45);
+                    const l2 = len * (0.3 + rnd() * 0.3);
+                    line(shoots, sx, sy, sx + Math.cos(b) * l2, sy + Math.sin(b) * l2);
+                });
+            }
+        });
+        g.lineCap = 'round';
+        g.lineWidth = 0.5 * sz;
+        g.stroke(twigs);
+        g.lineWidth = 0.3 * sz;
+        g.stroke(shoots);
+        return;
+    }
+    // Lá: hàng trăm lá nhỏ mỗi chùm, dày ở giữa, thưa ở mép; sáng theo hướng trăng chiếu (trên, hơi trái). Mùa xuân lẫn
+    // hoa (tròn, nhỏ), mùa thu lá đổi màu, thưa hơn
+    const mix = (OAK_MIX[season] || OAK_MIX.summer)[kind % 3];
+    const colors = OAK_COLORS.summer;
+    const paths = mix.map(() => colors.map(() => new Path2D()));
+    const density = season === 'autumn' ? 0.8 : 1;
     const lx = -0.42;
     const ly = -0.9;
     lumps.forEach((lump, li) => {
-        const count = Math.round(70 * (lump.r / (h * 0.17)) ** 2);
+        const count = Math.round(70 * density * (lump.r / (h * 0.17)) ** 2);
         for (let i = 0; i < count; i++) {
             const a = rnd() * Math.PI * 2;
             const d = Math.pow(rnd(), 0.65) * lump.r;
@@ -2237,13 +2451,22 @@ function drawOak(g, sz, rnd, sway, kind) {
             const ci = Math.max(0, Math.min(colors.length - 1, Math.floor(light * colors.length)));
             const lr = (0.65 + rnd() * 0.5) * sz;
             const rot = rnd() * Math.PI;
-            paths[ci].moveTo(x + Math.cos(rot) * lr, y + Math.sin(rot) * lr);
-            paths[ci].ellipse(x, y, lr, lr * 0.6, rot, 0, Math.PI * 2);
+            let pick = rnd();
+            let m = 0;
+            while (m < mix.length - 1 && pick > mix[m][1]) pick -= mix[m++][1];
+            // Hoa: cánh tròn, nhỏ hơn lá
+            const flower = mix[m][0] === 'pink' || mix[m][0] === 'white';
+            const fr = flower ? lr * 0.8 : lr;
+            const path = paths[m][ci];
+            path.moveTo(x + Math.cos(rot) * fr, y + Math.sin(rot) * fr);
+            path.ellipse(x, y, fr, fr * (flower ? 0.85 : 0.6), rot, 0, Math.PI * 2);
         }
     });
-    paths.forEach((path, i) => {
-        g.fillStyle = colors[i];
-        g.fill(path);
+    colors.forEach((_, i) => {
+        mix.forEach(([name], m) => {
+            g.fillStyle = OAK_COLORS[name][i];
+            g.fill(paths[m][i]);
+        });
     });
 }
 
@@ -2491,9 +2714,9 @@ const BANK_SKYLINES = {
         }
     },
     stone: {
-        build(g, gl, { cssW, sz, rnd }) {
-            // Thảm cỏ thấp trên mặt kè
-            g.fillStyle = '#22361f';
+        build(g, gl, { cssW, sz, rnd, season }) {
+            // Thảm cỏ thấp trên mặt kè (theo mùa)
+            g.fillStyle = { spring: '#2a4421', autumn: '#4e4424', winter: '#4a4436' }[season] || '#22361f';
             for (let x = 0; x < cssW; x += 0.8 + rnd() * 1.6) {
                 const h = (0.6 + rnd() * 1.8) * sz;
                 g.fillRect(x, -h, 0.5, h + 0.3);
@@ -2509,9 +2732,9 @@ const BANK_SKYLINES = {
         }
     },
     sand: {
-        build(g, gl, { cssW, sz, rnd }) {
-            // Cỏ biển lưa thưa trên cát
-            g.strokeStyle = '#2c3a24';
+        build(g, gl, { cssW, sz, rnd, season }) {
+            // Cỏ biển lưa thưa trên cát (theo mùa)
+            g.strokeStyle = { autumn: '#54502e', winter: '#4a4436' }[season] || '#2c3a24';
             g.lineWidth = 0.5 * sz;
             g.beginPath();
             for (let x = rnd() * 40; x < cssW; x += (20 + rnd() * 70) * sz) {
@@ -2876,7 +3099,8 @@ let skylineCache = { key: '' };
 // drop: chiều cao mặt bờ dưới chân trời; lớp vẽ kéo xuống tới mép nước (chân cầu đứng dưới nước)
 function skylineLayer(style, cssW, ground, k, drop) {
     const sz = Math.max(0.6, Math.min(1.25, Math.min(ground / 420, cssW / 700)));
-    const key = `${style}_${Math.round(cssW)}_${Math.round(ground)}_${k.toFixed(3)}_${drop.toFixed(2)}`;
+    const season = sceneSeason();
+    const key = `${style}_${Math.round(cssW)}_${Math.round(ground)}_${k.toFixed(3)}_${drop.toFixed(2)}_${season}`;
     if (skylineCache.key === key) return skylineCache;
     const up = Math.ceil(120 * sz);
     const make = () => {
@@ -2891,7 +3115,9 @@ function skylineLayer(style, cssW, ground, k, drop) {
     const [glow, gl] = make();
     let seed = 97;
     const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-    const data = BANK_SKYLINES[style].build(g, gl, { cssW, sz, rnd, ground, k, drop }) || {};
+    const data = BANK_SKYLINES[style].build(g, gl, { cssW, sz, rnd, ground, k, drop, season }) || {};
+    // Mùa đông: tuyết đọng trên lan can, mái nhà, mặt cầu, cột đèn, cỏ
+    if (season === 'winter') snowCap(canvas, 0, 0, canvas.width, canvas.height, k);
     skylineCache = { key, style, canvas, glow, up, drop, k, data, sz };
     return skylineCache;
 }
@@ -3612,7 +3838,7 @@ export const Water = {
         ctx.restore();
 
         // 6. Bờ đất: bóng của bờ in ngay dưới chân bờ, rồi tới bờ (pháo rọi màu lên bờ)
-        const bank = bankSprite(W, bankPx, k, bankStyle);
+        const bank = bankSprite(W, bankPx, k, bankStyle, sceneSeason());
         ctx.globalCompositeOperation = 'source-over';
         // Cầu đá: trong khoảng cầu là chân cầu, không vẽ bờ
         if (gapX) clipGap();

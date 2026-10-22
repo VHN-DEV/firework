@@ -20,6 +20,25 @@ const skyMarks = page => page.evaluate(() => {
     return n;
 });
 
+// Dải cây, bờ ngay trên chân trời (lớp bầu trời) và mặt bờ ngay dưới (lớp mặt nước): đếm điểm màu ấm (lá vàng, đỏ) và
+// điểm trắng (tuyết)
+const bankColors = page => page.evaluate(() => {
+    const count = (id, from, to) => {
+        const c = document.getElementById(id);
+        const d = c.getContext('2d').getImageData(0, Math.round(c.height * from), c.width, Math.round(c.height * (to - from))).data;
+        let warm = 0, snow = 0;
+        for (let i = 0; i < d.length; i += 4) {
+            if (d[i + 3] < 200) continue;
+            if (d[i] > 70 && d[i] > d[i + 1] + 10 && d[i + 1] > d[i + 2] + 10) warm++;
+            if (Math.min(d[i], d[i + 1], d[i + 2]) > 140) snow++;
+        }
+        return { warm, snow };
+    };
+    const sky = count('deco-canvas', 0.41, 0.5);
+    const bank = count('water-canvas', 0.5, 0.515);
+    return { warm: sky.warm, snow: sky.snow + bank.snow };
+});
+
 export async function run(browser, base, { check }) {
     const page = await openPage(browser, { width: 1280, height: 720 });
     try {
@@ -29,11 +48,14 @@ export async function run(browser, base, { check }) {
         const clear = await skyMarks(page);
         await show(page, { weather: 'rain' });
         await sleep(700);
-        const rain1 = await skyMarks(page);
-        await sleep(900);
-        const rain2 = await skyMarks(page);
-        check('mưa: có vệt mưa trên trời (không bật mặt nước)', clear === 0 && rain1 > 800, JSON.stringify({ clear, rain1 }));
-        check('mưa không để vệt của khung trước chồng lên', rain2 < rain1 * 1.6 && rain2 > rain1 * 0.5, JSON.stringify({ rain1, rain2 }));
+        // Số điểm mưa dao động theo đợt gió; vệt khung trước mà chồng lên thì sau một giây đã lên hàng chục nghìn điểm
+        const rains = [];
+        for (let i = 0; i < 4; i++) {
+            rains.push(await skyMarks(page));
+            await sleep(400);
+        }
+        check('mưa: có vệt mưa trên trời (không bật mặt nước)', clear === 0 && Math.min(...rains) > 800, JSON.stringify({ clear, rains }));
+        check('mưa không để vệt của khung trước chồng lên', Math.max(...rains) < Math.min(...rains) * 3, JSON.stringify(rains));
         await show(page, { weather: 'snow', water: 'half' });
         await sleep(800);
         const snow = await skyMarks(page);
@@ -41,7 +63,19 @@ export async function run(browser, base, { check }) {
         await show(page, { weather: 'bogus' });
         await sleep(500);
         check('thời tiết lạ thì bỏ qua (trời quang)', (await skyMarks(page)) === 0);
-        check('mưa, tuyết không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
+        const looks = {};
+        for (const season of ['', 'autumn', 'winter']) {
+            await show(page, { water: 'half', bank: 'stone', season: season || undefined, waterBirds: false, waterDucks: false });
+            await sleep(1500);
+            looks[season || 'summer'] = await bankColors(page);
+        }
+        check('mùa thu: liễu ngả vàng', looks.autumn.warm > looks.summer.warm * 3 + 200, JSON.stringify(looks));
+        check('mùa đông: tuyết đọng trên bờ, cây', looks.winter.snow > looks.summer.snow * 3 + 300, JSON.stringify(looks));
+        await show(page, { water: 'half', season: 'winter', waterBirds: false, waterDucks: false });
+        await sleep(900);
+        const earth = await bankColors(page);
+        check('mùa đông: bờ đất phủ tuyết', earth.snow > 1500, JSON.stringify(earth));
+        check('mưa, tuyết, cảnh theo mùa không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
         await page.close();
     }
