@@ -1285,6 +1285,24 @@ function helpTip(key) {
     return `<button type="button" class="help-tip" data-help="${key}" aria-label="Giải thích">?</button>`;
 }
 
+// Nút "?" luôn đi cùng chữ cuối của tên mục: gói chữ cuối và nút vào một cụm không ngắt dòng, hết chỗ thì cả cụm cùng
+// xuống dòng chứ không để nút rớt một mình (nút là một khối riêng nên trình duyệt được ngắt dòng ngay trước nó)
+function glueHelpTips(root) {
+    const tips = root.matches && root.matches('.help-tip') ? [root] : root.querySelectorAll('.help-tip');
+    tips.forEach(tip => {
+        const prev = tip.previousSibling;
+        if (!prev || prev.nodeType !== Node.TEXT_NODE || tip.parentNode.classList.contains('help-glue')) return;
+        const word = prev.textContent.match(/(\S+)\s*$/);
+        if (!word) return;
+        prev.textContent = prev.textContent.slice(0, word.index);
+        const glue = document.createElement('span');
+        glue.className = 'help-glue';
+        glue.textContent = word[1];
+        tip.replaceWith(glue);
+        glue.appendChild(tip);
+    });
+}
+
 // Một khung giải thích dùng chung, đặt ngay dưới (hoặc trên) nút "?" và không tràn khỏi màn hình
 const helpTooltip = {
     el: null,
@@ -1303,6 +1321,12 @@ const helpTooltip = {
         el.innerHTML = '<div class="help-tooltip__body"></div><span class="help-tooltip__arrow"></span>';
         document.body.appendChild(el);
         this.el = el;
+
+        // Nút "?" có sẵn trong trang và nút thêm vào sau (khung chỉnh phát bắn, hộp thoại...)
+        glueHelpTips(document);
+        new MutationObserver(records => records.forEach(record => record.addedNodes.forEach(node => {
+            if (node.nodeType === Node.ELEMENT_NODE) glueHelpTips(node);
+        }))).observe(document.body, { childList: true, subtree: true });
 
         // Pha bắt: nút "?" nằm trong nhãn, tiêu đề mục thu gọn, dòng phát bắn... không để các phần đó nhận cú bấm
         document.addEventListener('click', (e) => {

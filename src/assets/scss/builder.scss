@@ -2758,7 +2758,12 @@ select.is-invalid {
     padding: 1rem 1.5rem 1.25rem;
 }
 
-// Giải thích nhanh: nút "?" cạnh tên mục và khung giải thích
+// Giải thích nhanh: nút "?" cạnh tên mục và khung giải thích. Chữ cuối của tên mục và nút "?" gói chung một cụm
+// (glueHelpTips) để nút không rớt xuống dòng một mình
+.help-glue {
+    white-space: nowrap;
+}
+
 .help-tip {
     display: inline-flex;
     align-items: center;
