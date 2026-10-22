@@ -91,7 +91,8 @@ export async function run(browser, base, { check }) {
         const summary = await builder.$eval('[data-summary="scene"]', e => e.textContent).catch(() => '');
         check('builder: chọn "Cầu vòm cong" thì lưu bank: "arch", tóm tắt ghi rõ',
             saved && saved.bank === 'arch' && /Cầu vòm cong/.test(selected) && /Cầu vòm cong/.test(summary), JSON.stringify({ saved, selected, summary }));
-        await builder.evaluate(() => setWater(''));
+        // Bấm nút như người dùng: bản nháp được chụp sau mỗi lần bấm (gọi thẳng hàm thì phải chờ lượt chụp 3 giây một lần)
+        await builder.evaluate(() => document.querySelector('[data-water=""]').click());
         await sleep(1200);
         const off = await draft();
         check('builder: tắt mặt nước thì không lưu kiểu bờ', off && off.bank === null, JSON.stringify(off));

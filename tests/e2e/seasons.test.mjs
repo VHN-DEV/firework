@@ -133,9 +133,10 @@ export async function run(browser, base, { check }) {
         await builder.evaluate(() => setSeason('auto'));
         const hint = await builder.$eval('#season-hint', e => e.textContent);
         check('builder: "Theo ngày xem" cho biết mùa của hôm nay', /Hôm nay/.test(hint), hint);
+        // Bấm nút như người dùng: bản nháp được chụp sau mỗi lần bấm (gọi thẳng hàm thì phải chờ lượt chụp 3 giây một lần)
         await builder.evaluate(() => {
-            setSeason('');
-            setWeather('');
+            document.querySelector('[data-season=""]').click();
+            document.querySelector('[data-weather=""]').click();
         });
         await sleep(1200);
         const off = await draft();
