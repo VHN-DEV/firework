@@ -534,7 +534,8 @@ const EGRET_NECK = {
     up: [10, -7, 2.5, -13, 8, -19, 0.12],
     stalk: [11, -5, 14, -9, 17.5, -8, 0.55],
     strike: [12, -2, 18, 2, 21, 9.5, 1.15],
-    preen: [7, -12, 1, -12, -3, -6.5, 2.6]
+    preen: [7, -12, 1, -12, -3, -6.5, 2.6],
+    peck: [9, -4, 13, 1, 12.5, 7.5, 1.35]
 };
 
 function egretNeck(p) {
@@ -543,6 +544,7 @@ function egretNeck(p) {
     v = mix(v, EGRET_NECK.stalk, p.stalk);
     v = mix(v, EGRET_NECK.strike, p.strike);
     v = mix(v, EGRET_NECK.preen, p.preen);
+    v = mix(v, EGRET_NECK.peck, p.peck);
     return { c1x: v[0], c1y: v[1], c2x: v[2], c2y: v[3], hx: v[4] + p.headX, hy: v[5] + p.headY, bill: v[6] + p.headTilt };
 }
 
@@ -684,7 +686,7 @@ function drawEgret(ctx, cx, cy, u, dir, p, k) {
     ctx.restore();
 }
 
-const EGRET_POSE = { wing: 0.3, lag: 0, fold: 1, neck: 0, stalk: 0, strike: 0, preen: 0, tilt: 0, legA: Math.PI - 0.1, crouch: 0,
+const EGRET_POSE = { wing: 0.3, lag: 0, fold: 1, neck: 0, stalk: 0, strike: 0, preen: 0, peck: 0, tilt: 0, legA: Math.PI - 0.1, crouch: 0,
     walk: 0, turn: 0, headX: 0, headY: 0, headTilt: 0, breath: 0, prey: 0, gulp: 0 };
 
 const rand = (min, max) => min + Math.random() * (max - min);
@@ -729,6 +731,11 @@ const WaterLife = {
 
     makeLog(x, d) {
         return { x, d, variant: (Math.random() * LOG_KINDS) | 0, len: rand(95, 135), phase: Math.random() * 6, seed: Math.random(), bird: null };
+    },
+
+    // Khúc gỗ nghiêng theo sóng, bị dòng nước đẩy dạt qua đá thì nghiêng thêm
+    logTilt(log) {
+        return Math.sin(log.phase * 0.7) * 0.015 + Math.max(-0.05, Math.min(0.05, (log.vd || 0) * 600));
     },
 
     // Mặt trên thân gỗ cao hơn mặt nước bao nhiêu (chỗ cò đậu)
@@ -1058,7 +1065,7 @@ const WaterLife = {
         drawFlowMarks(ctx, left + w / 2, y, w * 0.5, s, k, time, log.seed, river, 0.35);
         ctx.save();
         ctx.translate(left + w / 2, y);
-        ctx.rotate(Math.sin(log.phase * 0.7) * 0.015 + Math.max(-0.05, Math.min(0.05, (log.vd || 0) * 600)));
+        ctx.rotate(this.logTilt(log));
         ctx.globalAlpha = 0.97;
         ctx.drawImage(sprite, 0, 0, sprite.width, sprite.wl, -w / 2, -wlOff, w, wlOff);
         drawSubmerged(ctx, sprite, -w / 2, 0, w, h - wlOff, time, log.seed, s);
@@ -1102,12 +1109,13 @@ const WaterLife = {
             rest: rand(9000, 18000), act: null, legs: 'fly', d: 0.5, u: 1, pose: { ...EGRET_POSE, legs: 'fly' }
         };
         const logs = this.logs.filter(log => !log.bird && logSprite(log.variant).perch && log.x > cssW * 0.15 && log.x < cssW * 0.6);
-        const free = rocks.filter(rock => !rock.bird);
+        // Đá, gò đất chưa có cò nào đang đậu (dấu cũ của cò đã đi khỏi cảnh thì bỏ qua)
+        const free = rocks.filter(rock => !rock.bird || !this.birds.includes(rock.bird));
         const roll = Math.random();
-        if (logs.length && roll < 0.5) {
+        if (logs.length && roll < 0.4) {
             bird.perch = { log: logs[0], ox: rand(0.35, 0.65) };
             logs[0].bird = bird;
-        } else if (free.length && roll < 0.8) {
+        } else if (free.length && roll < 0.78) {
             const rock = free[(Math.random() * free.length) | 0];
             bird.perch = { rock };
             rock.bird = bird;
@@ -1129,7 +1137,10 @@ const WaterLife = {
             const log = perch.log;
             const s = this.scale(log.d);
             const surf = this.surfaceY(log.d, topCss, depthCss);
-            return { x: log.x - log.len * s * (1 - perch.ox), y: surf - this.logPerch(log, s) + Math.sin(log.phase) * 0.5 * s, d: log.d, surf };
+            // Chỗ đậu lên xuống, nghiêng theo khúc gỗ
+            const w = log.len * s;
+            const tilt = w * (perch.ox - 0.5) * this.logTilt(log);
+            return { x: log.x - w * (1 - perch.ox), y: surf - this.logPerch(log, s) + Math.sin(log.phase) * 0.5 * s + tilt, d: log.d, surf };
         }
         if (perch.rock) {
             const rock = perch.rock;
@@ -1145,10 +1156,13 @@ const WaterLife = {
     // Việc tiếp theo lúc đứng: ngó nghiêng, rỉa lông, đứng nghỉ; lội thì rình (bước chậm) rồi mổ, có khi được cá
     nextEgretAction(bird) {
         const prev = bird.act && bird.act.type;
-        if (prev === 'stalk') return { type: 'strike', t: 0, dur: 520 };
+        if (prev === 'stalk' || prev === 'watch') return { type: 'strike', t: 0, dur: 520 };
         if (prev === 'strike') return Math.random() < 0.45 ? { type: 'catch', t: 0, dur: 1400 } : { type: 'look', t: 0, dur: rand(900, 1600) };
         const r = Math.random();
         if (bird.perch.wade && r < 0.55) return { type: 'stalk', t: 0, dur: rand(2500, 5000) };
+        // Đậu trên gỗ, đá, gò đất: rướn người rình cá dưới nước ngay mép, hoặc cúi xuống mổ tìm mồi chỗ đang đứng
+        if (!bird.perch.wade && r < 0.24) return { type: 'watch', t: 0, dur: rand(1800, 3800) };
+        if (!bird.perch.wade && r < 0.44) return { type: 'peck', t: 0, dur: rand(1600, 3000) };
         if (r < 0.72) return { type: 'look', t: 0, dur: rand(1600, 3200), turn: Math.random() < 0.4 };
         if (r < 0.88) return { type: 'preen', t: 0, dur: rand(1800, 3200) };
         return { type: 'idle', t: 0, dur: rand(1500, 3000) };
@@ -1162,6 +1176,7 @@ const WaterLife = {
             if (bird.state === 'fly') {
                 const feet = this.egretFeet(bird, topCss, depthCss);
                 bird.perch = { wade: true, x: Math.min(cssW - 30, Math.max(30, feet.x)), d: rand(0.03, 0.12) };
+                bird.target = null;
             } else if (bird.state === 'land' || bird.state === 'stand') {
                 bird.state = 'takeoff';
                 bird.t = 0;
@@ -1175,6 +1190,12 @@ const WaterLife = {
         const target = { ...EGRET_POSE, wing: p.wing, lag: p.lag };
         let wingTau = 40;
         if (bird.state === 'fly') {
+            // Chỗ đậu đang trôi (khúc gỗ theo dòng): bay theo cả đà trôi của nó, không thì đuổi mãi không đáp được
+            if (bird.target) {
+                bird.x += feet.x - bird.target.x;
+                bird.y += feet.y - bird.target.y;
+            }
+            bird.target = { x: feet.x, y: feet.y };
             const tx = feet.x;
             const ty = feet.y - 11 * u;
             const dx = tx - bird.x;
@@ -1191,6 +1212,7 @@ const WaterLife = {
                 Object.assign(target, { wing: 0.25 + 0.95 * Math.sin(bird.ph), lag: -0.45 * Math.cos(bird.ph), legA: Math.PI - 0.1 });
             }
             if (dist <= step + 0.5) {
+                bird.target = null;
                 bird.state = 'land';
                 bird.t = 0;
                 bird.legs = 'stand';
@@ -1218,6 +1240,8 @@ const WaterLife = {
                 const act = bird.act;
                 act.t += dt;
                 const q = act.t / act.dur;
+                // Đậu trên cao: đầu phải hạ thêm bao nhiêu (đơn vị u) để mũi mỏ chạm mặt nước ngay mép chỗ đậu
+                const reach = feet.wade ? 0 : Math.min(10, Math.max(0, (this.surfaceY(feet.d + 0.02, topCss, depthCss) - bird.y) / u - 15));
                 Object.assign(target, { fold: 0, neck: 0.78, tilt: -0.32, breath: Math.sin(bird.t * 0.003) });
                 if (act.type === 'idle') {
                     target.headTilt = Math.sin(bird.t * 0.0013) * 0.08;
@@ -1230,11 +1254,19 @@ const WaterLife = {
                     Object.assign(target, { stalk: 1, crouch: 0.4, walk: 1, tilt: -0.1 });
                     p.step += dt * 0.0045;
                     bird.perch.x = Math.min(cssW - 30, Math.max(30, bird.perch.x + bird.dir * 0.004 * dt));
+                } else if (act.type === 'watch') {
+                    // Đứng trên chỗ đậu rướn người nhìn xuống nước, đầu hạ dần, im phăng phắc
+                    Object.assign(target, { stalk: 1, crouch: 0.35, tilt: 0.05, headY: Math.min(6, reach * 0.35), headTilt: 0.35 });
+                } else if (act.type === 'peck') {
+                    // Cúi xuống mổ tìm mồi trên gỗ, đá: mổ nhanh vài cái rồi ngẩng lên chút
+                    const jab = Math.pow(Math.max(0, Math.sin(act.t * 0.012)), 6);
+                    Object.assign(target, { peck: 0.7 + 0.3 * jab, crouch: 0.3, tilt: 0.12, headY: jab * 1.8 });
                 } else if (act.type === 'strike') {
-                    Object.assign(target, { stalk: 1, crouch: 0.5, tilt: -0.05, strike: q < 0.55 ? 1 : 0 });
+                    // Lội thì mổ ngay trước chân; đậu trên cao thì vươn hẳn cổ xuống mặt nước sát mép chỗ đậu
+                    Object.assign(target, { stalk: 1, crouch: 0.5, tilt: feet.wade ? -0.05 : 0.15, strike: q < 0.55 ? 1 : 0, headY: q < 0.55 ? reach : 0 });
                     if (q > 0.3 && !act.splashed) {
                         act.splashed = true;
-                        this.splash(feet.x + bird.dir * 20 * u, feet.d, topCss, depthCss, 0.45);
+                        this.splash(feet.x + bird.dir * (feet.wade ? 20 : 17) * u, feet.d + (feet.wade ? 0 : 0.02), topCss, depthCss, 0.45);
                     }
                 } else if (act.type === 'catch') {
                     // Ngửa cổ nuốt cá
