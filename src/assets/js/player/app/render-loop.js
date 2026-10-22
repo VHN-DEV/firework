@@ -8,9 +8,10 @@
 
 import { now } from '../clock.js';
 import { COLOR, GRAVITY, INVISIBLE, PI_2, SKY_LIGHT_NONE } from '../env.js';
-import { isLowQuality, simSpeed, stageH, stageW } from '../state.js';
+import { isHighQuality, isLowQuality, simSpeed, stageH, stageW } from '../state.js';
 import { BurstFlash, Spark, Star } from '../particles.js';
 import { ImageBurst } from '../image-burst.js';
+import { Glow } from '../glow.js';
 import { Smoke } from '../smoke.js';
 import { Decor, Water, Weather } from '../scenery/index.js';
 import { recording } from './recording.js';
@@ -25,6 +26,29 @@ import { SMOKE_LEVELS, appNodes, burstConfig, currentFrame, decoCanvas, decoCtx,
 function removeAt(list, i) {
     const last = list.pop();
     if (i < list.length) list[i] = last;
+}
+
+// Hạt pháo sắp tàn mờ dần, nhỏ lại, chập chờn rồi mới tắt (pháo thật không tắt phụt), theo phần đời còn lại (above).
+// Mỗi mức một lần vẽ gộp cho cả màu. flicker: phần khung hình hạt không sáng
+const STAR_FADE = [
+    { above: 0.3, alpha: 1, width: 1, flicker: 0 },
+    { above: 0.16, alpha: 0.75, width: 0.85, flicker: 0 },
+    { above: 0.07, alpha: 0.5, width: 0.7, flicker: 0.15 },
+    { above: -Infinity, alpha: 0.28, width: 0.55, flicker: 0.35 }
+];
+
+// Tia lửa nguội dần: tối đi, chập chờn; tia vàng (than, sắt cháy) ngả cam rồi đỏ
+const SPARK_FADE = [
+    { above: 0.42, alpha: 1, flicker: 0 },
+    { above: 0.16, alpha: 0.75, flicker: 0.2 },
+    { above: -Infinity, alpha: 0.45, flicker: 0.4 }
+];
+const SPARK_EMBER = { [COLOR.Gold]: [COLOR.Gold, '#ff8a2a', '#f05a1e'] };
+
+function fadeLevel(levels, left) {
+    let i = 0;
+    while (i < levels.length - 1 && !(left > levels[i].above)) i++;
+    return i;
 }
 
 export function update(frameTime, lag) {
@@ -74,8 +98,11 @@ export function update(frameTime, lag) {
                 removeAt(stars, i);
                 Star.returnInstance(star);
             } else {
-                const burnRate = Math.pow(star.life / star.fullLife, 0.5);
+                const left = star.life / star.fullLife;
+                const burnRate = Math.pow(left, 0.5);
                 const burnRateInverse = 1 - burnRate;
+                // Quả đang bay lên (còn chờ tới độ cao nổ) luôn sáng
+                star.fade = star.targetY === undefined ? fadeLevel(STAR_FADE, left) : 0;
 
                 star.prevX = star.x;
                 star.prevY = star.y;
@@ -177,6 +204,7 @@ export function update(frameTime, lag) {
                 spark.speedX *= sparkDrag;
                 spark.speedY *= sparkDrag;
                 spark.speedY += gAcc;
+                spark.fade = fadeLevel(SPARK_FADE, spark.life / spark.fullLife);
             }
         }
     });
@@ -186,6 +214,10 @@ export function update(frameTime, lag) {
 
 // Lượng làm mờ vệt sáng đang tích lũy (đơn vị: số khung 60Hz)
 let trailFadeAmount = 0;
+
+// Hết hạt rồi vẫn vẽ quầng thêm chừng ấy khung 60Hz, tới khi vệt sáng còn lại mờ hẳn
+const GLOW_TAIL = 40;
+let glowTail = 0;
 
 function render(speed) {
     const { dpr } = mainStage;
@@ -271,8 +303,11 @@ function render(speed) {
     // Bản vẽ còn lại trên canvas đường nhỏ sẽ sử dụng chế độ hòa trộn 'làm sáng'
     trailsCtx.globalCompositeOperation = 'lighten';
 
-    // Vẽ ngôi sao
-    trailsCtx.lineWidth = Star.drawWidth;
+    // Giảm chớp sáng: hạt tàn dần nhưng không chập chờn
+    const flickerOn = !reduceFlashingSelector();
+    let drawn = false;
+
+    // Vẽ ngôi sao. Lõi trắng (lớp chính) chỉ khi hạt còn cháy sáng
     trailsCtx.lineCap = isLowQuality ? 'square' : 'round';
     mainCtx.strokeStyle = '#fff';
     mainCtx.lineWidth = 1;
@@ -281,39 +316,73 @@ function render(speed) {
         if (color === INVISIBLE || color === '_pool') return;
         const stars = Star.active[color];
         if (stars.length === 0) return;
-        
+        drawn = true;
+
         trailsCtx.strokeStyle = color;
-        trailsCtx.beginPath();
-        for (let i = 0; i < stars.length; i++) {
-            const star = stars[i];
-            if (star.visible) {
+        for (let level = 0; level < STAR_FADE.length; level++) {
+            const fade = STAR_FADE[level];
+            const flicker = flickerOn ? fade.flicker : 0;
+            let any = false;
+            trailsCtx.beginPath();
+            for (let i = 0; i < stars.length; i++) {
+                const star = stars[i];
+                if (star.fade !== level || !star.visible || (flicker && Math.random() < flicker)) continue;
+                any = true;
                 trailsCtx.moveTo(star.x, star.y);
                 trailsCtx.lineTo(star.prevX, star.prevY);
-                mainCtx.moveTo(star.x, star.y);
-                mainCtx.lineTo(star.x - star.speedX * 1.6, star.y - star.speedY * 1.6);
+                if (level < 2) {
+                    mainCtx.moveTo(star.x, star.y);
+                    mainCtx.lineTo(star.x - star.speedX * 1.6, star.y - star.speedY * 1.6);
+                }
             }
+            if (!any) continue;
+            trailsCtx.globalAlpha = fade.alpha;
+            trailsCtx.lineWidth = Star.drawWidth * fade.width;
+            trailsCtx.stroke();
         }
-        trailsCtx.stroke();
     });
     mainCtx.stroke();
 
-    // Vẽ tia lửa
+    // Vẽ tia lửa. Đầu nét vuông: tia gần như đứng yên (màn tia lửa rủ của pháo liễu) vẫn là một chấm sáng chứ không mất hút
     trailsCtx.lineWidth = Spark.drawWidth;
-    trailsCtx.lineCap = 'butt';
+    trailsCtx.lineCap = 'square';
     Object.keys(Spark.active).forEach(color => {
         if (color === INVISIBLE || color === '_pool') return;
         const sparks = Spark.active[color];
         if (sparks.length === 0) return;
+        drawn = true;
 
-        trailsCtx.strokeStyle = color;
-        trailsCtx.beginPath();
-        for (let i = 0; i < sparks.length; i++) {
-            const spark = sparks[i];
-            trailsCtx.moveTo(spark.x, spark.y);
-            trailsCtx.lineTo(spark.prevX, spark.prevY);
+        const ember = SPARK_EMBER[color];
+        for (let level = 0; level < SPARK_FADE.length; level++) {
+            const fade = SPARK_FADE[level];
+            const flicker = flickerOn ? fade.flicker : 0;
+            let any = false;
+            trailsCtx.beginPath();
+            for (let i = 0; i < sparks.length; i++) {
+                const spark = sparks[i];
+                if (spark.fade !== level || (flicker && Math.random() < flicker)) continue;
+                any = true;
+                trailsCtx.moveTo(spark.x, spark.y);
+                trailsCtx.lineTo(spark.prevX, spark.prevY);
+            }
+            if (!any) continue;
+            trailsCtx.strokeStyle = ember ? ember[level] : color;
+            trailsCtx.globalAlpha = fade.alpha;
+            trailsCtx.stroke();
         }
-        trailsCtx.stroke();
     });
+    trailsCtx.globalAlpha = 1;
+
+    // Quầng sáng quanh pháo (lớp chính xóa mỗi khung): còn vệt sáng trên trời thì vẽ thêm một lúc cho vệt tắt hẳn (phơi
+    // sáng lâu: vệt gần như không mờ nên vẽ luôn). 480p trở xuống không có quầng cho nhẹ máy
+    glowTail = drawn ? GLOW_TAIL : Math.max(0, glowTail - speed);
+    if ((glowTail > 0 || store.state.config.longExposure) && !isLowQuality) {
+        Glow.render(mainCtx, trailsStage.canvas, width, height, {
+            scale: dpr * scaleFactor,
+            spread: isHighQuality ? 3 : 2,
+            strength: isHighQuality ? 0.9 : 0.8
+        });
+    }
 
 
     // Vẽ hình ảnh phóng to

@@ -92,6 +92,8 @@ export const Star = {
         instance.speedY = Math.sin(angle) * speed + (speedOffY || 0);
         instance.life = life;
         instance.fullLife = life;
+        // Mức tàn (render-loop.js: STAR_FADE), 0 là đang cháy sáng
+        instance.fade = 0;
         instance.spinAngle = Math.random() * PI_2;
         instance.spinSpeed = 0.8;
         instance.spinRadius = 0;
@@ -165,6 +167,8 @@ export const Spark = {
         instance.speedX = Math.cos(angle) * speed;
         instance.speedY = Math.sin(angle) * speed;
         instance.life = life;
+        instance.fullLife = life;
+        instance.fade = 0;
 
         if (!this.active[color]) {
             this.active[color] = [];

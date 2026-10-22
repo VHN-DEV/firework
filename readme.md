@@ -55,7 +55,7 @@ Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và 
   - **Chất lượng**: theo độ phân giải như trang xem phim: Tự động (mặc định: theo màn hình và sức máy, giật thì tự hạ
     xuống) hoặc 144p, 240p, 360p, 480p SD, 720p HD, 1080p Full HD, 1440p 2K, 2160p 4K, 4320p 8K (số điểm ảnh cạnh ngắn của
     khung vẽ, không vượt độ phân giải gốc của màn hình). Từ 1080p trở lên vẽ đầy đủ mọi hiệu ứng; 720p bớt tia lửa lúc dày
-    đặc nhất; 480p trở xuống bớt thêm và không có khói pháo. Người tạo có thể đặt sẵn trong builder (nhóm
+    đặc nhất; 480p trở xuống bớt thêm, không có khói pháo và quầng sáng quanh pháo. Người tạo có thể đặt sẵn trong builder (nhóm
     "Khi người nhận xem"), lựa chọn người xem tự đặt luôn được ưu tiên.
   - **Ánh sáng bầu trời**: Tắt / Mờ / Bình thường.
   - **Thu phóng**: phóng to hay thu nhỏ toàn bộ pháo hoa.
@@ -83,6 +83,8 @@ Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và 
   - `particles.js` (hạt, tia lửa), `effects.js` (hiệu ứng nổ), `shapes.js` (pháo hình, chữ), `colors.js`;
   - `shell.js` (quả pháo), `shells.js` (các loại pháo), `launch-styles.js` (kiểu bắn), `image-burst.js` (pháo ảnh);
   - `smoke.js` (khói pháo: lớp canvas riêng dưới lớp pháo, độ phân giải thấp, có giới hạn số đám khói);
+  - `glow.js` (quầng sáng quanh pháo: thu nhỏ lớp vệt sáng nhiều bậc rồi cộng sáng ngược lên, như máy quay thấy pháo
+    thật);
   - `scenery.js` (mặt nước phản chiếu; bầu trời đêm: sao, trăng, đèn trời, khinh khí cầu, máy bay), `moon.js` (pha trăng
     theo ngày);
   - `audio.js` (tiếng pháo, nhạc nền), `start-frames.js` (khung mở quà), `captions.js` (lời nhắn), `utils.js`;

@@ -15,7 +15,7 @@ export const helpContent = {
         header: 'Chất lượng',
         body: 'Như trang xem phim: số càng lớn hình càng nét nhưng càng nặng máy. Tự động (khuyên dùng): bắt đầu theo màn hình và '
             + 'cấu hình máy, nếu thấy giật thì tự hạ xuống, mượt trở lại thì nâng lên. Từ 1080p trở lên vẽ đầy đủ mọi hiệu ứng; '
-            + '720p bớt tia lửa lúc pháo dày đặc nhất; 480p trở xuống nhẹ nhất cho máy yếu, không có khói pháo. Màn hình không '
+            + '720p bớt tia lửa lúc pháo dày đặc nhất; 480p trở xuống nhẹ nhất cho máy yếu, không có khói pháo và quầng sáng quanh pháo. Màn hình không '
             + 'hiện được nhiều điểm ảnh hơn chính nó: chọn mức cao hơn màn hình thì máy tính mạnh vẽ dư tới gấp đôi rồi thu nhỏ '
             + 'cho mịn, rõ hơn (nặng máy hơn nhiều); điện thoại, máy yếu vẽ bằng độ phân giải gốc của màn hình. '
             + 'Muốn thật sự 4K thì cần màn hình 4K.',

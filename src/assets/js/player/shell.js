@@ -293,7 +293,8 @@ export class Shell {
             sparkLifeVariation = 2;
         }
         else if (this.glitter === 'willow') {
-            sparkFreq = 80;
+            // Dày tia hơn các kiểu khác: màn tia lửa vàng rủ xuống là cái hồn của pháo liễu
+            sparkFreq = 60;
             sparkSpeed = 0.48;
             sparkLife = 1500;
             sparkLifeVariation = 3.8;
@@ -359,7 +360,8 @@ export class Shell {
                 y,
                 color,
                 angle,
-                speedMult * speed,
+                // Lệch tốc độ chút ít như thuốc phóng trong quả pháo thật: mép quả nổ tự nhiên, không tròn vành vạnh
+                speedMult * speed * (0.95 + Math.random() * 0.1),
                 // thêm biến thể nhỏ vào cuộc sống của ngôi sao
                 this.starLife + Math.random() * this.starLife * this.starLifeVariation,
                 this.horsetail ? this.comet && this.comet.speedX : 0,

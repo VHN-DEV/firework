@@ -7,7 +7,7 @@
 // Chất lượng khi xem theo độ phân giải như trang xem phim. Số là số điểm ảnh ở cạnh ngắn của khung vẽ pháo (cạnh dọc
 // khi xem ngang): 720p vẽ 720 điểm ảnh; mức cao hơn màn hình thì vẽ bằng độ phân giải gốc của màn hình.
 // tier: mức hiệu ứng cho các module hạt pháo. Từ 1080p trở lên vẽ đầy đủ; 720p bớt tia lửa lúc dày đặc nhất; 480p trở
-// xuống bớt thêm và không có khói.
+// xuống bớt thêm, không có khói và quầng sáng (player/glow.js).
 // sparks: số tia lửa tối đa cùng lúc (chỉ chạm tới lúc pháo dày đặc nhất).
 // Dùng chung cho trình phát (Cài đặt) và builder (nhóm "Khi người nhận xem").
 

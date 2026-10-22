@@ -8,7 +8,7 @@
 
 import { INVISIBLE } from '../env.js';
 import { COLOR_TUPLES } from '../colors.js';
-import { Star } from '../particles.js';
+import { BurstFlash, Star } from '../particles.js';
 import { appNodes, skyLightingSelector } from '../../script.js';
 
 // Vẽ lớp phủ màu dựa trên độ sáng kết hợp của các ngôi sao (thắp sáng bầu trời!)
@@ -77,6 +77,18 @@ export function colorSky(speed) {
     currentSkyColor.r += (targetSkyColor.r - currentSkyColor.r) / colorChange * speed;
     currentSkyColor.g += (targetSkyColor.g - currentSkyColor.g) / colorChange * speed;
     currentSkyColor.b += (targetSkyColor.b - currentSkyColor.b) / colorChange * speed;
+
+    // Quả vừa nổ (quầng chớp chưa vẽ): cả bầu trời chợt lóe ánh trắng ấm rồi tối lại theo nhịp làm mượt ở trên. Nhiều quả
+    // nổ cùng lúc thì sáng hơn nhưng có giới hạn. Không gọi tới đây khi giảm chớp sáng
+    let flash = 0;
+    for (let i = 0; i < BurstFlash.active.length; i++) flash += BurstFlash.active[i].radius;
+    if (flash > 0) {
+        const lift = (1 - Math.exp(-flash / 120)) * maxSkySaturation;
+        const cap = maxSkySaturation * 1.6;
+        currentSkyColor.r = Math.min(cap, Math.max(currentSkyColor.r, targetSkyColor.r) + lift);
+        currentSkyColor.g = Math.min(cap, Math.max(currentSkyColor.g, targetSkyColor.g) + lift * 0.86);
+        currentSkyColor.b = Math.min(cap, Math.max(currentSkyColor.b, targetSkyColor.b) + lift * 0.66);
+    }
 
     appNodes.stageContainer.style.backgroundColor = `rgb(${currentSkyColor.r | 0}, ${currentSkyColor.g | 0}, ${currentSkyColor.b | 0})`;
 }

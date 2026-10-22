@@ -60,7 +60,7 @@ const HELP_TIPS = {
     viewerQuality: 'Như trang xem phim: số càng lớn hình càng nét nhưng càng nặng máy. <strong>Tự động</strong> (khuyên dùng): theo màn hình '
         + 'và sức máy người xem, giật thì tự hạ xuống. Từ <strong>1080p</strong> (Full HD) trở lên vẽ đầy đủ mọi hiệu ứng, hợp khi biết '
         + 'người nhận dùng máy mạnh; <strong>720p</strong> bớt tia lửa lúc pháo dày đặc nhất; <strong>480p</strong> trở xuống nhẹ nhất, '
-        + 'không có khói pháo. Màn hình không hiện được nhiều điểm ảnh hơn chính nó: mức cao hơn màn hình người xem thì máy tính mạnh '
+        + 'không có khói pháo và quầng sáng quanh pháo. Màn hình không hiện được nhiều điểm ảnh hơn chính nó: mức cao hơn màn hình người xem thì máy tính mạnh '
         + 'vẽ dư tới gấp đôi rồi thu nhỏ cho mịn, rõ hơn (nặng máy hơn nhiều), điện thoại và máy yếu vẽ bằng độ phân giải gốc của màn '
         + 'hình; muốn thật sự 4K thì cần màn hình 4K. Khung xem nhanh luôn vẽ nhẹ cho dễ chỉnh, bấm <strong>Xem thử</strong> để thấy '
         + 'đúng chất lượng. Người xem đã tự chọn mức khác thì giữ theo họ.',
