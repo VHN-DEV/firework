@@ -54,11 +54,33 @@
     }
 }
 
+// "Xem thử" màn mở quà, màn kết: cùng hàng với nhãn, góc phải
+.theme-label-row {
+    align-items: center;
+    margin-bottom: 0.4rem;
+
+    label {
+        margin-bottom: 0;
+    }
+}
+
 .theme-preview-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-top: 0.55rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.1rem;
+    color: $b-muted;
+    font-size: 0.72rem;
+
+    span {
+        margin-right: 0.2rem;
+    }
+
+    .icon-btn {
+        width: 28px;
+        height: 28px;
+        border: 1px solid $b-line;
+        background: $b-panel-2;
+    }
 }
 
 .theme-custom {
