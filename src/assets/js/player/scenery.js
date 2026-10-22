@@ -1365,89 +1365,250 @@ const WaterLife = {
 // Bờ đất ở mép nước và lá bèo
 // ---------------------------------------------------------------------------
 
-// Bờ đá kiểu tranh điểm ảnh (như Kingdom Two Crowns): phiến đá be to, bo tròn, xếp hai hàng so le, mép trên sáng, đáy
-// tối, khe sẫm (tông đêm); mép trên phủ rêu cỏ, chân bờ có bụi cỏ mọc sát nước. over: phần cỏ nhô lên trên mặt bờ (điểm ảnh của lớp vẽ).
+// Bờ đất bên kia mặt nước (tông đêm, ánh trăng rọi từ trên): mặt bờ gần phẳng, chỗ lở lõm vào chút; vách đất có lớp và
+// hạt, rễ cây lòi ra gần mép trên, vài hòn cuội lấp ló, sát nước là dải bùn ướt sẫm ánh lên màu trời, chân bờ bị nước
+// khoét lõm tối. Vẽ từng điểm ảnh một lần theo cỡ khung, nằm ở lớp mặt nước (dưới chân trời). Cỏ, lau sậy, bụi cây,
+// đom đóm nhô lên trên chân trời vẽ ở lớp bầu trời (drawBankSkyline): các lớp trên trang ghép kiểu "lighten" nên vật tối
+// vẽ ở lớp mặt nước mà nằm trước nền trời sáng ánh trăng sẽ bị nhạt màu.
 let bankCache = { key: '', canvas: null, over: 0 };
+let bankNoiseFn = null;
+const bankNoise = () => bankNoiseFn || (bankNoiseFn = makeNoise(57));
+
+// Mặt bờ lõm xuống bao nhiêu (điểm ảnh CSS) dưới chân trời tại hoành độ X
+function bankDip(X) {
+    const noise = bankNoise();
+    return Math.max(0, (fbm(noise, X / 80, 0.5, 3) - 0.5) * 3.2 + (noise(X / 7, 4.2) - 0.5) * 0.7);
+}
 
 function bankSprite(W, bankPx, k) {
     const key = `${W}_${bankPx}_${k.toFixed(3)}`;
     if (bankCache.key === key) return bankCache;
-    const over = Math.max(2, Math.round(5 * k));
     const c = document.createElement('canvas');
     c.width = W;
-    c.height = bankPx + over;
+    c.height = bankPx;
     const g = c.getContext('2d');
+    const noise = bankNoise();
     let seed = 29;
     const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-    const p = Math.max(1, Math.round(k));
-    const y0 = over;
-    g.fillStyle = 'rgb(30, 26, 23)';
-    g.fillRect(0, y0, W, bankPx);
-    const slab = (x, y, w, h, r) => {
-        g.beginPath();
-        g.moveTo(x + r, y);
-        g.lineTo(x + w - r, y);
-        g.quadraticCurveTo(x + w, y, x + w, y + r);
-        g.lineTo(x + w, y + h - r);
-        g.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        g.lineTo(x + r, y + h);
-        g.quadraticCurveTo(x, y + h, x, y + h - r);
-        g.lineTo(x, y + r);
-        g.quadraticCurveTo(x, y, x + r, y);
-        g.fill();
-    };
-    const rowH = bankPx / 2;
-    for (let r = 0; r < 2; r++) {
-        let x = -rnd() * 14 * k - r * 8 * k;
-        while (x < W) {
-            const w = (12 + rnd() * 18) * k;
-            const tone = 82 + rnd() * 24 - r * 12;
-            const sx = Math.round(x + p);
-            const sy = Math.round(y0 + r * rowH + p * 0.5);
-            const sw = Math.max(p, Math.round(w - 1.5 * p));
-            const sh = Math.max(p, Math.round(rowH - p));
-            g.fillStyle = `rgb(${(tone + 10) | 0}, ${tone | 0}, ${(tone - 14) | 0})`;
-            slab(sx, sy, sw, sh, Math.min(sh / 2, 3 * k));
-            g.fillStyle = 'rgba(255, 240, 215, 0.18)';
-            g.fillRect(sx + p, sy, Math.max(p, sw - 2 * p), p);
-            g.fillStyle = 'rgba(0, 0, 0, 0.28)';
-            g.fillRect(sx + p, sy + sh - p, Math.max(p, sw - 2 * p), p);
-            // Vài vết lõm, đốm trên mặt đá
-            if (rnd() < 0.5) {
-                g.fillStyle = 'rgba(30, 24, 20, 0.35)';
-                g.fillRect(Math.round(sx + sw * (0.2 + rnd() * 0.5)), Math.round(sy + sh * 0.45), Math.max(p, Math.round(2 * k)), p);
+    const bankCss = bankPx / k;
+    const edge = new Float32Array(W);
+    const strata = new Float32Array(W);
+    const grass = new Float32Array(W);
+    for (let x = 0; x < W; x++) {
+        const X = x / k;
+        edge[x] = bankDip(X) * k;
+        strata[x] = fbm(noise, X / 30, 3, 2) * 5;
+        grass[x] = 0.8 + 1.8 * fbm(noise, X / 14 + 30, 1, 2);
+    }
+    const img = g.createImageData(W, bankPx);
+    const d = img.data;
+    for (let y = 0; y < bankPx; y++) {
+        const Y = y / k;
+        for (let x = 0; x < W; x++) {
+            const top = edge[x];
+            if (y + 1 < top) continue;
+            const X = x / k;
+            const depth = Math.max(0, (y - top) / k);
+            const rel = Math.min(1, Y / bankCss);
+            const n = fbm(noise, X / 6, Y / 2.2 + 10, 3);
+            // Đất: nâu sẫm có hạt, xếp lớp ngang mờ
+            const layer = 1 + 0.09 * Math.sin(Y * 1.7 + strata[x]);
+            let r = (46 + 24 * n) * layer;
+            let gg = (36 + 18 * n) * layer;
+            let b = (27 + 12 * n) * layer;
+            if (depth < grass[x]) {
+                // Mặt bờ phủ cỏ
+                const gn = noise(X / 1.4 + 9, Y * 1.3);
+                r = 28 + 20 * gn;
+                gg = 44 + 30 * gn;
+                b = 26 + 14 * gn;
+            } else {
+                // Rễ cây lòi ra: vệt sẫm mảnh ngoằn ngoèo gần mép trên
+                if (rel < 0.45 && Math.abs(fbm(noise, X / 5 + 70, Y / 7 + 3, 2) - 0.5) < 0.012) {
+                    r *= 0.62;
+                    gg *= 0.62;
+                    b *= 0.62;
+                }
+                // Cuội lấp ló: đốm tròn xám nâu hòa vào đất, nửa trên hứng sáng
+                const pebble = noise(X / 3 + 120, Y / 2.6 + 40);
+                if (pebble > 0.91 && rel > 0.3) {
+                    const t = smooth01(0.91, 0.97, pebble);
+                    const up = noise(X / 3 + 120, (Y - 0.7) / 2.6 + 40) > pebble ? 0.85 : 1.08;
+                    r += (60 - r) * t * up;
+                    gg += (56 - gg) * t * up;
+                    b += (50 - b) * t * up;
+                }
             }
-            x += w;
+            // Ánh trăng rọi từ trên: mép trên sáng, càng xuống càng khuất; sát nước ướt sẫm, ánh màu trời
+            let lit = 1.18 - 0.5 * rel;
+            if (rel > 0.68) {
+                const wet = (rel - 0.68) / 0.32;
+                lit *= 1 - 0.45 * wet;
+                b += 12 * wet;
+                gg += 4 * wet;
+            }
+            // Chân bờ bị nước khoét lõm
+            if (rel > 0.9) lit *= 0.7;
+            const i = (y * W + x) * 4;
+            d[i] = Math.min(255, r * lit);
+            d[i + 1] = Math.min(255, gg * lit);
+            d[i + 2] = Math.min(255, b * lit);
+            // Mép trên mịn (khử răng cưa)
+            d[i + 3] = 255 * Math.min(1, Math.max(0, y + 1 - top));
         }
     }
-    // Rêu cỏ phủ mép trên, cỏ nhô lên trời
-    g.fillStyle = 'rgb(36, 58, 34)';
-    g.fillRect(0, y0, W, Math.max(p, Math.round(1.6 * k)));
-    g.fillStyle = 'rgb(58, 86, 48)';
-    g.fillRect(0, y0, W, p);
-    const greens = ['rgb(40, 66, 38)', 'rgb(52, 80, 44)', 'rgb(64, 94, 52)'];
-    for (let x = 0; x < W; x += (2 + rnd() * 9) * k) {
-        if (rnd() < 0.45) continue;
-        const blades = 2 + ((rnd() * 4) | 0);
-        for (let b = 0; b < blades; b++) {
-            const h = Math.round((1.5 + rnd() * 3.5) * k);
-            g.fillStyle = greens[(rnd() * 3) | 0];
-            g.fillRect(Math.round(x + b * p * 1.5), y0 - h, p, h + p);
-        }
+    g.putImageData(img, 0, 0);
+    // Ánh nước lấp lánh trên bùn ướt sát chân bờ
+    for (let x = rnd() * 30 * k; x < W; x += (14 + rnd() * 40) * k) {
+        g.fillStyle = `rgba(170, 190, 220, ${0.15 + rnd() * 0.2})`;
+        g.fillRect(x, bankPx - Math.max(1, Math.round(2 * k)), (1.5 + rnd() * 3) * k, Math.max(1, Math.round(0.6 * k)));
     }
-    // Chân bờ: mép ướt sẫm, vài bụi cỏ nước mọc sát mặt nước
-    g.fillStyle = 'rgb(16, 14, 14)';
-    g.fillRect(0, y0 + bankPx - p, W, p);
-    for (let x = rnd() * 80 * k; x < W; x += (60 + rnd() * 110) * k) {
-        const width = (10 + rnd() * 16) * k;
-        for (let bx = 0; bx < width; bx += p * 1.4) {
-            const h = Math.round(bankPx * (0.35 + rnd() * 0.6) * (1 - Math.abs(bx / width - 0.5)));
-            g.fillStyle = ['rgb(58, 92, 46)', 'rgb(74, 108, 54)', 'rgb(46, 76, 40)'][(rnd() * 3) | 0];
-            g.fillRect(Math.round(x + bx), y0 + bankPx - h, p, h);
-        }
-    }
-    bankCache = { key, canvas: c, over };
+    bankCache = { key, canvas: c, over: 0 };
     return bankCache;
+}
+
+// Những gì nhô lên trên bờ (điểm ảnh CSS): cỏ ngắn lún phún, bụi cỏ cao, khóm lau sậy có bông cỏ nến, bụi cây thấp ở
+// xa, đom đóm. Rải lại khi đổi cỡ khung; cỏ ngắn và bụi cây đứng yên nên dựng sẵn đường vẽ.
+let bankLifeCache = { key: -1 };
+
+function bankLife(cssW) {
+    const key = Math.round(cssW);
+    if (bankLifeCache.key === key) return bankLifeCache;
+    let seed = 71;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const fringeColors = ['#24391f', '#2e4628', '#395532', '#1f3120'];
+    const fringe = fringeColors.map(() => new Path2D());
+    for (let x = 0; x < cssW; x += 0.7 + rnd() * 2) {
+        const base = bankDip(x) + 0.6;
+        const h = 0.8 + rnd() * 2.8;
+        const lean = (rnd() - 0.5) * 1.6;
+        const path = fringe[(rnd() * 4) | 0];
+        path.moveTo(x, base);
+        path.quadraticCurveTo(x + lean * 0.3, base - h * 0.6, x + lean, base - h);
+    }
+    // Bụi cây thấp ở xa: nhiều chùm lá nhỏ chen nhau thành khối xum xuê, mép lởm chởm; chùm trên cùng hứng ánh trăng
+    const bushes = new Path2D();
+    const bushLight = new Path2D();
+    for (let x = 40 + rnd() * 120; x < cssW; x += 110 + rnd() * 260) {
+        const w = 10 + rnd() * 22;
+        const h = 5 + rnd() * 8;
+        const base = bankDip(x) + 0.5;
+        for (let i = 0; i < 26; i++) {
+            const u = rnd() * 2 - 1;
+            const top = h * Math.sqrt(1 - u * u * 0.85);
+            const lx = x + u * w * 0.5;
+            const ly = base - rnd() * top;
+            const lr = 0.9 + rnd() * Math.min(2.6, h * 0.3);
+            bushes.moveTo(lx + lr, ly);
+            bushes.arc(lx, ly, lr, 0, Math.PI * 2);
+            if (base - ly > top * 0.65 && rnd() < 0.7) {
+                bushLight.moveTo(lx - lr * 0.2 + lr * 0.55, ly - lr * 0.3);
+                bushLight.arc(lx - lr * 0.2, ly - lr * 0.3, lr * 0.55, 0, Math.PI * 2);
+            }
+        }
+    }
+    const tufts = [];
+    for (let x = rnd() * 10; x < cssW; x += 5 + rnd() * 16) {
+        const reed = rnd() < 0.13;
+        const tall = reed ? 9 + rnd() * 9 : 3 + rnd() * 6;
+        const n = 3 + ((rnd() * (reed ? 4 : 5)) | 0);
+        tufts.push({
+            x, reed, phase: rnd() * 6, base: bankDip(x) + 0.6,
+            blades: Array.from({ length: n }, () => ({
+                dx: (rnd() - 0.5) * (reed ? 4 : 5), h: tall * (0.55 + rnd() * 0.5), lean: (rnd() - 0.5) * (reed ? 1.5 : 3),
+                color: (rnd() * 4) | 0, cattail: reed && rnd() < 0.45
+            }))
+        });
+    }
+    const flies = Array.from({ length: Math.max(4, Math.round(cssW / (IS_MOBILE ? 60 : 110))) }, () => ({
+        x: rnd() * cssW, h: 3 + rnd() * 22, roam: 10 + rnd() * 30, speed: 0.00015 + rnd() * 0.0003, phase: rnd() * 100,
+        rate: 0.0012 + rnd() * 0.0016, size: 1.6 + rnd() * 1.4
+    }));
+    bankLifeCache = { key, fringe, fringeColors, bushes, bushLight, tufts, flies };
+    return bankLifeCache;
+}
+
+// Vẽ phần nhô lên của bờ ở lớp bầu trời (ground: chân trời, điểm ảnh CSS; clock: đồng hồ của bầu trời). Gió thổi từng
+// đợt lướt dọc bờ: tới đâu cả dải cỏ, lau ngả theo tới đó rồi đứng lên; đom đóm lượn quanh bờ cỏ, chớp sáng rồi tắt.
+// Mặt nước soi lại lớp bầu trời nên bóng cỏ, đom đóm cũng in xuống nước.
+function drawBankSkyline(ctx, cssW, ground, clock, calm) {
+    const life = bankLife(cssW);
+    ctx.save();
+    ctx.translate(0, ground);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    ctx.lineCap = 'round';
+    ctx.fillStyle = '#16231a';
+    ctx.fill(life.bushes);
+    ctx.fillStyle = 'rgba(52, 78, 56, 0.55)';
+    ctx.fill(life.bushLight);
+    ctx.lineWidth = 0.6;
+    life.fringe.forEach((path, i) => {
+        ctx.strokeStyle = life.fringeColors[i];
+        ctx.stroke(path);
+    });
+    const colors = ['#2a4228', '#365231', '#43603a', '#223823', '#45583a', '#56623c', '#625c3f', '#4d5838'];
+    const paths = colors.map(() => new Path2D());
+    const tails = [];
+    life.tufts.forEach(tuft => {
+        const gust = Math.pow(0.5 + 0.5 * Math.sin(tuft.x * 0.006 - clock * 0.0007), 3);
+        const sway = calm ? 0.15 : Math.sin(clock * 0.0017 + tuft.x * 0.03 + tuft.phase) * 0.3 + gust * 1.1
+            + Math.sin(clock * 0.0041 + tuft.phase * 3) * 0.1;
+        tuft.blades.forEach(blade => {
+            const bx = tuft.x + blade.dx;
+            const bend = (sway * (tuft.reed ? 0.55 : 1) + blade.lean / blade.h) * blade.h * 0.45;
+            const tipY = tuft.base - blade.h * (1 - 0.15 * Math.min(1, Math.abs(bend) / blade.h));
+            const path = paths[(tuft.reed ? 4 : 0) + blade.color];
+            path.moveTo(bx, tuft.base);
+            path.quadraticCurveTo(bx + bend * 0.2, tuft.base - blade.h * 0.55, bx + bend, tipY);
+            if (blade.cattail) tails.push([bx + bend * 0.85, tuft.base - blade.h * 0.82, Math.atan2(bend, blade.h)]);
+        });
+    });
+    paths.forEach((path, i) => {
+        ctx.strokeStyle = colors[i];
+        ctx.lineWidth = i < 4 ? 0.7 : 0.85;
+        ctx.stroke(path);
+    });
+    ctx.fillStyle = '#4a321e';
+    tails.forEach(([x, y, a]) => {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(a);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 0.8, 2.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    });
+    const glow = fireflyGlow();
+    ctx.globalCompositeOperation = 'lighter';
+    life.flies.forEach(fly => {
+        const t = clock * fly.speed + fly.phase;
+        const x = (((fly.x + Math.sin(t) * fly.roam + Math.sin(t * 2.3) * 4) % cssW) + cssW) % cssW;
+        const y = bankDip(x) - fly.h - Math.sin(t * 1.7) * 3;
+        const on = calm ? 0.4 : Math.pow(Math.max(0, Math.sin(clock * fly.rate + fly.phase * 7)), 6);
+        if (on < 0.02) return;
+        const size = fly.size * 4;
+        ctx.globalAlpha = on;
+        ctx.drawImage(glow, x - size / 2, y - size / 2, size, size);
+    });
+    ctx.restore();
+}
+
+// Đốm sáng mềm của đom đóm (vẽ cộng sáng, phóng to thu nhỏ theo cỡ)
+function fireflyGlow() {
+    if (sprites.firefly) return sprites.firefly;
+    const c = document.createElement('canvas');
+    c.width = c.height = 32;
+    const g = c.getContext('2d');
+    const glow = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+    glow.addColorStop(0, 'rgba(235, 255, 170, 1)');
+    glow.addColorStop(0.18, 'rgba(200, 245, 120, 0.75)');
+    glow.addColorStop(0.5, 'rgba(150, 220, 80, 0.18)');
+    glow.addColorStop(1, 'rgba(120, 200, 60, 0)');
+    g.fillStyle = glow;
+    g.fillRect(0, 0, 32, 32);
+    sprites.firefly = c;
+    return c;
 }
 
 // Lá bèo (lá súng) nằm phẳng trên nước (nhìn chếch nên dẹt), có khe hình nêm; kiểu 3 có hoa súng hồng
@@ -2072,10 +2233,10 @@ export const Water = {
         ctx.globalAlpha = 0.4;
         ctx.translate(0, surf);
         ctx.scale(1, -1);
-        ctx.drawImage(bank.canvas, 0, bank.over, W, bankPx, 0, -bankPx, W, bankPx);
+        ctx.drawImage(bank.canvas, 0, 0, W, bankPx, 0, -bankPx, W, bankPx);
         ctx.restore();
         ctx.globalAlpha = 1;
-        ctx.drawImage(bank.canvas, 0, top - bank.over);
+        ctx.drawImage(bank.canvas, 0, top);
         if (sky.r + sky.g + sky.b > 6) {
             ctx.globalCompositeOperation = 'lighter';
             ctx.globalAlpha = 0.5;
@@ -3350,7 +3511,7 @@ export const Decor = {
     },
 
     active() {
-        return this.items.length > 0 || this.stars.length > 0 || !!this.moon || this.clouds.length > 0;
+        return this.items.length > 0 || this.stars.length > 0 || !!this.moon || this.clouds.length > 0 || horizon() < 1;
     },
 
     groundY() {
@@ -3603,6 +3764,8 @@ export const Decor = {
                 ctx.drawImage(burnerGlow(), item.x - w / 2, y - h / 2 + h * 0.1, w, w);
             }
         });
+        // Có mặt nước: cỏ, lau sậy, bụi cây trên bờ đất nhô lên nền trời, đom đóm
+        if (horizon() < 1) drawBankSkyline(ctx, this.width, ground, this.clock, calm);
         ctx.globalAlpha = 1;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
