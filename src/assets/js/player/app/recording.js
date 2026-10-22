@@ -11,7 +11,7 @@ import { now } from '../clock.js';
 import { normalizeAssetPath } from '../utils.js';
 import { soundManager } from '../audio.js';
 import { frameText } from '../start-frames.js';
-import { appNodes, burstConfig, decoCanvas, mainStage, smokeCanvas, trailsStage, waterCanvas } from '../../script.js';
+import { appNodes, burstConfig, decoCanvas, frontCanvas, mainStage, smokeCanvas, trailsStage, waterCanvas } from '../../script.js';
 
 // Chờ trước phát pháo đầu tiên, và thời gian thiệp lời chúc ở cuối video (ms)
 export const RECORD_LEAD = 800;
@@ -84,12 +84,14 @@ export function finishRecording() {
     recording.endsAt = now() + RECORD_END_CARD;
 }
 
-// Những gì có trên khung hình: ảnh nền, các lớp pháo (dưới lên trên), tiêu đề và lời nhắn (xem recorder.js)
+// Những gì có trên khung hình: ảnh nền, các lớp pháo (dưới lên trên), người ngắm pháo, tiêu đề và lời nhắn (xem
+// recorder.js)
 export function frameSources() {
     return {
         container: appNodes.stageContainer,
         background: appNodes.backgroundImage,
         layers: [decoCanvas, smokeCanvas, trailsStage.canvas, mainStage.canvas, waterCanvas],
+        front: [frontCanvas],
         texts: () => [...document.querySelectorAll('.config-overlay h1, .config-overlay h2, .config-overlay p, .caption-layer .caption')]
     };
 }

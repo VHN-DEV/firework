@@ -100,7 +100,7 @@ function wrapText(ctx, text, maxWidth) {
  * background: phần tử ảnh nền; layers: các canvas pháo; texts(): các phần tử chữ cần vẽ;
  * now(): đồng hồ cho thiệp lời chúc hiện dần (video dùng đồng hồ giả lập).
  */
-export function createFrameComposer({ width, height, container, background, layers, texts, now = () => performance.now() }) {
+export function createFrameComposer({ width, height, container, background, layers, front = [], texts, now = () => performance.now() }) {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -228,6 +228,10 @@ export function createFrameComposer({ width, height, container, background, laye
             if (layer.width) ctx.drawImage(layer, 0, 0, width, height);
         });
         ctx.globalCompositeOperation = 'source-over';
+        // Lớp trước (người ngắm pháo) ghép bình thường như trên trang
+        front.forEach(layer => {
+            if (layer.width) ctx.drawImage(layer, 0, 0, width, height);
+        });
         texts().forEach(el => paintText(el, box, k));
         if (endCard) paintEndCard();
     }

@@ -32,11 +32,12 @@ import { getProcessedImage, imageParticleCache } from './player/image-burst.js';
 import { imageCacheKey } from './player/image-frame.js';
 import { Shell } from './player/shell.js';
 import { SMOKE_RESOLUTION } from './player/smoke.js';
-import { WATER_RESOLUTION, setSceneSoundListener } from './player/scenery/index.js';
+import { People, WATER_RESOLUTION, setSceneSoundListener } from './player/scenery/index.js';
 import { NatureSound } from './player/nature/index.js';
 import { resolveSeason, validWeather } from './player/seasons.js';
 import { MOON_PHASES, moonFraction } from './player/moon.js';
 import { START_FRAMES, frameText } from './player/start-frames.js';
+import { validPeople } from './player/people-options.js';
 import { applyScreenTheme, createScreenAmbient, resolveScreenTheme, themedTitle } from './player/screen-themes.js';
 import { clearCaptions, showCaption } from './player/captions.js';
 import { fullscreenEnabled, isFullscreen, toggleFullscreen } from './player/app/fullscreen.js';
@@ -100,6 +101,11 @@ export const decoCtx = decoCanvas.getContext('2d');
 export const waterCanvas = document.getElementById('water-canvas');
 
 export const waterCtx = waterCanvas.getContext('2d');
+
+// Người ngắm pháo ở bờ bên này (lớp trước cùng, ghép bình thường)
+export const frontCanvas = document.getElementById('front-canvas');
+
+export const frontCtx = frontCanvas.getContext('2d');
 
 // Kích thước khung (điểm ảnh CSS)
 export let frameW = 0;
@@ -480,6 +486,7 @@ export const appNodes = {
     stageContainer: '.stage-container',
     backgroundImage: '.background-image',
     canvasContainer: '.canvas-container',
+    frontCanvas: '#front-canvas',
     controls: '.controls',
     menu: '.menu',
     menuInnerWrap: '.menu__inner-wrap',
@@ -535,6 +542,7 @@ function renderApp(state) {
     appNodes.soundBtnSVG.setAttribute('xlink:href', soundBtnIcon);
     appNodes.controls.classList.toggle('hide', state.menuOpen || state.config.hideControls);
     appNodes.canvasContainer.classList.toggle('blur', state.menuOpen);
+    appNodes.frontCanvas.classList.toggle('blur', state.menuOpen);
     appNodes.menu.classList.toggle('hide', !state.menuOpen);
 
     appNodes.quality.value = state.config.quality;
@@ -991,6 +999,8 @@ async function renderVideo({ config: source, options }) {
         const composer = recording.composer = createFrameComposer({ width, height, ...frameSources(), now });
         await composer.load();
         await NatureSound.prepare(currentNatureScene());
+        // Người ngắm pháo: tải xong nhân vật mới bắt đầu ghi (không thì mấy giây đầu video thiếu người)
+        await People.prepare(config.water ? validPeople(config.people) : '');
 
         timing.frames = performance.now();
         const step = 1000 / fps;
@@ -1545,6 +1555,10 @@ export function handleResize() {
     waterCanvas.height = Math.round(containerH * waterScale);
     waterCanvas.style.width = containerW + 'px';
     waterCanvas.style.height = containerH + 'px';
+    frontCanvas.width = Math.round(containerW * waterScale);
+    frontCanvas.height = Math.round(containerH * waterScale);
+    frontCanvas.style.width = containerW + 'px';
+    frontCanvas.style.height = containerH + 'px';
     // Tính đến quy mô
     const scaleFactor = scaleFactorSelector();
     setStageSize(containerW / scaleFactor, containerH / scaleFactor);
@@ -1750,6 +1764,7 @@ if (IS_PREVIEW) {
             syncShow.reset();
             autoLaunchTime = 0;
             previewRestartPending = true;
+            People.restart();
             clearCaptions();
             document.querySelectorAll('.config-overlay').forEach(el => el.remove());
             if (msg.startFrame) showPreviewStartFrame(config);
@@ -1789,8 +1804,9 @@ else if (IS_HEADER) {
     // Đợi người xem mở khung bắt đầu của kịch bản (thiệp chào, hộp quà...), xem START_FRAMES.
     // Hẹn giờ mở quà chưa tới thì đếm ngược trước.
     configRequest.then(config => {
-        // Dựng sẵn tiếng thiên nhiên (ở luồng riêng) trong lúc người xem còn ở màn mở quà
+        // Dựng sẵn tiếng thiên nhiên (ở luồng riêng), tải sẵn người ngắm pháo trong lúc người xem còn ở màn mở quà
         NatureSound.prepare(natureSceneOf(config));
+        People.prepare(config && config.water ? validPeople(config.people) : '');
         if (isLockedUntilLater(config)) startCountdown(config);
         // Thiệp chào chung đã hiện (mạng chậm): vẫn báo đã mở link và hiện dòng "Người gửi sẽ biết..."
         else if (startFrameMounted) reportGiftEvent('view', config);

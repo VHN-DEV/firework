@@ -13,13 +13,14 @@ import { BurstFlash, Spark, Star } from '../particles.js';
 import { ImageBurst } from '../image-burst.js';
 import { Glow } from '../glow.js';
 import { Smoke } from '../smoke.js';
-import { Decor, Water, Weather } from '../scenery/index.js';
+import { Decor, People, Water, Weather } from '../scenery/index.js';
 import { recording } from './recording.js';
 import { autoTuner, superSampler } from './quality-tuning.js';
 import { colorSky, currentSkyColor } from './sky-color.js';
 import { currentNatureScene } from './nature-scene.js';
 import { NatureSound } from '../nature/index.js';
-import { SMOKE_LEVELS, appNodes, burstConfig, currentFrame, decoCanvas, decoCtx, frameH, frameW, horizonSelector, isRunning, mainStage, reduceFlashingSelector, scaleFactorSelector, sceneSelector, skyLightingSelector, smokeCanvas, smokeCtx, speedBarOpacity, store, syncShow, trailsStage, updateGlobals, waterCtx, waterLifeFlags } from '../../script.js';
+import { validPeople } from '../people-options.js';
+import { SMOKE_LEVELS, appNodes, burstConfig, currentFrame, decoCanvas, decoCtx, frameH, frameW, frontCtx, horizonSelector, isRunning, mainStage, reduceFlashingSelector, scaleFactorSelector, sceneSelector, skyLightingSelector, smokeCanvas, smokeCtx, speedBarOpacity, store, syncShow, trailsStage, updateGlobals, waterCtx, waterLifeFlags } from '../../script.js';
 
 // Bỏ phần tử thứ i: đưa phần tử cuối vào chỗ của nó thay vì splice (splice dồn cả mảng, hàng nghìn tia lửa tắt mỗi
 // khung thành hàng triệu thao tác). Vòng cập nhật chạy ngược nên phần tử cuối đã được cập nhật trong khung này.
@@ -72,6 +73,9 @@ export function update(frameTime, lag) {
     const smokeOn = Smoke.active();
     Decor.sync(sceneSelector(), frameW, frameH);
     Decor.update(timeStep);
+    // Người ngắm pháo (chỉ khi có mặt nước)
+    People.sync(burstConfig && validPeople(burstConfig.people), frameW, frameH);
+    People.update(timeStep, { time: now(), scale: scaleFactorSelector() });
     Smoke.update(timeStep, !burstConfig || !SMOKE_LEVELS[burstConfig.smoke]);
 
     const starDrag = 1 - (1 - Star.airDrag) * speed;
@@ -426,4 +430,6 @@ function render(speed) {
     });
     // Mưa, tuyết rơi trên cùng (cùng lớp mặt nước: không in bóng xuống nước)
     Weather.render(waterCtx, { cssW: frameW, cssH: frameH, time: now(), sky: currentSkyColor, state: waterState });
+    // Người ngắm pháo đứng trước cảnh (lớp riêng); hạt mưa, tuyết gần rơi đè lên họ
+    People.render(frontCtx, { sky: currentSkyColor, time: now(), calm: reduceFlashingSelector(), bank: burstConfig && burstConfig.bank });
 }

@@ -21,6 +21,10 @@ phạm vi giấy phép độc quyền của dự án.
 | Kho nhạc: Wedding March (đoạn 0:00–2:00) | John Philip Sousa · United States Marine Band – [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Sousa%27s_%22Wedding_March%22_-_United_States_Marine_Band_(2019).mp3) | Phạm vi công cộng (tác phẩm của chính phủ liên bang Hoa Kỳ) | `src/static/library/music/wedding-march.mp3` |
 | Kho nhạc: Clair de Lune (đoạn 0:00–2:31) | Claude Debussy · U.S. Air Force Band of Flight (Wright Brass) – [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Clair_de_Lune_-_Wright_Brass_-_United_States_Air_Force_Band_of_Flight.mp3) | Phạm vi công cộng (tác phẩm của chính phủ liên bang Hoa Kỳ) | `src/static/library/music/clair-de-lune.mp3` |
 | Kho nhạc: Jingle Bells | U.S. Air Force Band of Mid-America (Starlifter and Roots in Blue) – [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Jingle_Bells_(2020)_-_Starlifter_and_Roots_in_Blue_-_United_States_Air_Force_Band_of_Mid-America.mp3) | Phạm vi công cộng (tác phẩm của chính phủ liên bang Hoa Kỳ) | `src/static/library/music/jingle-bells.mp3` |
+| three.js | three.js authors – [github.com/mrdoob/three.js](https://github.com/mrdoob/three.js) | MIT | thư viện npm, dựng hình người ngắm pháo (tải riêng khi kịch bản có người) |
+| @pixiv/three-vrm | pixiv Inc. – [github.com/pixiv/three-vrm](https://github.com/pixiv/three-vrm) | MIT | thư viện npm, nạp nhân vật VRM, tô kiểu anime (MToon), tóc váy đung đưa |
+| Nhân vật anime Sendagaya Shino, HairSample_Male | VRoid Project (pixiv Inc.) – [VRoid Studio CC0 models](https://opengameart.org/content/vroid-studio-cc0-models) | CC0 1.0 (giấy phép VRoid Hub trong tệp: ai cũng dùng được, kể cả thương mại, không cần ghi công, được sửa và phân phối lại) | `src/static/models/people/woman.vrm`, `man.vrm` (đã thu nhỏ ảnh bề mặt, bỏ biểu cảm khuôn mặt) |
+| Chuyển động quay từ người thật (đi dạo, dừng bước, đứng thở, nhìn quanh, vén tóc, chạm mặt, gãi đầu, che ô, buồn) | Microsoft – [Microsoft Rocketbox Avatar Library](https://github.com/microsoft/Microsoft-Rocketbox) | MIT | `src/static/models/people/*-moves.json` (đã chuyển sang khung xương VRM) |
 | Phông Noto Color Emoji, Be Vietnam Pro (dùng để vẽ ảnh trong kho ảnh và ảnh tạm của kịch bản mẫu) | Google, Lâm Bảo, Tony Le, ViệtAnh Nguyễn – [Google Fonts](https://fonts.google.com) | SIL OFL 1.1 | `src/static/library/images/*.jpg`, `src/static/uploads/graduation_nguyen_van/anh-tot-nghiep.jpg` |
 
 Các bài trong kho nhạc đã được cắt đoạn, cân âm lượng và nén lại MP3 160 kbps; danh mục ở `src/static/library/music/index.json`.
@@ -51,5 +55,31 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-Fscreen, qrcode-generator và mp4-muxer dùng cùng nội dung giấy phép MIT ở trên, với dòng bản quyền của tác giả tương ứng
-(xem trong mã nguồn của từng thư viện).
+Fscreen, qrcode-generator, mp4-muxer, three.js và @pixiv/three-vrm dùng cùng nội dung giấy phép MIT ở trên, với dòng bản
+quyền của tác giả tương ứng (xem trong mã nguồn của từng thư viện).
+
+## Giấy phép MIT – Microsoft Rocketbox (chuyển động của người ngắm pháo)
+
+```
+MIT License
+
+Copyright (c) 2020 Microsoft
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```

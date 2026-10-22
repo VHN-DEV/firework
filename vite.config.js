@@ -45,6 +45,8 @@ export default defineConfig({
     }
   },
   build: {
+    // Gói dựng người ngắm pháo (three.js, ~750 kB) chỉ tải khi kịch bản có người: không cần cảnh báo cỡ gói
+    chunkSizeWarningLimit: 800,
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),

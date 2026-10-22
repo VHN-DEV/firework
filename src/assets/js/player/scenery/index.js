@@ -12,9 +12,11 @@
 // - Trang trí: đèn trời bay lên chậm, khinh khí cầu trôi ngang, máy bay (chỉ thấy đèn nhấp nháy); đều tự phát sáng
 //   (hợp với cách ghép lớp "lighten").
 // - Thời tiết (weather.js): mưa, tuyết rơi, lá, cánh hoa rụng theo mùa.
+// - Người ngắm pháo (people/): một chàng trai, một cô gái hoặc cả hai đứng ở bờ bên này, lớp riêng phía trên các lớp pháo.
 // Mỗi phần vẽ trên lớp canvas riêng; nhiều thứ được vẽ sẵn một lần thành ảnh nhỏ để mỗi khung hình chỉ cần chép ảnh.
 
 export { Water, WATER_RESOLUTION } from './water.js';
 export { Decor } from './decor.js';
 export { Weather } from './weather.js';
+export { People } from './people/index.js';
 export { setSceneSoundListener } from './sound-hook.js';
