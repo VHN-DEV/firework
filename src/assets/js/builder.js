@@ -12,6 +12,9 @@ import {
     VIDEO_FORMATS, VIDEO_UNSUPPORTED, canRecordVideoHere, createVideoJob, estimateVideoLength, estimateVideoMegabytes, formatClock
 } from './video-export.js';
 import { OCCASIONS, buildTemplate } from './templates.js';
+import {
+    SCREEN_THEMES, SCREEN_FONTS, SCREEN_EFFECTS, SCREEN_CARDS, SCREEN_ICONS, resolveScreenTheme, compactScreenTheme, loadScreenFont
+} from './player/screen-themes.js';
 import { analyzeMusic, buildBeatShow, KEEP_SHELLS } from './beat-sync.js';
 import { MOON_PHASES, moonFraction, moonPhaseIndex, moonIllumination } from './player/moon.js';
 import { QUALITY_AUTO, QUALITY_LEVELS, qualityLevel, validQuality } from './player/quality.js';
@@ -78,6 +81,8 @@ const state = {
     effectsVolume: 1,
     // Khung bắt đầu ('' = thiệp chào), xem START_FRAMES
     startFrame: '',
+    // Giao diện màn mở quà & màn kết (đầy đủ, xem screen-themes.js); lưu vào kịch bản phần khác bộ đã chọn
+    screenTheme: resolveScreenTheme(),
     // Hẹn giờ mở quà: thời điểm ISO ('' = không hẹn) và cách mở khi tới giờ ('lock' | 'countdown')
     openAt: '',
     openMode: 'lock',
@@ -242,6 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('filename')?.addEventListener('input', updateScriptNameLabel);
 
     renderStartFrames();
+    initScreenThemeControls();
 
     // Hẹn giờ mở quà
     document.getElementById('schedule-toggle')?.addEventListener('change', (e) => {
@@ -693,6 +699,8 @@ function createNewScript() {
         document.getElementById('recipient').value = '';
         state.startFrame = '';
         renderStartFrames();
+        state.screenTheme = resolveScreenTheme();
+        renderScreenTheme();
         state.openAt = '';
         state.openMode = 'lock';
         renderSchedule();
@@ -1143,6 +1151,8 @@ const HELP_TIPS = {
     title: 'Dòng chữ lớn hiện khi màn trình diễn bắt đầu. Cũng là tiêu đề khi gửi link nếu mục <strong>Chia sẻ & SEO</strong> để trống.',
     subtitle: 'Câu ngắn hiện dưới tiêu đề. Ô <strong>Lời chúc ở màn kết</strong> và mô tả khi chia sẻ để trống thì dùng câu này.',
     author: 'Tên người tặng, hiện dưới tiêu đề và trên màn kết. VD: <em>Từ: Con gái</em>.',
+    screenTheme: 'Bộ giao diện cho màn mở quà, màn đếm ngược và màn kết: màu, kiểu chữ tiêu đề, hiệu ứng nền (tuyết rơi, hoa mai đào, '
+        + 'trái tim bay...), biểu tượng và kiểu thiệp. Chọn bộ theo dịp rồi mở "Tùy chỉnh giao diện" để đổi riêng từng phần.',
     startFrame: 'Màn hình đầu tiên khi mở link. Trình duyệt chỉ cho phát âm thanh sau một lần chạm nên người xem luôn mở quà trước. '
         + '<strong>Thiệp chào</strong>: lời mời và nút Mở quà. <strong>Hộp quà</strong>: hộp rung rinh, chạm vào thì bung ruy băng.',
     recipient: 'Tên người nhận. Có tên thì link mở bằng "Gửi [tên]" và nút "Mở quà"; để trống thì hiện lời chào chung.',
@@ -2595,6 +2605,7 @@ function getFinalConfig() {
         ...getSeoImageConfig(),
         author: document.getElementById('author').value.trim(),
         startFrame: state.startFrame || undefined,
+        screenTheme: compactScreenTheme(state.screenTheme),
         openAt: state.openAt || undefined,
         notifyOpen: state.notifyOpen,
         reduceFlashing: state.reduceFlashing || undefined,
@@ -3087,6 +3098,108 @@ function setStartFrame(value) {
 }
 
 // ---------------------------------------------------------------------------
+// Giao diện màn mở quà & màn kết theo dịp (screen-themes.js): chọn bộ có sẵn hoặc tự chỉnh từng phần
+// ---------------------------------------------------------------------------
+
+// Tên giao diện cho dòng tóm tắt: bộ đã chọn, có tự chỉnh thì ghi thêm
+function screenThemeLabel() {
+    const compact = compactScreenTheme(state.screenTheme);
+    const base = SCREEN_THEMES.find(t => t.id === state.screenTheme.id) || SCREEN_THEMES[0];
+    if (!compact) return '';
+    return Object.keys(compact).some(key => key !== 'preset' && compact[key] !== undefined) ? `${base.name} (tự chỉnh)` : base.name;
+}
+
+function renderScreenTheme() {
+    const grid = document.getElementById('screen-theme-grid');
+    if (!grid) return;
+    const theme = state.screenTheme;
+    grid.innerHTML = SCREEN_THEMES.map(t => `
+        <button type="button" class="theme-option${theme.id === t.id ? ' selected' : ''}" onclick="setScreenThemePreset('${t.id}')"
+            title="${t.name}" style="--a: ${t.main}; --b: ${t.accent}">
+            <span class="theme-option__swatch"><span>${t.icon}</span></span>${t.name}
+        </button>`).join('');
+    document.getElementById('st-main').value = theme.main;
+    document.getElementById('st-accent').value = theme.accent;
+    document.getElementById('st-fonts').innerHTML = Object.entries(SCREEN_FONTS).map(([key, f]) => `
+        <button type="button" class="theme-font${theme.font === key ? ' selected' : ''}" onclick="setScreenThemeField('font', '${key}')"
+            style="font-family: ${f.family ? `'${f.family}', ` : ''}'Inter', sans-serif; font-weight: ${f.weight}">
+            <span>Chúc mừng</span><small>${f.name}</small>
+        </button>`).join('');
+    document.getElementById('st-effects').innerHTML = Object.entries(SCREEN_EFFECTS).map(([key, e]) => `
+        <button type="button" class="theme-chip${theme.effect === key ? ' selected' : ''}" onclick="setScreenThemeField('effect', '${key}')">
+            <span>${e.icon}</span>${e.name}
+        </button>`).join('');
+    document.getElementById('st-icons').innerHTML = SCREEN_ICONS.map(icon => `
+        <button type="button" class="theme-chip${theme.icon === icon ? ' selected' : ''}" onclick="setScreenThemeField('icon', '${icon}')" aria-label="${icon}">${icon}</button>`).join('');
+    document.getElementById('st-cards').innerHTML = Object.entries(SCREEN_CARDS).map(([key, name]) => `
+        <button type="button" class="${theme.card === key ? 'active' : ''}" onclick="setScreenThemeField('card', '${key}')">${name}</button>`).join('');
+    document.getElementById('st-border').checked = !!theme.border;
+    const base = SCREEN_THEMES.find(t => t.id === theme.id) || SCREEN_THEMES[0];
+    const label = screenThemeLabel();
+    document.getElementById('screen-theme-custom-hint').textContent = label.includes('(tự chỉnh)') ? 'đã chỉnh' : '';
+    document.getElementById('st-reset').disabled = !label.includes('(tự chỉnh)');
+    document.querySelector('#st-reset span').textContent = `Về mặc định của bộ "${base.name}"`;
+}
+
+// Mở phần tự chỉnh thì tải các kiểu chữ để nút chọn hiện đúng dáng chữ
+function initScreenThemeControls() {
+    const custom = document.getElementById('screen-theme-custom');
+    custom?.addEventListener('toggle', () => {
+        if (custom.open) Object.keys(SCREEN_FONTS).forEach(key => loadScreenFont(key));
+    });
+    renderScreenTheme();
+}
+
+// Chọn bộ có sẵn: bỏ phần đã tự chỉnh, xem ngay màn mở quà với giao diện mới
+function setScreenThemePreset(id) {
+    state.screenTheme = resolveScreenTheme({ preset: id });
+    renderScreenTheme();
+    previewScreen('start');
+}
+
+// Tự chỉnh một phần (màu, kiểu chữ, hiệu ứng...): đổi ngay trên màn đang xem nhanh, không chạy lại kịch bản
+function setScreenThemeField(key, value) {
+    state.screenTheme = { ...state.screenTheme, [key]: value };
+    if (key === 'font') loadScreenFont(value);
+    renderScreenTheme();
+    pushScreenThemeToPreview();
+}
+
+function resetScreenTheme() {
+    setScreenThemePreset(state.screenTheme.id);
+}
+
+let screenThemePushFrame = 0;
+function pushScreenThemeToPreview() {
+    cancelAnimationFrame(screenThemePushFrame);
+    screenThemePushFrame = requestAnimationFrame(() => {
+        const frame = getPreviewFrame();
+        if (!state.miniPreviewEnabled || !previewReady || !frame || !frame.contentWindow) return;
+        frame.contentWindow.postMessage({ type: 'firework-preview-theme', screenTheme: { preset: state.screenTheme.id, ...state.screenTheme } },
+            window.location.origin);
+    });
+}
+
+// Xem trước màn mở quà (chạm mở thì chạy kịch bản như người nhận) hoặc màn kết trong khung xem nhanh
+function previewScreen(kind) {
+    if (state.activeEventId) {
+        state.activeEventId = null;
+        showActiveEvent(null);
+        renderInspector();
+    }
+    if (!state.miniPreviewEnabled) toggleMiniPreview();
+    if (previewMode === 'idle') previewMode = 'once';
+    const info = document.getElementById('mini-preview-info');
+    if (kind === 'end') {
+        if (info) info.innerText = 'Màn kết: hiện khi kịch bản chạy hết một lượt';
+        sendPreview(true, { endScreen: true });
+    } else {
+        if (info) info.innerText = 'Chạm vào khung xem nhanh để mở quà như người nhận';
+        sendPreview(true, { startFrame: true });
+    }
+}
+
+// ---------------------------------------------------------------------------
 // "Cấu hình chung" chia nhóm gấp/mở: nhớ nhóm đang mở, tóm tắt nhóm đang gấp
 // ---------------------------------------------------------------------------
 const SETTINGS_GROUPS_KEY = 'firework_builder_groups';
@@ -3152,7 +3265,8 @@ function settingsSummaries() {
             state.reduceFlashing && 'Giảm chớp sáng'
         ].filter(Boolean).join(' · '),
         basics: value('title') || 'Chưa có tiêu đề',
-        gift: [frame.name, recipient && `Gửi ${recipient}`, checked('loop') ? 'Lặp lại' : 'Chạy một lượt', state.openAt && 'Hẹn giờ'].filter(Boolean).join(' · '),
+        gift: [frame.name, screenThemeLabel(), recipient && `Gửi ${recipient}`, checked('loop') ? 'Lặp lại' : 'Chạy một lượt', state.openAt && 'Hẹn giờ']
+            .filter(Boolean).join(' · '),
         sound: music ? musicName + (music.sync ? ' · khớp nhịp' : '') : 'Chưa có nhạc',
         scene: scene.join(' · ') || 'Không có',
         share: [filename && filename + '.json', state.seo.mode === 'custom' ? 'Ảnh của bạn' : 'Thiệp tự động'].filter(Boolean).join(' · ')
@@ -4785,6 +4899,8 @@ function loadConfigIntoState(config, filename, { migrate = true } = {}) {
     document.getElementById('recipient').value = config.recipient || '';
     state.startFrame = START_FRAMES.some(f => f.value === config.startFrame) ? config.startFrame : '';
     renderStartFrames();
+    state.screenTheme = resolveScreenTheme(config.screenTheme);
+    renderScreenTheme();
     state.openAt = config.openAt && Number.isFinite(Date.parse(config.openAt)) ? config.openAt : '';
     state.openMode = config.openMode === 'countdown' ? 'countdown' : 'lock';
     renderSchedule();
@@ -4963,7 +5079,7 @@ function sendPreview(restart, extra = {}) {
     const wholeScript = index === -1 && previewMode !== 'idle';
     frame.contentWindow.postMessage({
         type: 'firework-preview', config, restart, sound: previewSoundOn,
-        intro: !!extra.intro && wholeScript, startFrame: !!extra.startFrame && wholeScript
+        intro: !!extra.intro && wholeScript, startFrame: !!extra.startFrame && wholeScript, endScreen: !!extra.endScreen
     }, window.location.origin);
 }
 
@@ -5150,7 +5266,7 @@ Object.assign(window, {
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
     togglePreviewSound, previewAsRecipient, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
-    hideModal, setStartFrame, undo, redo, setOpenMode, setSmoke, setViewerOption, setWater, setWaterStyle, setFloating, setStars, setClouds, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
+    hideModal, setStartFrame, setScreenThemePreset, setScreenThemeField, resetScreenTheme, previewScreen, undo, redo, setOpenMode, setSmoke, setViewerOption, setWater, setWaterStyle, setFloating, setStars, setClouds, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
     toggleLibraryPreview, chooseLibraryItem, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
     openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, createVideo, downloadVideo, shareVideo,
     restartVideo, setTimelineView, zoomTrack, copyTrackingLink, enableOpenNotifications, checkGiftOpens,

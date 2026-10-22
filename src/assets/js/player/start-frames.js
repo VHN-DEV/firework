@@ -16,6 +16,7 @@ import { replacePlaceholders } from './utils.js';
 import { playGiftOpenSound } from './audio.js';
 import { isLowQuality } from './state.js';
 import { PI_2 } from './env.js';
+import { themeConfettiColors } from './screen-themes.js';
 
 export const frameText = (value) => String(replacePlaceholders(value || '')).trim();
 
@@ -85,7 +86,7 @@ function launchConfetti(x, y) {
     const ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
 
-    const colors = ['#ff0043', '#ffbf36', '#14fc56', '#1e7fff', '#e60aff', '#ffffff', '#ff6ad5'];
+    const colors = themeConfettiColors();
     const pick = () => colors[(Math.random() * colors.length) | 0];
     // Màn hình nhỏ bắn chậm hơn để pháo giấy không bay vọt ra ngoài
     const power = Math.min(1, Math.max(0.6, W / 900));

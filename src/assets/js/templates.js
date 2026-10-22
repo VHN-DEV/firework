@@ -6,10 +6,12 @@
 
 // Chọn dịp + tên người nhận/người gửi -> kịch bản hoàn chỉnh để chỉnh tiếp trong builder.
 // Các dịp chỉ khác nội dung (lời chúc, chữ trên trời, hình, bảng màu); bố cục các đợt bắn dùng chung trong buildShow().
+// theme: giao diện màn mở quà và màn kết (SCREEN_THEMES trong player/screen-themes.js).
 // Thêm dịp mới: thêm một mục vào OCCASIONS.
 export const OCCASIONS = [
     {
         id: 'sinh_nhat', name: 'Sinh nhật', icon: '🎂', who: 'bạn',
+        theme: 'birthday',
         palette: ['Gold', 'Red', 'Purple'],
         shapes: ['Trái tim', 'Ngôi sao'],
         texts: ['HAPPY BIRTHDAY', 'TUỔI MỚI RỰC RỠ'],
@@ -21,6 +23,7 @@ export const OCCASIONS = [
     },
     {
         id: 'tot_nghiep', name: 'Tốt nghiệp', icon: '🎓', who: 'bạn',
+        theme: 'graduation',
         palette: ['Gold', 'Blue', 'White'],
         shapes: ['Ngôi sao', 'Kim cương'],
         texts: ['CONGRATULATIONS', 'TƯƠNG LAI RỰC RỠ'],
@@ -32,6 +35,7 @@ export const OCCASIONS = [
     },
     {
         id: 'dam_cuoi', name: 'Đám cưới', icon: '💍', who: 'hai bạn',
+        theme: 'wedding',
         palette: ['Red', 'Gold', '#ff6ad5'],
         shapes: ['Trái tim', 'Kim cương'],
         texts: ['HAPPY WEDDING', 'TRĂM NĂM HẠNH PHÚC'],
@@ -43,6 +47,7 @@ export const OCCASIONS = [
     },
     {
         id: 'tinh_yeu', name: 'Tình yêu, kỷ niệm', icon: '💖', who: 'người thương',
+        theme: 'love',
         palette: ['Red', '#ff6ad5', 'Purple'],
         shapes: ['Trái tim', 'Bông sen'],
         texts: ['I LOVE YOU', 'MÃI BÊN NHAU'],
@@ -54,6 +59,7 @@ export const OCCASIONS = [
     },
     {
         id: 'phu_nu_8_3', name: 'Quốc tế Phụ nữ 8/3', icon: '🌷', who: 'bạn',
+        theme: 'women',
         palette: ['Purple', '#ff6ad5', 'Gold'],
         shapes: ['Bông sen', 'Trái tim'],
         texts: ["HAPPY WOMEN'S DAY", 'LUÔN XINH ĐẸP'],
@@ -65,6 +71,7 @@ export const OCCASIONS = [
     },
     {
         id: 'phu_nu_20_10', name: 'Phụ nữ Việt Nam 20/10', icon: '💐', who: 'bạn',
+        theme: 'women',
         palette: ['#ff6ad5', 'Gold', 'Purple'],
         shapes: ['Bông sen', 'Trái tim'],
         texts: ['CHÚC MỪNG 20/10', 'LUÔN RẠNG RỠ'],
@@ -76,6 +83,7 @@ export const OCCASIONS = [
     },
     {
         id: 'nha_giao_20_11', name: 'Nhà giáo 20/11', icon: '📚', who: 'thầy cô',
+        theme: 'teacher',
         palette: ['Gold', 'Red', 'White'],
         shapes: ['Ngôi sao', 'Bông sen'],
         texts: ["HAPPY TEACHER'S DAY", 'TRI ÂN THẦY CÔ'],
@@ -87,6 +95,7 @@ export const OCCASIONS = [
     },
     {
         id: 'nam_moi', name: 'Năm mới, Tết', icon: '🧧', who: 'bạn',
+        theme: 'tet',
         palette: ['Red', 'Gold', 'Green'],
         shapes: ['Ngôi sao', 'Kim cương'],
         texts: ['HAPPY NEW YEAR', 'AN KHANG THỊNH VƯỢNG'],
@@ -98,6 +107,7 @@ export const OCCASIONS = [
     },
     {
         id: 'giang_sinh', name: 'Giáng sinh', icon: '🎄', who: 'bạn',
+        theme: 'noel',
         palette: ['Red', 'Green', 'White'],
         shapes: ['Bông tuyết', 'Ngôi sao'],
         texts: ['MERRY CHRISTMAS', 'GIÁNG SINH AN LÀNH'],
@@ -216,8 +226,9 @@ export function buildTemplate(occasionId, { recipient = '', sender = '' } = {}) 
         subtitle: o.subtitle(who),
         author: from ? `Từ: ${from}` : '',
         recipient: name || undefined,
-        // Món quà mở bằng hộp quà rung rinh, nổ ruy băng
+        // Món quà mở bằng hộp quà rung rinh, nổ ruy băng; màn mở quà, màn kết theo giao diện của dịp
         startFrame: 'gift',
+        screenTheme: o.theme ? { preset: o.theme } : undefined,
         introMessage: o.intro(who),
         outroMessage: o.outro,
         seoTitle: o.seoTitle(who),

@@ -633,7 +633,7 @@ body {
     top: 0; left: 0; width: 100%; height: 100%;
     z-index: 2000;
     @include flex-center;
-    background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+    background: radial-gradient(circle at center, var(--st-bg, #1a1a1a) 0%, #000 100%);
     transition: opacity 0.8s ease-in-out, visibility 0.8s;
 
     &.hide { opacity: 0; visibility: hidden; }
@@ -653,8 +653,9 @@ body {
     }
 
     &__title {
-        font-size: 3.5rem;
-        font-weight: 700;
+        font-family: var(--st-font, inherit);
+        font-size: calc(3.5rem * var(--st-font-scale, 1));
+        font-weight: var(--st-font-weight, 700);
         color: #fff;
         margin-bottom: 1rem;
         text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
@@ -718,8 +719,8 @@ body {
 
     &[aria-pressed="true"] {
         color: #fff;
-        border-color: rgba(255, 191, 54, 0.6);
-        background: rgba(255, 191, 54, 0.15);
+        border-color: rgba(var(--st-accent-rgb, 255, 191, 54), 0.6);
+        background: rgba(var(--st-accent-rgb, 255, 191, 54), 0.15);
     }
 
     &:disabled {
@@ -744,7 +745,7 @@ body {
 }
 
 .btn-start {
-    background: linear-gradient(135deg, #ff0043 0%, #ffbf36 100%);
+    background: linear-gradient(135deg, var(--st-main, #ff0043) 0%, var(--st-accent, #ffbf36) 100%);
     color: white;
     border: none;
     padding: 1.2rem 3rem;
@@ -755,11 +756,11 @@ body {
     transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
     text-transform: uppercase;
     letter-spacing: 2px;
-    box-shadow: 0 10px 20px rgba(255, 0, 67, 0.3);
+    box-shadow: 0 10px 20px rgba(var(--st-main-rgb, 255, 0, 67), 0.3);
 
     &:hover {
         transform: scale(1.05);
-        box-shadow: 0 15px 30px rgba(255, 0, 67, 0.4);
+        box-shadow: 0 15px 30px rgba(var(--st-main-rgb, 255, 0, 67), 0.4);
     }
 
     &:active { transform: scale(0.98); }
@@ -780,7 +781,7 @@ body {
     font-size: 4.5rem;
     line-height: 1;
     margin-bottom: 1.25rem;
-    filter: drop-shadow(0 10px 25px rgba(255, 0, 67, 0.45));
+    filter: drop-shadow(0 10px 25px rgba(var(--st-main-rgb, 255, 0, 67), 0.45));
     animation: giftWiggle 2.4s ease-in-out infinite;
 
     .start-screen.is-gift & {
@@ -795,13 +796,13 @@ body {
 
 // Lời mời có tên người nhận: chữ co theo màn hình để vừa một dòng trên điện thoại
 .start-screen.is-gift .start-screen__title {
-    font-size: clamp(2rem, 9vw, 3.2rem);
+    font-size: calc(clamp(2rem, 9vw, 3.2rem) * var(--st-font-scale, 1));
     letter-spacing: -0.5px;
 }
 
 .start-screen__from {
     margin: -1.5rem 0 2rem;
-    color: #ffbf36;
+    color: var(--st-accent, #ffbf36);
     font-style: italic;
     font-size: 1rem;
 
@@ -862,11 +863,12 @@ body {
     &__title {
         margin: 0 0 0.75rem;
         color: #fff;
-        font-size: clamp(2rem, 8vw, 3rem);
-        font-weight: 700;
+        font-family: var(--st-font, inherit);
+        font-size: calc(clamp(2rem, 8vw, 3rem) * var(--st-font-scale, 1));
+        font-weight: var(--st-font-weight, 700);
         line-height: 1.15;
         letter-spacing: -0.5px;
-        text-shadow: 0 0 22px rgba(255, 191, 54, 0.35);
+        text-shadow: 0 0 22px rgba(var(--st-accent-rgb, 255, 191, 54), 0.35);
     }
 
     &__message {
@@ -883,7 +885,7 @@ body {
 
     &__from {
         margin: 0;
-        color: #ffbf36;
+        color: var(--st-accent, #ffbf36);
         font-style: italic;
 
         &:empty {
@@ -921,7 +923,7 @@ body {
     animation: giftIdle 2.6s ease-in-out infinite;
 
     &:focus-visible {
-        outline: 3px solid #ffbf36;
+        outline: 3px solid var(--st-accent, #ffbf36);
         outline-offset: 10px;
         border-radius: 18px;
     }
@@ -937,7 +939,7 @@ body {
         width: 190%;
         height: 190%;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(255, 191, 54, 0.38) 0%, rgba(255, 0, 67, 0.16) 35%, transparent 65%);
+        background: radial-gradient(circle, rgba(var(--st-accent-rgb, 255, 191, 54), 0.38) 0%, rgba(var(--st-main-rgb, 255, 0, 67), 0.16) 35%, transparent 65%);
         transform: translate(-50%, -50%);
         pointer-events: none;
         animation: giftGlow 2.6s ease-in-out infinite;
@@ -951,8 +953,8 @@ body {
         height: 58%;
         border-radius: 10px;
         background:
-            linear-gradient(90deg, transparent 43%, #ffd34d 43%, #ffbf36 57%, transparent 57%),
-            linear-gradient(160deg, #ff4f7b 0%, #e0144c 55%, #a80d3a 100%);
+            linear-gradient(90deg, transparent 43%, var(--st-accent-light, #ffd34d) 43%, var(--st-accent, #ffbf36) 57%, transparent 57%),
+            linear-gradient(160deg, var(--st-main-light, #ff4f7b) 0%, var(--st-main, #e0144c) 55%, var(--st-main-dark, #a80d3a) 100%);
         box-shadow: inset 0 -12px 20px rgba(0, 0, 0, 0.25), 0 18px 30px rgba(0, 0, 0, 0.45);
     }
 
@@ -964,8 +966,8 @@ body {
         height: 17%;
         border-radius: 8px;
         background:
-            linear-gradient(90deg, transparent 42%, #ffe07a 42%, #ffbf36 58%, transparent 58%),
-            linear-gradient(160deg, #ff6b91 0%, #f0215a 60%, #c4104a 100%);
+            linear-gradient(90deg, transparent 42%, var(--st-accent-light, #ffe07a) 42%, var(--st-accent, #ffbf36) 58%, transparent 58%),
+            linear-gradient(160deg, var(--st-main-light, #ff6b91) 0%, var(--st-main, #f0215a) 60%, var(--st-main-dark, #c4104a) 100%);
         box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
         transform-origin: 50% 100%;
         animation: giftLidHop 2.6s ease-in-out infinite;
@@ -977,7 +979,7 @@ body {
         bottom: 100%;
         width: calc(var(--s) * 0.25);
         height: calc(var(--s) * 0.17);
-        border: calc(var(--s) * 0.045) solid #ffcf40;
+        border: calc(var(--s) * 0.045) solid var(--st-accent, #ffcf40);
         border-radius: 50%;
         box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 
@@ -1001,7 +1003,7 @@ body {
         width: calc(var(--s) * 0.11);
         height: calc(var(--s) * 0.1);
         border-radius: 35%;
-        background: linear-gradient(160deg, #ffe07a, #f5a623);
+        background: linear-gradient(160deg, var(--st-accent-light, #ffe07a), var(--st-accent-dark, #f5a623));
         transform: translateX(-50%);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
@@ -1185,7 +1187,7 @@ body {
 
     &__eyebrow {
         margin: 0 0 0.5rem;
-        color: #ffbf36;
+        color: var(--st-accent, #ffbf36);
         font-size: 1rem;
         font-weight: 600;
         letter-spacing: 0.04em;
@@ -1194,8 +1196,9 @@ body {
     &__title {
         margin: 0 0 1.5rem;
         color: #fff;
-        font-size: clamp(1.6rem, 6vw, 2.4rem);
-        font-weight: 700;
+        font-family: var(--st-font, inherit);
+        font-size: calc(clamp(1.6rem, 6vw, 2.4rem) * var(--st-font-scale, 1));
+        font-weight: var(--st-font-weight, 700);
     }
 
     &__timer {
@@ -1231,7 +1234,7 @@ body {
             font-weight: 700;
             line-height: 1;
             font-variant-numeric: tabular-nums;
-            text-shadow: 0 0 22px rgba(255, 191, 54, 0.45);
+            text-shadow: 0 0 22px rgba(var(--st-accent-rgb, 255, 191, 54), 0.45);
         }
 
         small {
@@ -1255,7 +1258,7 @@ body {
         font-weight: 800;
         line-height: 1;
         font-variant-numeric: tabular-nums;
-        text-shadow: 0 0 40px rgba(255, 191, 54, 0.7), 0 0 90px rgba(255, 0, 67, 0.45);
+        text-shadow: 0 0 40px rgba(var(--st-accent-rgb, 255, 191, 54), 0.7), 0 0 90px rgba(var(--st-main-rgb, 255, 0, 67), 0.45);
 
         .start-screen.is-final & {
             display: block;
@@ -1293,12 +1296,12 @@ body {
         padding: 0.95rem 2.2rem;
         border: none;
         border-radius: 3rem;
-        background: linear-gradient(135deg, #ff0043 0%, #ffbf36 100%);
+        background: linear-gradient(135deg, var(--st-main, #ff0043) 0%, var(--st-accent, #ffbf36) 100%);
         color: #fff;
         font-size: 1.05rem;
         font-weight: 700;
         cursor: pointer;
-        box-shadow: 0 10px 20px rgba(255, 0, 67, 0.3);
+        box-shadow: 0 10px 20px rgba(var(--st-main-rgb, 255, 0, 67), 0.3);
         transition: transform 0.2s, opacity 0.2s;
 
         &:hover:not(:disabled) {
@@ -1373,10 +1376,11 @@ body {
     &__title {
         margin: 0 0 0.75rem;
         color: #fff;
-        font-size: clamp(1.5rem, 6vw, 2.1rem);
-        font-weight: 700;
+        font-family: var(--st-font, inherit);
+        font-size: calc(clamp(1.5rem, 6vw, 2.1rem) * var(--st-font-scale, 1));
+        font-weight: var(--st-font-weight, 700);
         line-height: 1.25;
-        text-shadow: 0 0 20px rgba(255, 191, 54, 0.35);
+        text-shadow: 0 0 20px rgba(var(--st-accent-rgb, 255, 191, 54), 0.35);
     }
 
     &__message {
@@ -1392,7 +1396,7 @@ body {
 
     &__from {
         margin: 0 0 1.5rem;
-        color: #ffbf36;
+        color: var(--st-accent, #ffbf36);
         font-style: italic;
 
         &:empty {
@@ -1434,8 +1438,8 @@ body {
     &__replay {
         border: none;
         color: #fff;
-        background: linear-gradient(135deg, #ff0043 0%, #ffbf36 100%);
-        box-shadow: 0 10px 20px rgba(255, 0, 67, 0.3);
+        background: linear-gradient(135deg, var(--st-main, #ff0043) 0%, var(--st-accent, #ffbf36) 100%);
+        box-shadow: 0 10px 20px rgba(var(--st-main-rgb, 255, 0, 67), 0.3);
     }
 
     &__share {
@@ -1462,6 +1466,115 @@ body {
 @media (prefers-reduced-motion: reduce) {
     .start-screen__gift {
         animation: none;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Giao diện theo dịp (screen-themes.js): kiểu thiệp, viền kép, kiểu chữ tiêu đề, hiệu ứng nền
+// ---------------------------------------------------------------------------
+
+// Lớp hiệu ứng nền (tuyết rơi, hoa mai đào...): phủ kín màn, nằm sau thiệp và chữ
+.screen-ambient {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+// Thiệp đậm màu: nền ngả theo màu chính, viền màu nhấn
+[data-st-card="tint"] {
+    .start-screen__content,
+    .end-screen__content {
+        background:
+            linear-gradient(160deg, rgba(var(--st-main-rgb), 0.5) 0%, rgba(var(--st-main-rgb), 0.18) 100%),
+            rgba(14, 8, 12, 0.6);
+        border-color: rgba(var(--st-accent-rgb), 0.35);
+        box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 50px -10px rgba(var(--st-main-rgb), 0.45);
+    }
+}
+
+// Thiệp giấy sáng màu ngà: chữ tối, người gửi theo màu chính
+[data-st-card="light"] {
+    .start-screen__content,
+    .end-screen__content {
+        background: linear-gradient(180deg, rgba(255, 251, 242, 0.96) 0%, rgba(246, 236, 217, 0.95) 100%);
+        border-color: rgba(var(--st-main-rgb), 0.35);
+        box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.75), 0 0 60px -12px rgba(var(--st-accent-rgb), 0.5);
+    }
+
+    .start-screen__title,
+    .end-screen__title {
+        color: #4a3826;
+        text-shadow: none;
+    }
+
+    .start-screen__subtitle,
+    .end-screen__message {
+        color: #6b5844;
+    }
+
+    .start-screen__from,
+    .end-screen__from {
+        color: var(--st-main-dark);
+    }
+
+    .start-screen__hint,
+    .start-screen__notice {
+        color: #8a7760;
+    }
+
+    .end-screen__share,
+    .end-screen__create {
+        color: #4a3826;
+        background: rgba(74, 56, 38, 0.06);
+        border-color: rgba(74, 56, 38, 0.22);
+
+        &:hover {
+            background: rgba(74, 56, 38, 0.12);
+        }
+    }
+}
+
+// Viền kép trang trọng bên trong thiệp
+.st-border {
+    .start-screen__content,
+    .end-screen__content {
+        position: relative;
+
+        &::before {
+            content: '';
+            position: absolute;
+            inset: 9px;
+            border: 3px double rgba(var(--st-accent-rgb), 0.65);
+            border-radius: 1.4rem;
+            pointer-events: none;
+        }
+    }
+}
+
+// Kiểu chữ viết tay: không giãn chữ âm, tên người gửi cũng viết tay như chữ ký
+[data-st-font="script"] {
+    .start-screen__title,
+    .gift-stage__title,
+    .countdown-stage__title,
+    .end-screen__title {
+        letter-spacing: normal;
+        line-height: 1.3;
+    }
+
+    .start-screen__from,
+    .gift-stage__from,
+    .end-screen__from {
+        font-family: var(--st-font);
+        font-weight: var(--st-font-weight);
+        font-style: normal;
+        font-size: 1.25em;
     }
 }
 

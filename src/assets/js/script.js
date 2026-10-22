@@ -43,6 +43,7 @@ import { Smoke, SMOKE_RESOLUTION } from './player/smoke.js';
 import { Water, Decor, WATER_RESOLUTION } from './player/scenery.js';
 import { MOON_PHASES, moonFraction } from './player/moon.js';
 import { START_FRAMES, frameText } from './player/start-frames.js';
+import { resolveScreenTheme, applyScreenTheme, createScreenAmbient, themedTitle } from './player/screen-themes.js';
 import { clearCaptions, showCaption } from './player/captions.js';
 
 // Assign to window for global access (needed by HTML and other scripts)
@@ -765,6 +766,24 @@ async function loadBurstConfig() {
 let startFrameMounted = false;
 let startFrameAbort = null;
 
+// Giao diện theo dịp (màu, kiểu chữ, kiểu thiệp, hiệu ứng nền) cho màn mở quà, màn đếm ngược và màn kết
+let screenTheme = resolveScreenTheme();
+const startAmbient = createScreenAmbient(appNodes.startScreen);
+const endAmbient = createScreenAmbient(appNodes.endScreen);
+
+// Áp giao diện của kịch bản; trả về promise xong khi kiểu chữ tiêu đề đã tải (để thiệp hiện ra không bị nhảy chữ)
+function themeScreens(config) {
+    screenTheme = resolveScreenTheme(config && config.screenTheme);
+    const ready = applyScreenTheme(screenTheme);
+    // Biểu tượng trên thiệp chào; màn kết của bộ Cổ điển giữ phong thư như trước
+    appNodes.startScreen.querySelector('.start-screen__gift').textContent = screenTheme.icon;
+    appNodes.endScreen.querySelector('.end-screen__icon').textContent =
+        screenTheme.id || (config && config.screenTheme && config.screenTheme.icon) ? screenTheme.icon : '💌';
+    const endTitle = appNodes.endScreen.querySelector('.end-screen__title');
+    if (endTitle.textContent) endTitle.textContent = themedTitle(endTitle.dataset.raw || endTitle.textContent, screenTheme);
+    return ready;
+}
+
 // Dựng khung bắt đầu theo kịch bản (chỉ một lần, trừ remount) và chờ người xem bấm để vào màn trình diễn
 function mountStartFrame(config, { remount = false } = {}) {
     if (startFrameMounted && !remount) return;
@@ -774,13 +793,15 @@ function mountStartFrame(config, { remount = false } = {}) {
     startFrameAbort = new AbortController();
     reportGiftEvent('view', config);
     renderReduceFlashingToggle(config);
+    const themed = themeScreens(config);
     const frame = START_FRAMES[config && config.startFrame] || START_FRAMES.card;
     const { trigger, open, firstLaunchDelay } = frame.mount(appNodes.startScreen, config);
     if (config) {
         const title = frameText(config.seoTitle) || frameText(config.title);
         if (title) document.title = title;
     }
-    appNodes.startScreen.classList.add('is-ready');
+    themed.then(() => appNodes.startScreen.classList.add('is-ready'));
+    startAmbient.start(screenTheme, { lowQuality: isLowQuality });
     trigger.addEventListener('click', (e) => {
         // Ngăn chặn sự kiện nổi bọt để tránh Stage nhận được tín hiệu bắn pháo hoa
         e.stopPropagation();
@@ -906,7 +927,9 @@ function startCountdown(config) {
     hint.textContent = auto
         ? 'Bấm "Tôi đã sẵn sàng" và giữ trang này mở, pháo hoa sẽ tự bắn khi đếm ngược kết thúc.'
         : 'Hãy quay lại đúng giờ để mở quà nhé!';
-    screen.classList.add('frame-countdown', 'is-ready');
+    themeScreens(config).then(() => screen.classList.add('is-ready'));
+    screen.classList.add('frame-countdown');
+    startAmbient.start(screenTheme, { lowQuality: isLowQuality });
     const title = frameText(config.seoTitle) || frameText(config.title);
     if (title) document.title = title;
 
@@ -980,20 +1003,25 @@ function startCountdown(config) {
 // Kịch bản không lặp chạy xong: thiệp lời chúc cuối, nút xem lại và nút tạo màn pháo hoa mới
 let endScreenTimer = null;
 
-function showEndScreen() {
+// force: bản xem nhanh muốn xem trước màn kết (kể cả khi kịch bản đang lặp)
+function showEndScreen(force = false) {
     // Khung dựng video: thay màn kết bằng thiệp lời chúc trong video rồi xong
     if (IS_RECORD) {
         finishRecording();
         return;
     }
-    if (IS_HEADER || !burstConfig || burstConfig.loop) return;
-    reportGiftEvent('finish', burstConfig);
+    if (IS_HEADER || !burstConfig || (burstConfig.loop && !force)) return;
+    if (!force) reportGiftEvent('finish', burstConfig);
     const screen = appNodes.endScreen;
-    screen.querySelector('.end-screen__title').textContent = burstConfig.title || 'Cảm ơn bạn đã xem!';
+    const title = screen.querySelector('.end-screen__title');
+    title.dataset.raw = burstConfig.title || 'Cảm ơn bạn đã xem!';
+    title.textContent = title.dataset.raw;
+    themeScreens(burstConfig);
     screen.querySelector('.end-screen__message').textContent =
         String(replacePlaceholders(burstConfig.outroMessage || '')).trim() || burstConfig.subtitle || '';
     screen.querySelector('.end-screen__from').textContent = burstConfig.author || '';
     screen.classList.remove('hide');
+    endAmbient.start(screenTheme, { lowQuality: isLowQuality });
     if (IS_PREVIEW) previewInteractive(true);
 }
 
@@ -2812,9 +2840,11 @@ function showPreviewStartFrame(config) {
     screen.className = 'start-screen';
     document.querySelectorAll('.confetti-layer').forEach(el => el.remove());
     renderReduceFlashingToggle(config);
+    themeScreens(config);
     const frame = START_FRAMES[config.startFrame] || START_FRAMES.card;
     const { trigger, open, firstLaunchDelay } = frame.mount(screen, config);
     screen.classList.add('is-ready');
+    startAmbient.start(screenTheme, { lowQuality: isLowQuality });
     previewWaitingOpen = true;
     previewInteractive(true);
     trigger.addEventListener('click', (e) => {
@@ -2864,6 +2894,14 @@ if (IS_PREVIEW) {
             syncShow.remote = { position: Number(msg.position) || 0, at: performance.now() };
             return;
         }
+        // Builder đang chỉnh giao diện màn mở quà, màn kết: đổi ngay trên màn đang hiện, không chạy lại kịch bản
+        if (msg.type === 'firework-preview-theme') {
+            if (burstConfig) burstConfig.screenTheme = msg.screenTheme;
+            themeScreens({ screenTheme: msg.screenTheme });
+            if (!appNodes.startScreen.classList.contains('remove')) startAmbient.start(screenTheme, { lowQuality: isLowQuality });
+            if (!appNodes.endScreen.classList.contains('hide')) endAmbient.start(screenTheme, { lowQuality: isLowQuality });
+            return;
+        }
         if (msg.type !== 'firework-preview') return;
 
         const version = ++previewVersion;
@@ -2893,6 +2931,8 @@ if (IS_PREVIEW) {
             clearCaptions();
             document.querySelectorAll('.config-overlay').forEach(el => el.remove());
             if (msg.startFrame) showPreviewStartFrame(config);
+            // Xem trước màn kết (builder đang chỉnh giao diện)
+            else if (msg.endScreen) showEndScreen(true);
             // Chạy kịch bản từ đầu: tiêu đề mở đầu như khi người nhận vừa mở quà
             else if (msg.intro) showTitleOverlay(config);
         } else if (syncShow.state === 'running' && isMusicSynced(config)) {
