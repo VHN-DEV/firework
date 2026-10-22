@@ -183,6 +183,8 @@ export function createNewScript() {
         renderViewer();
         state.decor = [];
         state.stars = '';
+        state.milkyWay = '';
+        state.meteors = '';
         state.clouds = '';
         state.moon = null;
         state.season = '';

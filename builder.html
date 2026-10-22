@@ -419,6 +419,24 @@
                             </div>
 
                             <div class="field">
+                                <label>Sao băng<button type="button" class="help-tip" data-help="meteors" aria-label="Giải thích">?</button></label>
+                                <div class="segmented sky-meteors" role="group" aria-label="Sao băng">
+                                    <button type="button" data-meteors="" onclick="setMeteors('')">Không</button>
+                                    <button type="button" data-meteors="few" onclick="setMeteors('few')" title="Thỉnh thoảng một sao băng">Ít</button>
+                                    <button type="button" data-meteors="shower" onclick="setMeteors('shower')" title="Mưa sao băng">Nhiều</button>
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label>Dải Ngân Hà<button type="button" class="help-tip" data-help="milkyWay" aria-label="Giải thích">?</button></label>
+                                <div class="segmented sky-milky-way" role="group" aria-label="Dải Ngân Hà">
+                                    <button type="button" data-milky-way="" onclick="setMilkyWay('')">Không</button>
+                                    <button type="button" data-milky-way="faint" onclick="setMilkyWay('faint')">Mờ</button>
+                                    <button type="button" data-milky-way="bright" onclick="setMilkyWay('bright')">Rõ</button>
+                                </div>
+                            </div>
+
+                            <div class="field">
                                 <label>Mây<button type="button" class="help-tip" data-help="clouds" aria-label="Giải thích">?</button></label>
                                 <div class="segmented sky-clouds" role="group" aria-label="Mây">
                                     <button type="button" data-clouds="" onclick="setClouds('')">Không</button>

@@ -75,8 +75,13 @@ const HELP_TIPS = {
         + 'người nhận, không tải lên máy chủ. Người khác mở link được chia sẻ cũng được tính khi bạn bật báo mở quà. Tắt nếu quà chỉ dành riêng cho người nhận.',
     viewerControls: 'Mặc định các nút tạm dừng, âm thanh, cài đặt ẩn đi cho trọn khung hình (đưa chuột hoặc chạm góc trên để mở). '
         + 'Bật mục này để các nút luôn hiện.',
-    stars: 'Sao lấp lánh nhẹ trên bầu trời, mờ dần sát chân trời và trôi chậm cùng trăng. Có ảnh nền thành phố thì sao chỉ ở phần trời phía trên. '
-        + 'Trăng càng sáng thì sao càng mờ, như ngoài đời.',
+    stars: 'Bầu trời sao như ngoài đời: hàng nghìn sao mờ, vài chục tới hơn trăm sao sáng lấp lánh, màu theo nhiệt độ (xanh trắng tới '
+        + 'cam đỏ); sát chân trời sao mờ đi, nhấp nháy mạnh hơn, sao sáng chớp đổi sắc. Thỉnh thoảng một vệ tinh lặng lẽ trôi qua. '
+        + 'Có ảnh nền thành phố thì sao chỉ ở phần trời phía trên. Trăng càng sáng thì sao càng mờ.',
+    meteors: 'Ít: lâu lâu một ngôi sao băng vụt qua. Nhiều: mưa sao băng, sao băng dày, cùng tỏa ra từ một điểm trên trời như mưa '
+        + 'sao băng thật (gần điểm tỏa thì ngắn và chậm). Đôi khi có thiên thạch lửa sáng rực, vỡ tóe rồi để lại vệt khói mờ.',
+    milkyWay: 'Dải Ngân Hà vắt chéo bầu trời: lõi sáng ngả vàng ở thấp gần chân trời, dải bụi tối chạy giữa, những đám sao dày đặc; '
+        + 'mặt nước soi bóng. Trăng càng tròn thì Ngân Hà càng mờ như ngoài đời: muốn thấy rõ thì bỏ trăng hoặc chọn trăng khuyết.',
     clouds: 'Mây đêm trôi chậm theo gió: mây gần chân trời nhỏ, dẹt, trôi chậm; mây trên cao to và trôi nhanh hơn. Mây che sao, trăng phía sau; '
         + 'có trăng thì thân mây sáng lên, viền trên ánh bạc (gần trăng càng sáng); mây che trăng thì cả bầu trời tối lại. Pháo nổ rọi sáng mây.',
     moon: '<strong>Theo ngày xem</strong>: trăng đúng pha của hôm người nhận mở (tính theo chu kỳ 29,53 ngày; rằm thì trăng tròn). '

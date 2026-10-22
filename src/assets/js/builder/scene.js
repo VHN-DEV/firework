@@ -30,6 +30,18 @@ export function setStars(level) {
     refreshMiniPreview();
 }
 
+export function setMilkyWay(level) {
+    state.milkyWay = level;
+    renderSky();
+    refreshMiniPreview();
+}
+
+export function setMeteors(level) {
+    state.meteors = level;
+    renderSky();
+    refreshMiniPreview();
+}
+
 export function setClouds(level) {
     state.clouds = level;
     renderSky();
@@ -82,6 +94,8 @@ export function renderSky() {
     const moon = state.moon;
     const mode = !moon ? '' : moon.phase === 'auto' ? 'auto' : 'pick';
     mark('.sky-stars [data-stars]', 'stars', state.stars || '');
+    mark('.sky-milky-way [data-milky-way]', 'milkyWay', state.milkyWay || '');
+    mark('.sky-meteors [data-meteors]', 'meteors', state.meteors || '');
     mark('.sky-clouds [data-clouds]', 'clouds', state.clouds || '');
     mark('.sky-moon [data-moon]', 'moon', mode);
     mark('.scene-decor [data-decor]', 'decor', kind => state.decor.includes(kind));

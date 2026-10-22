@@ -43,9 +43,12 @@ export const state = {
     tapToLaunch: true,
     // Người nhận chụp khoảnh khắc, tạo video, chia sẻ link (tắt: quà riêng tư)
     receiverShare: true,
-    // Bầu trời đêm: trang trí (danh sách), sao ('' / 'few' / 'many'), trăng ({ phase: 'auto' | 0-7, x, y } hoặc null)
+    // Bầu trời đêm: trang trí (danh sách), sao ('' / 'few' / 'many'), Dải Ngân Hà ('' / 'faint' / 'bright'), sao băng
+    // ('' / 'few' / 'shower'), trăng ({ phase: 'auto' | 0-7, x, y } hoặc null)
     decor: [],
     stars: '',
+    milkyWay: '',
+    meteors: '',
     // Mây trôi trên trời ('' / 'few' / 'many')
     clouds: '',
     moon: null,

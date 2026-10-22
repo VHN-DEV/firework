@@ -187,6 +187,8 @@ function settingsSummaries() {
     const scene = [
         state.showBackground && 'Ảnh nền',
         { few: 'Ít sao', many: 'Nhiều sao' }[state.stars],
+        { faint: 'Ngân Hà mờ', bright: 'Ngân Hà rõ' }[state.milkyWay],
+        { few: 'Sao băng', shower: 'Mưa sao băng' }[state.meteors],
         { few: 'Ít mây', many: 'Nhiều mây' }[state.clouds],
         !moon ? '' : moon.phase === 'auto' ? 'Trăng theo ngày' : `${MOON_PHASES[moon.phase].emoji} ${MOON_PHASES[moon.phase].name}`,
         state.decor.map(kind => DECOR_NAMES[kind]).join(', '),

@@ -106,6 +106,8 @@ export function getFinalConfig() {
         receiverShare: state.receiverShare ? undefined : false,
         decor: state.decor.length ? [...state.decor] : undefined,
         stars: state.stars || undefined,
+        milkyWay: state.milkyWay || undefined,
+        meteors: state.meteors || undefined,
         clouds: state.clouds || undefined,
         moon: state.moon ? { ...state.moon } : undefined,
         background: state.background,
@@ -403,6 +405,8 @@ export function loadConfigIntoState(config, filename, { migrate = true } = {}) {
     renderScene();
     state.decor = normalizeDecor(config.decor);
     state.stars = ['few', 'many'].includes(config.stars) ? config.stars : '';
+    state.milkyWay = ['faint', 'bright'].includes(config.milkyWay) ? config.milkyWay : '';
+    state.meteors = ['few', 'shower'].includes(config.meteors) ? config.meteors : '';
     state.clouds = ['few', 'many'].includes(config.clouds) ? config.clouds : '';
     state.moon = normalizeMoon(config.moon);
     state.season = validSeason(config.season);
