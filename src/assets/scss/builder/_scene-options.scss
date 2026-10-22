@@ -4,7 +4,7 @@
 
 @use 'tokens' as *;
 
-// Mùa: "Theo ngày xem" một hàng, bốn mùa một hàng. Mùa, thời tiết: biểu tượng trên, tên dưới (khung hẹp không rớt chữ lệch nhau)
+// Mùa: "Theo ngày xem" một hàng, bốn mùa một hàng. Mùa, thời tiết chỉ có biểu tượng (tên hiện khi rê chuột)
 .segmented.scene-season {
     grid-template-columns: repeat(4, 1fr);
 
@@ -25,9 +25,13 @@
     line-height: 1.15;
 
     .emoji {
-        font-size: 1.05rem;
+        font-size: 1.3rem;
         line-height: 1;
     }
+}
+
+.segmented.scene-season [data-season="auto"] .emoji {
+    font-size: 1.05rem;
 }
 
 // Âm thanh thiên nhiên: âm lượng, các nhóm tiếng (hiện khi bật)

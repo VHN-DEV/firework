@@ -464,10 +464,10 @@
                                 <label>Mùa<button type="button" class="help-tip" data-help="season" aria-label="Giải thích">?</button></label>
                                 <div class="segmented scene-season" role="group" aria-label="Mùa">
                                     <button type="button" data-season="auto" onclick="setSeason('auto')"><span class="emoji">📅</span>Theo ngày xem</button>
-                                    <button type="button" data-season="spring" onclick="setSeason('spring')"><span class="emoji">🌸</span>Xuân</button>
-                                    <button type="button" data-season="" onclick="setSeason('')"><span class="emoji">🌿</span>Hạ</button>
-                                    <button type="button" data-season="autumn" onclick="setSeason('autumn')"><span class="emoji">🍂</span>Thu</button>
-                                    <button type="button" data-season="winter" onclick="setSeason('winter')"><span class="emoji">❄️</span>Đông</button>
+                                    <button type="button" data-season="spring" onclick="setSeason('spring')" title="Xuân" aria-label="Xuân"><span class="emoji" aria-hidden="true">🌸</span></button>
+                                    <button type="button" data-season="" onclick="setSeason('')" title="Hạ" aria-label="Hạ"><span class="emoji" aria-hidden="true">🌿</span></button>
+                                    <button type="button" data-season="autumn" onclick="setSeason('autumn')" title="Thu" aria-label="Thu"><span class="emoji" aria-hidden="true">🍂</span></button>
+                                    <button type="button" data-season="winter" onclick="setSeason('winter')" title="Đông" aria-label="Đông"><span class="emoji" aria-hidden="true">❄️</span></button>
                                 </div>
                                 <small id="season-hint" class="field-hint"></small>
                             </div>
@@ -475,9 +475,9 @@
                             <div class="field">
                                 <label>Thời tiết<button type="button" class="help-tip" data-help="weather" aria-label="Giải thích">?</button></label>
                                 <div class="segmented scene-weather" role="group" aria-label="Thời tiết">
-                                    <button type="button" data-weather="" onclick="setWeather('')"><span class="emoji">✨</span>Trời quang</button>
-                                    <button type="button" data-weather="rain" onclick="setWeather('rain')"><span class="emoji">🌧️</span>Mưa</button>
-                                    <button type="button" data-weather="snow" onclick="setWeather('snow')"><span class="emoji">🌨️</span>Tuyết rơi</button>
+                                    <button type="button" data-weather="" onclick="setWeather('')" title="Trời quang" aria-label="Trời quang"><span class="emoji" aria-hidden="true">✨</span></button>
+                                    <button type="button" data-weather="rain" onclick="setWeather('rain')" title="Mưa" aria-label="Mưa"><span class="emoji" aria-hidden="true">🌧️</span></button>
+                                    <button type="button" data-weather="snow" onclick="setWeather('snow')" title="Tuyết rơi" aria-label="Tuyết rơi"><span class="emoji" aria-hidden="true">🌨️</span></button>
                                 </div>
                             </div>
 
