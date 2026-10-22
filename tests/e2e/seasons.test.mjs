@@ -140,6 +140,13 @@ export async function run(browser, base, { check }) {
         await sleep(1200);
         const off = await draft();
         check('builder: mùa hạ, trời quang thì không lưu (như kịch bản cũ)', off && off.season === null && off.weather === null, JSON.stringify(off));
+        // Mẫu theo dịp: Giáng sinh mùa đông tuyết rơi
+        await builder.evaluate(() => openTemplatesModal('giang_sinh'));
+        await builder.type('#tpl-recipient', 'Lan');
+        await builder.click('#btn-create-template');
+        await sleep(1500);
+        const noel = await draft();
+        check('mẫu Giáng sinh: mùa đông, tuyết rơi', noel && noel.season === 'winter' && noel.weather === 'snow', JSON.stringify(noel));
         check('mùa, thời tiết trong builder không lỗi JS', builder.errors.length === 0, builder.errors.join(' | '));
     } finally {
         await builder.close();

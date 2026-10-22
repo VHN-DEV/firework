@@ -96,6 +96,8 @@ export const OCCASIONS = [
     {
         id: 'nam_moi', name: 'Năm mới, Tết', icon: '🧧', who: 'bạn',
         theme: 'tet',
+        // Mùa xuân: cánh hoa đào bay
+        season: 'spring',
         palette: ['Red', 'Gold', 'Green'],
         shapes: ['Ngôi sao', 'Kim cương'],
         texts: ['HAPPY NEW YEAR', 'AN KHANG THỊNH VƯỢNG'],
@@ -108,6 +110,9 @@ export const OCCASIONS = [
     {
         id: 'giang_sinh', name: 'Giáng sinh', icon: '🎄', who: 'bạn',
         theme: 'noel',
+        // Mùa đông, tuyết rơi
+        season: 'winter',
+        weather: 'snow',
         palette: ['Red', 'Green', 'White'],
         shapes: ['Bông tuyết', 'Ngôi sao'],
         texts: ['MERRY CHRISTMAS', 'GIÁNG SINH AN LÀNH'],
@@ -229,6 +234,8 @@ export function buildTemplate(occasionId, { recipient = '', sender = '' } = {}) 
         // Món quà mở bằng hộp quà rung rinh, nổ ruy băng; màn mở quà, màn kết theo giao diện của dịp
         startFrame: 'gift',
         screenTheme: o.theme ? { preset: o.theme } : undefined,
+        season: o.season,
+        weather: o.weather,
         introMessage: o.intro(who),
         outroMessage: o.outro,
         seoTitle: o.seoTitle(who),
