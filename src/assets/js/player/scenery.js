@@ -3193,7 +3193,17 @@ export const Decor = {
         } else if (scene.clouds) {
             const count = { few: IS_MOBILE ? 3 : 4, many: IS_MOBILE ? 5 : 8 }[scene.clouds] || 0;
             this.wind = (Math.random() < 0.5 ? -1 : 1) * MyMath.random(0.004, 0.009);
-            for (let i = 0; i < count; i++) this.clouds.push(this.cloud(((i + Math.random() * 0.7) / count) * cssW));
+            // Bầu trời luôn có vài đám mây tích, mây từng mảng làm nền; xen thêm mây vụn, dải mây, sợi mây ti. Rải xáo trộn
+            // ngang trời.
+            const pick = list => list[(Math.random() * list.length) | 0];
+            const bag = (scene.clouds === 'many'
+                ? ['cumulus', 'cumulus', 'patch', pick(['cumulus', 'patch']), 'fractus', 'layer', pick(['fractus', 'wisp']), pick(['patch', 'layer'])]
+                : ['cumulus', 'patch', pick(['fractus', 'layer']), pick(['cumulus', 'wisp', 'fractus'])]).slice(0, count);
+            for (let i = bag.length - 1; i > 0; i--) {
+                const j = (Math.random() * (i + 1)) | 0;
+                [bag[i], bag[j]] = [bag[j], bag[i]];
+            }
+            bag.forEach((kind, i) => this.clouds.push(this.cloud(((i + Math.random() * 0.7) / count) * cssW, kind)));
             // Xa (gần chân trời) vẽ trước
             this.clouds.sort((a, b) => a.alt - b.alt);
             this.buildClouds();
@@ -3249,14 +3259,12 @@ export const Decor = {
         schedule();
     },
 
-    // Mây gần chân trời ở xa: nhỏ, dẹt, trôi chậm, hay là dải mây mỏng, mây vụn; mây trên cao gần hơn: to, dày, trôi
-    // nhanh hơn: mây tích nhiều tháp, mây từng mảng, mây vụn, thỉnh thoảng sợi mây ti (dáng từng loại: cloudShape)
-    cloud(x) {
-        const alt = Math.random();
-        const roll = Math.random();
-        const kind = alt < 0.35
-            ? (roll < 0.45 ? 'layer' : roll < 0.7 ? 'patch' : roll < 0.88 ? 'fractus' : 'cumulus')
-            : (roll < 0.42 ? 'cumulus' : roll < 0.64 ? 'patch' : roll < 0.84 ? 'fractus' : 'wisp');
+    // Mây gần chân trời ở xa: nhỏ, dẹt, trôi chậm; mây trên cao gần hơn: to, dày, trôi nhanh hơn. Mỗi loại ở một tầng
+    // cao riêng: dải mây mỏng, mây vụn sát chân trời; mây từng mảng, mây tích lưng chừng tới trên cao; sợi mây ti cao
+    // nhất (dáng từng loại: cloudShape)
+    cloud(x, kind) {
+        const [lo, hi] = { layer: [0, 0.35], fractus: [0, 0.6], patch: [0.2, 0.85], cumulus: [0.3, 1], wisp: [0.7, 1] }[kind];
+        const alt = MyMath.random(lo, hi);
         const [w0, w1, a0, a1] = {
             layer: [260, 460, 0.2, 0.28], cumulus: [190, 340, 0.45, 0.66], patch: [240, 420, 0.26, 0.38],
             fractus: [150, 280, 0.28, 0.42], wisp: [280, 500, 0.2, 0.32]
