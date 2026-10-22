@@ -29,7 +29,7 @@ export const state = {
     weather: '',
     floating: '',
     // Chim, cá, khúc gỗ trên mặt nước
-    // Trên mặt nước, bật/tắt riêng từng thứ: cò, vịt trời, cá, khúc gỗ trôi, lá bèo, đá và gò đất giữa dòng
+    // Trên mặt nước, bật/tắt riêng từng thứ: cò, vịt trời, cá, khúc gỗ trôi, lá bèo, đá và gò đất giữa dòng, thuyền
     waterBirds: true,
     waterDucks: true,
     waterFish: true,
@@ -37,6 +37,7 @@ export const state = {
     waterFrogs: true,
     waterPlants: true,
     waterRocks: true,
+    waterBoats: true,
     // Cách xem đặt sẵn: quality ('1'-'3'), skyLighting ('0', '1'), scaleFactor, hideControls (false), fullscreen (true)
     viewer: {},
     // Người xem chạm vào trời thì bắn pháo (tắt: chỉ xem)

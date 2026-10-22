@@ -196,7 +196,14 @@ export function renderScene() {
     });
     document.getElementById('water-options')?.classList.toggle('hide', !state.water);
     renderBankStyles();
-    document.querySelectorAll('[data-water-thing]').forEach(input => { input.checked = state[input.dataset.waterThing]; });
+    // Chỉ hiện thứ có trên mặt nước của kiểu bờ đang chọn: giữa biển chỉ có cá, thuyền; sông thành phố có thuyền, không có
+    // đá, gò đất; các kiểu bờ khác không có thuyền
+    const things = state.bank === 'none' ? ['waterFish', 'waterBoats']
+        : WATER_THINGS.filter(key => (state.bank === 'city' ? key !== 'waterRocks' : key !== 'waterBoats'));
+    document.querySelectorAll('[data-water-thing]').forEach(input => {
+        input.checked = state[input.dataset.waterThing];
+        input.closest('.toggle-chip').classList.toggle('hide', !things.includes(input.dataset.waterThing));
+    });
     // Thước dọc của khung xem nhanh: độ cao 0 là mặt nước
     const level = { third: 2 / 3, half: 0.5 }[state.water] || 1;
     const rulerY = document.getElementById('mini-ruler-y');
@@ -205,9 +212,9 @@ export function renderScene() {
 }
 
 // Trên mặt nước (mục "Trên mặt nước"); kịch bản cũ chỉ có một công tắc waterLife cho cò, vịt, cá, gỗ
-export const WATER_THINGS = ['waterBirds', 'waterDucks', 'waterFish', 'waterFrogs', 'waterLogs', 'waterPlants', 'waterRocks'];
+export const WATER_THINGS = ['waterBirds', 'waterDucks', 'waterFish', 'waterFrogs', 'waterLogs', 'waterPlants', 'waterRocks', 'waterBoats'];
 
-export const WATER_LIFE_THINGS = ['waterBirds', 'waterDucks', 'waterFish', 'waterFrogs', 'waterLogs'];
+export const WATER_LIFE_THINGS = ['waterBirds', 'waterDucks', 'waterFish', 'waterFrogs', 'waterLogs', 'waterBoats'];
 
 // Cách xem đặt sẵn (nhóm "Khi người nhận xem"): chỉ lưu mục khác mặc định của trình phát
 export const VIEWER_SKY_NAMES = { 0: 'Trời không sáng theo pháo', 1: 'Trời sáng mờ' };

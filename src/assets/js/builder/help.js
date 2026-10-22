@@ -41,7 +41,7 @@ const HELP_TIPS = {
     bank: 'Bờ bên kia mặt nước, chỗ pháo bắn lên: <strong>bờ đất</strong> cỏ lau quê, <strong>kè gạch</strong> có đèn đường, '
         + '<strong>kè đá</strong> liễu rủ, <strong>bãi cát</strong> hàng dừa, <strong>phố cổ</strong> đèn lồng, <strong>cầu đá nhiều vòm</strong> (vòm to dần vào giữa), '
         + '<strong>cầu vòm cong</strong> (một cây cầu ở giữa), '
-        + '<strong>cầu sắt</strong> rực đèn đổi màu, hoặc <strong>biển khơi</strong> không bờ. Đèn, nhà, cầu đều in bóng xuống nước, '
+        + '<strong>thành phố</strong> về đêm như Sài Gòn (tháp cao sáng đèn, du thuyền trên sông), hoặc <strong>biển khơi</strong> không bờ (xa xa có thuyền câu mực, du thuyền, tàu khách). Đèn, nhà, cầu đều in bóng xuống nước, '
         + 'được ánh pháo rọi sáng.',
     floating: '<strong>Hoa đăng</strong>: đèn hoa sen thả nước, ánh nến in bóng xuống nước. <strong>Cánh hoa</strong>: cánh hoa hồng, trắng '
         + 'lác đác trên mặt nước. Kiểu "Sông chảy" thì chúng trôi theo dòng, "Hồ tĩnh lặng" thì gần như đứng yên, dập dềnh.',
@@ -54,7 +54,9 @@ const HELP_TIPS = {
         + '<li><strong>Khúc gỗ trôi</strong>: mỗi khúc một dáng, trôi theo dòng (chỉ khi "Sông chảy").</li>'
         + '<li><strong>Lá bèo</strong>: lá bèo, thỉnh thoảng có hoa súng; hồ thì mọc thành đám, sông thì trôi theo dòng.</li>'
         + '<li><strong>Đá, gò đất</strong>: giữa dòng; sông chảy thì nước dồn vào, rẽ ra hai bên, vật trôi lách qua.</li>'
-        + '</ul>',
+        + '<li><strong>Thuyền</strong>: biển khơi có thuyền câu mực thắp đèn sáng rực sát chân trời, tàu khách, du thuyền, thuyền nhỏ '
+        + 'treo đèn; sông thành phố có du thuyền nhà hàng viền đèn đổi màu, thuyền neo sát bờ. Đèn in vệt sáng lấp lánh xuống nước.</li>'
+        + '</ul>Giữa biển khơi chỉ có cá và thuyền (không có đá, lá bèo, cò, vịt, ếch).',
     viewerQuality: 'Như trang xem phim: số càng lớn hình càng nét nhưng càng nặng máy. <strong>Tự động</strong> (khuyên dùng): theo màn hình '
         + 'và sức máy người xem, giật thì tự hạ xuống. Từ <strong>1080p</strong> (Full HD) trở lên vẽ đầy đủ mọi hiệu ứng, hợp khi biết '
         + 'người nhận dùng máy mạnh; <strong>720p</strong> bớt tia lửa lúc pháo dày đặc nhất; <strong>480p</strong> trở xuống nhẹ nhất, '

@@ -5,8 +5,10 @@
  */
 
 // Kiểu bờ bên kia mặt nước (bank): mỗi kiểu vẽ được, phần nhô lên trời có mặt ngay trên chân trời (biển khơi thì không),
-// đèn kè gạch sáng ấm, dải đèn cầu sắt có màu; builder chọn kiểu, lưu đúng, tắt mặt nước thì không lưu kiểu bờ.
+// đèn kè gạch sáng ấm, thành phố có nhà cao tầng, đèn màu; biển khơi có thuyền đèn sáng sát chân trời; kịch bản cũ chọn
+// cầu sắt thành thành phố; builder chọn kiểu, lưu đúng, tắt mặt nước thì không lưu kiểu bờ, chỉ hiện thứ hợp với kiểu bờ.
 import { sleep, openPage } from './helpers.mjs';
+import { validBankStyle } from '../../src/assets/js/player/bank-styles.js';
 
 // Dải ngay trên chân trời của lớp bầu trời (mặt nước nửa màn hình: chân trời ở giữa): đếm điểm có hình, điểm sáng ấm,
 // điểm sáng có màu đậm
@@ -49,22 +51,32 @@ export async function run(browser, base, { check }) {
     try {
         await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
         const results = {};
-        for (const bank of ['', 'brick', 'stone', 'sand', 'oldtown', 'bridge', 'arch', 'steel', 'none']) {
+        for (const bank of ['', 'brick', 'stone', 'sand', 'oldtown', 'bridge', 'arch', 'city', 'none']) {
             await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
                 { loop: true, events: [], water: 'half', waterStyle: 'river', bank: bank || undefined, waterBirds: false, waterDucks: false });
             await sleep(900);
             results[bank || 'earth'] = { ...(await skyline(page)), foot: await footing(page) };
         }
-        const structures = ['brick', 'stone', 'sand', 'oldtown', 'bridge', 'arch', 'steel'];
+        const structures = ['brick', 'stone', 'sand', 'oldtown', 'bridge', 'arch', 'city'];
         check('mỗi kiểu bờ có phần nhô lên trời (lan can, cây, nhà, cầu) ngay trên chân trời',
             structures.every(b => results[b].solid > 300), JSON.stringify(Object.fromEntries(structures.map(b => [b, results[b].solid]))));
         check('biển khơi: không có bờ nhô lên trời', results.none.solid < 30 && results.none.solid < results.earth.solid, JSON.stringify({ none: results.none, earth: results.earth }));
         check('kè gạch, phố cổ, cầu vòm đá có đèn sáng ấm', ['brick', 'oldtown', 'bridge'].every(b => results[b].warm > 20),
             JSON.stringify(Object.fromEntries(['brick', 'oldtown', 'bridge'].map(b => [b, results[b].warm]))));
-        check('cầu sắt có dải đèn màu trên vòm', results.steel.vivid > 50, JSON.stringify(results.steel));
+        check('thành phố có đèn màu (mặt tiền, đỉnh tháp)', results.city.vivid > 50, JSON.stringify(results.city));
         check('cầu đá (vòm cong, nhiều vòm): chân cầu xuống tới mép nước, mặt nước để lộ chân cầu',
             ['arch', 'bridge'].every(b => results[b].foot.stone > 150 && results[b].foot.shown > results[b].foot.stone * 0.9),
             JSON.stringify({ arch: results.arch.foot, bridge: results.bridge.foot }));
+        // Biển khơi: thuyền câu mực, tàu khách thắp đèn sáng ngay dưới chân trời (lớp mặt nước, dải sát chân trời)
+        const seaLights = await page.evaluate(() => {
+            const c = document.getElementById('water-canvas');
+            const d = c.getContext('2d').getImageData(0, Math.round(c.height * 0.5), c.width, Math.round(c.height * 0.06)).data;
+            let n = 0;
+            for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 600) n++;
+            return n;
+        });
+        check('biển khơi: xa xa có thuyền thắp đèn sáng', seaLights > 20, String(seaLights));
+        check('kịch bản cũ chọn "cầu sắt" (đã bỏ) thì thành thành phố', validBankStyle('steel') === 'city' && validBankStyle('city') === 'city');
         check('các kiểu bờ không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
         await page.close();
@@ -96,6 +108,18 @@ export async function run(browser, base, { check }) {
         await sleep(1200);
         const off = await draft();
         check('builder: tắt mặt nước thì không lưu kiểu bờ', off && off.bank === null, JSON.stringify(off));
+        // Chỉ hiện thứ hợp với kiểu bờ: biển khơi chỉ có cá, thuyền; sông thành phố có thuyền, không có đá, gò đất
+        const chips = bank => builder.evaluate(value => {
+            setWater('half');
+            setBank(value);
+            return [...document.querySelectorAll('[data-water-thing]')].filter(i => !i.closest('.toggle-chip').classList.contains('hide')).map(i => i.dataset.waterThing);
+        }, bank);
+        const sea = await chips('none');
+        const city = await chips('city');
+        const earth = await chips('');
+        check('builder: biển khơi chỉ có cá, thuyền; thành phố có thuyền, không đá; bờ đất không có thuyền',
+            sea.join() === 'waterFish,waterBoats' && city.includes('waterBoats') && !city.includes('waterRocks') && !earth.includes('waterBoats') && earth.includes('waterRocks'),
+            JSON.stringify({ sea, city, earth }));
         check('kiểu bờ trong builder không lỗi JS', builder.errors.length === 0, builder.errors.join(' | '));
     } finally {
         await builder.close();
