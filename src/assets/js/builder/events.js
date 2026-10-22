@@ -18,6 +18,7 @@ import { refreshMiniPreview, stopPreviewMusic, updateMiniInfo } from './preview.
 import { renderSchedule, renderScreenTheme, renderStartFrames } from './settings.js';
 import { WATER_THINGS, renderScene, renderSky, renderSmoke, renderViewer } from './scene.js';
 import { renderNotifyOpen } from './gift-watch.js';
+import { loadNatureSound } from './nature-ui.js';
 import { renderSeoControls } from './share.js';
 
 export function addEvent(config = null, { render = true } = {}) {
@@ -199,6 +200,7 @@ export function createNewScript() {
         // Bỏ nhạc nền
         state.music = null;
         state.effectsVolume = 1;
+        loadNatureSound();
         stopPreviewMusic();
         renderMusic();
 

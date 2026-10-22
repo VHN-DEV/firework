@@ -24,6 +24,7 @@ import { clearDraft, markSaved } from './history.js';
 import { renderSchedule, renderScreenTheme, renderStartFrames, revealSetting } from './settings.js';
 import { WATER_LIFE_THINGS, WATER_THINGS, normalizeDecor, normalizeMoon, normalizeViewer, renderScene, renderSky, renderSmoke, renderViewer } from './scene.js';
 import { renderNotifyOpen } from './gift-watch.js';
+import { loadNatureSound, natureSoundConfig } from './nature-ui.js';
 import { detectSeoImageAxis, getSeoImageConfig, openShareModal, renderSeoControls, scheduleSeoPreview, updateShareBar } from './share.js';
 
 function validateConfig() {
@@ -110,6 +111,7 @@ export function getFinalConfig() {
         background: state.background,
         music: state.music ? { ...state.music } : undefined,
         effectsVolume: state.effectsVolume < 1 ? state.effectsVolume : undefined,
+        ...natureSoundConfig(),
         events: state.events.map(e => {
             const { id, expanded, ...cleanEvent } = e;
             return cleanEvent;
@@ -410,6 +412,7 @@ export function loadConfigIntoState(config, filename, { migrate = true } = {}) {
     state.music = config.music && typeof config.music.url === 'string' ? { ...config.music } : null;
     const effectsVolume = Number(config.effectsVolume);
     state.effectsVolume = config.effectsVolume !== undefined && Number.isFinite(effectsVolume) ? Math.max(0, Math.min(1, effectsVolume)) : 1;
+    loadNatureSound(config);
     stopPreviewMusic();
     renderMusic();
 

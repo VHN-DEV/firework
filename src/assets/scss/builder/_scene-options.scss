@@ -1,4 +1,4 @@
-// Trình diễn Pháo hoa – giao diện builder (mùa, thời tiết, mặt nước, trăng)
+// Trình diễn Pháo hoa – giao diện builder (mùa, thời tiết, mặt nước, trăng, âm thanh thiên nhiên)
 // © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
 // Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
 
@@ -27,6 +27,18 @@
     .emoji {
         font-size: 1.05rem;
         line-height: 1;
+    }
+}
+
+// Âm thanh thiên nhiên: âm lượng, các nhóm tiếng (hiện khi bật)
+.nature-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-top: 0.75rem;
+
+    &.hide {
+        display: none;
     }
 }
 

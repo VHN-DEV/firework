@@ -212,7 +212,7 @@ function settingsSummaries() {
         basics: value('title') || 'Chưa có tiêu đề',
         gift: [frame.name, screenThemeLabel(), recipient && `Gửi ${recipient}`, checked('loop') ? 'Lặp lại' : 'Chạy một lượt', state.openAt && 'Hẹn giờ']
             .filter(Boolean).join(' · '),
-        sound: music ? musicName + (music.sync ? ' · khớp nhịp' : '') : 'Chưa có nhạc',
+        sound: [music ? musicName + (music.sync ? ' · khớp nhịp' : '') : 'Chưa có nhạc', state.natureSound && 'Tiếng thiên nhiên'].filter(Boolean).join(' · '),
         scene: scene.join(' · ') || 'Không có',
         share: [filename && filename + '.json', state.seo.mode === 'custom' ? 'Ảnh của bạn' : 'Thiệp tự động'].filter(Boolean).join(' · ')
     };

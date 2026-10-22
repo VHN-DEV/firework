@@ -7,6 +7,7 @@
 // Kịch bản đang soạn (state) và môi trường chạy.
 
 import { resolveScreenTheme } from '../player/screen-themes.js';
+import { NATURE_VOLUME } from '../player/nature/scene.js';
 
 export const state = {
     events: [],
@@ -52,6 +53,10 @@ export const state = {
     // Nhạc nền { url, name, volume (0-1), start (giây) } và âm lượng tiếng pháo (0-1)
     music: null,
     effectsVolume: 1,
+    // Âm thanh thiên nhiên của cảnh: bật/tắt, âm lượng (0-1), các nhóm tiếng tắt (xem player/nature/scene.js)
+    natureSound: true,
+    natureVolume: NATURE_VOLUME,
+    natureOff: [],
     // Khung bắt đầu ('' = thiệp chào), xem START_FRAMES
     startFrame: '',
     // Giao diện màn mở quà & màn kết (đầy đủ, xem screen-themes.js); lưu vào kịch bản phần khác bộ đã chọn

@@ -8,7 +8,7 @@
 // năng một module trong builder/: state (kịch bản đang soạn), constants, util, events (phát bắn), timeline (dòng thời
 // gian), inspector (bảng chỉnh), help (giải thích), images (ảnh, cắt ảnh), music (nhạc, kho nhạc ảnh), preview (xem nhanh),
 // config (lưu, nạp kịch bản), history (hoàn tác, bản nháp), settings (khung bắt đầu, giao diện, nhóm cài đặt, hẹn giờ),
-// scene (bầu trời, mặt nước, mùa), templates-ui (mẫu theo dịp), beat-ui (xếp theo nhịp), gift-watch (báo mở quà), video-ui,
+// scene (bầu trời, mặt nước, mùa), nature-ui (âm thanh thiên nhiên), templates-ui (mẫu theo dịp), beat-ui (xếp theo nhịp), gift-watch (báo mở quà), video-ui,
 // share (chia sẻ, ảnh xem trước), scripts (danh sách kịch bản), layout (thanh bên, menu).
 
 import '../scss/builder.scss';
@@ -29,6 +29,7 @@ import { chooseLibraryItem, closeLibrary, getMusicAudio, handleMusicUpload, open
 import { playMiniPreviewOnce, previewAsRecipient, previewConfig, refreshMiniPreview, resizeMiniStages, restartMiniPreview, setPreviewDevice, toggleFullscreenMiniPreview, toggleMiniPreview, togglePreviewDevice, togglePreviewSound } from './builder/preview.js';
 import { saveConfig } from './builder/config.js';
 import { initEditHistory, redo, undo } from './builder/history.js';
+import { setupNatureSound } from './builder/nature-ui.js';
 import { initScreenThemeControls, initSettingsGroups, previewScreen, renderSchedule, renderStartFrames, resetScreenTheme, setOpenMode, setScreenThemeField, setScreenThemePreset, setStartFrame } from './builder/settings.js';
 import { renderScene, renderSky, renderSmoke, renderViewer, setBank, setClouds, setFloating, setMoonMode, setMoonPhase, setSeason, setSmoke, setStars, setViewerOption, setWater, setWaterStyle, setWeather, toggleDecor } from './builder/scene.js';
 import { createFromTemplate, openTemplatesModal, renderTemplateChips, selectOccasion, startBlankScript, updateTemplateStrip } from './builder/templates-ui.js';
@@ -198,6 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('out-effects-volume').textContent = e.target.value + '%';
         refreshMiniPreview();
     });
+    setupNatureSound();
     if (isStaticEnv) {
         document.getElementById('music-hint').textContent = 'Trang tĩnh (GitHub Pages) không tải file lên được: hãy dán link trực tiếp tới file nhạc, '
             + 'hoặc chép file vào src/static/uploads/music/ rồi dán đường dẫn ./uploads/music/ten-file.mp3.';

@@ -360,6 +360,27 @@
                                 <input type="range" id="effects-volume" min="0" max="100" step="5" value="100">
                                 <small class="field-hint">Giảm xuống để nghe rõ nhạc hơn, 0% là tắt hẳn tiếng nổ.</small>
                             </div>
+                            <!-- Âm thanh thiên nhiên: tiếng của khung cảnh (tổng hợp ngay trong trình duyệt, không cần file) -->
+                            <div class="field nature-sound-field">
+                                <label class="switch-row compact" for="nature-sound">
+                                    <span>
+                                        <strong>Âm thanh thiên nhiên<button type="button" class="help-tip" data-help="natureSound" aria-label="Giải thích">?</button></strong>
+                                        <small>Nước chảy, gió lá, ếch, cò, vịt, cá quẫy, dế, mưa theo khung cảnh</small>
+                                    </span>
+                                    <input type="checkbox" id="nature-sound" class="switch" checked>
+                                </label>
+                                <div id="nature-options" class="nature-options">
+                                    <div class="field-label-row">
+                                        <label for="nature-volume">Âm lượng tiếng thiên nhiên</label>
+                                        <output id="out-nature-volume">60%</output>
+                                    </div>
+                                    <input type="range" id="nature-volume" min="5" max="100" step="5" value="60">
+                                    <!-- Các nhóm tiếng do builder.js thêm vào (player/nature/scene.js) -->
+                                    <div id="nature-things" class="toggle-chips nature-things" role="group" aria-label="Tiếng thiên nhiên"></div>
+                                    <small id="nature-hint" class="field-hint">Bấm để bật/tắt từng tiếng. Chỉ nghe tiếng của thứ có trong cảnh
+                                        (mặt nước, kiểu bờ, mùa, thời tiết); có nhạc nền thì tiếng thiên nhiên tự nhỏ lại.</small>
+                                </div>
+                            </div>
                         </div>
                     </details>
                     <details class="settings-group" data-group="scene">
@@ -1125,6 +1146,9 @@
                             cho kịp), pháo bám theo bài nhạc và dòng thời gian hiện ♪ mốc giây trong bài.</li>
                         <li><strong>Âm lượng:</strong> chỉnh riêng nhạc nền và tiếng pháo; có nhạc thì nên giảm tiếng pháo
                             để nghe rõ nhạc.</li>
+                        <li><strong>Âm thanh thiên nhiên:</strong> tiếng nước chảy, sóng vỗ bờ, gió lá, ếch, cò, vịt, cá quẫy,
+                            dế, mưa theo đúng khung cảnh đã chọn; bật/tắt từng tiếng, chỉnh độ to riêng. Người xem cũng tắt được
+                            trong Cài đặt.</li>
                     </ul>
                 </div>
 

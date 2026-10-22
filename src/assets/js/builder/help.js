@@ -104,6 +104,10 @@ const HELP_TIPS = {
     musicSync: 'Bật: "Nổ sau" của mỗi phát là lúc pháo <strong>nổ</strong> (pháo tự phóng sớm cho kịp) và pháo bám theo bài nhạc nên nổ đúng phách; '
         + 'dòng thời gian hiện mốc ♪ trong bài. Nút <strong>Xếp pháo theo nhịp nhạc</strong> tự bật mục này.',
     effectsVolume: 'Độ to của tiếng phóng và tiếng nổ. Có nhạc nền thì nên giảm để nghe rõ nhạc; 0% là tắt hẳn.',
+    natureSound: 'Tiếng của khung cảnh, tạo ngay trong trình duyệt: nước chảy, sóng vỗ bờ (theo kiểu bờ), gió lùa qua lá (theo cây '
+        + 'trên bờ và mùa), dế, ếch nhái kêu đêm, vịt kêu, cò cất cánh, cá quẫy nước, mưa rơi. Ếch kêu đúng lúc túi kêu phồng, '
+        + 'tiếng ở bên trái màn hình nghe bên trái, ở xa thì nhỏ hơn. Chỉ có tiếng của những thứ đang có trong cảnh, nhỏ hơn '
+        + 'tiếng pháo; có nhạc nền thì tự nhỏ lại. Người xem vẫn tắt được trong Cài đặt.',
     filename: 'Tên dùng để lưu và làm link chia sẻ (…/s/ten-file.html). Chỉ chữ không dấu, số, gạch nối, gạch dưới. Trùng tên kịch bản khác thì tự thêm số.',
     timelineTrack: 'Mỗi nút là một phát bắn đặt đúng thời điểm (lúc phóng; khi khớp nhịp nhạc là lúc nổ), phía trên là sóng nhạc và vạch phách. '
         + '<strong>Kéo ngang</strong> để đổi thời điểm (bám phách hoặc theo 0,1 giây; giữ Alt để thả tự do), <strong>bấm</strong> để chỉnh, '
