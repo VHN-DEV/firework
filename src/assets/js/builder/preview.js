@@ -190,6 +190,12 @@ export function sendPreview(restart, extra = {}) {
     }, window.location.origin);
 }
 
+// Tạm dừng / chạy tiếp khung xem nhanh (lúc đang tạo video)
+export function pauseMiniPreview(paused) {
+    const frame = getPreviewFrame();
+    if (previewReady && frame && frame.contentWindow) frame.contentWindow.postMessage({ type: 'firework-preview-pause', paused }, window.location.origin);
+}
+
 // Gom các thay đổi liên tiếp rồi mới gửi một lần. Đang xem riêng một phát bắn thì bắn lại ngay để thấy thay đổi,
 // còn khi xem cả kịch bản thì chỉ cập nhật cho các đợt tiếp theo.
 export function refreshMiniPreview() {

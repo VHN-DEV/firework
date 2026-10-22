@@ -11,7 +11,7 @@ import { state } from './state.js';
 import { hideModal, normalizeAssetPath, notify, showModal } from './util.js';
 import { isFireworkShot, isSyncMode } from './timeline.js';
 import { toSlug } from './images.js';
-import { previewMode, previewMusicPlaying, sendPreview, setPreviewMode, stopPreviewMusic, updateMiniInfo } from './preview.js';
+import { pauseMiniPreview, previewMode, previewMusicPlaying, sendPreview, setPreviewMode, stopPreviewMusic, updateMiniInfo } from './preview.js';
 import { getFinalConfig } from './config.js';
 import { closeMoreMenu } from './layout.js';
 
@@ -116,6 +116,8 @@ export function createVideo() {
     if (video.previousPreviewMode === null) video.previousPreviewMode = previewMode;
     setPreviewMode('idle');
     sendPreview(true);
+    // Dừng hẳn khung xem nhanh (người ngắm pháo dựng bằng WebGL: hai khung cùng dựng thì card đồ họa quá tải)
+    pauseMiniPreview(true);
 
     video.job = createVideoJob({
         format: VIDEO_FORMATS.find(f => f.value === video.format),
@@ -201,6 +203,7 @@ export function closeVideoModal() {
     video.step = 'setup';
     hideModal('video-modal');
     // Khung xem nhanh chạy lại như trước
+    pauseMiniPreview(false);
     if (video.previousPreviewMode !== null) {
         setPreviewMode(video.previousPreviewMode);
         video.previousPreviewMode = null;

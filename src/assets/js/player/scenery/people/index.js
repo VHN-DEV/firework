@@ -351,14 +351,19 @@ export const People = {
         const y0 = Math.max(0, Math.floor(box[1] * k));
         const w = Math.min(W, Math.ceil(box[2] * k)) - x0;
         const h = Math.min(H, Math.ceil(box[3] * k)) - y0;
-        if (w > 2 && h > 2) this.shadows(ctx, stage.canvas, x0, y0, w, h, k, I, wet);
+        if (w <= 2 || h <= 2) return;
+        // Vùng tương ứng trên lớp dựng hình (chất lượng thấp thì lớp dựng hình thưa hơn lớp này)
+        const r = stage.size.k / k;
+        const src = [x0 * r, y0 * r, Math.max(1, w * r), Math.max(1, h * r)];
+        this.shadows(ctx, stage.canvas, src, x0, y0, w, h, k, I, wet);
         this.breath(ctx, k);
-        ctx.drawImage(stage.canvas, 0, 0, W, H);
+        // Chỉ chép vùng quanh nhân vật
+        ctx.drawImage(stage.canvas, ...src, x0, y0, w, h);
         this.front(ctx, k, sky, time, box);
     },
 
     // Bóng đổ trên mặt đất về phía người xem (thu nhỏ rồi phóng to cho nhòe), bóng tiếp đất dưới chân, đất ướt in bóng
-    shadows(ctx, src, x0, y0, w, h, k, I, wet) {
+    shadows(ctx, canvas, src, x0, y0, w, h, k, I, wet) {
         const L = this.layout;
         const top = Math.round(L.top * k);
         const gyk = L.gy * k;
@@ -369,7 +374,7 @@ export const People = {
         mg.setTransform(1, 0, 0, 1, 0, 0);
         mg.globalCompositeOperation = 'source-over';
         mg.clearRect(0, 0, m.width, m.height);
-        mg.drawImage(src, x0, y0, w, h, 0, 0, w, h);
+        mg.drawImage(canvas, ...src, 0, 0, w, h);
         mg.globalCompositeOperation = 'source-in';
         mg.fillStyle = '#000';
         mg.fillRect(0, 0, w, h);
@@ -404,7 +409,7 @@ export const People = {
             // Đất ướt: bóng người in ngược xuống mặt đất loáng nước
             ctx.setTransform(1, 0, 0, -1, 0, 2 * gyk);
             ctx.globalAlpha = 0.22;
-            ctx.drawImage(src, x0, y0, w, h, x0, y0, w, h);
+            ctx.drawImage(canvas, ...src, x0, y0, w, h);
         }
         ctx.restore();
     },

@@ -1738,6 +1738,11 @@ if (IS_PREVIEW) {
             if (!appNodes.endScreen.classList.contains('hide')) endAmbient.start(screenTheme, { lowQuality: isLowQuality });
             return;
         }
+        // Builder đang tạo video: dừng hẳn khung xem nhanh cho đỡ nặng máy
+        if (msg.type === 'firework-preview-pause') {
+            togglePause(!!msg.paused);
+            return;
+        }
         if (msg.type !== 'firework-preview') return;
 
         const version = ++previewVersion;

@@ -5,8 +5,9 @@
  */
 
 // Người ngắm pháo (people): có mặt nước thì nhân vật anime đi vào từ mép khung, đứng ở bờ bên này (lớp trước cùng);
-// tắt người hoặc không có mặt nước thì lớp trống; mưa thì có ô; builder chọn, lưu đúng, tắt mặt nước thì không lưu.
-import { sleep, openPage } from './helpers.mjs';
+// tắt người hoặc không có mặt nước thì lớp trống; mưa thì có ô; có trong video tạo ra (dựng nhanh dù khung dựng ẩn);
+// builder chọn, lưu đúng, tắt mặt nước thì không lưu.
+import { sleep, openPage, writeConfig, removeConfig } from './helpers.mjs';
 import { validPeople } from '../../src/assets/js/player/people-options.js';
 
 // Điểm có hình của lớp người trong dải phía trên bờ (không tính dải bờ đất ở đáy): tổng số và số ở nửa trái, nửa phải
@@ -73,6 +74,43 @@ export async function run(browser, base, { check }) {
         check('người ngắm pháo không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
         await page.close();
+    }
+
+    // Tạo video có người: khung dựng ẩn vẫn dựng nhanh, cặp đôi có trong khung hình cuối video
+    const ID = 'zz_e2e_people_video';
+    writeConfig(ID, { title: 'NGẮM PHÁO', loop: true, water: 'half', people: 'couple', events: [1, 2, 3].map(b => ({ burst: b, shell: 'Hoa cúc', x: 50, y: 65, color: 'Gold' })) });
+    const vpage = await openPage(browser, { width: 1440, height: 900 });
+    try {
+        await vpage.goto(base + '/builder.html', { waitUntil: 'networkidle0' });
+        await vpage.evaluate(id => editScript(id), ID);
+        await sleep(1200);
+        await vpage.evaluate(() => { openVideoModal(); setVideoFormat('portrait'); setVideoQuality('hd'); });
+        const started = Date.now();
+        await vpage.click('#btn-video-create');
+        await vpage.waitForFunction(() => !document.getElementById('video-result').classList.contains('hide'), { timeout: 150000, polling: 1000 }).catch(() => {});
+        const seconds = (Date.now() - started) / 1000;
+        const shot = await vpage.evaluate(async () => {
+            const v = document.getElementById('video-output');
+            if (!v.src) return null;
+            if (v.readyState < 1) await new Promise(r => v.addEventListener('loadedmetadata', r, { once: true }));
+            v.currentTime = Math.max(0, v.duration - 5);
+            await new Promise(r => v.addEventListener('seeked', r, { once: true }));
+            const c = document.createElement('canvas');
+            c.width = v.videoWidth;
+            c.height = v.videoHeight;
+            const g = c.getContext('2d');
+            g.drawImage(v, 0, 0);
+            // Áo hoodie, áo sơ mi, da: điểm sáng ở dải dưới giữa khung (mặt nước phía sau tối)
+            const d = g.getImageData(Math.round(c.width * 0.3), Math.round(c.height * 0.7), Math.round(c.width * 0.4), Math.round(c.height * 0.25)).data;
+            let bright = 0;
+            for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 330) bright++;
+            return { duration: v.duration, bright };
+        });
+        check('video có người ngắm pháo, dựng nhanh dù khung dựng ẩn', !!shot && shot.bright > 400 && seconds < 120, JSON.stringify({ ...shot, seconds }));
+        check('tạo video có người không lỗi JS', vpage.errors.length === 0, vpage.errors.join(' | '));
+    } finally {
+        await vpage.close();
+        removeConfig(ID);
     }
 
     const builder = await openPage(browser, { width: 1440, height: 900 });

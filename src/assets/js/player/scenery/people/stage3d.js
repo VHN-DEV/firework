@@ -16,6 +16,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { Actor3D, buildClips } from './actor3d.js';
 import { Umbrella3D } from './umbrella3d.js';
+import { IS_RECORD } from '../../env.js';
 
 export { Duo, Solo } from './choreo.js';
 
@@ -51,8 +52,22 @@ export const loadCastFor = sex => loadCast(sex);
 
 export class Stage3D {
     constructor() {
-        this.canvas = document.createElement('canvas');
-        this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, alpha: true, antialias: true, premultipliedAlpha: true, powerPreference: 'high-performance' });
+        // Khung dựng video là iframe ẩn: Chrome hạ ưu tiên WebGL của canvas trong khung ẩn (mỗi lần chép hình chờ rất
+        // lâu), OffscreenCanvas thì không gắn với hiển thị của khung nên dựng nhanh như bình thường
+        const make = canvas => new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, premultipliedAlpha: true, powerPreference: 'high-performance' });
+        if (IS_RECORD && typeof OffscreenCanvas !== 'undefined') {
+            try {
+                this.canvas = new OffscreenCanvas(1, 1);
+                this.renderer = make(this.canvas);
+            } catch (e) {
+                // Trình duyệt chưa có WebGL trên OffscreenCanvas: dùng canvas thường
+                this.renderer = null;
+            }
+        }
+        if (!this.renderer) {
+            this.canvas = document.createElement('canvas');
+            this.renderer = make(this.canvas);
+        }
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.setClearColor(0x000000, 0);
         this.scene = new THREE.Scene();
