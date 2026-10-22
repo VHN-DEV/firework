@@ -129,8 +129,11 @@ function drawCroppedImage(canvas, img, frame, crop, maxSide = 320) {
 export function paintImageThumb(event) {
     const canvas = document.getElementById('image-thumb');
     if (!canvas || !event.imageUrl) return;
+    // Nét theo cỡ khung đang hiện và mật độ điểm ảnh màn hình (cố định 320 thì màn nét gấp 2, 3 bị phóng to, nhòe)
+    const shown = Math.max(canvas.clientWidth, canvas.clientHeight) * (window.devicePixelRatio || 1);
+    const side = Math.round(Math.min(1600, Math.max(320, shown)));
     loadCropImage(event.imageUrl)
-        .then(img => canvas.isConnected && drawCroppedImage(canvas, img, event.frame, event.crop))
+        .then(img => canvas.isConnected && drawCroppedImage(canvas, img, event.frame, event.crop, side))
         .catch(() => {});
 }
 

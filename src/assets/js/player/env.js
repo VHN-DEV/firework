@@ -31,7 +31,10 @@ export const IS_HIGH_END_DEVICE = (() => {
     }
     // Màn hình lớn cho thấy máy tính có kích thước đầy đủ, ngày nay thường có siêu phân luồng.
     // Vì vậy, một máy tính để bàn lõi tứ có 8 lõi. Chúng tôi sẽ đặt ngưỡng tối thiểu cao hơn ở đó.
-    const minCount = window.innerWidth <= 1024 ? 4 : 8;
+    // Máy tính bảng (chạm là chính, vd iPad xoay ngang rộng hơn 1024px) giữ ngưỡng như điện thoại: Safari chỉ báo 4 lõi cho
+    // máy dưới 8 lõi, ngưỡng 8 xếp iPad vào máy yếu, vẽ pháo 720p rồi kéo giãn (nhòe)
+    const tablet = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    const minCount = window.innerWidth <= 1024 || tablet ? 4 : 8;
     return hwConcurrency >= minCount;
 })();
 
