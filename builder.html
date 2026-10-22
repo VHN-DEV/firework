@@ -463,6 +463,10 @@
                                         <button type="button" data-style="lake" onclick="setWaterStyle('lake')">Hồ tĩnh lặng</button>
                                         <button type="button" data-style="river" onclick="setWaterStyle('river')">Sông chảy</button>
                                     </div>
+                                    <label>Bờ bên kia<button type="button" class="help-tip" data-help="bank" aria-label="Giải thích">?</button></label>
+                                    <!-- Các kiểu bờ do builder.js thêm vào (player/bank-styles.js) -->
+                                    <div id="bank-grid" class="shell-grid frame-grid bank-grid"></div>
+                                    <small id="bank-hint" class="field-hint"></small>
                                     <label>Vật trôi trên nước<button type="button" class="help-tip" data-help="floating" aria-label="Giải thích">?</button></label>
                                     <div class="segmented water-floating" role="group" aria-label="Vật trôi trên nước">
                                         <button type="button" data-floating="" onclick="setFloating('')">Không</button>

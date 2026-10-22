@@ -12,6 +12,7 @@ import {
     VIDEO_FORMATS, VIDEO_UNSUPPORTED, canRecordVideoHere, createVideoJob, estimateVideoLength, estimateVideoMegabytes, formatClock
 } from './video-export.js';
 import { OCCASIONS, buildTemplate } from './templates.js';
+import { BANK_STYLES, validBankStyle } from './player/bank-styles.js';
 import {
     SCREEN_THEMES, SCREEN_FONTS, SCREEN_EFFECTS, SCREEN_CARDS, SCREEN_ICONS, resolveScreenTheme, compactScreenTheme, loadScreenFont
 } from './player/screen-themes.js';
@@ -54,6 +55,8 @@ const state = {
     water: '',
     // Kiểu mặt nước ('lake' hồ tĩnh lặng, 'river' sông chảy), vật trôi ('' / 'lanterns' hoa đăng / 'petals' cánh hoa)
     waterStyle: 'lake',
+    // Kiểu bờ bên kia mặt nước ('' = bờ đất), xem player/bank-styles.js
+    bank: '',
     floating: '',
     // Chim, cá, khúc gỗ trên mặt nước
     // Trên mặt nước, bật/tắt riêng từng thứ: cò, vịt trời, cá, khúc gỗ trôi, lá bèo, đá và gò đất giữa dòng
@@ -719,6 +722,7 @@ function createNewScript() {
         renderSmoke();
         state.water = '';
         state.waterStyle = 'lake';
+        state.bank = '';
         state.floating = '';
         WATER_THINGS.forEach(key => { state[key] = true; });
         renderScene();
@@ -1172,6 +1176,11 @@ const HELP_TIPS = {
     decor: '<strong>Đèn trời</strong>: những chiếc đèn lồng giấy chập chờn bay lên chậm. <strong>Khinh khí cầu</strong>: vài khinh khí cầu '
         + 'trôi ngang, thỉnh thoảng bừng sáng khi đốt lửa. <strong>Máy bay</strong>: thỉnh thoảng một chiếc bay ngang trên cao, ban đêm chỉ '
         + 'thấy đèn đỏ, xanh ở hai đầu cánh và đèn chớp. Chỉ để trang trí, không ảnh hưởng tới các phát bắn; bật Giảm chớp sáng thì đèn không chớp.',
+    bank: 'Bờ bên kia mặt nước, chỗ pháo bắn lên: <strong>bờ đất</strong> cỏ lau quê, <strong>kè gạch</strong> có đèn đường, '
+        + '<strong>kè đá</strong> liễu rủ, <strong>bãi cát</strong> hàng dừa, <strong>phố cổ</strong> đèn lồng, <strong>cầu đá nhiều vòm</strong> (vòm to dần vào giữa), '
+        + '<strong>cầu vòm cong</strong> (một cây cầu ở giữa), '
+        + '<strong>cầu sắt</strong> rực đèn đổi màu, hoặc <strong>biển khơi</strong> không bờ. Đèn, nhà, cầu đều in bóng xuống nước, '
+        + 'được ánh pháo rọi sáng.',
     floating: '<strong>Hoa đăng</strong>: đèn hoa sen thả nước, ánh nến in bóng xuống nước. <strong>Cánh hoa</strong>: cánh hoa hồng, trắng '
         + 'lác đác trên mặt nước. Kiểu "Sông chảy" thì chúng trôi theo dòng, "Hồ tĩnh lặng" thì gần như đứng yên, dập dềnh.',
     waterThings: '<ul>'
@@ -2620,6 +2629,7 @@ function getFinalConfig() {
         smoke: state.smoke || undefined,
         water: state.water || undefined,
         waterStyle: state.water && state.waterStyle === 'river' ? 'river' : undefined,
+        bank: state.water && state.bank ? state.bank : undefined,
         floating: state.water && state.floating ? state.floating : undefined,
         ...Object.fromEntries(WATER_THINGS.map(key => [key, state.water && !state[key] ? false : undefined])),
         viewer: Object.keys(state.viewer).length ? { ...state.viewer } : undefined,
@@ -3252,6 +3262,7 @@ function settingsSummaries() {
         state.decor.map(kind => DECOR_NAMES[kind]).join(', '),
         state.smoke === 'light' ? 'Khói nhẹ' : state.smoke === 'heavy' ? 'Khói dày' : '',
         state.water ? `${state.waterStyle === 'river' ? 'Sông' : 'Hồ'} ${state.water === 'third' ? '1/3' : 'nửa'} màn hình` : '',
+        state.water && state.bank && BANK_STYLES.find(b => b.value === state.bank).name,
         state.water && { lanterns: 'hoa đăng', petals: 'cánh hoa' }[state.floating]
     ].filter(Boolean);
     const filename = value('filename');
@@ -3439,6 +3450,23 @@ function setWaterStyle(style) {
     refreshMiniPreview();
 }
 
+// Kiểu bờ bên kia mặt nước (bờ đất, kè gạch, phố cổ, cầu...)
+function setBank(value) {
+    state.bank = validBankStyle(value);
+    renderScene();
+    refreshMiniPreview();
+}
+
+function renderBankStyles() {
+    const grid = document.getElementById('bank-grid');
+    if (!grid) return;
+    grid.innerHTML = BANK_STYLES.map(b => `
+        <button type="button" class="shell-option${state.bank === b.value ? ' selected' : ''}" onclick="setBank('${b.value}')">
+            <span class="emoji">${b.icon}</span>${b.name}
+        </button>`).join('');
+    document.getElementById('bank-hint').textContent = (BANK_STYLES.find(b => b.value === state.bank) || BANK_STYLES[0]).hint;
+}
+
 function setFloating(kind) {
     state.floating = kind;
     renderScene();
@@ -3455,6 +3483,7 @@ function renderScene() {
         });
     });
     document.getElementById('water-options')?.classList.toggle('hide', !state.water);
+    renderBankStyles();
     document.querySelectorAll('[data-water-thing]').forEach(input => { input.checked = state[input.dataset.waterThing]; });
     // Thước dọc của khung xem nhanh: độ cao 0 là mặt nước
     const level = { third: 2 / 3, half: 0.5 }[state.water] || 1;
@@ -4925,6 +4954,7 @@ function loadConfigIntoState(config, filename, { migrate = true } = {}) {
     renderSmoke();
     state.water = ['third', 'half'].includes(config.water) ? config.water : '';
     state.waterStyle = config.waterStyle === 'river' ? 'river' : 'lake';
+    state.bank = validBankStyle(config.bank);
     state.floating = ['lanterns', 'petals'].includes(config.floating) ? config.floating : '';
     // Kịch bản cũ ghi waterLife: false (tắt cả cò, vịt, cá, gỗ)
     WATER_THINGS.forEach(key => {
@@ -5268,7 +5298,7 @@ Object.assign(window, {
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
     togglePreviewSound, previewAsRecipient, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
-    hideModal, setStartFrame, setScreenThemePreset, setScreenThemeField, resetScreenTheme, previewScreen, undo, redo, setOpenMode, setSmoke, setViewerOption, setWater, setWaterStyle, setFloating, setStars, setClouds, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
+    hideModal, setBank, setStartFrame, setScreenThemePreset, setScreenThemeField, resetScreenTheme, previewScreen, undo, redo, setOpenMode, setSmoke, setViewerOption, setWater, setWaterStyle, setFloating, setStars, setClouds, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
     toggleLibraryPreview, chooseLibraryItem, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
     openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, createVideo, downloadVideo, shareVideo,
     restartVideo, setTimelineView, zoomTrack, copyTrackingLink, enableOpenNotifications, checkGiftOpens,

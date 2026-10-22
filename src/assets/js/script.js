@@ -2826,7 +2826,8 @@ function render(speed) {
         calm: reduceFlashingSelector(),
         life: waterLifeFlags(),
         plants: !burstConfig || burstConfig.waterPlants !== false,
-        rocks: !burstConfig || burstConfig.waterRocks !== false
+        rocks: !burstConfig || burstConfig.waterRocks !== false,
+        bank: burstConfig && burstConfig.bank
     });
 }
 
