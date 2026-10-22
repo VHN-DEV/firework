@@ -11,8 +11,9 @@
     height: 50%;
     transition: transform 0.8s cubic-bezier(0.3, 0, 0.4, 1), opacity 0.8s;
 
+    // backwards (không both): giữ cứng trạng thái cuối thì mũ không tung lên lúc chạm mở (.gift-opening, .gift-open)
     .start-screen.is-ready & {
-        animation: capDrop 0.7s cubic-bezier(0.3, 0.7, 0.4, 1) 0.1s both;
+        animation: capDrop 0.7s cubic-bezier(0.3, 0.7, 0.4, 1) 0.1s backwards;
     }
 
     // Mặt mũ vuông nhìn chéo thành hình thoi

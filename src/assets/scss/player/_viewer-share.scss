@@ -28,9 +28,9 @@
         padding: 0;
         border: 1px solid rgba(255, 255, 255, 0.18);
         border-radius: 50%;
-        background: rgba(10, 10, 16, 0.45);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
+        // Không làm mờ nền (backdrop-filter): nút nằm trên pháo suốt buổi diễn, mỗi khung trình duyệt phải đọc lại và làm mờ
+        // phần trời phía sau (nặng với card đồ họa điện thoại) mà nút mờ 60% thì gần như không thấy khác
+        background: rgba(10, 10, 16, 0.55);
         opacity: 0.6;
         cursor: pointer;
         transition: opacity 0.2s, transform 0.2s, background-color 0.2s;

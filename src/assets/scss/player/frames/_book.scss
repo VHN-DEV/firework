@@ -113,7 +113,8 @@
     height: 40%;
     border-left: 2px solid #3f7a3a;
     border-radius: 60% 0 0 0;
-    transform: rotate(-14deg);
+    // rotate riêng (không qua transform): hoạt ảnh flameOn (transform: scale) giữ trạng thái cuối sẽ đè mất góc nghiêng
+    rotate: -14deg;
     transform-origin: 50% 100%;
 
     i {

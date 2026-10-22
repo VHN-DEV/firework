@@ -37,6 +37,9 @@
     .start-screen__content,
     .end-screen__content {
         background: linear-gradient(180deg, rgba(255, 251, 242, 0.96) 0%, rgba(246, 236, 217, 0.95) 100%);
+        // Nền đục 95%: làm mờ phía sau không thấy được mà vẫn tốn mỗi khung (hiệu ứng nền, mặt nước vẽ liên tục phía sau)
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
         border-color: rgba(var(--st-main-rgb), 0.35);
         box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.75), 0 0 60px -12px rgba(var(--st-accent-rgb), 0.5);
     }
