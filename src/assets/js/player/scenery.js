@@ -1511,25 +1511,118 @@ function bankLife(cssW) {
             }
         }
     }
-    const tufts = [];
-    for (let x = rnd() * 10; x < cssW; x += 5 + rnd() * 16) {
-        const reed = rnd() < 0.13;
+    // Bụi cỏ, khóm lau (có bông cỏ nến): mỗi bụi dùng một trong các mẫu bụi, đung đưa theo nhịp riêng
+    const templates = [];
+    for (let i = 0; i < TUFT_GRASS + TUFT_REEDS; i++) {
+        const reed = i >= TUFT_GRASS;
         const tall = reed ? 9 + rnd() * 9 : 3 + rnd() * 6;
         const n = 3 + ((rnd() * (reed ? 4 : 5)) | 0);
-        tufts.push({
-            x, reed, phase: rnd() * 6, base: bankDip(x) + 0.6,
+        templates.push({
+            reed,
             blades: Array.from({ length: n }, () => ({
                 dx: (rnd() - 0.5) * (reed ? 4 : 5), h: tall * (0.55 + rnd() * 0.5), lean: (rnd() - 0.5) * (reed ? 1.5 : 3),
                 color: (rnd() * 4) | 0, cattail: reed && rnd() < 0.45
             }))
         });
     }
+    const tufts = [];
+    for (let x = rnd() * 10; x < cssW; x += 5 + rnd() * 16) {
+        const reed = rnd() < 0.13;
+        tufts.push({ x, phase: rnd() * 6, base: bankDip(x) + 0.6, template: reed ? TUFT_GRASS + ((rnd() * TUFT_REEDS) | 0) : (rnd() * TUFT_GRASS) | 0 });
+    }
     const flies = Array.from({ length: Math.max(4, Math.round(cssW / (IS_MOBILE ? 60 : 110))) }, () => ({
         x: rnd() * cssW, h: 3 + rnd() * 22, roam: 10 + rnd() * 30, speed: 0.00015 + rnd() * 0.0003, phase: rnd() * 100,
         rate: 0.0012 + rnd() * 0.0016, size: 1.6 + rnd() * 1.4
     }));
-    bankLifeCache = { key, fringe, fringeColors, bushes, bushLight, tufts, flies };
+    bankLifeCache = { key, fringe, fringeColors, bushes, bushLight, templates, tufts, flies };
     return bankLifeCache;
+}
+
+// Cỏ ngắn, bụi cây đứng yên: vẽ sẵn một lần vào ảnh riêng theo cỡ khung và mật độ điểm ảnh, mỗi khung chỉ dán lại
+let bankStillCache = { key: '', canvas: null };
+const BANK_STILL_UP = 18;
+
+function bankStill(life, cssW, k) {
+    const key = `${life.key}_${k.toFixed(3)}`;
+    if (bankStillCache.key === key) return bankStillCache.canvas;
+    const c = document.createElement('canvas');
+    c.width = Math.ceil(cssW * k);
+    c.height = Math.ceil((BANK_STILL_UP + 4) * k);
+    const g = c.getContext('2d');
+    g.setTransform(k, 0, 0, k, 0, BANK_STILL_UP * k);
+    g.lineCap = 'round';
+    g.fillStyle = '#16231a';
+    g.fill(life.bushes);
+    g.fillStyle = 'rgba(52, 78, 56, 0.55)';
+    g.fill(life.bushLight);
+    g.lineWidth = 0.6;
+    life.fringe.forEach((path, i) => {
+        g.strokeStyle = life.fringeColors[i];
+        g.stroke(path);
+    });
+    bankStillCache = { key, canvas: c };
+    return c;
+}
+
+// Bụi cỏ, khóm lau đung đưa: mỗi mẫu bụi dựng sẵn ở TUFT_STEPS mức ngả theo gió (một tấm ảnh chung, mỗi hàng một mẫu),
+// mỗi khung chỉ dán đúng mức ngả của từng bụi. Vẽ lại vài trăm lá cỏ bằng đường mỗi khung rất tốn (card đồ họa vẽ đường
+// nhiều mảnh nhỏ chậm), làm cả lớp bầu trời và bóng phản chiếu chậm theo.
+const TUFT_GRASS = 10;
+const TUFT_REEDS = 4;
+const TUFT_STEPS = 24;
+const TUFT_SWAY = [-0.45, 1.6];
+// Ô của mỗi hình (điểm ảnh CSS): gốc bụi ở giữa, cách đáy TUFT_FOOT
+const TUFT_W = 36;
+const TUFT_H = 24;
+const TUFT_FOOT = 3;
+const TUFT_COLORS = ['#2a4228', '#365231', '#43603a', '#223823', '#45583a', '#56623c', '#625c3f', '#4d5838'];
+let tuftAtlasCache = { key: '', canvas: null };
+
+function tuftAtlas(life, k) {
+    const key = `${life.key}_${k.toFixed(3)}`;
+    if (tuftAtlasCache.key === key) return tuftAtlasCache.canvas;
+    const c = document.createElement('canvas');
+    c.width = Math.ceil(TUFT_STEPS * TUFT_W * k);
+    c.height = Math.ceil(life.templates.length * TUFT_H * k);
+    const g = c.getContext('2d');
+    g.setTransform(k, 0, 0, k, 0, 0);
+    life.templates.forEach((tpl, row) => {
+        for (let step = 0; step < TUFT_STEPS; step++) {
+            const sway = TUFT_SWAY[0] + (TUFT_SWAY[1] - TUFT_SWAY[0]) * step / (TUFT_STEPS - 1);
+            const ox = step * TUFT_W + TUFT_W / 2;
+            const base = row * TUFT_H + TUFT_H - TUFT_FOOT;
+            // Lá thon: chân rộng, ngọn nhọn, uốn theo đường cong qua điểm giữa
+            tpl.blades.forEach(blade => {
+                const bx = ox + blade.dx;
+                const bend = (sway * (tpl.reed ? 0.55 : 1) + blade.lean / blade.h) * blade.h * 0.45;
+                const tipY = base - blade.h * (1 - 0.15 * Math.min(1, Math.abs(bend) / blade.h));
+                const midX = bx * 0.25 + (bx + bend * 0.2) * 0.5 + (bx + bend) * 0.25;
+                const midY = base * 0.25 + (base - blade.h * 0.55) * 0.5 + tipY * 0.25;
+                const half = tpl.reed ? 0.6 : 0.55;
+                g.fillStyle = TUFT_COLORS[(tpl.reed ? 4 : 0) + blade.color];
+                g.beginPath();
+                g.moveTo(bx - half, base);
+                g.lineTo(midX - half * 0.72, midY);
+                g.lineTo(bx + bend, tipY);
+                g.lineTo(midX + half * 0.72, midY);
+                g.lineTo(bx + half, base);
+                g.closePath();
+                g.fill();
+                if (blade.cattail) {
+                    g.save();
+                    g.fillStyle = '#4a321e';
+                    g.translate(bx + bend * 0.85, base - blade.h * 0.82);
+                    g.rotate(Math.atan2(bend, blade.h));
+                    g.beginPath();
+                    g.ellipse(0, 0, 0.8, 2.2, 0, 0, Math.PI * 2);
+                    g.fill();
+                    g.restore();
+                }
+            });
+        }
+    });
+    tuftAtlasCache = { key, canvas: c };
+    return c;
 }
 
 // Vẽ phần nhô lên của bờ ở lớp bầu trời (ground: chân trời, điểm ảnh CSS; clock: đồng hồ của bầu trời). Gió thổi từng
@@ -1537,58 +1630,29 @@ function bankLife(cssW) {
 // Mặt nước soi lại lớp bầu trời nên bóng cỏ, đom đóm cũng in xuống nước.
 function drawBankSkyline(ctx, cssW, ground, clock, calm) {
     const life = bankLife(cssW);
+    const k = ctx.getTransform().a || 1;
+    const still = bankStill(life, cssW, k);
+    const atlas = tuftAtlas(life, k);
     ctx.save();
-    ctx.translate(0, ground);
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
-    ctx.lineCap = 'round';
-    ctx.fillStyle = '#16231a';
-    ctx.fill(life.bushes);
-    ctx.fillStyle = 'rgba(52, 78, 56, 0.55)';
-    ctx.fill(life.bushLight);
-    ctx.lineWidth = 0.6;
-    life.fringe.forEach((path, i) => {
-        ctx.strokeStyle = life.fringeColors[i];
-        ctx.stroke(path);
-    });
-    const colors = ['#2a4228', '#365231', '#43603a', '#223823', '#45583a', '#56623c', '#625c3f', '#4d5838'];
-    const paths = colors.map(() => new Path2D());
-    const tails = [];
+    ctx.drawImage(still, 0, ground - BANK_STILL_UP, still.width / k, still.height / k);
+    const cellW = TUFT_W * k;
+    const cellH = TUFT_H * k;
     life.tufts.forEach(tuft => {
         const gust = Math.pow(0.5 + 0.5 * Math.sin(tuft.x * 0.006 - clock * 0.0007), 3);
         const sway = calm ? 0.15 : Math.sin(clock * 0.0017 + tuft.x * 0.03 + tuft.phase) * 0.3 + gust * 1.1
             + Math.sin(clock * 0.0041 + tuft.phase * 3) * 0.1;
-        tuft.blades.forEach(blade => {
-            const bx = tuft.x + blade.dx;
-            const bend = (sway * (tuft.reed ? 0.55 : 1) + blade.lean / blade.h) * blade.h * 0.45;
-            const tipY = tuft.base - blade.h * (1 - 0.15 * Math.min(1, Math.abs(bend) / blade.h));
-            const path = paths[(tuft.reed ? 4 : 0) + blade.color];
-            path.moveTo(bx, tuft.base);
-            path.quadraticCurveTo(bx + bend * 0.2, tuft.base - blade.h * 0.55, bx + bend, tipY);
-            if (blade.cattail) tails.push([bx + bend * 0.85, tuft.base - blade.h * 0.82, Math.atan2(bend, blade.h)]);
-        });
-    });
-    paths.forEach((path, i) => {
-        ctx.strokeStyle = colors[i];
-        ctx.lineWidth = i < 4 ? 0.7 : 0.85;
-        ctx.stroke(path);
-    });
-    ctx.fillStyle = '#4a321e';
-    tails.forEach(([x, y, a]) => {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(a);
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 0.8, 2.2, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+        const step = Math.round(Math.min(1, Math.max(0, (sway - TUFT_SWAY[0]) / (TUFT_SWAY[1] - TUFT_SWAY[0]))) * (TUFT_STEPS - 1));
+        ctx.drawImage(atlas, step * cellW, tuft.template * cellH, cellW, cellH,
+            tuft.x - TUFT_W / 2, ground + tuft.base - (TUFT_H - TUFT_FOOT), TUFT_W, TUFT_H);
     });
     const glow = fireflyGlow();
     ctx.globalCompositeOperation = 'lighter';
     life.flies.forEach(fly => {
         const t = clock * fly.speed + fly.phase;
         const x = (((fly.x + Math.sin(t) * fly.roam + Math.sin(t * 2.3) * 4) % cssW) + cssW) % cssW;
-        const y = bankDip(x) - fly.h - Math.sin(t * 1.7) * 3;
+        const y = ground + bankDip(x) - fly.h - Math.sin(t * 1.7) * 3;
         const on = calm ? 0.4 : Math.pow(Math.max(0, Math.sin(clock * fly.rate + fly.phase * 7)), 6);
         if (on < 0.02) return;
         const size = fly.size * 4;
@@ -2144,7 +2208,9 @@ export const Water = {
             m.drawImage(bg.image, (cssW - w) / 2, horizonCss - h, w, h);
             m.globalAlpha = 1;
         }
-        m.globalCompositeOperation = 'lighten';
+        // Ghép các lớp kiểu cộng sáng: card đồ họa làm sẵn được (kiểu "lighten" như trên trang thì card phải chép lại vùng
+        // đích cho từng lần vẽ, rất chậm trên card tích hợp); lớp vệt pháo phủ đen dần nên phần đen không cộng thêm gì
+        m.globalCompositeOperation = 'lighter';
         sources.forEach(src => {
             if (!src || !src.width) return;
             const sk = src.width / cssW;
@@ -2173,8 +2239,8 @@ export const Water = {
         this.flow += dt * (river ? 0.03 : 0.004);
         // Dải cao khoảng 2-3 điểm ảnh CSS dù lớp vẽ nét hay thưa (cùng dáng sóng, cùng số lần vẽ)
         const strip = Math.max(1, Math.round((IS_MOBILE ? 6 : 4) * k));
-        // Ghép kiểu lighten như các lớp trên trang: phần đen (lớp vệt pháo được phủ đen dần) không làm tối mặt nước
-        ctx.globalCompositeOperation = 'lighten';
+        // Ghép kiểu cộng sáng: phần đen (lớp vệt pháo được phủ đen dần) không làm tối mặt nước, card đồ họa làm sẵn được
+        ctx.globalCompositeOperation = 'lighter';
         for (let y = 0, i = 0; y < reflDepth; i++) {
             const d = y / reflDepth;
             const band = Math.max(strip, Math.round((strip + d * (river ? 9 : 5) * k * 2) / strip) * strip);
@@ -2213,17 +2279,29 @@ export const Water = {
             ctx.globalAlpha = (calm ? 0.07 : 0.04 + 0.05 * (0.5 + 0.5 * Math.sin(time * swell.speed * 1.3 + swell.phase))) * (1 - swell.d * 0.4);
             ctx.fillRect(x, row, len, thin);
         });
-        this.dashes.forEach(dash => {
-            const x = (((dash.u * (cssW + 40) + this.flow * (river ? 0.4 + dash.d * 1.2 : 0.3)) % (cssW + 40)) - 20) * k;
-            const row = surf + Math.round(dash.d * (H - surf - 1));
-            const len = Math.max(1, dash.len * (0.5 + dash.d) * k);
-            const twinkle = calm ? 0.6 : 0.2 + 0.8 * Math.pow(0.5 + 0.5 * Math.sin(time * dash.speed + dash.phase), 2);
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.globalAlpha = twinkle * 0.42 * (1 - dash.d * 0.35);
-            ctx.fillStyle = dash.color;
-            ctx.fillRect(x, row, len, thin);
-            ctx.globalCompositeOperation = 'lighter';
-            ctx.globalAlpha = twinkle;
+        // Vệt sóng: màu riêng của vệt, cộng thêm màu bóng phản chiếu ngay dưới vệt (ánh pháo, ánh trăng làm vệt sáng rực).
+        // Hai lượt gom (tô hết màu rồi mới cộng sáng hết bóng): đổi kiểu ghép từng vệt làm card đồ họa phải ngắt mạch vẽ
+        // vài trăm lần mỗi khung
+        const twinkles = this.dashes.map(dash => (calm ? 0.6 : 0.2 + 0.8 * Math.pow(0.5 + 0.5 * Math.sin(time * dash.speed + dash.phase), 2)));
+        const dashX = dash => (((dash.u * (cssW + 40) + this.flow * (river ? 0.4 + dash.d * 1.2 : 0.3)) % (cssW + 40)) - 20) * k;
+        const dashRow = dash => surf + Math.round(dash.d * (H - surf - 1));
+        const dashLen = dash => Math.max(1, dash.len * (0.5 + dash.d) * k);
+        let dashFill = '';
+        ctx.globalCompositeOperation = 'source-over';
+        this.dashes.forEach((dash, i) => {
+            ctx.globalAlpha = twinkles[i] * 0.42 * (1 - dash.d * 0.35);
+            if (dash.color !== dashFill) {
+                dashFill = dash.color;
+                ctx.fillStyle = dashFill;
+            }
+            ctx.fillRect(dashX(dash), dashRow(dash), dashLen(dash), thin);
+        });
+        ctx.globalCompositeOperation = 'lighter';
+        this.dashes.forEach((dash, i) => {
+            const x = dashX(dash);
+            const row = dashRow(dash);
+            const len = dashLen(dash);
+            ctx.globalAlpha = twinkles[i];
             ctx.drawImage(mirror, Math.max(0, x), Math.max(0, row - reflTop), len, 1, x, row, len, thin);
         });
         const moon = Decor.moonGlow();
@@ -3412,7 +3490,7 @@ export const Decor = {
     // Mây có sẵn trên trời ngay từ khung hình đầu: dựng ngay dạng đầu của từng mây (dạng sau dựng dần lúc máy rảnh rồi
     // mới hòa vào). Máy chậm không kịp dựng hết thì mây chưa dựng xếp ngoài mép đầu gió, trôi dần vào khung.
     buildClouds() {
-        const until = performance.now() + 150;
+        const until = performance.now() + 250;
         this.clouds.forEach(cloud => {
             cloud.job = buildCloud(cloud.w, cloud.h, cloud.seed, cloud.kind);
             while (!cloud.sprites && performance.now() < until) this.stepCloud(cloud);

@@ -271,7 +271,8 @@ export async function run(browser, base, { check }) {
             for (let i = 0; i < d.length; i += 4) if (match(d[i], d[i + 1], d[i + 2])) n++;
             return n;
         }, from, to, test);
-        const green = 'g > 50 && g > r + 15 && g > b + 5';
+        // Xanh lá bèo (đỏ thấp); ánh đom đóm vàng xanh in xuống nước (đỏ cao) không tính
+        const green = 'g > 50 && g > r + 15 && g > b + 5 && r < 120';
         await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
             { loop: true, events: [], water: 'half', waterLife: false, waterRocks: false });
         await sleep(800);
@@ -288,7 +289,8 @@ export async function run(browser, base, { check }) {
         await sleep(800);
         const rocks = await onWater(0.56, 1, stone);
         check('sông: có đá, gò đất giữa dòng (tắt lá bèo, sinh vật thì vẫn còn)', rocks > 100, rocks);
-        check('mặt nước: có bờ đá ở mép nước, lá bèo; tắt "Lá bèo" thì không còn', plants > 50 && noPlants === 0 && bank > 100,
+        // Tắt lá bèo: chỉ còn vài điểm quầng sáng đom đóm bên bờ in xuống nước
+        check('mặt nước: có bờ đất ở mép nước, lá bèo; tắt "Lá bèo" thì không còn', plants > 50 && noPlants < Math.max(60, plants * 0.05) && bank > 100,
             JSON.stringify({ plants, noPlants, bank }));
         check('cảnh vật không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
         await page.close();
