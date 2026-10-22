@@ -303,6 +303,48 @@ function yieldTask() {
     });
 }
 
+// Nơi nhận tệp MP4 bộ ghép ghi ra theo luồng. Phần đầu (ftyp, đầu hộp mdat: bộ ghép quay lại ghi cỡ mdat lúc kết thúc)
+// giữ riêng để sửa được; phần sau ghi nối tiếp, cứ vài MB gom vào Blob một lần (trình duyệt tự cất, cất ra đĩa khi lớn),
+// bộ nhớ của trang chỉ giữ vài MB.
+const FOLD_BYTES = 8 * 1024 * 1024;
+
+function createFileSink() {
+    let head = null;
+    let body = new Blob([]);
+    let parts = [];
+    let pending = 0;
+    let end = 0;
+    const fold = () => {
+        if (!parts.length) return;
+        body = new Blob([body, ...parts]);
+        parts = [];
+        pending = 0;
+    };
+    return {
+        // data: mảng mới của bộ ghép (giữ lại được, không cần chép); position: vị trí trong tệp
+        write(data, position) {
+            if (!head) {
+                head = data;
+                end = data.byteLength;
+                return;
+            }
+            if (position + data.byteLength <= head.byteLength) {
+                head.set(data, position);
+                return;
+            }
+            if (position !== end) throw new Error('Bộ ghép MP4 ghi lại vào phần đã gom');
+            parts.push(data);
+            pending += data.byteLength;
+            end += data.byteLength;
+            if (pending >= FOLD_BYTES) fold();
+        },
+        blob(type) {
+            fold();
+            return new Blob([head || new Uint8Array(0), body], { type });
+        }
+    };
+}
+
 /**
  * Bộ ghi MP4 width × height, fps khung/giây. Trả về null nếu trình duyệt không mã hóa được H.264.
  * addFrame(canvas): thêm một khung; addAudio(buffer): thêm tiếng (cả bài một lần); finish(): Blob MP4.
@@ -312,13 +354,16 @@ export async function createMp4Writer({ width, height, fps, bitrate }) {
     const videoConfig = await pickVideoConfig(width, height, fps, bitrate);
     if (!videoConfig) return null;
     const audio = await pickAudioConfig();
-    const { Muxer, ArrayBufferTarget } = await import('mp4-muxer');
-    const target = new ArrayBufferTarget();
+    const { Muxer, StreamTarget } = await import('mp4-muxer');
+    // Ghi theo luồng, siêu dữ liệu (moov) ở cuối tệp: mỗi đoạn vừa mã hóa xong ghi ra ngay (createFileSink). Giữ cả tệp trong
+    // bộ nhớ tới cuối (fastStart 'in-memory') rồi chép qua vùng đệm tăng gấp đôi, cắt, tạo Blob thì lúc ghép tệp tốn 4-5 lần
+    // cỡ video (3 phút Full HD ~800 MB), điện thoại dễ đóng tab. MP4 thường (không phải fMP4): xem, chia sẻ, tải lên như cũ
+    const file = createFileSink();
     const muxer = new Muxer({
-        target,
+        target: new StreamTarget({ onData: (data, position) => file.write(data, position) }),
         video: { codec: 'avc', width, height, frameRate: fps },
         audio: audio ? { codec: audio.muxer, numberOfChannels: 2, sampleRate: SAMPLE_RATE } : undefined,
-        fastStart: 'in-memory',
+        fastStart: false,
         firstTimestampBehavior: 'offset'
     });
     let failure = null;
@@ -375,7 +420,7 @@ export async function createMp4Writer({ width, height, fps, bitrate }) {
             videoEncoder.close();
             if (failure) throw failure;
             muxer.finalize();
-            return new Blob([target.buffer], { type: 'video/mp4' });
+            return file.blob('video/mp4');
         },
 
         close() {

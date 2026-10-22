@@ -969,7 +969,9 @@ async function renderVideo({ config: source, options }) {
         const config = await prepareBurstConfig({ ...source, loop: false }, { showOverlay: false });
         soundManager.setEffectsVolume(config.effectsVolume ?? 1);
         await soundManager.preload(getRequiredSoundTypes(config));
-        const music = await loadMusicForVideo(config.music);
+        let music = await loadMusicForVideo(config.music);
+        // Nhạc từ link trang khác không đọc được nên không có trong video
+        const musicCaptured = !config.music || !!music;
         if (document.fonts) await document.fonts.ready;
 
         // Từ đây thời gian chỉ trôi theo từng khung hình của video. Bỏ hẹn giờ màn kết (đồng hồ thật) của kịch bản rỗng
@@ -1024,20 +1026,20 @@ async function renderVideo({ config: source, options }) {
         timing.audio = performance.now();
         postToBuilder({ type: 'firework-record-progress', phase: 'audio', progress: 0.92 });
         const duration = frames / fps;
-        const audio = await mixAudio({
+        // Mã hóa xong tiếng thì thả nhạc đã giải mã và bản trộn (vài chục MB mỗi phút) trước khi ghép tệp
+        await writer.addAudio(await mixAudio({
             duration,
             sounds: soundManager.capture,
             effectsVolume: soundManager.effectsGain.gain.value,
             music: music && { ...music, start: musicPlayer.capture.start, end: musicPlayer.capture.end }
-        });
-        await writer.addAudio(audio);
+        }));
+        music = null;
         const blob = await writer.finish();
         postToBuilder({
             type: 'firework-record-done',
             blob,
             elapsed: duration,
-            // Nhạc từ link trang khác không đọc được nên không có trong video
-            musicCaptured: !config.music || !!music,
+            musicCaptured,
             hasAudio: writer.hasAudio,
             // Thời gian thật (ms) của từng bước: chuẩn bị, dựng hình, ghép tiếng
             timing: {
