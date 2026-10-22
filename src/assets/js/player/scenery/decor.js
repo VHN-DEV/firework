@@ -13,7 +13,7 @@ import { moonIllumination } from '../moon.js';
 import { sprites } from './util.js';
 import { bankBandCss } from './bank.js';
 import { drawBankSkyline, drawButterflies } from './bank-life.js';
-import { BALLOON_SCHEMES, balloonSprite, burnerGlow, drawPlane, lanternSprite } from './decor-sprites.js';
+import { SKY_LIFE } from './sky-life/index.js';
 import { moonSprite } from './moon-sprite.js';
 import { buildCloud } from './clouds.js';
 import { NightSky } from './night-sky.js';
@@ -52,16 +52,9 @@ export const Decor = {
             this.sky = null;
             return;
         }
-        const decor = scene.decor || [];
-        if (decor.includes('lanterns')) {
-            const count = IS_MOBILE ? 9 : 16;
-            for (let i = 0; i < count; i++) this.items.push(this.lantern(true));
-        }
-        if (decor.includes('balloons')) {
-            const count = IS_MOBILE ? 2 : 3;
-            for (let i = 0; i < count; i++) this.items.push(this.balloon(i, count, true));
-        }
-        if (decor.includes('planes')) this.items.push(this.plane(MyMath.random(1000, 4000)));
+        // Đèn trời, khinh khí cầu, máy bay (sky-life/)
+        const env = this.lifeEnv();
+        (scene.decor || []).forEach(name => SKY_LIFE[name] && this.items.push(...SKY_LIFE[name].populate(env)));
         // Sao, Dải Ngân Hà (scene.milkyWay: '' | 'faint' | 'bright'), sao băng (scene.meteors: '' | 'few' | 'shower'). Có ảnh
         // nền thành phố: chỉ ở phần trời phía trên. Cùng bầu trời như trước thì giữ nguyên (không rải lại)
         this.sky = scene.stars || scene.milkyWay || scene.meteors
@@ -221,59 +214,17 @@ export const Decor = {
         return this.height * horizon();
     },
 
-    lantern(initial) {
-        // Xa thì nhỏ và bay chậm
-        const near = Math.random();
-        const ground = this.groundY();
-        return {
-            type: 'lantern',
-            x: MyMath.random(0.04, 0.96) * this.width,
-            y: initial ? MyMath.random(0.12, 0.95) * ground : ground + MyMath.random(0, 12),
-            size: 5 + near * 7,
-            rise: 0.006 + near * 0.012,
-            sway: MyMath.random(4, 12),
-            phase: Math.random() * Math.PI * 2,
-            flicker: Math.random() * Math.PI * 2,
-            age: initial ? 5000 : 0
-        };
-    },
-
-    balloon(index, count, initial) {
-        const ground = this.groundY();
-        const dir = Math.random() < 0.5 ? -1 : 1;
-        const size = (IS_MOBILE ? 34 : 46) + Math.random() * (IS_MOBILE ? 22 : 34);
-        return {
-            type: 'balloon',
-            scheme: (index + Math.floor(Math.random() * 4)) % BALLOON_SCHEMES.length,
-            x: initial ? (index + 0.5) / count * this.width + MyMath.random(-40, 40) : (dir > 0 ? -size : this.width + size),
-            y: MyMath.random(0.18, 0.5) * ground,
-            size,
-            vx: dir * MyMath.random(0.008, 0.016),
-            bob: Math.random() * Math.PI * 2,
-            burn: MyMath.random(1500, 6000),
-            burning: 0
-        };
-    },
-
-    // Máy bay bay ngang trên cao, đợi một lúc (wait, ms) mới xuất hiện
-    plane(wait) {
-        const dir = Math.random() < 0.5 ? -1 : 1;
-        return {
-            type: 'plane',
-            wait,
-            x: dir > 0 ? -20 : this.width + 20,
-            y: MyMath.random(0.06, 0.3) * this.groundY(),
-            vx: dir * MyMath.random(0.02, 0.035),
-            scale: MyMath.random(0.8, 1.25),
-            t: Math.random() * 1500
-        };
+    // Môi trường cho vật bay (sky-life/): bề ngang, chân trời, gió (cùng gió mây trôi; không có mây thì một làn gió nhẹ
+    // chọn hướng một lần), ánh trăng
+    lifeEnv() {
+        if (!this.breeze) this.breeze = (Math.random() < 0.5 ? -1 : 1) * MyMath.random(0.004, 0.008);
+        return { width: this.width, ground: this.groundY(), wind: this.wind || this.breeze, light: this.moon ? this.moonLight : 0 };
     },
 
     update(timeStep) {
         if (!this.active()) return;
         this.clock += timeStep;
         if (this.sky) this.sky.update(timeStep);
-        const ground = this.groundY();
         this.clouds.forEach(cloud => {
             cloud.x += cloud.vx * timeStep;
             if (cloud.vx > 0 && cloud.x - cloud.w / 2 > this.width) cloud.x = -cloud.w / 2 - MyMath.random(0, 80);
@@ -286,35 +237,9 @@ export const Decor = {
             const target = moonIllumination(this.moon.fraction) * (1 - 0.85 * this.cover);
             this.moonLight += (target - this.moonLight) * (1 - Math.exp(-timeStep / 500));
         }
+        const env = this.lifeEnv();
         this.items.forEach((item, i) => {
-            if (item.type === 'lantern') {
-                item.age += timeStep;
-                item.y -= item.rise * timeStep;
-                item.phase += timeStep * 0.0011;
-                item.flicker += timeStep * 0.012;
-                if (item.y < -20) this.items[i] = this.lantern(false);
-            } else if (item.type === 'plane') {
-                if (item.wait > 0) {
-                    item.wait -= timeStep;
-                    return;
-                }
-                item.t += timeStep;
-                item.x += item.vx * timeStep;
-                if (item.x < -30 || item.x > this.width + 30) this.items[i] = this.plane(MyMath.random(8000, 22000));
-            } else {
-                item.x += item.vx * timeStep;
-                item.bob += timeStep * 0.0009;
-                item.burn -= timeStep;
-                if (item.burn <= 0) {
-                    item.burning = 1200;
-                    item.burn = MyMath.random(3500, 8000);
-                }
-                item.burning = Math.max(0, item.burning - timeStep);
-                if (item.x < -item.size * 2 || item.x > this.width + item.size * 2) {
-                    this.items[i] = this.balloon(i, 1, false);
-                    this.items[i].y = MyMath.random(0.18, 0.5) * ground;
-                }
-            }
+            if (!item.kind.update(item, timeStep, env)) this.items[i] = item.kind.respawn(item, env);
         });
     },
 
@@ -431,31 +356,9 @@ export const Decor = {
         }
         ctx.globalCompositeOperation = 'source-over';
 
-        const lantern = lanternSprite();
-        this.items.forEach(item => {
-            if (item.type === 'lantern') {
-                const x = item.x + Math.sin(item.phase) * item.sway;
-                // Hiện dần khi vừa thả, mờ dần khi lên cao
-                const fadeIn = Math.min(1, item.age / 1500);
-                const fadeTop = Math.min(1, Math.max(0, item.y / (ground * 0.25)));
-                const glow = calm ? 0.9 : 0.82 + Math.sin(item.flicker) * 0.1 + Math.sin(item.flicker * 2.7) * 0.05;
-                ctx.globalAlpha = Math.max(0, fadeIn * fadeTop * glow);
-                const w = item.size * 2.2;
-                ctx.drawImage(lantern, x - w / 2, item.y - w * 0.7, w, w * 64 / 48);
-            } else if (item.type === 'plane') {
-                if (item.wait <= 0) drawPlane(ctx, item, calm);
-            } else {
-                const y = item.y + Math.sin(item.bob) * 4;
-                const w = item.size;
-                const h = w * 160 / 120;
-                ctx.globalAlpha = 0.9;
-                ctx.drawImage(balloonSprite(item.scheme), item.x - w / 2, y - h / 2, w, h);
-                // Lửa đốt bừng lên rọi sáng khinh khí cầu
-                const burn = calm ? 0.25 : 0.2 + (item.burning > 0 ? Math.sin(item.burning / 1200 * Math.PI) * 0.8 : 0);
-                ctx.globalAlpha = burn;
-                ctx.drawImage(burnerGlow(), item.x - w / 2, y - h / 2 + h * 0.1, w, w);
-            }
-        });
+        // Đèn trời, khinh khí cầu, máy bay: xa vẽ trước, gần vẽ sau
+        const view = { ...this.lifeEnv(), k, calm, flash, time: this.clock };
+        this.items.sort((a, b) => a.z - b.z).forEach(item => item.kind.draw(ctx, item, view));
         // Có mặt nước: cỏ, lau sậy, bụi cây trên bờ đất nhô lên nền trời, đom đóm
         if (horizon() < 1) drawBankSkyline(ctx, this.width, ground, this.clock, calm, glow, bankBandCss(this.height));
         if (horizon() < 1 && sceneSeason() === 'spring') drawButterflies(ctx, this.width, ground, this.clock, calm);

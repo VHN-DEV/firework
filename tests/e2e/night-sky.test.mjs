@@ -4,8 +4,8 @@
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
 
-// Bầu trời sao: sao vẽ được, Dải Ngân Hà dựng dần rồi hiện (quầng mờ phủ một dải trời), sao băng vụt qua; builder chọn sao
-// băng, Ngân Hà, lưu đúng, tóm tắt ghi rõ.
+// Bầu trời đêm: sao vẽ được, Dải Ngân Hà dựng dần rồi hiện (quầng mờ phủ một dải trời), sao băng vụt qua; đèn trời,
+// khinh khí cầu, máy bay sáng và bay; builder chọn sao băng, Ngân Hà, lưu đúng, tóm tắt ghi rõ.
 import { sleep, openPage } from './helpers.mjs';
 
 const show = (page, cfg) => page.evaluate(config => window.postMessage({ type: 'firework-preview', config, restart: true }, location.origin),
@@ -47,6 +47,27 @@ export async function run(browser, base, { check }) {
             streak = (await skyPixels(page, 1)).any;
         }
         check('mưa sao băng: có sao băng vụt qua', streak > 20, String(streak));
+
+        // Đèn trời, khinh khí cầu, máy bay: có ánh lửa ấm trên trời, và bay (hình đổi theo thời gian)
+        await show(page, { decor: ['lanterns', 'balloons', 'planes'] });
+        await sleep(2500);
+        const warm = () => page.evaluate(() => {
+            const c = document.getElementById('deco-canvas');
+            const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+            let n = 0;
+            let sum = 0;
+            for (let i = 0; i < d.length; i += 4) {
+                if (d[i + 3] > 100 && d[i] > 200 && d[i + 1] > 110 && d[i + 2] < 140) {
+                    n++;
+                    sum += i % 7919;
+                }
+            }
+            return { n, sum };
+        });
+        const a = await warm();
+        await sleep(1500);
+        const b = await warm();
+        check('đèn trời, khinh khí cầu: có ánh lửa ấm trên trời và bay đi', a.n > 40 && b.n > 40 && a.sum !== b.sum, JSON.stringify({ a, b }));
         check('bầu trời sao không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
         await page.close();
