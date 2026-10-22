@@ -24,6 +24,8 @@ export const state = {
     waterStyle: 'lake',
     // Kiểu bờ bên kia mặt nước ('' = bờ đất), xem player/bank-styles.js
     bank: '',
+    // Người ngắm pháo đứng ở bờ bên này ('' không, 'man', 'woman', 'couple'), xem player/people-options.js
+    people: '',
     // Mùa ('' hạ, 'auto' theo ngày xem, 'spring', 'autumn', 'winter') và thời tiết ('' / 'rain' / 'snow'), xem player/seasons.js
     season: '',
     weather: '',

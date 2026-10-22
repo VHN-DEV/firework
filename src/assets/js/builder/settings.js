@@ -7,6 +7,7 @@
 // Khung bắt đầu, giao diện màn mở quà và màn kết, nhóm cài đặt và dòng tóm tắt, hẹn giờ mở quà.
 
 import { BANK_STYLES } from '../player/bank-styles.js';
+import { PEOPLE_OPTIONS } from '../player/people-options.js';
 import { SEASONS, WEATHERS } from '../player/seasons.js';
 import { SCREEN_CARDS, SCREEN_EFFECTS, SCREEN_FONTS, SCREEN_ICONS, SCREEN_THEMES, compactScreenTheme, loadScreenFont, resolveScreenTheme } from '../player/screen-themes.js';
 import { MOON_PHASES } from '../player/moon.js';
@@ -195,6 +196,7 @@ function settingsSummaries() {
         state.smoke === 'light' ? 'Khói nhẹ' : state.smoke === 'heavy' ? 'Khói dày' : '',
         state.water ? `${state.waterStyle === 'river' ? 'Sông' : 'Hồ'} ${state.water === 'third' ? '1/3' : 'nửa'} màn hình` : '',
         state.water && state.bank && BANK_STYLES.find(b => b.value === state.bank).name,
+        state.water && state.people && `Người ngắm pháo: ${PEOPLE_OPTIONS.find(p => p.value === state.people).name.toLowerCase()}`,
         state.season && `Mùa ${state.season === 'auto' ? 'theo ngày xem' : SEASONS.find(s => s.value === state.season).name.toLowerCase()}`,
         state.weather && WEATHERS.find(w => w.value === state.weather).name,
         state.water && { lanterns: 'hoa đăng', petals: 'cánh hoa' }[state.floating]

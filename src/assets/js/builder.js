@@ -31,7 +31,7 @@ import { saveConfig } from './builder/config.js';
 import { initEditHistory, redo, undo } from './builder/history.js';
 import { setupNatureSound } from './builder/nature-ui.js';
 import { initScreenThemeControls, initSettingsGroups, previewScreen, renderSchedule, renderStartFrames, resetScreenTheme, setOpenMode, setScreenThemeField, setScreenThemePreset, setStartFrame } from './builder/settings.js';
-import { renderScene, renderSky, renderSmoke, renderViewer, setBank, setClouds, setFloating, setMeteors, setMilkyWay, setMoonMode, setMoonPhase, setSeason, setSmoke, setStars, setViewerOption, setWater, setWaterStyle, setWeather, toggleDecor } from './builder/scene.js';
+import { renderScene, renderSky, renderSmoke, renderViewer, setBank, setPeople, setClouds, setFloating, setMeteors, setMilkyWay, setMoonMode, setMoonPhase, setSeason, setSmoke, setStars, setViewerOption, setWater, setWaterStyle, setWeather, toggleDecor } from './builder/scene.js';
 import { createFromTemplate, openTemplatesModal, renderTemplateChips, selectOccasion, startBlankScript, updateTemplateStrip } from './builder/templates-ui.js';
 import { afterMusicStartChange, applyBeatShow, drawBeatChart, openBeatModal, setBeatDensity } from './builder/beat-ui.js';
 import { checkGiftOpens, copyTrackingLink, enableOpenNotifications, renderNotifyOpen, startGiftWatch } from './builder/gift-watch.js';
@@ -276,7 +276,7 @@ Object.assign(window, {
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
     togglePreviewSound, previewAsRecipient, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
-    hideModal, setBank, setSeason, setWeather, setStartFrame, setScreenThemePreset, setScreenThemeField, resetScreenTheme, previewScreen, undo, redo, setOpenMode, setSmoke, setViewerOption, setWater, setWaterStyle, setFloating, setStars, setMilkyWay, setMeteors, setClouds, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
+    hideModal, setBank, setPeople, setSeason, setWeather, setStartFrame, setScreenThemePreset, setScreenThemeField, resetScreenTheme, previewScreen, undo, redo, setOpenMode, setSmoke, setViewerOption, setWater, setWaterStyle, setFloating, setStars, setMilkyWay, setMeteors, setClouds, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
     toggleLibraryPreview, chooseLibraryItem, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
     openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, createVideo, downloadVideo, shareVideo,
     restartVideo, setTimelineView, zoomTrack, copyTrackingLink, enableOpenNotifications, checkGiftOpens,

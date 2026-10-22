@@ -534,6 +534,14 @@
                                     <!-- Các kiểu bờ do builder.js thêm vào (player/bank-styles.js) -->
                                     <div id="bank-grid" class="shell-grid frame-grid bank-grid"></div>
                                     <small id="bank-hint" class="field-hint"></small>
+                                    <label>Người ngắm pháo<button type="button" class="help-tip" data-help="people" aria-label="Giải thích">?</button></label>
+                                    <div class="segmented water-people" role="group" aria-label="Người ngắm pháo">
+                                        <button type="button" data-people="" onclick="setPeople('')">Không</button>
+                                        <button type="button" data-people="man" onclick="setPeople('man')"><span class="emoji" aria-hidden="true">🧍‍♂️</span> Nam</button>
+                                        <button type="button" data-people="woman" onclick="setPeople('woman')"><span class="emoji" aria-hidden="true">🧍‍♀️</span> Nữ</button>
+                                        <button type="button" data-people="couple" onclick="setPeople('couple')"><span class="emoji" aria-hidden="true">👫</span> Cả hai</button>
+                                    </div>
+                                    <small id="people-hint" class="field-hint"></small>
                                     <label>Vật trôi trên nước<button type="button" class="help-tip" data-help="floating" aria-label="Giải thích">?</button></label>
                                     <div class="segmented water-floating" role="group" aria-label="Vật trôi trên nước">
                                         <button type="button" data-floating="" onclick="setFloating('')">Không</button>

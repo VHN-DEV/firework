@@ -8,6 +8,7 @@
 
 import { renderShareImage } from '../share-image.js';
 import { validBankStyle } from '../player/bank-styles.js';
+import { validPeople } from '../player/people-options.js';
 import { validSeason, validWeather } from '../player/seasons.js';
 import { compactScreenTheme, resolveScreenTheme } from '../player/screen-themes.js';
 import { getOwnerKeys, saveOwnerKey } from '../gift-tracking.js';
@@ -99,6 +100,7 @@ export function getFinalConfig() {
         water: state.water || undefined,
         waterStyle: state.water && state.waterStyle === 'river' ? 'river' : undefined,
         bank: state.water && state.bank ? state.bank : undefined,
+        people: state.water && state.people ? state.people : undefined,
         floating: state.water && state.floating ? state.floating : undefined,
         ...Object.fromEntries(WATER_THINGS.map(key => [key, state.water && !state[key] ? false : undefined])),
         viewer: Object.keys(state.viewer).length ? { ...state.viewer } : undefined,
@@ -399,6 +401,7 @@ export function loadConfigIntoState(config, filename, { migrate = true } = {}) {
     state.water = ['third', 'half'].includes(config.water) ? config.water : '';
     state.waterStyle = config.waterStyle === 'river' ? 'river' : 'lake';
     state.bank = validBankStyle(config.bank);
+    state.people = validPeople(config.people);
     state.floating = ['lanterns', 'petals'].includes(config.floating) ? config.floating : '';
     // Kịch bản cũ ghi waterLife: false (tắt cả cò, vịt, cá, gỗ)
     WATER_THINGS.forEach(key => {

@@ -43,6 +43,11 @@ const HELP_TIPS = {
         + '<strong>cầu vòm cong</strong> (một cây cầu ở giữa), '
         + '<strong>thành phố</strong> về đêm như Sài Gòn (tháp cao sáng đèn, du thuyền trên sông), hoặc <strong>biển khơi</strong> không bờ (xa xa có thuyền câu mực, du thuyền, tàu khách). Đèn, nhà, cầu đều in bóng xuống nước, '
         + 'được ánh pháo rọi sáng.',
+    people: 'Nhân vật hoạt hình kiểu anime đứng ở bờ bên này, quay lưng ngắm pháo hoa (chuyển động quay từ người thật nên đi đứng tự '
+        + 'nhiên, tóc, váy bay theo bước chân). <strong>Nam</strong> hoặc <strong>Nữ</strong>: một người thong thả bước ra giữa bờ, đứng một '
+        + 'mình ngắm pháo với dáng cô đơn (cúi đầu, thở dài, nhìn sang bên cạnh trống trải, lau nước mắt). <strong>Cả hai</strong>: chàng '
+        + 'trai, cô gái từ hai phía đi lại gặp nhau ở giữa, nắm tay, tựa vai, ôm nhau ngước nhìn pháo hoa. Trời mưa, tuyết thì che ô; cặp '
+        + 'đôi gặp nhau thì cô gái gập ô, chàng trai che ô cho cô. Lần đầu xem cần tải thêm khoảng 4 MB.',
     floating: '<strong>Hoa đăng</strong>: đèn hoa sen thả nước, ánh nến in bóng xuống nước. <strong>Cánh hoa</strong>: cánh hoa hồng, trắng '
         + 'lác đác trên mặt nước. Kiểu "Sông chảy" thì chúng trôi theo dòng, "Hồ tĩnh lặng" thì gần như đứng yên, dập dềnh.',
     waterThings: '<ul>'

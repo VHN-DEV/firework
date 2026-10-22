@@ -7,6 +7,7 @@
 // Khung cảnh: khói, sao, mây, trăng, trang trí, mùa, thời tiết, mặt nước, kiểu bờ, khi người nhận xem.
 
 import { BANK_STYLES, validBankStyle } from '../player/bank-styles.js';
+import { PEOPLE_OPTIONS, validPeople } from '../player/people-options.js';
 import { SEASONS, seasonOfDate, validSeason, validWeather } from '../player/seasons.js';
 import { MOON_PHASES, moonFraction, moonIllumination, moonPhaseIndex } from '../player/moon.js';
 import { QUALITY_AUTO, validQuality } from '../player/quality.js';
@@ -179,6 +180,13 @@ function renderBankStyles() {
     document.getElementById('bank-hint').textContent = (BANK_STYLES.find(b => b.value === state.bank) || BANK_STYLES[0]).hint;
 }
 
+// Người ngắm pháo: một chàng trai, một cô gái hoặc cả hai
+export function setPeople(value) {
+    state.people = validPeople(value);
+    renderScene();
+    refreshMiniPreview();
+}
+
 export function setFloating(kind) {
     state.floating = kind;
     renderScene();
@@ -187,7 +195,7 @@ export function setFloating(kind) {
 
 export function renderScene() {
     [['.scene-water [data-water]', 'water', state.water || ''], ['.water-style [data-style]', 'style', state.waterStyle],
-        ['.water-floating [data-floating]', 'floating', state.floating || '']].forEach(([selector, attr, value]) => {
+        ['.water-floating [data-floating]', 'floating', state.floating || ''], ['.water-people [data-people]', 'people', state.people || '']].forEach(([selector, attr, value]) => {
         document.querySelectorAll(selector).forEach(btn => {
             const on = btn.dataset[attr] === value;
             btn.classList.toggle('active', on);
@@ -196,6 +204,8 @@ export function renderScene() {
     });
     document.getElementById('water-options')?.classList.toggle('hide', !state.water);
     renderBankStyles();
+    const peopleHint = document.getElementById('people-hint');
+    if (peopleHint) peopleHint.textContent = (PEOPLE_OPTIONS.find(p => p.value === state.people) || PEOPLE_OPTIONS[0]).hint;
     // Chỉ hiện thứ có trên mặt nước của kiểu bờ đang chọn: giữa biển chỉ có cá, thuyền; sông thành phố có thuyền, không có
     // đá, gò đất; các kiểu bờ khác không có thuyền
     const things = state.bank === 'none' ? ['waterFish', 'waterBoats']

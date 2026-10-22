@@ -174,6 +174,7 @@ export function createNewScript() {
         state.water = '';
         state.waterStyle = 'lake';
         state.bank = '';
+        state.people = '';
         state.floating = '';
         WATER_THINGS.forEach(key => { state[key] = true; });
         renderScene();
