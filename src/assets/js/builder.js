@@ -13,6 +13,7 @@ import {
 } from './video-export.js';
 import { OCCASIONS, buildTemplate } from './templates.js';
 import { BANK_STYLES, validBankStyle } from './player/bank-styles.js';
+import { SEASONS, WEATHERS, validSeason, validWeather, seasonOfDate } from './player/seasons.js';
 import {
     SCREEN_THEMES, SCREEN_FONTS, SCREEN_EFFECTS, SCREEN_CARDS, SCREEN_ICONS, resolveScreenTheme, compactScreenTheme, loadScreenFont
 } from './player/screen-themes.js';
@@ -57,6 +58,9 @@ const state = {
     waterStyle: 'lake',
     // Kiểu bờ bên kia mặt nước ('' = bờ đất), xem player/bank-styles.js
     bank: '',
+    // Mùa ('' hạ, 'auto' theo ngày xem, 'spring', 'autumn', 'winter') và thời tiết ('' / 'rain' / 'snow'), xem player/seasons.js
+    season: '',
+    weather: '',
     floating: '',
     // Chim, cá, khúc gỗ trên mặt nước
     // Trên mặt nước, bật/tắt riêng từng thứ: cò, vịt trời, cá, khúc gỗ trôi, lá bèo, đá và gò đất giữa dòng
@@ -734,6 +738,8 @@ function createNewScript() {
         state.stars = '';
         state.clouds = '';
         state.moon = null;
+        state.season = '';
+        state.weather = '';
         renderSky();
 
         // Reset background
@@ -1219,6 +1225,14 @@ const HELP_TIPS = {
         + '<strong>Tự chọn</strong>: chọn 1 trong 8 pha. Trăng trôi chậm theo một cung, phản chiếu xuống mặt nước nếu có. '
         + 'Ánh trăng làm cả bầu trời sáng xanh lên: trăng càng tròn càng sáng, trăng non gần như không; mây che trăng thì tối lại. '
         + 'Độ cao tính từ chân trời (0) tới đỉnh khung (100).',
+    season: '<strong>Xuân</strong>: cây đâm lộc non, hoa đào nở, cánh hoa bay theo gió rơi xuống trôi trên mặt nước, cỏ lấm tấm hoa, '
+        + 'bướm lượn ven bờ. <strong>Hạ</strong>: lá xanh um, sen nở, đom đóm. <strong>Thu</strong>: lá vàng, lá đỏ, lá rụng bay theo gió '
+        + 'rồi trôi trên mặt nước, cỏ úa, lau trắng. <strong>Đông</strong>: cây trơ cành đọng tuyết, bờ phủ tuyết, mặt nước đóng băng. '
+        + '<strong>Theo ngày xem</strong>: mùa của hôm người nhận mở (tính theo lập xuân, lập hạ, lập thu, lập đông). '
+        + 'Cây, cỏ, bờ, mặt nước chỉ có khi bật Mặt nước; lá rụng, cánh hoa bay thì luôn có.',
+    weather: '<strong>Mưa</strong>: mưa rơi xiên theo gió, gần to xa nhỏ, hạt mưa gợn vòng lăn tăn trên mặt nước (mặt băng thì hạt mưa vỡ '
+        + 'tung), lóe sáng khi pháo nổ. <strong>Tuyết rơi</strong>: bông tuyết lả tả bay theo gió, rơi xuống mặt nước thì tan. '
+        + 'Chọn được cùng mùa bất kỳ, vd mùa đông có tuyết rơi.',
     smoke: 'Như pháo hoa thật: mỗi quả nổ để lại một đám khói trắng, đường bay lên có vệt khói mảnh. Khói nở dần, trôi theo gió rồi tan, '
         + 'và được những quả nổ sau rọi màu. <strong>Nhẹ</strong>: thoáng qua. <strong>Dày</strong>: đám khói đặc, lâu tan. '
         + 'Người xem đặt chất lượng 480p trở xuống thì không có khói để khỏi giật.',
@@ -2627,6 +2641,8 @@ function getFinalConfig() {
         loop: document.getElementById('loop').checked,
         showBackground: state.showBackground,
         smoke: state.smoke || undefined,
+        season: state.season || undefined,
+        weather: state.weather || undefined,
         water: state.water || undefined,
         waterStyle: state.water && state.waterStyle === 'river' ? 'river' : undefined,
         bank: state.water && state.bank ? state.bank : undefined,
@@ -3263,6 +3279,8 @@ function settingsSummaries() {
         state.smoke === 'light' ? 'Khói nhẹ' : state.smoke === 'heavy' ? 'Khói dày' : '',
         state.water ? `${state.waterStyle === 'river' ? 'Sông' : 'Hồ'} ${state.water === 'third' ? '1/3' : 'nửa'} màn hình` : '',
         state.water && state.bank && BANK_STYLES.find(b => b.value === state.bank).name,
+        state.season && `Mùa ${state.season === 'auto' ? 'theo ngày xem' : SEASONS.find(s => s.value === state.season).name.toLowerCase()}`,
+        state.weather && WEATHERS.find(w => w.value === state.weather).name,
         state.water && { lanterns: 'hoa đăng', petals: 'cánh hoa' }[state.floating]
     ].filter(Boolean);
     const filename = value('filename');
@@ -3379,6 +3397,19 @@ function setMoonPhase(index) {
     refreshMiniPreview();
 }
 
+// Mùa: '' hạ, 'auto' theo ngày người nhận xem, 'spring' / 'autumn' / 'winter'
+function setSeason(value) {
+    state.season = validSeason(value);
+    renderSky();
+    refreshMiniPreview();
+}
+
+function setWeather(value) {
+    state.weather = validWeather(value);
+    renderSky();
+    refreshMiniPreview();
+}
+
 function toggleDecor(kind) {
     state.decor = state.decor.includes(kind) ? state.decor.filter(k => k !== kind) : [...state.decor, kind];
     renderSky();
@@ -3397,6 +3428,16 @@ function renderSky() {
     mark('.sky-clouds [data-clouds]', 'clouds', state.clouds || '');
     mark('.sky-moon [data-moon]', 'moon', mode);
     mark('.scene-decor [data-decor]', 'decor', kind => state.decor.includes(kind));
+    mark('.scene-season [data-season]', 'season', state.season);
+    mark('.scene-weather [data-weather]', 'weather', state.weather);
+    const seasonHint = document.getElementById('season-hint');
+    if (seasonHint) {
+        const season = SEASONS.find(s => s.value === state.season) || SEASONS.find(s => !s.value);
+        const today = SEASONS.find(s => s.value === (seasonOfDate(new Date()) === 'summer' ? '' : seasonOfDate(new Date())));
+        seasonHint.textContent = state.season === 'auto'
+            ? `Hôm nay: ${today.icon} mùa ${today.name.toLowerCase()}. Người nhận mở vào mùa khác sẽ thấy cảnh của mùa đó.`
+            : season.hint;
+    }
     const phases = document.getElementById('moon-phases');
     phases.classList.toggle('hide', mode !== 'pick');
     phases.innerHTML = MOON_PHASES.map((p, i) => `
@@ -4969,6 +5010,8 @@ function loadConfigIntoState(config, filename, { migrate = true } = {}) {
     state.stars = ['few', 'many'].includes(config.stars) ? config.stars : '';
     state.clouds = ['few', 'many'].includes(config.clouds) ? config.clouds : '';
     state.moon = normalizeMoon(config.moon);
+    state.season = validSeason(config.season);
+    state.weather = validWeather(config.weather);
     renderSky();
     state.background = config.background || null;
     state.music = config.music && typeof config.music.url === 'string' ? { ...config.music } : null;
@@ -5298,7 +5341,7 @@ Object.assign(window, {
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
     togglePreviewSound, previewAsRecipient, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
-    hideModal, setBank, setStartFrame, setScreenThemePreset, setScreenThemeField, resetScreenTheme, previewScreen, undo, redo, setOpenMode, setSmoke, setViewerOption, setWater, setWaterStyle, setFloating, setStars, setClouds, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
+    hideModal, setBank, setSeason, setWeather, setStartFrame, setScreenThemePreset, setScreenThemeField, resetScreenTheme, previewScreen, undo, redo, setOpenMode, setSmoke, setViewerOption, setWater, setWaterStyle, setFloating, setStars, setClouds, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
     toggleLibraryPreview, chooseLibraryItem, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
     openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, createVideo, downloadVideo, shareVideo,
     restartVideo, setTimelineView, zoomTrack, copyTrackingLink, enableOpenNotifications, checkGiftOpens,

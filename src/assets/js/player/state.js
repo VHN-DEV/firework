@@ -68,6 +68,20 @@ export function setHorizon(check) {
     horizon = check;
 }
 
+// Mùa của cảnh ('spring' | 'summer' | 'autumn' | 'winter', kịch bản chọn hoặc theo ngày xem) và thời tiết ('' | 'rain' |
+// 'snow'). Trình phát cắm hàm thật vào lúc khởi động.
+export let season = () => 'summer';
+
+export function setSeason(check) {
+    season = check;
+}
+
+export let weather = () => '';
+
+export function setWeather(check) {
+    weather = check;
+}
+
 // Mức khói pháo: 0 tắt, 1 nhẹ, 2 dày (kịch bản chọn; chất lượng 480p trở xuống thì tắt). Trình phát cắm hàm thật vào lúc khởi động.
 export let smokeLevel = () => 0;
 

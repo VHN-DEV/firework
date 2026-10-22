@@ -3561,8 +3561,35 @@ select.is-invalid {
 .segmented.sky-stars,
 .segmented.sky-clouds,
 .segmented.sky-moon,
-.segmented.scene-decor {
+.segmented.scene-decor,
+.segmented.scene-weather {
     grid-template-columns: repeat(3, 1fr);
+}
+
+// Mùa: "Theo ngày xem" một hàng, bốn mùa một hàng. Mùa, thời tiết: biểu tượng trên, tên dưới (khung hẹp không rớt chữ lệch nhau)
+.segmented.scene-season {
+    grid-template-columns: repeat(4, 1fr);
+
+    [data-season="auto"] {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        gap: 0.4rem;
+    }
+}
+
+.segmented.scene-season button,
+.segmented.scene-weather button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    line-height: 1.15;
+
+    .emoji {
+        font-size: 1.05rem;
+        line-height: 1;
+    }
 }
 
 // Kiểu mặt nước, vật trôi (hiện khi có mặt nước)

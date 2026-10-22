@@ -20,7 +20,7 @@ import {
 } from './player/env.js';
 import {
     setQuality, quality, isLowQuality, isHighQuality, stageW, stageH, setStageSize, setSimSpeed, simSpeed,
-    setReduceFlashing, setCanPlaySound, setSoundEnabled, setSettings, setIsRunning, setSmokeLevel, setHorizon
+    setReduceFlashing, setCanPlaySound, setSoundEnabled, setSettings, setIsRunning, setSmokeLevel, setHorizon, setSeason, setWeather
 } from './player/state.js';
 import { QUALITY_AUTO, QUALITY_LEVELS, qualityLevel, validQuality } from './player/quality.js';
 import {
@@ -40,7 +40,8 @@ import { imageParticleCache, getProcessedImage, ImageBurst } from './player/imag
 import { imageCacheKey } from './player/image-frame.js';
 import { Shell } from './player/shell.js';
 import { Smoke, SMOKE_RESOLUTION } from './player/smoke.js';
-import { Water, Decor, WATER_RESOLUTION } from './player/scenery.js';
+import { Water, Decor, Weather, WATER_RESOLUTION } from './player/scenery.js';
+import { resolveSeason, validWeather } from './player/seasons.js';
 import { MOON_PHASES, moonFraction } from './player/moon.js';
 import { START_FRAMES, frameText } from './player/start-frames.js';
 import { resolveScreenTheme, applyScreenTheme, createScreenAmbient, themedTitle } from './player/screen-themes.js';
@@ -392,6 +393,13 @@ const waterLifeFlags = () => {
     };
 };
 setHorizon(horizonSelector);
+// Mùa của cảnh (theo ngày xem thì tính một lần khi mở kịch bản) và thời tiết
+let seasonCache = { config: undefined, value: 'summer' };
+setSeason(() => {
+    if (seasonCache.config !== burstConfig) seasonCache = { config: burstConfig, value: resolveSeason(burstConfig && burstConfig.season) };
+    return seasonCache.value;
+});
+setWeather(() => (burstConfig && validWeather(burstConfig.weather)) || '');
 // Bầu trời đêm theo kịch bản: sao, trăng, trang trí. Kịch bản cũ ghi decor dạng chữ ("both" = đèn trời + khinh khí cầu).
 const DECOR_KINDS = ['lanterns', 'balloons', 'planes'];
 const DECOR_ALIASES = { lanterns: ['lanterns'], balloons: ['balloons'], both: ['lanterns', 'balloons'] };
@@ -2813,7 +2821,7 @@ function render(speed) {
     mainCtx.setTransform(1, 0, 0, 1, 0, 0);
 
     // Mặt nước phản chiếu mọi thứ phía trên (vẽ sau cùng để bắt kịp khung hình này)
-    Water.render(waterCtx, {
+    const waterState = Water.render(waterCtx, {
         // Lớp đang trống (không trang trí, không khói) thì bỏ qua cho nhẹ máy
         sources: [Decor.active() && decoCanvas, Smoke.count() && smokeCanvas, trailsStage.canvas, mainStage.canvas],
         background: store.state.config.showBackground ? appNodes.backgroundImage : null,
@@ -2829,6 +2837,8 @@ function render(speed) {
         rocks: !burstConfig || burstConfig.waterRocks !== false,
         bank: burstConfig && burstConfig.bank
     });
+    // Mưa, tuyết rơi trên cùng (cùng lớp mặt nước: không in bóng xuống nước)
+    Weather.render(waterCtx, { cssW: frameW, cssH: frameH, time: now(), sky: currentSkyColor, state: waterState });
 }
 
 

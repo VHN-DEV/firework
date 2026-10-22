@@ -14,7 +14,7 @@
 
 import MyMath from '../MyMath.js';
 import { IS_MOBILE } from './env.js';
-import { horizon, reduceFlashing, isLowQuality } from './state.js';
+import { horizon, reduceFlashing, isLowQuality, season as sceneSeason, weather as sceneWeather } from './state.js';
 import { moonIllumination } from './moon.js';
 import { validBankStyle } from './bank-styles.js';
 
@@ -3447,10 +3447,10 @@ export const Water = {
         if (level >= 1 || !W || !H) {
             if (this.drawn) ctx.clearRect(0, 0, W, H);
             this.drawn = false;
-            return;
+            return 'none';
         }
         // Chất lượng 480p trở xuống: vẽ lại cách một khung hình
-        if (isLowQuality && this.drawn && (++this.frame & 1)) return;
+        if (isLowQuality && this.drawn && (++this.frame & 1)) return 'skip';
         this.drawn = true;
         spriteRes = W / cssW > 1.35 ? 4 : 2;
         bankStyle = validBankStyle(bankKind);
@@ -3728,6 +3728,7 @@ export const Water = {
 
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
+        return 'drawn';
     },
 
     // Rải lại các vệt sáng khi đổi kiểu nước hoặc cỡ khung
@@ -3949,6 +3950,189 @@ export const Water = {
                 });
             }
         }
+    }
+};
+
+// ---------------------------------------------------------------------------
+// Thời tiết: mưa, tuyết rơi. Vẽ trên lớp mặt nước (lớp trên cùng, phủ cả khung) nên không in bóng xuống nước mà vẫn có
+// trong ảnh chụp, video; hạt mưa rơi xuống mặt nước gợn vòng lăn tăn (mặt băng thì vỡ tung thành chấm sáng).
+// ---------------------------------------------------------------------------
+
+// Bông tuyết: chấm tròn mềm
+let flakeSprite = null;
+function snowflakeSprite() {
+    if (!flakeSprite) {
+        const c = document.createElement('canvas');
+        c.width = c.height = 32;
+        const g = c.getContext('2d');
+        const grad = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+        grad.addColorStop(0, 'rgba(240, 245, 255, 1)');
+        grad.addColorStop(0.35, 'rgba(230, 238, 252, 0.85)');
+        grad.addColorStop(0.7, 'rgba(220, 230, 250, 0.25)');
+        grad.addColorStop(1, 'rgba(220, 230, 250, 0)');
+        g.fillStyle = grad;
+        g.fillRect(0, 0, 32, 32);
+        flakeSprite = c;
+    }
+    return flakeSprite;
+}
+
+export const Weather = {
+    drops: [],
+    flakes: [],
+    ripples: [],
+    last: 0,
+    key: '',
+    drawn: false,
+
+    // Rải lại khi đổi thời tiết hoặc cỡ khung. Hạt mưa, bông tuyết có độ xa gần z (0 xa, 1 gần): gần thì to, rơi nhanh,
+    // chạm mặt nước gần người xem; xa thì nhỏ, chậm, chạm mặt nước sát chân trời
+    sync(kind, cssW, cssH) {
+        const key = `${kind}_${Math.round(cssW)}_${Math.round(cssH)}_${isLowQuality}`;
+        if (key === this.key) return;
+        this.key = key;
+        const area = cssW * cssH * (isLowQuality ? 0.6 : 1);
+        const count = (per, min, max) => Math.round(Math.max(min, Math.min(max, area / per)));
+        this.drops = kind === 'rain' ? Array.from({ length: count(3500, 120, 420) }, () => this.drop(cssW, cssH, true)) : [];
+        this.flakes = kind === 'snow' ? Array.from({ length: count(3000, 120, 480) }, () => this.flake(cssW, cssH, true)) : [];
+        this.ripples = [];
+    },
+
+    drop(cssW, cssH, anywhere) {
+        return {
+            x: Math.random() * (cssW + 200) - 150,
+            y: anywhere ? Math.random() * cssH : -40 - Math.random() * cssH * 0.3,
+            z: 0.25 + Math.random() * 0.75,
+            land: Math.random()
+        };
+    },
+
+    flake(cssW, cssH, anywhere) {
+        return {
+            x: Math.random() * (cssW + 160) - 120,
+            y: anywhere ? Math.random() * cssH : -10 - Math.random() * 60,
+            z: 0.15 + Math.random() * 0.85,
+            phase: Math.random() * 6.3,
+            land: Math.random(),
+            fade: 1
+        };
+    },
+
+    // state: Water.render vừa vẽ lại mặt nước ('drawn'), bỏ qua khung này ('skip', chất lượng thấp) hay không có mặt nước
+    // ('none': lớp trống, tự xóa phần mưa, tuyết của khung trước). sky: màu trời theo ánh pháo (rọi sáng hạt mưa, tuyết)
+    render(ctx, { cssW, cssH, time, sky, state }) {
+        const kind = sceneWeather();
+        this.sync(kind, cssW, cssH);
+        const dt = Math.min(50, this.last ? time - this.last : 16);
+        this.last = time;
+        if (state === 'skip') return;
+        const { width: W, height: H } = ctx.canvas;
+        if (state === 'none' && this.drawn) ctx.clearRect(0, 0, W, H);
+        this.drawn = false;
+        if (!this.drops.length && !this.flakes.length && !this.ripples.length) return;
+        this.drawn = true;
+        const k = W / cssW;
+        const level = horizon();
+        const water = level < 1;
+        const topCss = water ? level * cssH + bankBandCss(cssH) : cssH;
+        const frozen = water && sceneSeason() === 'winter';
+        // Chỗ chạm: mặt nước ở độ xa d (0 sát chân trời, 1 sát người xem); không có mặt nước thì rơi ra khỏi khung
+        const landAt = d => (water ? topCss + d * (cssH - topCss) : cssH + 60);
+        // Gió thổi từng đợt (từ trái sang phải)
+        const wind = 0.6 + 0.4 * Math.sin(time * 0.00021) + 0.3 * Math.sin(time * 0.00063 + 1);
+        ctx.save();
+        ctx.setTransform(k, 0, 0, k, 0, 0);
+        ctx.globalCompositeOperation = 'source-over';
+        if (this.drops.length) this.rain(ctx, dt, time, wind, sky, landAt, water, cssW, cssH, topCss);
+        if (this.ripples.length) this.drawRipples(ctx, time, frozen);
+        if (this.flakes.length) this.snow(ctx, dt, time, wind, landAt, water && !frozen, cssW, cssH);
+        ctx.restore();
+    },
+
+    // Mưa xiên theo gió: mỗi hạt một vệt dài theo tốc độ rơi (gần dài, đậm), gom ba lượt vẽ theo độ xa
+    rain(ctx, dt, time, wind, sky, landAt, water, cssW, cssH, topCss) {
+        const paths = [new Path2D(), new Path2D(), new Path2D()];
+        const slant = 0.1 + 0.09 * wind;
+        this.drops.forEach(drop => {
+            const v = 0.9 + drop.z * 1.3;
+            const d = Math.min(1, drop.land * 0.35 + (drop.z - 0.25) * 0.9);
+            const end = landAt(d);
+            drop.y += v * dt;
+            drop.x += v * slant * dt;
+            if (drop.y >= end) {
+                if (water && this.ripples.length < 160) this.ripples.push({ x: drop.x, y: end, d, t: time });
+                Object.assign(drop, this.drop(cssW, cssH, false));
+                return;
+            }
+            const len = 12 + drop.z * 34;
+            const path = paths[drop.z < 0.5 ? 0 : drop.z < 0.8 ? 1 : 2];
+            path.moveTo(drop.x, drop.y);
+            path.lineTo(drop.x - slant * len, drop.y - len);
+        });
+        const lift = Math.min(1, (sky.r + sky.g + sky.b) / 300);
+        ctx.strokeStyle = `rgb(${Math.min(255, 165 + sky.r) | 0}, ${Math.min(255, 180 + sky.g) | 0}, ${Math.min(255, 210 + sky.b) | 0})`;
+        ctx.lineCap = 'butt';
+        [[0.55, 0.15], [0.85, 0.21], [1.25, 0.28]].forEach(([width, alpha], i) => {
+            ctx.lineWidth = width;
+            ctx.globalAlpha = alpha * (1 + lift);
+            ctx.stroke(paths[i]);
+        });
+        ctx.globalAlpha = 1;
+    },
+
+    // Vòng gợn của hạt mưa trên mặt nước: elip dẹt theo phối cảnh, nở rộng rồi tan; mặt băng: chấm sáng nảy lên rồi tắt
+    drawRipples(ctx, time, frozen) {
+        const fresh = new Path2D();
+        const old = new Path2D();
+        this.ripples = this.ripples.filter(r => {
+            const life = frozen ? 160 : 520 + r.d * 380;
+            const age = (time - r.t) / life;
+            if (age >= 1) return false;
+            const size = 1.6 + r.d * 7;
+            const path = age < 0.45 ? fresh : old;
+            if (frozen) {
+                path.rect(r.x - 0.5, r.y - age * size, 1, 1);
+                return true;
+            }
+            const rx = size * (0.35 + age);
+            const ry = rx * (0.16 + r.d * 0.2);
+            path.moveTo(r.x + rx, r.y);
+            path.ellipse(r.x, r.y, rx, ry, 0, 0, Math.PI * 2);
+            return true;
+        });
+        ctx.strokeStyle = 'rgb(170, 190, 225)';
+        ctx.fillStyle = 'rgb(205, 218, 240)';
+        ctx.lineWidth = 0.7;
+        [[fresh, 0.32], [old, 0.14]].forEach(([path, alpha]) => {
+            ctx.globalAlpha = alpha;
+            if (frozen) ctx.fill(path);
+            else ctx.stroke(path);
+        });
+        ctx.globalAlpha = 1;
+    },
+
+    // Tuyết lả tả: rơi chậm, đung đưa qua lại, gió đẩy ngang; chạm mặt nước thì tan ngay, chạm băng, đất thì đọng lại một lúc
+    snow(ctx, dt, time, wind, landAt, melts, cssW, cssH) {
+        const sprite = snowflakeSprite();
+        this.flakes.forEach(flake => {
+            const end = landAt(Math.min(1, flake.land * 0.3 + (flake.z - 0.15) * 0.85));
+            if (flake.y < end) {
+                flake.y += (0.012 + flake.z * 0.04) * dt;
+                flake.x += ((0.008 + 0.022 * flake.z) * wind + Math.sin(time * 0.0011 * (0.6 + flake.z) + flake.phase) * 0.014 * (0.4 + flake.z)) * dt;
+            } else {
+                flake.y = end;
+                flake.fade -= dt / (melts ? 120 : 900);
+            }
+            if (flake.fade <= 0 || flake.x > cssW + 60) {
+                Object.assign(flake, this.flake(cssW, cssH, false));
+                return;
+            }
+            // Gần: bông to, mềm; xa: chấm nhỏ
+            const size = 0.8 + flake.z * flake.z * 4.6;
+            ctx.globalAlpha = (0.35 + 0.6 * flake.z) * flake.fade;
+            ctx.drawImage(sprite, flake.x - size, flake.y - size, size * 2, size * 2);
+        });
+        ctx.globalAlpha = 1;
     }
 };
 

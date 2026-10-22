@@ -440,6 +440,27 @@
                             </div>
 
                             <div class="field">
+                                <label>Mùa<button type="button" class="help-tip" data-help="season" aria-label="Giải thích">?</button></label>
+                                <div class="segmented scene-season" role="group" aria-label="Mùa">
+                                    <button type="button" data-season="auto" onclick="setSeason('auto')"><span class="emoji">📅</span>Theo ngày xem</button>
+                                    <button type="button" data-season="spring" onclick="setSeason('spring')"><span class="emoji">🌸</span>Xuân</button>
+                                    <button type="button" data-season="" onclick="setSeason('')"><span class="emoji">🌿</span>Hạ</button>
+                                    <button type="button" data-season="autumn" onclick="setSeason('autumn')"><span class="emoji">🍂</span>Thu</button>
+                                    <button type="button" data-season="winter" onclick="setSeason('winter')"><span class="emoji">❄️</span>Đông</button>
+                                </div>
+                                <small id="season-hint" class="field-hint"></small>
+                            </div>
+
+                            <div class="field">
+                                <label>Thời tiết<button type="button" class="help-tip" data-help="weather" aria-label="Giải thích">?</button></label>
+                                <div class="segmented scene-weather" role="group" aria-label="Thời tiết">
+                                    <button type="button" data-weather="" onclick="setWeather('')"><span class="emoji">✨</span>Trời quang</button>
+                                    <button type="button" data-weather="rain" onclick="setWeather('rain')"><span class="emoji">🌧️</span>Mưa</button>
+                                    <button type="button" data-weather="snow" onclick="setWeather('snow')"><span class="emoji">🌨️</span>Tuyết rơi</button>
+                                </div>
+                            </div>
+
+                            <div class="field">
                                 <label>Khói pháo<button type="button" class="help-tip" data-help="smoke" aria-label="Giải thích">?</button></label>
                                 <div class="segmented smoke-levels" role="group" aria-label="Khói pháo">
                                     <button type="button" data-smoke="" onclick="setSmoke('')">Tắt</button>
