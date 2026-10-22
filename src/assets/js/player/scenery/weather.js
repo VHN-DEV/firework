@@ -8,7 +8,7 @@
 
 import { horizon, isLowQuality, season as sceneSeason, weather as sceneWeather } from '../state.js';
 import { LEAF_COLORS, fallingLeafSprite } from './water-sprites.js';
-import { bankBandCss } from './bank.js';
+import { bankBandCss, bankStyle } from './bank.js';
 import { Water } from './water.js';
 import { makeCanvas } from '../utils.js';
 
@@ -103,9 +103,11 @@ export const Weather = {
         const kind = sceneWeather();
         const season = sceneSeason();
         this.sync(kind, season, cssW, cssH);
+        // Mặt nước bỏ qua khung này (chất lượng thấp): giữ mốc thời gian để khung vẽ kế tiếp tính đủ quãng đã trôi, nếu
+        // không mưa, tuyết, lá chỉ rơi nhanh bằng một nửa
+        if (state === 'skip') return;
         const dt = Math.min(50, this.last ? time - this.last : 16);
         this.last = time;
-        if (state === 'skip') return;
         const { width: W, height: H } = ctx.canvas;
         if (state === 'none' && this.drawn) ctx.clearRect(0, 0, W, H);
         this.drawn = false;
@@ -114,7 +116,8 @@ export const Weather = {
         const k = W / cssW;
         const level = horizon();
         const water = level < 1;
-        const topCss = water ? level * cssH + bankBandCss(cssH) : cssH;
+        // Mép nước ngay dưới chân bờ như Water.render (biển khơi không có bờ, chỉ một vệt chân trời mảnh)
+        const topCss = water ? level * cssH + (bankStyle === 'none' ? 1.2 : bankBandCss(cssH)) : cssH;
         const frozen = water && season === 'winter';
         // Chỗ chạm: mặt nước ở độ xa d (0 sát chân trời, 1 sát người xem); không có mặt nước thì rơi ra khỏi khung
         const landAt = d => (water ? topCss + d * (cssH - topCss) : cssH + 60);

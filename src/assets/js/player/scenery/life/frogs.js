@@ -89,6 +89,8 @@ export const FrogLife = {
             // Chỗ ngồi không còn (tắt lá bèo, đá): nhảy xuống nước
             if (frog.perch && ((frog.perch.pad && !pads.includes(frog.perch.pad)) || (frog.perch.rock && !rocks.includes(frog.perch.rock)))) {
                 frog.perch = null;
+                // Đom đóm đang lượn quanh chỗ ngồi cũ bay mất theo
+                frog.bug = null;
                 frog.state = 'under';
                 frog.t = 0;
                 frog.dur = rand(1500, 3000);

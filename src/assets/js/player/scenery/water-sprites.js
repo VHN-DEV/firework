@@ -60,9 +60,17 @@ export let spriteRes = 2;
 
 export const setSpriteRes = value => { spriteRes = value; };
 
-export function logSprite(variant) {
+// Ảnh vẽ từng điểm ảnh (khúc gỗ, đá, gò đất) ở độ phân giải đang vẽ. Vừa đổi chất lượng giữa chừng (thường đúng lúc máy
+// đang giật) mà ảnh ở độ phân giải mới chưa dựng xong thì tạm dùng ảnh đã có ở độ phân giải kia; warmWaterSprites dựng
+// ảnh mới lúc máy rảnh. Nơi dùng tính theo tỉ lệ ảnh nên vật vẫn đúng cỡ, đúng chỗ; dựng ngay một mạch thì mỗi ảnh tốn
+// hàng chục mili giây, khung hình khựng hẳn lại
+function pixelSprite(name, build) {
     const S = spriteRes;
-    return built(`log${variant}@${S}`, () => buildLog(variant, S));
+    return sprites[`${name}@${S}`] || sprites[`${name}@${S === 4 ? 2 : 4}`] || built(`${name}@${S}`, () => build(S));
+}
+
+export function logSprite(variant) {
+    return pixelSprite(`log${variant}`, S => buildLog(variant, S));
 }
 
 function* buildLog(variant, S = 2) {
@@ -273,6 +281,8 @@ function* buildLog(variant, S = 2) {
     c.wl = wl * S;
     c.top = (mid[1] - mid[2]) * S;
     c.perch = variant !== 4;
+    // Độ phân giải của ảnh (có lúc được dùng tạm ở độ phân giải khác, xem pixelSprite)
+    c.res = S;
     return c;
 }
 
@@ -375,8 +385,7 @@ export function warmWaterSprites() {
 // trên trái hứng sáng), vân đá hoa cương lấm tấm, mảng sáng tối, vết nứt mảnh, rêu trên đỉnh, chân đá ướt sẫm. Khung
 // 60 x 34, mặt nước ở hàng 24; vẽ sẵn gấp đôi cho nét.
 export function rockSprite(variant) {
-    const S = spriteRes;
-    return built(`rock${variant}@${S}`, () => buildRock(variant, S));
+    return pixelSprite(`rock${variant}`, S => buildRock(variant, S));
 }
 
 function* buildRock(variant, S = 2) {
@@ -438,6 +447,7 @@ function* buildRock(variant, S = 2) {
     const peak = stones.reduce((a, b) => (b[1] - b[3] < a[1] - a[3] ? b : a));
     c.top = (peak[1] - peak[3] + 1) * S;
     c.perchX = peak[0] / W - 0.5;
+    c.res = S;
     return c;
 }
 
@@ -446,8 +456,7 @@ function* buildRock(variant, S = 2) {
 // mỗi khung hình (đung đưa theo gió, xem drawRock): ảnh ghi reeds (vị trí gốc, độ cao, màu) theo đơn vị của khung 120 x 44.
 // Mặt nước ở hàng 34. Vẽ sẵn gấp đôi cho nét.
 export function moundSprite(variant) {
-    const S = spriteRes;
-    return built(`mound${variant}@${S}`, () => buildMound(variant, S));
+    return pixelSprite(`mound${variant}`, S => buildMound(variant, S));
 }
 
 function* buildMound(variant, S = 2) {
@@ -570,6 +579,7 @@ function* buildMound(variant, S = 2) {
     c.wl = wl * S;
     c.top = (peak + 1.5) * S;
     c.perchX = (variant ? 50 : 66) / W - 0.5;
+    c.res = S;
     return c;
 }
 
@@ -652,7 +662,7 @@ export function seasonSprite(sprite, season) {
         d[i + 2] = b + (tb - b) * t * (season === 'winter' ? 0.85 : 1);
     }
     g.putImageData(img, 0, 0);
-    if (season === 'winter' && sprite.wl) snowCap(c, 0, 0, c.width, sprite.wl, spriteRes, 1.6);
+    if (season === 'winter' && sprite.wl) snowCap(c, 0, 0, c.width, sprite.wl, sprite.res || spriteRes, 1.6);
     const reedColor = season === 'autumn' ? '#6a5c32' : '#5c5442';
     Object.assign(c, {
         wl: sprite.wl,

@@ -31,18 +31,23 @@ export const Decor = {
     cover: 0,
     width: 0,
     height: 0,
+    // Đường chân trời lúc rải cảnh (horizon(): 1 không có mặt nước)
+    level: 1,
     clock: 0,
     drawn: false,
     frame: 0,
 
     // scene: { decor: ['lanterns', 'balloons', 'planes'], stars: '' | 'few' | 'many', moon: { fraction, x, y } | null,
-    // clouds: '' | 'few' | 'many', background } hoặc null; cssW, cssH: kích thước khung. Đổi cảnh hoặc cỡ khung thì rải lại.
+    // clouds: '' | 'few' | 'many', background } hoặc null; cssW, cssH: kích thước khung. Đổi cảnh, cỡ khung hoặc mức nước
+    // (bản xem nhanh: trăng, sao, mây tính độ cao theo chân trời) thì rải lại.
     sync(scene, cssW, cssH) {
-        if (scene === this.scene && Math.abs(cssW - this.width) < 2 && Math.abs(cssH - this.height) < 2) return;
+        const level = horizon();
+        if (scene === this.scene && level === this.level && Math.abs(cssW - this.width) < 2 && Math.abs(cssH - this.height) < 2) return;
         // Chỉ đổi cỡ khung hoặc chỉnh mục khác thì giữ nguyên đám mây đang trôi (không dựng lại, không hiện lại từ đầu)
         const keep = scene && scene.clouds && this.scene && scene.clouds === this.scene.clouds && this.width > 0 ? this.clouds : null;
         const oldW = this.width;
         this.scene = scene;
+        this.level = level;
         this.width = cssW;
         this.height = cssH;
         this.items = [];
@@ -252,7 +257,8 @@ export const Decor = {
     // glow: màu trời đang ửng theo pháo ({ r, g, b }), rọi sáng mây
     render(ctx, glow) {
         const { width: W, height: H } = ctx.canvas;
-        if (!this.active()) {
+        // Khung chưa có cỡ (vd khung xem nhanh đang thu gọn): ảnh vẽ sẵn rộng 0 điểm ảnh làm drawImage báo lỗi, dừng cả vòng vẽ
+        if (!this.active() || !W || !H || !this.width) {
             if (this.drawn) ctx.clearRect(0, 0, W, H);
             this.drawn = false;
             return;

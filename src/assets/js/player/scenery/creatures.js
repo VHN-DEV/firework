@@ -360,8 +360,9 @@ export function drawEgret(ctx, cx, cy, u, dir, p, k) {
     ctx.restore();
 }
 
+// step: nhịp bước chân lúc rình mồi (cộng dồn, không làm mượt); thiếu nó thì chân cò đứng thành NaN, không được vẽ
 export const EGRET_POSE = { wing: 0.3, lag: 0, fold: 1, neck: 0, stalk: 0, strike: 0, preen: 0, peck: 0, tilt: 0, legA: Math.PI - 0.1, crouch: 0,
-    walk: 0, turn: 0, headX: 0, headY: 0, headTilt: 0, breath: 0, prey: 0, gulp: 0 };
+    walk: 0, turn: 0, headX: 0, headY: 0, headTilt: 0, breath: 0, prey: 0, gulp: 0, step: 0 };
 
 // Ếch (đêm trăng): lưng xanh rêu sẫm có đốm, bụng vàng nhạt, mắt lồi tròng vàng có ánh trăng lóe; nhìn nghiêng.
 // pose: 'sit' ngồi chồm hổm, chân sau gập (x, y: chỗ chân chạm); 'jump' duỗi dài, chân sau đạp thẳng (x, y: giữa thân,
