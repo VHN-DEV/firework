@@ -1761,6 +1761,43 @@ function drawBankSkyline(ctx, cssW, ground, clock, calm, glow, drop) {
     ctx.restore();
 }
 
+// Bướm mùa xuân: vài con chập chờn ven bờ, lượn vòng, lúc sà xuống lúc bay lên, cánh vỗ nhanh (dưới ánh trăng nên màu
+// dịu: trắng ngà, vàng, cam, xanh nhạt). Vẽ ở lớp bầu trời nên in bóng xuống nước
+const BUTTERFLY_COLORS = [['#ded8c8', '#9a9282'], ['#dcc060', '#9a8030'], ['#d89860', '#985a2c'], ['#a4b8dc', '#6478a8']];
+function drawButterflies(ctx, cssW, ground, clock, calm) {
+    const n = Math.max(3, Math.round(cssW / 240));
+    const base = ctx.getTransform();
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    for (let i = 0; i < n; i++) {
+        const t = clock * 0.0003 * (0.7 + hash(i * 3.3) * 0.6) + i * 17;
+        const span = 50 + hash(i * 4.1) * 70;
+        const x = (((hash(i * 7.9) * cssW + Math.sin(t) * span + Math.sin(t * 2.3 + 1) * 18 + t * 6) % (cssW + 40)) + cssW + 40) % (cssW + 40) - 20;
+        const y = ground + bankDip(x) - 8 - hash(i * 5.7) * 34 - Math.sin(t * 1.7) * 9 - Math.abs(Math.sin(t * 6.1)) * 4;
+        const dir = Math.cos(t) * span + Math.cos(t * 2.3 + 1) * 41 + 6 >= 0 ? 1 : -1;
+        const open = calm ? 0.7 : 0.25 + 0.75 * Math.abs(Math.sin(clock * 0.022 * (0.85 + hash(i * 2.7) * 0.3) + i * 5));
+        const size = 5 * (0.85 + hash(i * 9.1) * 0.4);
+        const [wing, edge] = BUTTERFLY_COLORS[i % BUTTERFLY_COLORS.length];
+        ctx.setTransform(base.a * dir, 0, 0, base.d, base.a * x + base.e, base.d * y + base.f);
+        // Cánh trước to, cánh sau nhỏ; nhìn nghiêng nên cánh co lại khi khép
+        [[-1, 1], [1, 0.75]].forEach(([side, part]) => {
+            const w = size * open * part;
+            ctx.fillStyle = edge;
+            ctx.beginPath();
+            ctx.ellipse(side * w * 0.55, side < 0 ? -size * 0.35 : size * 0.15, w * 0.6 + 0.2, size * 0.55 * part, side * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = wing;
+            ctx.beginPath();
+            ctx.ellipse(side * w * 0.5, side < 0 ? -size * 0.38 : size * 0.12, w * 0.45 + 0.15, size * 0.42 * part, side * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.fillStyle = '#2a241e';
+        ctx.fillRect(-0.35, -size * 0.6, 0.7, size * 1.1);
+    }
+    ctx.restore();
+}
+
 // Đốm sáng mềm của đom đóm (vẽ cộng sáng, phóng to thu nhỏ theo cỡ)
 function fireflyGlow() {
     if (sprites.firefly) return sprites.firefly;
@@ -4245,8 +4282,9 @@ export const Water = {
 };
 
 // ---------------------------------------------------------------------------
-// Thời tiết: mưa, tuyết rơi. Vẽ trên lớp mặt nước (lớp trên cùng, phủ cả khung) nên không in bóng xuống nước mà vẫn có
-// trong ảnh chụp, video; hạt mưa rơi xuống mặt nước gợn vòng lăn tăn (mặt băng thì vỡ tung thành chấm sáng).
+// Thời tiết: mưa, tuyết rơi; lá vàng (thu), cánh hoa đào (xuân) rụng bay theo gió. Vẽ trên lớp mặt nước (lớp trên cùng,
+// phủ cả khung) nên không in bóng xuống nước mà vẫn có trong ảnh chụp, video; hạt mưa rơi xuống mặt nước gợn vòng lăn tăn
+// (mặt băng thì vỡ tung thành chấm sáng); lá, cánh hoa rơi xuống nước gợn vòng rồi nằm lại trôi theo dòng.
 // ---------------------------------------------------------------------------
 
 // Lá rụng (thu: vàng, cam, đỏ, nâu) và cánh hoa đào (xuân: hồng, trắng): mỗi loại một ảnh nhỏ, vẽ xoay, lật khi bay,
@@ -4436,22 +4474,48 @@ function snowflakeSprite() {
 export const Weather = {
     drops: [],
     flakes: [],
+    leaves: [],
     ripples: [],
     last: 0,
     key: '',
     drawn: false,
 
-    // Rải lại khi đổi thời tiết hoặc cỡ khung. Hạt mưa, bông tuyết có độ xa gần z (0 xa, 1 gần): gần thì to, rơi nhanh,
-    // chạm mặt nước gần người xem; xa thì nhỏ, chậm, chạm mặt nước sát chân trời
-    sync(kind, cssW, cssH) {
-        const key = `${kind}_${Math.round(cssW)}_${Math.round(cssH)}_${isLowQuality}`;
+    // Rải lại khi đổi thời tiết, mùa hoặc cỡ khung. Hạt mưa, bông tuyết, lá có độ xa gần z (0 xa, 1 gần): gần thì to, rơi
+    // nhanh, chạm mặt nước gần người xem; xa thì nhỏ, chậm, chạm mặt nước sát chân trời
+    sync(kind, season, cssW, cssH) {
+        const key = `${kind}_${season}_${Math.round(cssW)}_${Math.round(cssH)}_${isLowQuality}_${horizon()}`;
         if (key === this.key) return;
         this.key = key;
         const area = cssW * cssH * (isLowQuality ? 0.6 : 1);
         const count = (per, min, max) => Math.round(Math.max(min, Math.min(max, area / per)));
         this.drops = kind === 'rain' ? Array.from({ length: count(3500, 120, 420) }, () => this.drop(cssW, cssH, true)) : [];
         this.flakes = kind === 'snow' ? Array.from({ length: count(3000, 120, 480) }, () => this.flake(cssW, cssH, true)) : [];
+        const leafy = season === 'autumn' || season === 'spring';
+        const leafCount = season === 'autumn' ? Math.max(10, Math.min(26, cssW / 60)) : Math.max(14, Math.min(34, cssW / 45));
+        this.leaves = leafy ? Array.from({ length: Math.round(leafCount * (isLowQuality ? 0.6 : 1)) }, () => this.leaf(cssW, cssH, season, true)) : [];
         this.ripples = [];
+    },
+
+    // Lá, cánh hoa: phần lớn rụng từ hàng cây bên kia bờ (nhỏ, rơi xuống nước sát bờ), số còn lại bay từ ngoài khung vào
+    // (gần người xem: to, bay ngang qua cả khung, rơi xuống nước gần)
+    leaf(cssW, cssH, season, anywhere) {
+        const level = horizon();
+        const ground = level * cssH;
+        const near = level >= 1 || Math.random() < 0.4;
+        const z = near ? 0.6 + Math.random() * 0.4 : 0.22 + Math.random() * 0.33;
+        const x = near ? Math.random() * cssW * 1.2 - cssW * 0.4 : Math.random() * cssW * 1.1 - cssW * 0.1;
+        let y = near ? -20 - Math.random() * 80 : ground - 20 - Math.random() * 70;
+        if (anywhere) y = near ? Math.random() * cssH * 0.9 : ground - Math.random() * 80;
+        return {
+            x, y, z, season,
+            kind: (Math.random() * LEAF_COLORS[season].length) | 0,
+            rot: Math.random() * Math.PI * 2,
+            spin: (Math.random() - 0.5) * 0.004,
+            phase: Math.random() * 6.3,
+            flutter: 0.0016 + Math.random() * 0.0016,
+            land: Math.random(),
+            fade: 1
+        };
     },
 
     drop(cssW, cssH, anywhere) {
@@ -4478,20 +4542,21 @@ export const Weather = {
     // ('none': lớp trống, tự xóa phần mưa, tuyết của khung trước). sky: màu trời theo ánh pháo (rọi sáng hạt mưa, tuyết)
     render(ctx, { cssW, cssH, time, sky, state }) {
         const kind = sceneWeather();
-        this.sync(kind, cssW, cssH);
+        const season = sceneSeason();
+        this.sync(kind, season, cssW, cssH);
         const dt = Math.min(50, this.last ? time - this.last : 16);
         this.last = time;
         if (state === 'skip') return;
         const { width: W, height: H } = ctx.canvas;
         if (state === 'none' && this.drawn) ctx.clearRect(0, 0, W, H);
         this.drawn = false;
-        if (!this.drops.length && !this.flakes.length && !this.ripples.length) return;
+        if (!this.drops.length && !this.flakes.length && !this.leaves.length && !this.ripples.length) return;
         this.drawn = true;
         const k = W / cssW;
         const level = horizon();
         const water = level < 1;
         const topCss = water ? level * cssH + bankBandCss(cssH) : cssH;
-        const frozen = water && sceneSeason() === 'winter';
+        const frozen = water && season === 'winter';
         // Chỗ chạm: mặt nước ở độ xa d (0 sát chân trời, 1 sát người xem); không có mặt nước thì rơi ra khỏi khung
         const landAt = d => (water ? topCss + d * (cssH - topCss) : cssH + 60);
         // Gió thổi từng đợt (từ trái sang phải)
@@ -4502,7 +4567,45 @@ export const Weather = {
         if (this.drops.length) this.rain(ctx, dt, time, wind, sky, landAt, water, cssW, cssH, topCss);
         if (this.ripples.length) this.drawRipples(ctx, time, frozen);
         if (this.flakes.length) this.snow(ctx, dt, time, wind, landAt, water && !frozen, cssW, cssH);
+        if (this.leaves.length) this.fall(ctx, dt, time, wind, k, landAt, water && !frozen, cssW, cssH);
         ctx.restore();
+    },
+
+    // Lá, cánh hoa rụng: lả lướt, chao qua chao lại (rơi chậm lúc chao lên, nhanh lúc chao xuống), xoay, lật mặt; gió đẩy
+    // sang ngang. Rơi xuống nước: gợn vòng rồi nằm lại trôi theo dòng; không có nước thì rơi khỏi khung
+    fall(ctx, dt, time, wind, k, landAt, water, cssW, cssH) {
+        this.leaves.forEach(leaf => {
+            const d = Math.max(0.02, Math.min(0.98, (leaf.z - 0.22) * 1.2 + (leaf.land - 0.5) * 0.12));
+            const end = landAt(d);
+            const swing = Math.sin(time * leaf.flutter + leaf.phase);
+            const scale = 0.4 + leaf.z;
+            leaf.x += ((0.012 + 0.03 * leaf.z) * wind + swing * 0.03 * scale) * dt;
+            leaf.y += (0.008 + 0.022 * leaf.z) * (0.45 + 0.75 * Math.abs(swing)) * dt;
+            leaf.rot += (leaf.spin + swing * 0.0012) * dt;
+            if (leaf.y >= end) {
+                if (water) {
+                    if (this.ripples.length < 160) this.ripples.push({ x: leaf.x, y: end, d, t: time });
+                    Water.dropLeaf(leaf.x, d, leaf.season, leaf.kind, leaf.rot);
+                }
+                Object.assign(leaf, this.leaf(cssW, cssH, leaf.season, false));
+                return;
+            }
+            if (leaf.x > cssW + 40) {
+                Object.assign(leaf, this.leaf(cssW, cssH, leaf.season, false));
+                return;
+            }
+            const size = (leaf.season === 'autumn' ? 5 + leaf.z * 11 : 4 + leaf.z * 8);
+            // Lật mặt: co bề ngang theo nhịp chao
+            const flip = Math.cos(time * leaf.flutter * 1.7 + leaf.phase);
+            const sx = Math.max(0.18, Math.abs(flip)) * (flip < 0 ? -1 : 1);
+            const c = Math.cos(leaf.rot);
+            const sn = Math.sin(leaf.rot);
+            ctx.setTransform(k * c * sx, k * sn * sx, -k * sn, k * c, k * leaf.x, k * leaf.y);
+            ctx.globalAlpha = 0.9;
+            ctx.drawImage(fallingLeafSprite(leaf.season, leaf.kind), -size / 2, -size / 2, size, size);
+        });
+        ctx.setTransform(k, 0, 0, k, 0, 0);
+        ctx.globalAlpha = 1;
     },
 
     // Mưa xiên theo gió: mỗi hạt một vệt dài theo tốc độ rơi (gần dài, đậm), gom ba lượt vẽ theo độ xa
@@ -5837,6 +5940,7 @@ export const Decor = {
         });
         // Có mặt nước: cỏ, lau sậy, bụi cây trên bờ đất nhô lên nền trời, đom đóm
         if (horizon() < 1) drawBankSkyline(ctx, this.width, ground, this.clock, calm, glow, bankBandCss(this.height));
+        if (horizon() < 1 && sceneSeason() === 'spring') drawButterflies(ctx, this.width, ground, this.clock, calm);
         ctx.globalAlpha = 1;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
     }

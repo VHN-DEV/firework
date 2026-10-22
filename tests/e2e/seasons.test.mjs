@@ -73,6 +73,14 @@ export async function run(browser, base, { check }) {
         await sleep(800);
         const snow = await skyMarks(page);
         check('tuyết rơi: có bông tuyết trên trời', snow > 400, JSON.stringify({ snow }));
+        await show(page, { season: 'autumn' });
+        await sleep(600);
+        const leaves = [];
+        for (let i = 0; i < 4; i++) {
+            leaves.push(await skyMarks(page));
+            await sleep(300);
+        }
+        check('mùa thu: lá vàng rụng bay ngang trời', Math.max(...leaves) > 40, JSON.stringify(leaves));
         await show(page, { weather: 'bogus' });
         await sleep(500);
         check('thời tiết lạ thì bỏ qua (trời quang)', (await skyMarks(page)) === 0);
