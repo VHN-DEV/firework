@@ -76,8 +76,9 @@ function laps(s, n, shore) {
             if (i % 32 === 0) band.set(260 + (top - 260) * Math.sin(Math.PI * Math.min(1, p * 1.4)), 0.9);
             wave[t + i] += band.tick(s.pink()) * env * amp;
         }
-        const drops = 1 + ((s.rnd() * 4) | 0);
-        for (let j = 0; j < drops; j++) {
+        // Tên riêng cho số giọt: trùng tên mảng drops thì giọt nước ghi vào một con số, lớp "lóc bóc" câm hẳn
+        const dropCount = 1 + ((s.rnd() * 4) | 0);
+        for (let j = 0; j < dropCount; j++) {
             const at = t + s.samples(rise * 0.9 + s.range(0.05, 0.35));
             if (at < n) s.bubble(drops, at, s.logRange(shore === 'earth' ? 380 : 500, 1400), s.range(0.006, 0.015), s.range(0.2, 0.6), s.skew(0.15, 0.6));
         }

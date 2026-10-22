@@ -69,7 +69,8 @@ export function update(frameTime, lag) {
             if (star.targetY !== undefined && (star.y <= star.targetY || star.speedY >= 0)) {
                 star.life = 0; // Buộc nổ khi đạt tới độ cao mục tiêu hoặc bắt đầu rơi xuống
             }
-            if (star.life <= 0) {
+            // Viết !(> 0) để hạt có tuổi thọ NaN (kịch bản sửa tay có giá trị lạ) cũng tắt, không bay mãi
+            if (!(star.life > 0)) {
                 removeAt(stars, i);
                 Star.returnInstance(star);
             } else {
@@ -165,7 +166,7 @@ export function update(frameTime, lag) {
         for (let i = sparks.length - 1; i >= 0; i = i - 1) {
             const spark = sparks[i];
             spark.life -= timeStep;
-            if (spark.life <= 0) {
+            if (!(spark.life > 0)) {
                 removeAt(sparks, i);
                 Spark.returnInstance(spark);
             } else {

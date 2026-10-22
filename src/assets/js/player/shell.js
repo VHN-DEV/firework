@@ -52,8 +52,9 @@ export class Shell {
         this.color = options.color || randomColor();
         this.glitterColor = options.glitterColor || this.color;
 
-        // Đặt starCount mặc định trước khi spreadSize bị thu nhỏ để giữ nguyên mật độ hạt cao/chi tiết trên mobile
-        if (!this.starCount) {
+        // Đặt starCount mặc định trước khi spreadSize bị thu nhỏ để giữ nguyên mật độ hạt cao/chi tiết trên mobile.
+        // Kịch bản đặt số hạt không hợp lệ (âm, dưới 1, không phải số) cũng tính theo cỡ pháo
+        if (!(this.starCount >= 1)) {
             const density = options.starDensity || 1;
             const scaledSize = this.spreadSize / 54;
             this.starCount = Math.max(6, scaledSize * scaledSize * density);

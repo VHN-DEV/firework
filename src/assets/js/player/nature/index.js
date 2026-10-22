@@ -169,6 +169,12 @@ export const NatureSound = {
     stopLayer(key) {
         const layer = this.layers.get(key);
         this.layers.delete(key);
+        if (this.ctx.state !== 'running') {
+            // Bộ âm thanh đang dừng (tắt tiếng): thời gian đứng yên nên hẹn dừng không bao giờ tới, lớp cũ (vài MB) giữ mãi
+            layer.sources.forEach(source => source.stop());
+            layer.gain.disconnect();
+            return;
+        }
         const t = this.ctx.currentTime;
         layer.gain.gain.setTargetAtTime(0, t, FADE_OUT / 3);
         layer.sources.forEach(source => source.stop(t + FADE_OUT * 2));

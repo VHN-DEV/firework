@@ -14,6 +14,8 @@ import { soundManager } from './audio.js';
 // Trình trợ giúp được sử dụng để phân tán các hạt bán ngẫu nhiên trên một vòng cung
 // Các giá trị rất linh hoạt - `start` và `arcLength` có thể âm và `randomness` chỉ đơn giản là một hệ số nhân cho phép cộng ngẫu nhiên.
 export function createParticleArc(start, arcLength, count, randomness, particleFactory) {
+    // Số hạt âm, dưới 1 hay không phải số: góc không bao giờ tới điểm cuối, vòng lặp chạy mãi (treo trang)
+    if (!(count >= 1 && count < Infinity)) return;
     const angleDelta = arcLength / count;
     // Đôi khi có thêm một phần tử ở cuối, quá gần phần đầu. Trừ một nửa gócDelta đảm bảo rằng nó bị bỏ qua.
     // Sẽ rất tốt nếu khắc phục điều này một cách tốt hơn.

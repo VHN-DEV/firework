@@ -17,6 +17,28 @@ export const currentSkyColor = { r: 0, g: 0, b: 0 };
 
 const targetSkyColor = { r: 0, g: 0, b: 0 };
 
+// Màu hạt tự chọn (#f00, #ff0000, rgb(...), tên màu...) quy ra { r, g, b } qua fillStyle của một canvas nhỏ (trình duyệt
+// chuẩn hóa mọi kiểu ghi màu CSS), ghi nhớ theo chuỗi màu. Màu không hợp lệ thì coi như trắng: tự tách mã hex thì "#f00"
+// ra kênh xanh NaN, cả bầu trời mất màu xanh tới hết buổi xem
+const parsedColors = new Map();
+let colorProbe = null;
+
+function colorTuple(color) {
+    let tuple = COLOR_TUPLES[color] || parsedColors.get(color);
+    if (tuple) return tuple;
+    if (!colorProbe) colorProbe = document.createElement('canvas').getContext('2d');
+    colorProbe.fillStyle = '#ffffff';
+    colorProbe.fillStyle = color;
+    const value = colorProbe.fillStyle;
+    const hex = value.match(/^#([0-9a-f]{6})$/i);
+    const rgb = value.match(/\d+(\.\d+)?/g);
+    const n = hex ? parseInt(hex[1], 16) : 0;
+    tuple = hex ? { r: n >> 16, g: (n >> 8) & 255, b: n & 255 }
+        : rgb && rgb.length >= 3 ? { r: +rgb[0], g: +rgb[1], b: +rgb[2] } : { r: 255, g: 255, b: 255 };
+    parsedColors.set(color, tuple);
+    return tuple;
+}
+
 export function colorSky(speed) {
     // Giá trị r, g hoặc b tối đa sẽ được sử dụng (255 sẽ không biểu thị mức tối đa)
     const maxSkySaturation = skyLightingSelector() * 15;
@@ -31,24 +53,9 @@ export function colorSky(speed) {
     // Đồng thời cộng tổng số sao.
     Object.keys(Star.active).forEach(color => {
         if (color === INVISIBLE || color === '_pool') return;
-        let tuple = COLOR_TUPLES[color];
-        if (!tuple) {
-            // Phân tích màu rgb/hex nếu không có trong COLOR_TUPLES
-            if (color.startsWith('rgb')) {
-                const match = color.match(/\d+/g);
-                if (match) tuple = { r: parseInt(match[0]), g: parseInt(match[1]), b: parseInt(match[2]) };
-            } else if (color.startsWith('#')) {
-                const hex = color.substring(1);
-                tuple = {
-                    r: parseInt(hex.substring(0, 2), 16),
-                    g: parseInt(hex.substring(2, 4), 16),
-                    b: parseInt(hex.substring(4, 6), 16)
-                };
-            }
-        }
-        if (!tuple) tuple = { r: 255, g: 255, b: 255 };
-
         const count = Star.active[color].length;
+        if (!count) return;
+        const tuple = colorTuple(color);
         totalStarCount += count;
         targetSkyColor.r += tuple.r * count;
         targetSkyColor.g += tuple.g * count;

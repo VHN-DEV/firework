@@ -45,7 +45,7 @@ import { randomShell } from './player/app/shell-picker.js';
 import { countdownActive, isLockedUntilLater, startCountdown } from './player/app/countdown.js';
 import { RECORD_FPS, RECORD_LEAD, RECORD_MAX_MS, composeSnapshot, finishRecording, frameSources, loadMusicForVideo, postToBuilder, recording, stepAnimations } from './player/app/recording.js';
 import { seqPyramid, seqRandomFastShell, seqRandomShell, seqSmallBarrage, seqTriple, seqTwoRandom } from './player/app/sequences.js';
-import { buildEventShot, buildSyncTimeline, estimateFlightTime, isMusicSynced, launchEventShot } from './player/app/event-shots.js';
+import { buildEventShot, buildSyncTimeline, estimateFlightTime, isMusicSynced, isTextShot, launchEventShot } from './player/app/event-shots.js';
 import { handleKeydown, handlePointerEnd, handlePointerMove, handlePointerStart, isUpdatingSpeed, menuOpenedByCornerAt } from './player/app/input.js';
 import { AUTO_QUALITY_START, applyQualityLimits, autoQuality, renderQualityLabel, superSampler } from './player/app/quality-tuning.js';
 import { applyViewerDefaults } from './player/app/viewer-defaults.js';
@@ -1141,7 +1141,7 @@ async function prepareBurstConfig(burstConfig, { showOverlay }) {
             await Promise.all(imagePromises);
         }
         // Dựng sẵn hạt cho các phát pháo chữ (lúc người xem còn ở màn mở quà) để lúc nổ không bị khựng
-        const textEvents = burstConfig.events.filter(event => event.text && event.shell !== 'Lời nhắn' && event.shell !== 'Tạm dừng');
+        const textEvents = burstConfig.events.filter(event => isTextShot(event) && event.shell !== 'Lời nhắn' && event.shell !== 'Tạm dừng');
         reserveTextCache(new Set(textEvents.map(event => event.text)).size);
         textEvents.forEach(event => buildEventShot(event));
     }
@@ -1557,6 +1557,9 @@ export let speedBarOpacity = 0;
 let autoLaunchTime = 0;
 
 export function updateSpeedFromEvent(event) {
+    // Kịch bản (link tặng, bản xem nhanh) không có thanh tốc độ: chạm nhầm dải đáy màn hình (thanh cử chỉ của điện thoại)
+    // làm pháo chậm hẳn lại, tắt mọi tiếng pháo và lệch nhịp với nhạc
+    if (burstConfig) return false;
     if (isUpdatingSpeed || event.y >= mainStage.height - 44) {
         // Trên điện thoại, thật khó để chạm vào các pixel ở cạnh để đặt tốc độ ở mức 0 hoặc 1, do đó, một số phần đệm được cung cấp để giúp việc đó trở nên dễ dàng hơn.
         const edge = 16;
@@ -1607,6 +1610,20 @@ export function updateGlobals(timeStep, lag) {
 // Thu phóng trình duyệt, kéo cửa sổ sang màn hình có mật độ điểm ảnh khác: vẽ lại theo mật độ mới cho pháo không nhòe
 window.addEventListener('resize', applyQualityLimits);
 
+// Kéo cửa sổ sang màn hình có mật độ điểm ảnh khác mà cỡ cửa sổ (điểm ảnh CSS) giữ nguyên thì không có sự kiện resize:
+// theo dõi mật độ đang dùng, đổi thì dựng lại các lớp theo mật độ mới (rồi theo dõi mật độ mới)
+function watchPixelRatio() {
+    const query = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+    if (!query.addEventListener) return;
+    query.addEventListener('change', () => {
+        handleResize();
+        applyQualityLimits();
+        watchPixelRatio();
+    }, { once: true });
+}
+
+if (!IS_RECORD && window.matchMedia) watchPixelRatio();
+
 mainStage.addEventListener('ticker', update);
 
 
@@ -1646,7 +1663,8 @@ function showPreviewStartFrame(config) {
         e.stopPropagation();
         e.preventDefault();
         if (token !== previewFrameToken) return;
-        soundManager.resumeAll();
+        // Nút Âm thanh của khung xem nhanh đang tắt thì giữ im (cả tiếng nền thiên nhiên)
+        if (store.state.soundEnabled) soundManager.resumeAll();
         open().then(() => {
             if (token !== previewFrameToken) return;
             screen.classList.add('hide');
@@ -1675,6 +1693,9 @@ if (IS_PREVIEW) {
     appNodes.startScreen.classList.add('remove');
     document.documentElement.classList.add('is-preview');
     burstConfig = { events: [] };
+    // Mặc định tắt tiếng: dừng hẳn bộ âm thanh, kẻo trình duyệt cho chạy sẵn (đã có thao tác ở trang builder) thì tiếng nền
+    // thiên nhiên vẫn kêu. Bật tiếng thì handleStateChange chạy lại
+    soundManager.pauseAll();
     // Trình duyệt chặn tiếng trong khung (vd Safari): chạm vào khung một lần là có tiếng
     document.addEventListener('pointerdown', () => {
         if (store.state.soundEnabled) soundManager.resumeAll();

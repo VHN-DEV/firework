@@ -15,6 +15,9 @@ import { shellTypes } from '../shells.js';
 import { Shell } from '../shell.js';
 import { horizonSelector, shellSizeSelector } from '../../script.js';
 
+// Phát bắn nổ ra chữ: pháo "Văn bản" (hoặc loại pháo lạ, nổ kiểu chữ) có chữ
+export const isTextShot = event => !!event.text && (event.shell === 'Văn bản' || !shellTypes[event.shell]);
+
 // Tùy chọn pháo và điểm nổ (x, y: 0-1 theo bề ngang, tính từ mép trên) của một phát trong kịch bản
 export function buildEventShot(event) {
     const size = event.size !== undefined ? event.size : shellSizeSelector();
@@ -37,6 +40,9 @@ export function buildEventShot(event) {
             crop: event.crop,
             shellSize: size,
             spreadSize: 300 + size * 100,
+            // Ảnh không tải được (link hỏng, mất mạng) thì nổ thành chùm hạt thường: cần tuổi thọ hạt, thiếu thì hạt không
+            // bao giờ tắt, rơi mãi và nhuộm màu trời
+            starLife: 1400 + size * 200,
             // Thời gian ảnh hiện trên trời (ms)
             duration: event.duration
         };
@@ -45,7 +51,9 @@ export function buildEventShot(event) {
         options = shellType(size);
     }
 
-    if (event.text) {
+    // Chữ chỉ dành cho pháo "Văn bản" (loại pháo lạ cũng nổ kiểu chữ, xem trên): đổi một phát chữ sang "Trái tim" trong
+    // builder thì ô chữ ẩn đi nhưng chữ cũ vẫn còn trong kịch bản, không được nổ ra chữ
+    if (isTextShot(event)) {
         const starDensity = event.starDensity !== undefined ? event.starDensity : 1;
         // Bước lấy mẫu tối thiểu 2px để chữ dày không tạo ra hàng chục nghìn hạt làm treo máy
         const step = Math.max(2, Math.round(3 / starDensity));
