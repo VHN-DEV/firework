@@ -27,14 +27,17 @@ const LOCAL = 0.9;
 const FLASH = [1, 0.86, 0.66];
 // Canvas vẽ ra: mỗi điểm ảnh 4 điểm ảnh sân khấu (máy yếu 8), rộng tối đa 512, trình duyệt phóng mịn lên cả khung. Cộng
 // nhiễu nhỏ hơn một bậc màu trước khi làm tròn (hòa nhiễu): trời tối chuyển màu rất chậm, làm tròn thẳng thì các bậc màu
-// 8 bit thành vệt sọc, viền đa giác thấy rõ. Nhiễu dựng sẵn một lần (kiểu nhiễu chuyển sắc xen kẽ, hạt đều, không thành
-// mảng)
+// 8 bit thành vệt sọc, viền đa giác thấy rõ. Nhiễu ngẫu nhiên đều dựng sẵn một lần (nhiễu có quy luật thì chỗ trời gần
+// tối thành hoa văn chấm, vòng tròn)
 const PIXEL = 4;
 const MAX_OUT = 512;
-const DITHER = Float32Array.from({ length: 64 * 64 }, (_, i) => {
-    const v = 52.9829189 * ((0.06711056 * (i & 63) + 0.00583715 * (i >> 6)) % 1);
-    return v - Math.floor(v) - 0.5;
-});
+const DITHER = (() => {
+    let seed = 7;
+    return Float32Array.from({ length: 64 * 64 }, () => {
+        seed = (seed * 1103515245 + 12345) % 2147483648;
+        return seed / 2147483648 - 0.5;
+    });
+})();
 
 let gw = 0;
 let gh = 0;
@@ -215,12 +218,13 @@ export const SkyLight = {
             for (let qx = 0, o = py * ow * 4; qx < ow; qx++, o += 4) {
                 const tx = cols.t[qx];
                 const a = (r0 + cols.i0[qx]) * 3, b = (r0 + cols.i1[qx]) * 3, c = (r1 + cols.i0[qx]) * 3, e = (r1 + cols.i1[qx]) * 3;
-                // Nhiễu ±0,5 bậc màu, mảng điểm ảnh tự làm tròn khi gán: trung bình đúng bằng giá trị gốc
+                // Nhiễu ±0,5 bậc màu, mảng điểm ảnh tự làm tròn khi gán: trung bình đúng bằng giá trị gốc. Chỗ gần như
+                // tối hẳn (dưới một bậc) thì bớt nhiễu, không lấm tấm chấm sáng trên nền đen
                 const n = DITHER[noise + (qx & 63)];
                 for (let ch = 0; ch < 3; ch++) {
                     const top = cur[a + ch] + (cur[b + ch] - cur[a + ch]) * tx;
-                    const bottom = cur[c + ch] + (cur[e + ch] - cur[c + ch]) * tx;
-                    d[o + ch] = (ch === 0 ? base.r : ch === 1 ? base.g : base.b) + top + (bottom - top) * ty + n;
+                    const v = (ch === 0 ? base.r : ch === 1 ? base.g : base.b) + top + (cur[c + ch] + (cur[e + ch] - cur[c + ch]) * tx - top) * ty;
+                    d[o + ch] = v + n * Math.min(1, Math.max(0, v - 0.5) * 2);
                 }
             }
         }
