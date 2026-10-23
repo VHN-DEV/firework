@@ -108,6 +108,7 @@ export function createFrameComposer({ width, height, container, background, laye
     const images = new Map();
     const fontFamily = getComputedStyle(document.body).fontFamily;
     let endCard = null;
+    let modes = null;
 
     function backgroundImage() {
         if (!background) return null;
@@ -223,8 +224,10 @@ export function createFrameComposer({ width, height, container, background, laye
             ctx.drawImage(image, bx + (bw - w) * px, by + (bh - h) * py, w, h);
             ctx.restore();
         }
-        ctx.globalCompositeOperation = 'lighten';
-        layers.forEach(layer => {
+        // Ghép như trên trang: lớp nào CSS cộng sáng (plus-lighter: các lớp pháo) thì cộng, còn lại "lighten"
+        if (!modes) modes = layers.map(layer => (getComputedStyle(layer).mixBlendMode === 'plus-lighter' ? 'lighter' : 'lighten'));
+        layers.forEach((layer, i) => {
+            ctx.globalCompositeOperation = modes[i];
             if (layer.width) ctx.drawImage(layer, 0, 0, width, height);
         });
         ctx.globalCompositeOperation = 'source-over';

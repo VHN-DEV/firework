@@ -113,6 +113,14 @@ body {
         mix-blend-mode: lighten;
         transform: translateZ(0);
     }
+
+    // Lớp pháo (vệt sáng; lõi hạt, quầng sáng) cộng ánh sáng vào trời như pháo thật: "lighten" chỉ lấy kênh màu sáng hơn
+    // nên vệt pháo mờ chìm hẳn vào trời có trăng, Ngân Hà, khói. Mặt nước cũng soi bóng kiểu cộng sáng (scenery/water.js).
+    // Trình duyệt chưa có plus-lighter thì bỏ qua dòng này, giữ "lighten" ở trên
+    #trails-canvas,
+    #main-canvas {
+        mix-blend-mode: plus-lighter;
+    }
 }
 
 // Người ngắm pháo (lớp trước cùng, ghép bình thường): trên các lớp pháo, dưới lời nhắn, nút

@@ -392,7 +392,8 @@ function render(speed) {
         Glow.render(mainCtx, trailsStage.canvas, width, height, {
             scale: dpr * scaleFactor,
             spread: isHighQuality ? 3 : 2,
-            strength: isHighQuality ? 0.9 : 0.8
+            // Lớp pháo cộng sáng vào trời (player/_base.scss): quầng vừa phải để từng tia vẫn sắc nét, không lóa trắng
+            strength: isHighQuality ? 0.5 : 0.45
         });
     }
 
