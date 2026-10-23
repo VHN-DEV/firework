@@ -15,11 +15,14 @@ const SKIN = 1;
 const CLOTH = 2;
 // Quần, váy (áo măng tô phủ ra ngoài thì không đo theo váy xòe)
 const BOTTOMS = 4;
+// Tóc (chỉ mũ len đo theo tóc; các món khác, cả trọng số xương, bỏ qua tóc)
+const HAIR = 8;
 
 // Đồ theo mùa của từng người ('m' chàng trai, 'f' cô gái); mùa hạ để nguyên bộ đồ gốc. tops: màu áo (nhân với ảnh áo gốc);
 // jacket: áo len thay áo hoodie (bỏ mũ trùm, mặc trong áo măng tô); sleeves: tay áo dài; tights: quần tất (alpha: độ dày,
 // thấp thì thấy da như tất mỏng); coat: áo măng tô dài (overSkirt: phủ ngoài váy, váy ẩn đi; không thì đo theo ống quần để
-// lộ dưới gấu áo); scarf: khăn len quàng cổ (length, width: đuôi khăn dài, rộng bao nhiêu lần bề cao khăn; fringe: tua rua)
+// lộ dưới gấu áo); scarf: khăn len quàng cổ (length, width: đuôi khăn dài, rộng bao nhiêu lần bề cao khăn; fringe: tua rua;
+// backDepth: phía sau vòng khăn mỏng lại cho tóc dài phủ lên)
 const SHIRT = 0xf3f3f6;
 const OUTFITS = {
     spring: {
@@ -40,10 +43,19 @@ const OUTFITS = {
         },
         f: {
             coat: { color: 0x2d2e35, overSkirt: true },
-            scarf: { color: 0xf4f1ea, height: 0.08, depth: 0.048, length: 5.4, width: 1.5, fringe: true },
+            scarf: { color: 0xf4f1ea, height: 0.08, depth: 0.048, length: 5.4, width: 1.5, fringe: true, backDepth: 0.45 },
             tights: { color: 0x22222c, alpha: 0.84 }
         }
     }
+};
+
+// Mũ len khi trời có tuyết (mùa nào cũng đội): màu len, miếng gắn ở gấu mũ (patch: nhãn hình núi, smile: mặt cười thêu),
+// quả bông trên đỉnh; crown: mặt cắt rộng hơn chừng này (mét) mới tính là đỉnh đầu (lọn tóc dựng thì mũ đè xuống); snug: mũ
+// ôm theo da đầu, tóc bị đè dày chừng này (tóc nhọn xù ép vào trong mũ); cuff: phần cao của gấu lật; rim: vành sau gáy, giữa
+// trán (phần chiều cao đầu); slouch: đỉnh chùng ra sau gáy (mét). Chàng trai mũ xám cho khác màu tóc đen
+const HATS = {
+    m: { color: '#8f9197', badge: 'patch', crown: 0.05, snug: 0.012, cuff: 0.38, rim: [0.12, 0.4], slouch: 0.018 },
+    f: { color: '#efe7d8', badge: 'smile', pompom: true, crown: 0.03 }
 };
 
 // Xương tay, ngón tay (áo măng tô đo thân không tính tay)
@@ -87,7 +99,7 @@ function sampleBody(vrm, noHood = false) {
     vrm.scene.traverse(o => {
         if (!o.isSkinnedMesh || o.userData.outfit) return;
         const mat = [].concat(o.material)[0];
-        let kind = /_SKIN/.test(mat.name) ? SKIN : /_CLOTH/.test(mat.name) ? CLOTH : 0;
+        let kind = /_SKIN/.test(mat.name) ? SKIN : /_CLOTH/.test(mat.name) ? CLOTH : /_HAIR/.test(mat.name) ? HAIR : 0;
         if (!kind) return;
         if (/Bottoms_01_CLOTH/.test(mat.name)) kind |= BOTTOMS;
         if (!skeleton && /Body_00_SKIN/.test(mat.name)) skeleton = o.skeleton;
@@ -245,7 +257,7 @@ function skinnedGeometry(body, part) {
     const taken = new Set();
     const { pos } = body;
     for (let i = 0; i < body.n; i++) {
-        if (!test(body.main[i])) continue;
+        if (!(body.kinds[i] & (SKIN | CLOTH)) || !test(body.main[i])) continue;
         const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2];
         const fine = cellKey(Math.floor(x / 0.01), Math.floor(y / 0.01), Math.floor(z / 0.01));
         if (taken.has(fine)) continue;
@@ -607,7 +619,7 @@ function knitTexture() {
 
 // Khăn len quàng cổ: một vòng khăn cuộn dày ôm quanh chân cổ (đo theo cổ, cổ áo), tựa lên vai, hai đuôi khăn rủ trước ngực
 // (tua rua ở đuôi nếu có), có thể thêm một đuôi vắt ra sau lưng
-function scarf(body, { height, depth, back, length = 4.4, width = 1.35, fringe = false }) {
+function scarf(body, { height, depth, back, length = 4.4, width = 1.35, fringe = false, backDepth = 1 }) {
     const neck = body.at('neck');
     if (!neck) return null;
     const P = body.pos;
@@ -656,13 +668,15 @@ function scarf(body, { height, depth, back, length = 4.4, width = 1.35, fringe =
     for (let k = 0; k <= M; k++) {
         const th = (k % M) / M * Math.PI * 2;
         const n = new THREE.Vector3(Math.sin(th), 0, Math.cos(th));
-        const R = r[k % M] + depth * 0.5 + 0.004;
+        // Tóc dài phủ lưng: phía sau vòng khăn mỏng lại (backDepth) cho nằm gọn dưới tóc, không lòi qua tóc thành mảng trắng
+        const dk = depth * (1 - (1 - backDepth) * (1 + Math.cos(th)) / 2);
+        const R = r[k % M] + dk * 0.5 + 0.004;
         const c = new THREE.Vector3(neck.x, yAt(th), neck.z).addScaledVector(n, R);
         // Mặt cắt khăn cuộn: chữ nhật bo tròn, phồng nhẹ theo nhịp các vòng quấn
         const puff = 1 + 0.08 * Math.sin(th * 3);
         for (let j = 0; j <= K; j++) {
             const ps = j / K * Math.PI * 2;
-            const cx = Math.sign(Math.cos(ps)) * Math.pow(Math.abs(Math.cos(ps)), 0.55) * depth * 0.5 * puff;
+            const cx = Math.sign(Math.cos(ps)) * Math.pow(Math.abs(Math.cos(ps)), 0.55) * dk * 0.5 * puff;
             const cy = Math.sign(Math.sin(ps)) * Math.pow(Math.abs(Math.sin(ps)), 0.55) * height * 0.5 * puff;
             const p = c.clone().addScaledVector(n, cx);
             p.y += cy;
@@ -750,6 +764,216 @@ function scarf(body, { height, depth, back, length = 4.4, width = 1.35, fringe =
     return join(parts);
 }
 
+// Mũ len: chỏm mũ trùm đầu (quanh trục đứng qua giữa đầu, từng hàng từ vành lên đỉnh, căng tròn như len dệt), vành trước
+// ngang trên lông mày, sau thấp xuống gáy; gấu mũ lật dày hơn; quả bông xù trên đỉnh nếu có. Mũ cứng theo đầu. snug: mũ ôm,
+// đo theo da đầu cộng lớp tóc bị đè dày chừng này (mét), tóc trong vùng mũ ép vào (squeeze); không thì trùm theo tóc. Tọa
+// độ ảnh: u quanh đầu (0 sau gáy, 0,5 giữa trán), v từ vành (0) lên đỉnh (1). Trả về mảnh mũ và squeeze(x, y, z): điểm tóc
+// ép vào trong mũ
+function beanie(body, { pompom = false, crown = 0.03, snug = 0, cuff = 0.24, rim: [rimBack, rimFront] = [0.17, 0.47], slouch = 0 }) {
+    const head = body.at('head');
+    if (!head) return null;
+    const P = body.pos;
+    const headBone = body.bone('head');
+    const scalp = [];
+    const hair = [];
+    for (let i = 0; i < body.n; i++) {
+        if (P[i * 3 + 1] < head.y) continue;
+        if (body.kinds[i] & HAIR) hair.push(i);
+        else if ((body.kinds[i] & SKIN) && body.main[i] === headBone) scalp.push(i);
+    }
+    // Mũ ôm đo theo da đầu, mũ trùm đo theo cả tóc
+    const list = snug ? scalp : scalp.concat(hair);
+    if (!list.length) return null;
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    list.forEach(i => {
+        if (P[i * 3 + 1] < head.y + 0.05) return;
+        x0 = Math.min(x0, P[i * 3]);
+        x1 = Math.max(x1, P[i * 3]);
+        z0 = Math.min(z0, P[i * 3 + 2]);
+        z1 = Math.max(z1, P[i * 3 + 2]);
+    });
+    const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    // Đỉnh đầu: độ cao cao nhất mà mặt cắt ở đó còn rộng hơn crown theo cả hai chiều ngang (bỏ qua lọn tóc mảnh dựng đứng,
+    // mũ đè xuống)
+    const slices = new Map();
+    list.forEach(i => {
+        const b = Math.floor(P[i * 3 + 1] / 0.005);
+        const s = slices.get(b) || [Infinity, -Infinity, Infinity, -Infinity];
+        s[0] = Math.min(s[0], P[i * 3]);
+        s[1] = Math.max(s[1], P[i * 3]);
+        s[2] = Math.min(s[2], P[i * 3 + 2]);
+        s[3] = Math.max(s[3], P[i * 3 + 2]);
+        slices.set(b, s);
+    });
+    const top = Math.max(...[...slices].filter(([, s]) => s[1] - s[0] > crown && s[3] - s[2] > crown).map(([b]) => (b + 1) * 0.005)) + snug;
+    const span = top - head.y;
+    // Vành mũ: sau gáy thấp, giữa trán cao (phần chiều cao đầu tính từ xương đầu)
+    const rim = th => head.y + span * (rimBack + (rimFront - rimBack) * (1 - Math.cos(th)) / 2);
+    const N = 40, ROWS = 12;
+    const rowY = (th, j) => rim(th) + (top - 0.004 - rim(th)) * Math.pow(j / ROWS, 0.85);
+    const bin = i => Math.round(((Math.atan2(P[i * 3] - cx, P[i * 3 + 2] - cz) + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2) * N) % N;
+    const rings = [];
+    for (let j = 0; j <= ROWS; j++) {
+        let r = new Array(N).fill(0);
+        list.forEach(i => {
+            const k = bin(i);
+            // Quanh hàng này, gần đỉnh chỉ lấy từ hàng trở lên: chỏm mũ tròn theo đỉnh đầu, không bằng đầu như ống
+            const dy = P[i * 3 + 1] - rowY(k / N * Math.PI * 2, j);
+            if (dy < (j < ROWS - 2 ? -0.015 : -0.006) || dy > 0.04) return;
+            r[k] = Math.max(r[k], Math.hypot(P[i * 3] - cx, P[i * 3 + 2] - cz));
+        });
+        if (!r.some(Boolean)) r = rings.length ? rings[rings.length - 1].map(v => v * 0.8) : new Array(N).fill(0.08);
+        fillRing(r);
+        r = convexRing(smoothRing(r, 3, true)).map(v => v + snug);
+        rings.push(r);
+    }
+    // Lên tới đỉnh không phình ra (len căng tròn): mỗi hàng không rộng hơn hàng dưới
+    for (let j = 1; j <= ROWS; j++) for (let k = 0; k < N; k++) rings[j][k] = Math.min(rings[j][k], rings[j - 1][k]);
+    // Lòng mũ ở hàng j, góc k (trước khi thu đỉnh): tóc ép vào trong chừng này
+    const inner = (j, k) => rings[j][k] * (1 - 0.22 * Math.pow(j / ROWS, 5));
+    // Mũ ôm: len mỏng sát; mũ trùm: chùng nhẹ (tóc đung đưa không xuyên qua)
+    const thick = snug ? 0.006 : 0.012;
+    // Đỉnh chùng ra sau gáy (mũ len mềm đội lệch về sau)
+    const back = v => slouch * Math.pow(Math.max(0, v - 0.45) / 0.55, 2);
+    const verts = [];
+    const uvs = [];
+    for (let j = 0; j <= ROWS; j++) {
+        const v = j / ROWS;
+        // Gấu lật dày hơn phần chỏm
+        const out = thick + (v < cuff ? 0.006 : 0);
+        for (let k = 0; k <= N; k++) {
+            const th = (k % N) / N * Math.PI * 2;
+            const R = inner(j, k % N) + out;
+            verts.push(cx + Math.sin(th) * R, rowY(th, j) + (v === 1 ? 0.006 : 0) + back(v) * 0.4, cz + Math.cos(th) * R + back(v));
+            uvs.push(k / N, v * 0.98);
+        }
+    }
+    // Đỉnh mũ
+    const apex = verts.length / 3;
+    verts.push(cx, top + 0.008 + back(1) * 0.4, cz + back(1));
+    uvs.push(0.25, 0.97);
+    const faces = [];
+    for (let j = 0; j < ROWS; j++) {
+        for (let k = 0; k < N; k++) {
+            const a = j * (N + 1) + k, b = a + 1, c = a + N + 1, d = c + 1;
+            faces.push(a, b, c, b, d, c);
+        }
+    }
+    for (let k = 0; k < N; k++) faces.push(ROWS * (N + 1) + k, ROWS * (N + 1) + k + 1, apex);
+    const parts = [{ verts, faces, uvs, allow: ['head'] }];
+    if (pompom) {
+        // Quả bông len xù: cầu bán kính 4,5 cm, mặt lởm chởm như sợi len
+        const geo = new THREE.SphereGeometry(0.045, 18, 12);
+        const p = geo.attributes.position;
+        const pv = [];
+        for (let i = 0; i < p.count; i++) {
+            const f = 1 + 0.14 * Math.sin(i * 12.9898) * Math.sin(i * 78.233);
+            pv.push(cx + p.getX(i) * f, top + 0.034 + back(1) * 0.4 + p.getY(i) * f, cz + back(1) + p.getZ(i) * f);
+        }
+        parts.push({ verts: pv, faces: Array.from(geo.index.array), uvs: pv.map(() => 0.5).slice(0, (pv.length / 3) * 2), allow: ['head'] });
+        geo.dispose();
+    }
+    const part = join(parts);
+    // Điểm tóc (tư thế gắn khung) ép vào trong lòng mũ: chỉ phần trên vành, cách mặt trong mũ 6 mm
+    part.squeeze = (x, y, z) => {
+        const th = (Math.atan2(x - cx, z - cz) + Math.PI * 2) % (Math.PI * 2);
+        const y0 = rim(th);
+        if (y < y0) return null;
+        const t = Math.min(1, (y - y0) / (top - 0.004 - y0));
+        const jf = ROWS * Math.pow(t, 1 / 0.85);
+        const j = Math.min(ROWS - 1, Math.floor(jf));
+        const k = Math.round(th / (Math.PI * 2) * N) % N;
+        const lim = inner(j, k) + (inner(j + 1, k) - inner(j, k)) * (jf - j) - 0.006;
+        const d = Math.hypot(x - cx, z - cz);
+        const ny = Math.min(y, top - 0.008);
+        if (d <= lim && ny === y) return null;
+        const f = d > lim ? lim / d : 1;
+        return [cx + (x - cx) * f, ny, cz + (z - cz) * f];
+    };
+    return part;
+}
+
+// Ảnh mũ len (màu len vẽ sẵn, chất liệu để trắng): gân dọc, nếp gấp ở mép gấu lật (cuff: phần cao của gấu), miếng gắn giữa
+// trán ở gấu mũ (patch: nhãn hình núi, smile: mặt cười thêu)
+const hatCache = {};
+
+function hatTexture({ color, badge, cuff = 0.24 }) {
+    const key = `${color}_${badge}_${cuff}`;
+    if (hatCache[key]) return hatCache[key];
+    const W = 256, H = 128;
+    const c = document.createElement('canvas');
+    c.width = W;
+    c.height = H;
+    const g = c.getContext('2d');
+    g.fillStyle = color;
+    g.fillRect(0, 0, W, H);
+    // Gân len dọc (đều cả gấu lẫn chỏm)
+    for (let x = 0; x < W; x += 4) {
+        g.fillStyle = 'rgba(0, 0, 0, 0.13)';
+        g.fillRect(x, 0, 1, H);
+        g.fillStyle = 'rgba(255, 255, 255, 0.06)';
+        g.fillRect(x + 2, 0, 1, H);
+    }
+    // Mép gấu lật
+    const top = H * cuff;
+    g.fillStyle = 'rgba(0, 0, 0, 0.32)';
+    g.fillRect(0, top - 1, W, 3);
+    g.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    g.fillRect(0, top - 4, W, 2);
+    // Miếng gắn ở giữa trán (u = 0,5), giữa gấu mũ
+    const bx = W * 0.5, by = top * 0.5;
+    if (badge === 'patch') {
+        g.fillStyle = '#3c3e44';
+        g.fillRect(bx - 7, by - 6, 14, 12);
+        g.strokeStyle = 'rgba(235, 235, 240, 0.85)';
+        g.lineWidth = 1;
+        g.beginPath();
+        g.moveTo(bx - 5, by + 3);
+        g.lineTo(bx - 2, by - 3);
+        g.lineTo(bx, by + 1);
+        g.lineTo(bx + 2, by - 3);
+        g.lineTo(bx + 5, by + 3);
+        g.stroke();
+    } else if (badge === 'smile') {
+        g.strokeStyle = g.fillStyle = '#8a5a3a';
+        g.lineWidth = 1.2;
+        g.beginPath();
+        g.arc(bx, by - 1, 5, 0.15 * Math.PI, 0.85 * Math.PI);
+        g.stroke();
+        [-2.5, 2.5].forEach(dx => {
+            g.beginPath();
+            g.arc(bx + dx, by - 3, 0.9, 0, Math.PI * 2);
+            g.fill();
+        });
+    }
+    const tex = hatCache[key] = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    // Ảnh vẽ: dòng trên cùng là v = 0 (mặc định ảnh canvas bị lật dọc)
+    tex.flipY = false;
+    return tex;
+}
+
+// Tóc ép vào trong mũ ôm (on) hoặc trả về như cũ: đổi bộ vị trí đỉnh của các lưới tóc (giữ bản gốc)
+function squeezeHair(vrm, squeeze, on) {
+    vrm.scene.traverse(o => {
+        if (!o.isSkinnedMesh || o.userData.outfit || !/_HAIR/.test([].concat(o.material)[0].name)) return;
+        const g = o.geometry;
+        const data = o.userData;
+        if (!data.hairPos) data.hairPos = g.attributes.position;
+        if (on && !data.squeezed && squeeze) {
+            const src = data.hairPos;
+            const out = src.clone();
+            for (let i = 0; i < src.count; i++) {
+                const p = squeeze(src.getX(i), src.getY(i), src.getZ(i));
+                if (p) out.setXYZ(i, p[0], p[1], p[2]);
+            }
+            data.squeezed = out;
+        }
+        const want = on && data.squeezed ? data.squeezed : data.hairPos;
+        if (g.attributes.position !== want) g.setAttribute('position', want);
+    });
+}
+
 // Chất liệu vải mới từ chất liệu áo của nhân vật (giữ cách tô, viền), màu color, ảnh map (cutout: cắt chỗ trong suốt của
 // ảnh, như tua rua); kèm chất liệu viền nét như three-vrm dựng cho từng mảnh
 const UV_MAPS = ['map', 'normalMap', 'emissiveMap', 'shadeMultiplyTexture', 'shadingShiftTexture', 'rimMultiplyTexture', 'outlineWidthMultiplyTexture', 'uvAnimationMaskTexture'];
@@ -828,10 +1052,23 @@ function jacket(vrm, tops, { color }) {
     return mesh;
 }
 
-// Mặc đồ mùa season cho nhân vật (sex 'm' | 'f'); đổi mùa thì ẩn đồ mùa cũ. Đồ đã dựng giữ lại theo mùa, dựng lại không tốn
-export function dress(vrm, sex, season) {
+// Mặc đồ mùa season cho nhân vật (sex 'm' | 'f'), trời có tuyết (weather 'snow') thì đội thêm mũ len; đổi mùa thì ẩn đồ mùa
+// cũ. Đồ đã dựng giữ lại, dựng lại không tốn
+export function dress(vrm, sex, season, weather = '') {
     dressBase(vrm, sex, season);
     const data = vrm.scene.userData;
+    if (weather === 'snow' && !data.hat && HATS[sex]) {
+        const body = sampleBody(vrm);
+        const part = body && beanie(body, HATS[sex]);
+        if (part) {
+            data.hat = garment(body, part, clothMaterials([].concat(body.cloth.material)[0], 0xffffff, hatTexture(HATS[sex])), 'hat');
+            data.hatSqueeze = HATS[sex].snug ? part.squeeze : null;
+            body.cloth.parent.add(data.hat);
+        }
+    }
+    if (data.hat) data.hat.visible = weather === 'snow';
+    // Mũ ôm: tóc trong vùng mũ ép vào; bỏ mũ thì tóc trở lại như cũ
+    if (data.hatSqueeze) squeezeHair(vrm, data.hatSqueeze, weather === 'snow');
     const store = data.outfits || (data.outfits = {});
     Object.entries(store).forEach(([s, list]) => list.forEach(m => { m.visible = s === season; }));
     if (store[season]) return store[season];

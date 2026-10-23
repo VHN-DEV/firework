@@ -163,8 +163,9 @@ export class Stage3D {
         this.size = { w: 0, h: 0, k: 0 };
     }
 
-    // Nạp các nhân vật cần ('m', 'f'), mặc đồ theo mùa season: trả về Actor3D theo đúng thứ tự
-    async cast(list, season) {
+    // Nạp các nhân vật cần ('m', 'f'), mặc đồ theo mùa season, thời tiết weather (tuyết thì đội mũ len): trả về Actor3D theo
+    // đúng thứ tự
+    async cast(list, season, weather) {
         const cast = await Promise.all(list.map(loadCast));
         this.actors.forEach(a => this.scene.remove(a.root));
         this.umbrellas.forEach(u => this.scene.remove(u.group));
@@ -172,7 +173,7 @@ export class Stage3D {
         this.actors = cast.map(({ vrm, clips }, i) => {
             vrm.scene.position.set(0, 0, 0);
             const actor = new Actor3D(list[i], vrm, clips);
-            dress(vrm, list[i], season);
+            dress(vrm, list[i], season, weather);
             this.scene.add(actor.root);
             return actor;
         });
@@ -246,7 +247,7 @@ export class Stage3D {
     // trong lúc người xem còn ở màn mở quà: lúc màn pháo bắt đầu không còn phải dựng đồ (~0,1 giây), dịch shader. Cấp sẵn cả
     // lớp dựng hình cỡ thường gặp (rộng bằng màn hình, cao nửa màn hình): cấp phát lúc người bước vào chờ tiến trình GPU
     // ~0,1 giây
-    prepare(list, season) {
+    prepare(list, season, weather) {
         if (!this.allocated) {
             const dpr = window.devicePixelRatio || 1;
             this.allocated = true;
@@ -255,7 +256,7 @@ export class Stage3D {
         }
         return Promise.all(list.map(loadCast))
             .then(cast => Promise.all(cast.map(({ vrm }, i) => {
-                if (season) dress(vrm, list[i], season);
+                if (season) dress(vrm, list[i], season, weather);
                 return this.renderer.compileAsync(vrm.scene, this.camera, this.scene);
             })))
             .catch(() => {});

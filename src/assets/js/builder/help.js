@@ -49,7 +49,8 @@ const HELP_TIPS = {
         + 'trai, cô gái từ hai phía đi lại gặp nhau ở giữa, nắm tay, tựa vai, ôm nhau ngước nhìn pháo hoa. Trời mưa, tuyết thì che ô; cặp '
         + 'đôi gặp nhau thì cô gái gập ô, chàng trai che ô cho cô. Quần áo theo <strong>Mùa</strong> của cảnh: xuân, thu áo hoodie đổi màu, '
         + 'cô gái mặc tay áo dài (thu thêm tất mỏng); đông cả hai mặc áo măng tô dài, quàng khăn len to bản có tua rua (chàng trai '
-        + 'măng tô màu lạc đà, khăn xám; cô gái măng tô màu than, khăn kem, quần tất). Lần đầu xem cần tải thêm khoảng 4 MB.',
+        + 'măng tô màu lạc đà, khăn xám; cô gái măng tô màu than, khăn kem, quần tất). Trời có tuyết thì đội thêm mũ len (chàng trai '
+        + 'mũ xám ôm đầu, cô gái mũ kem có quả bông). Lần đầu xem cần tải thêm khoảng 4 MB.',
     nearBank: 'Bật (mặc định): người ngắm pháo đứng ở bờ bên này, sát người xem, thấy rõ dáng người. Tắt: bỏ dải bờ bên này, '
         + 'người đứng nhỏ xa xa ở bờ bên kia, ngay dưới chỗ pháo bắn lên; bờ bên kia là <strong>cầu vòm cong</strong> hoặc '
         + '<strong>cầu nhiều vòm</strong> thì người đi lên giữa cầu theo độ vồng của mặt cầu, lan can cầu che phần dưới người. '

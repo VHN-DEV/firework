@@ -90,9 +90,9 @@ export const People = {
     },
 
     // Tải sẵn phần dựng hình và nhân vật (dựng video chờ xong mới bắt đầu ghi)
-    prepare(kind, season) {
+    prepare(kind, season, weather) {
         if (!kind || this.failed) return Promise.resolve();
-        return this.load().then(mod => mod && this.stage.prepare(this.castOf(kind), season)).catch(() => {});
+        return this.load().then(mod => mod && this.stage.prepare(this.castOf(kind), season, weather)).catch(() => {});
     },
 
     castOf(kind) {
@@ -116,7 +116,7 @@ export const People = {
     },
 
     // kind: '' | 'man' | 'woman' | 'couple'; near: có bờ bên này (tắt thì người ở bờ bên kia). Đổi người, chỗ đứng, mùa
-    // hoặc mưa/tạnh thì dựng lại (đi vào từ đầu)
+    // hoặc thời tiết (mưa, tuyết, tạnh) thì dựng lại (đi vào từ đầu)
     sync(kind, cssW, cssH, near = true) {
         const level = horizon();
         if (level >= 1 || !kind || !cssW || !cssH || this.failed) {
@@ -130,7 +130,7 @@ export const People = {
         const far = !near && bankStyle !== 'none';
         if (far) this.farLayout(cssW, cssH, level);
         else this.layoutFor(cssW, cssH, level);
-        const key = `${kind}_${sceneSeason()}_${umbrella}_${far ? `far_${bankStyle}` : 'near'}`;
+        const key = `${kind}_${sceneSeason()}_${sceneWeather()}_${umbrella}_${far ? `far_${bankStyle}` : 'near'}`;
         if (key === this.key) return;
         this.key = key;
         this.show = null;
@@ -141,7 +141,7 @@ export const People = {
         const token = this.token = {};
         this.load().then(mod => {
             if (!mod || this.token !== token) return null;
-            return this.stage.cast(this.castOf(kind), sceneSeason()).then(actors => {
+            return this.stage.cast(this.castOf(kind), sceneSeason(), sceneWeather()).then(actors => {
                 if (this.token !== token) return null;
                 if (umbrella) {
                     actors.forEach(a => {
