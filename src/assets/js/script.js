@@ -1003,7 +1003,7 @@ async function renderVideo({ config: source, options }) {
         await composer.load();
         await NatureSound.prepare(currentNatureScene());
         // Người ngắm pháo: tải xong nhân vật mới bắt đầu ghi (không thì mấy giây đầu video thiếu người)
-        await People.prepare(config.water ? validPeople(config.people) : '');
+        await People.prepare(config.water ? validPeople(config.people) : '', resolveSeason(config.season));
 
         timing.frames = performance.now();
         const step = 1000 / fps;
@@ -1816,7 +1816,7 @@ else if (IS_HEADER) {
     configRequest.then(config => {
         // Dựng sẵn tiếng thiên nhiên (ở luồng riêng), tải sẵn người ngắm pháo trong lúc người xem còn ở màn mở quà
         NatureSound.prepare(natureSceneOf(config));
-        People.prepare(config && config.water ? validPeople(config.people) : '');
+        People.prepare(config && config.water ? validPeople(config.people) : '', resolveSeason(config && config.season));
         if (isLockedUntilLater(config)) startCountdown(config);
         // Thiệp chào chung đã hiện (mạng chậm): vẫn báo đã mở link và hiện dòng "Người gửi sẽ biết..."
         else if (startFrameMounted) reportGiftEvent('view', config);

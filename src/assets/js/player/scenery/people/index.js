@@ -90,9 +90,9 @@ export const People = {
     },
 
     // Tải sẵn phần dựng hình và nhân vật (dựng video chờ xong mới bắt đầu ghi)
-    prepare(kind) {
+    prepare(kind, season) {
         if (!kind || this.failed) return Promise.resolve();
-        return this.load().then(mod => mod && this.stage.prepare(this.castOf(kind))).catch(() => {});
+        return this.load().then(mod => mod && this.stage.prepare(this.castOf(kind), season)).catch(() => {});
     },
 
     castOf(kind) {
@@ -141,7 +141,7 @@ export const People = {
         const token = this.token = {};
         this.load().then(mod => {
             if (!mod || this.token !== token) return null;
-            return this.stage.cast(this.castOf(kind)).then(actors => {
+            return this.stage.cast(this.castOf(kind), sceneSeason()).then(actors => {
                 if (this.token !== token) return null;
                 if (umbrella) {
                     actors.forEach(a => {

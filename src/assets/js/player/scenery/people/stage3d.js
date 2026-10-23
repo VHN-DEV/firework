@@ -17,6 +17,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { Actor3D, buildClips } from './actor3d.js';
 import { Umbrella3D } from './umbrella3d.js';
+import { dress } from './outfit3d.js';
 import { IS_RECORD } from '../../env.js';
 
 export { Duo, Solo } from './choreo.js';
@@ -162,8 +163,8 @@ export class Stage3D {
         this.size = { w: 0, h: 0, k: 0 };
     }
 
-    // Nạp các nhân vật cần ('m', 'f'): trả về Actor3D theo đúng thứ tự
-    async cast(list) {
+    // Nạp các nhân vật cần ('m', 'f'), mặc đồ theo mùa season: trả về Actor3D theo đúng thứ tự
+    async cast(list, season) {
         const cast = await Promise.all(list.map(loadCast));
         this.actors.forEach(a => this.scene.remove(a.root));
         this.umbrellas.forEach(u => this.scene.remove(u.group));
@@ -171,6 +172,7 @@ export class Stage3D {
         this.actors = cast.map(({ vrm, clips }, i) => {
             vrm.scene.position.set(0, 0, 0);
             const actor = new Actor3D(list[i], vrm, clips);
+            dress(vrm, list[i], season);
             this.scene.add(actor.root);
             return actor;
         });
@@ -240,10 +242,11 @@ export class Stage3D {
         return this.renderer.compileAsync(this.scene, this.camera).catch(() => {});
     }
 
-    // Tải sẵn các nhân vật ('m', 'f') và dịch sẵn shader của họ theo đúng cảnh (đèn) sẽ đứng vào, trong lúc người xem còn
-    // ở màn mở quà: lúc màn pháo bắt đầu không còn phải dịch. Cấp sẵn cả lớp dựng hình cỡ thường gặp (rộng bằng màn hình,
-    // cao nửa màn hình): cấp phát lúc người bước vào chờ tiến trình GPU ~0,1 giây
-    prepare(list) {
+    // Tải sẵn các nhân vật ('m', 'f'), mặc sẵn đồ mùa season và dịch sẵn shader của họ theo đúng cảnh (đèn) sẽ đứng vào,
+    // trong lúc người xem còn ở màn mở quà: lúc màn pháo bắt đầu không còn phải dựng đồ (~0,1 giây), dịch shader. Cấp sẵn cả
+    // lớp dựng hình cỡ thường gặp (rộng bằng màn hình, cao nửa màn hình): cấp phát lúc người bước vào chờ tiến trình GPU
+    // ~0,1 giây
+    prepare(list, season) {
         if (!this.allocated) {
             const dpr = window.devicePixelRatio || 1;
             this.allocated = true;
@@ -251,7 +254,10 @@ export class Stage3D {
             this.renderer.setSize(Math.ceil(window.innerWidth * dpr), Math.ceil(window.innerHeight * dpr * 0.5 / 128) * 128, false);
         }
         return Promise.all(list.map(loadCast))
-            .then(cast => Promise.all(cast.map(({ vrm }) => this.renderer.compileAsync(vrm.scene, this.camera, this.scene))))
+            .then(cast => Promise.all(cast.map(({ vrm }, i) => {
+                if (season) dress(vrm, list[i], season);
+                return this.renderer.compileAsync(vrm.scene, this.camera, this.scene);
+            })))
             .catch(() => {});
     }
 
