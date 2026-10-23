@@ -22,7 +22,8 @@ export const helpContent = {
         // Dòng thêm cuối: độ phân giải màn hình này và độ phân giải đang vẽ
         extra: () => {
             const res = renderResolution();
-            return `Màn hình này: ${res.screen} điểm ảnh. Đang vẽ: ${res.drawn}${res.extra ? ' (vẽ dư rồi thu nhỏ)' : ''}.`;
+            return `Màn hình này: ${res.screen} điểm ảnh. Đang vẽ: ${res.drawn}${res.extra ? ' (vẽ dư rồi thu nhỏ)' : ''}.`
+                + (res.fellBack ? ' Máy không kịp vẽ dư (hình bị giật) nên đang vẽ bằng độ phân giải màn hình; chọn lại mức chất lượng để thử lại.' : '');
         }
     },
     skyLighting: {

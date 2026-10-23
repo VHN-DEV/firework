@@ -82,7 +82,7 @@ function maxRenderScale() {
     return Math.max(native, Math.min(native * superSampler.limit, 4, Math.sqrt(3840 * 2160 * 2 / area)));
 }
 
-// Vẽ dư tự lùi: đang vẽ dư mà máy không kịp (khung hình trung bình chậm hơn ~54 khung/giây trong 2 giây có pháo, vd card
+// Vẽ dư tự lùi: đang vẽ dư mà máy không kịp (khung hình trung bình chậm hơn ~54 khung/giây trong 2 giây, vd card
 // đồ họa tích hợp) thì thôi vẽ dư, vẽ bằng độ phân giải màn hình (không lùi về tỉ lệ lẻ như 1,5 lần: nhòe, xem
 // applyQualityLimits). Mức chất lượng đã chọn giữ nguyên; không nâng lại trong lần xem này (chọn lại mức chất lượng thì thử
 // lại từ đầu)
@@ -96,18 +96,27 @@ export const superSampler = {
 
     frame(now) {
         const dt = this.last ? now - this.last : 0;
+        // Giây rưỡi đầu màn trình diễn (dựng người, dịch shader) khựng ở máy nào cũng có: chưa đo
+        if (!this.last) this.waitUntil = now + 1500;
         this.last = now;
         const extra = mainStage.dpr > (window.devicePixelRatio || 1) + 0.01;
-        if (this.limit <= 1 || !extra || IS_RECORD || !Spark.count || dt <= 0 || dt > 250 || now < this.waitUntil) {
+        // Đo cả lúc chưa có pháo (cảnh có người, mặt nước đã nặng sẵn): đo lặp liên tục nên chỉ lùi sớm hơn, lúc pháo dày
+        // mà không kịp thì vẫn lùi
+        if (this.limit <= 1 || !extra || IS_RECORD || now < this.waitUntil) {
             this.count = 0;
             this.sum = 0;
             return;
         }
+        // Khung cách quãng bất thường (chuyển tab, tạm dừng) thì bỏ qua, không đo lại từ đầu: máy càng chậm càng hay có
+        // khung hơn 250 ms, đo lại từ đầu thì không bao giờ đủ quãng đo để lùi
+        if (dt <= 0 || dt > 250) return;
         if (!this.count) this.since = now;
         this.sum += dt;
         this.count++;
-        if (now - this.since < 2000) return;
+        // Chậm hẳn (dưới ~30 khung/giây, vd cảnh có người trên card tích hợp ~10 khung/giây) thì lùi sau 1 giây, khỏi giật
+        // thêm một giây nữa
         const avg = this.sum / this.count;
+        if (now - this.since < (avg > 33 ? 1000 : 2000)) return;
         this.sum = 0;
         this.count = 0;
         if (avg > 18.5) {
@@ -129,7 +138,10 @@ export const superSampler = {
 export function renderResolution() {
     const native = window.devicePixelRatio || 1;
     const size = scale => `${Math.round(frameW * scale)}×${Math.round(frameH * scale)}`;
-    return { screen: size(native), drawn: size(mainStage.dpr), extra: mainStage.dpr > native + 0.01 };
+    // fellBack: mức đã chọn cao hơn màn hình nhưng máy không kịp nên đã thôi vẽ dư
+    const level = qualityLevelSelector();
+    const fellBack = superSampler.limit <= 1 && Number(level.value) > Math.min(frameW, frameH) * native * 1.05;
+    return { screen: size(native), drawn: size(mainStage.dpr), extra: mainStage.dpr > native + 0.01, fellBack };
 }
 
 // "Tự động": bắt đầu theo màn hình và cấu hình máy; lúc đang có pháo mà giật kéo dài (dưới ~26 khung/giây trong 4 giây)
