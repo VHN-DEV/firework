@@ -6,10 +6,9 @@
 
 // Thuyền trên mặt nước, theo kiểu bờ (flags.boats):
 // - 'sea' biển khơi: sát chân trời là thuyền câu mực thắp dãy đèn cao áp xanh trắng sáng rực (đứng yên, quầng sáng loang
-//   cả một vùng, vệt sáng in dài xuống biển), tàu khách nhiều tầng đèn chạy rất chậm; gần hơn là du thuyền trắng có đèn
-//   hàng hải, cửa kính sáng vàng, rẽ sóng chữ V; ghe nhỏ có người đội nón lá chèo, đèn dầu treo đầu sào chập chờn;
-// - 'city' sông thành phố: du thuyền nhà hàng ba tầng cửa sổ vàng, viền đèn LED đổi màu, dây đèn màu trên boong, chạy
-//   chầm chậm dọc sông; vài thuyền neo sát bờ bên kia giăng đèn.
+//   cả một vùng, vệt sáng in dài xuống biển), tàu khách nhiều tầng đèn chạy rất chậm; gần hơn là ghe nhỏ có người đội nón
+//   lá chèo, đèn dầu treo đầu sào chập chờn;
+// - 'city' sông thành phố: vài thuyền neo sát bờ bên kia giăng đèn.
 // Thuyền dập dềnh, nghiêng theo sóng; dưới mỗi ngọn đèn là vệt sáng lấp lánh in dài xuống nước. Thuyền nằm trên mặt nước
 // nên vẽ chung với bèo, đá theo tầm xa (things); vệt sáng, sóng rẽ vẽ dưới mọi vật (under).
 
@@ -21,15 +20,12 @@ const SQUID = '205, 255, 225';
 const WARM = '255, 206, 130';
 const WHITE = '245, 248, 255';
 const RED = '255, 70, 60';
-const GREEN = '80, 255, 140';
 
 // Mỗi loại thuyền: độ xa (d), chiều dài (điểm ảnh CSS khi ở gần), tốc độ (px/ms)
 const KINDS = {
     squid: { d: [0, 0.08], len: [30, 42], speed: 0 },
     liner: { d: [0, 0.025], len: [130, 170], speed: 0.0025 },
-    yacht: { d: [0.16, 0.34], len: [52, 66], speed: 0.012 },
     skiff: { d: [0.42, 0.68], len: [22, 28], speed: 0.004 },
-    cruise: { d: [0.14, 0.38], len: [80, 104], speed: 0.009 },
     moored: { d: [0.01, 0.06], len: [34, 46], speed: 0 }
 };
 
@@ -39,10 +35,6 @@ function lightsOf(boat) {
     const list = [];
     if (boat.kind === 'squid') {
         for (let i = 0; i < boat.lamps; i++) list.push([-0.42 + 0.84 * i / (boat.lamps - 1), -0.34, SQUID, 0.06, 1, 110]);
-    } else if (boat.kind === 'yacht') {
-        for (let i = 0; i < 7; i++) list.push([-0.26 + i * 0.06, -0.16, WARM, 0.03, 0.55, 26]);
-        for (let i = 0; i < 4; i++) list.push([-0.14 + i * 0.06, -0.255, WARM, 0.025, 0.5, 20]);
-        list.push([0.06, -0.47, WHITE, 0.05, 0.95, 50], [0.36, -0.1, GREEN, 0.04, 0.85, 40], [-0.44, -0.08, WHITE, 0.03, 0.6, 30]);
     } else if (boat.kind === 'liner') {
         for (let row = 0; row < 4; row++) {
             for (let i = 0; i < 26; i++) if ((i * 7 + row * 3) % 5) list.push([-0.4 + 0.8 * i / 25, -0.06 - row * 0.035, row ? WARM : WHITE, 0.01, 0.6, 22]);
@@ -50,11 +42,6 @@ function lightsOf(boat) {
         list.push([0.32, -0.27, WHITE, 0.02, 0.95, 40], [-0.44, -0.08, RED, 0.015, 0.8, 26]);
     } else if (boat.kind === 'skiff') {
         list.push([0.34, -0.62, WARM, 0.2, 0.95, 70]);
-    } else if (boat.kind === 'cruise') {
-        for (let row = 0; row < 3; row++) {
-            for (let i = 0; i < 13 - row * 3; i++) list.push([(-0.36 + row * 0.06) + (0.72 - row * 0.12) * i / (12 - row * 3), -0.1 - row * 0.1, WARM, 0.028, 0.75, 34]);
-        }
-        list.push([0.05, -0.42, WHITE, 0.03, 0.9, 40]);
     } else if (boat.kind === 'moored') {
         for (let i = 0; i < 7; i++) list.push([-0.42 + 0.84 * i / 6, -0.26 - 0.08 * Math.sin(Math.PI * i / 6), boat.rgb, 0.04, 0.8, 30]);
         list.push([0, -0.12, WARM, 0.05, 0.7, 30]);
@@ -87,16 +74,15 @@ export const BoatLife = {
                 const squid = 3 + ((Math.random() * 3) | 0);
                 for (let i = 0; i < squid; i++) list.push(this.makeBoat('squid', cssW));
                 if (Math.random() < 0.75) list.push(this.makeBoat('liner', cssW));
-                list.push(this.makeBoat('yacht', cssW), this.makeBoat('skiff', cssW));
+                list.push(this.makeBoat('skiff', cssW));
             } else {
                 for (let i = 0; i < 3; i++) list.push(this.makeBoat('moored', cssW));
-                list.push(this.makeBoat('cruise', cssW), this.makeBoat('cruise', cssW));
             }
             return list;
         },
 
         // Vẽ thân thuyền trong hệ tọa độ thuyền (gốc giữa mép nước, x theo hướng mũi, đơn vị L)
-        paintBoat(ctx, boat, L, t) {
+        paintBoat(ctx, boat, L) {
             const poly = (pts, color) => {
                 ctx.fillStyle = color;
                 ctx.beginPath();
@@ -122,15 +108,6 @@ export const BoatLife = {
                 ctx.moveTo(0.44 * L, -0.12 * L);
                 ctx.lineTo(0.44 * L, -0.36 * L);
                 ctx.stroke();
-            } else if (boat.kind === 'yacht') {
-                // Thân trắng mũi vát (đêm nên xám đi), sọc tối dọc thân, hai tầng cabin kính tối, cột ăng-ten
-                poly([[-0.48, -0.13], [0.5, -0.11], [0.36, 0], [-0.45, 0]], '#8f96a3');
-                rect(-0.46, -0.06, 0.86, 0.02, '#1a1e26');
-                poly([[-0.3, -0.13], [0.22, -0.13], [0.12, -0.21], [-0.27, -0.21]], '#a3a9b5');
-                rect(-0.29, -0.185, 0.46, 0.04, '#161a22');
-                poly([[-0.18, -0.21], [0.06, -0.21], [0.0, -0.28], [-0.16, -0.28]], '#9ba1ad');
-                rect(-0.17, -0.27, 0.2, 0.03, '#161a22');
-                rect(0.055, -0.47, 0.012, 0.19, '#7f8590');
             } else if (boat.kind === 'liner') {
                 poly([[-0.48, -0.06], [0.5, -0.07], [0.45, 0], [-0.46, 0]], '#141a24');
                 rect(-0.42, -0.19, 0.78, 0.13, '#202838');
@@ -157,43 +134,9 @@ export const BoatLife = {
                 ctx.moveTo(0.3 * L, -0.1 * L);
                 ctx.lineTo(0.34 * L, -0.62 * L);
                 ctx.stroke();
-            } else if (boat.kind === 'cruise') {
-                // Du thuyền nhà hàng: thân dài, ba tầng boong lùi dần, tầng trên có mái che
-                poly([[-0.48, -0.1], [0.5, -0.12], [0.42, 0], [-0.45, 0]], '#101520');
-                rect(-0.42, -0.2, 0.84, 0.1, '#161c29');
-                rect(-0.36, -0.3, 0.72, 0.1, '#181e2c');
-                rect(-0.3, -0.38, 0.6, 0.08, '#1a2030');
-                rect(-0.32, -0.395, 0.64, 0.015, '#232a3a');
-                // Dải kính lớn mỗi tầng sáng vàng ấm, khung cửa tối
-                ctx.globalCompositeOperation = 'lighter';
-                ctx.globalAlpha = 0.5;
-                ctx.fillStyle = 'rgb(255, 190, 115)';
-                [[-0.4, -0.18, 0.8, 0.055], [-0.34, -0.28, 0.68, 0.055], [-0.28, -0.365, 0.56, 0.045]].forEach(([x0, y0, w, h]) => ctx.fillRect(x0 * L, y0 * L, w * L, h * L));
-                ctx.globalAlpha = 1;
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.fillStyle = '#121824';
-                for (let x = -0.4; x < 0.4; x += 0.05) ctx.fillRect(x * L, -0.37 * L, Math.max(0.4, 0.012 * L), 0.25 * L);
             } else if (boat.kind === 'moored') {
                 poly([[-0.48, -0.12], [0.5, -0.13], [0.42, 0], [-0.45, 0]], '#11151d');
                 rect(-0.25, -0.24, 0.42, 0.12, '#161c27');
-            }
-            // Du thuyền nhà hàng: viền đèn LED đổi màu dọc các tầng, dây đèn màu trên boong
-            if (boat.kind === 'cruise') {
-                ctx.globalCompositeOperation = 'lighter';
-                const hue = (t * 0.03 + boat.seed * 360) % 360;
-                [[-0.46, -0.1, 0.92], [-0.42, -0.2, 0.84], [-0.36, -0.3, 0.72]].forEach(([x0, y0, w], i) => {
-                    ctx.fillStyle = `hsl(${(hue + i * 40) % 360 | 0}, 90%, 62%)`;
-                    ctx.globalAlpha = 0.85;
-                    ctx.fillRect(x0 * L, y0 * L, w * L, Math.max(0.6, 0.012 * L));
-                });
-                for (let i = 0; i < 14; i++) {
-                    const q = i / 13;
-                    ctx.fillStyle = `hsl(${(hue + i * 26) % 360 | 0}, 95%, 65%)`;
-                    ctx.globalAlpha = 0.6 + 0.4 * Math.sin(t * 0.004 + i);
-                    ctx.fillRect((-0.3 + 0.6 * q) * L - 0.4, (-0.4 - 0.05 * Math.sin(Math.PI * q)) * L - 0.4, 0.8, 0.8);
-                }
-                ctx.globalAlpha = 1;
-                ctx.globalCompositeOperation = 'source-over';
             }
         },
 
@@ -210,7 +153,7 @@ export const BoatLife = {
             ctx.scale(boat.dir, 1);
             ctx.globalCompositeOperation = 'source-over';
             ctx.globalAlpha = 1;
-            this.paintBoat(ctx, boat, L, t);
+            this.paintBoat(ctx, boat, L);
             ctx.restore();
             // Đèn (vẽ không lật theo hướng để quầng tròn), thuyền câu mực có quầng sáng loang cả một vùng
             ctx.globalCompositeOperation = 'lighter';

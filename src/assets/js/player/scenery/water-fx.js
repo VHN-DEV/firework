@@ -19,7 +19,7 @@ export function drawLightStreak(ctx, x, top, reach, width, rgb, alpha, time, see
     if (alpha <= 0.01 || reach <= 0) return;
     ctx.fillStyle = `rgb(${rgb})`;
     // Dưới 1080p (máy yếu, "Tự động" đã hạ): nét thưa gấp đôi, mỗi nét dày gấp đôi bù lại cho vệt sáng như cũ. Khung vẽ thưa
-    // hơn màn hình nên các nét vốn đã sát nhau (720p: cách ~1,5 điểm ảnh), mà thành phố có du thuyền bớt được gần 2000 lệnh
+    // hơn màn hình nên các nét vốn đã sát nhau (720p: cách ~1,5 điểm ảnh), mà thành phố bớt được gần 2000 lệnh
     // vẽ mỗi khung. Từ 1080p trở lên giữ đủ nét
     const thin = isHighQuality ? 1 : 2;
     const n = Math.max(6, Math.round(reach / (2.2 * s * thin)));

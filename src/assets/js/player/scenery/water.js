@@ -90,8 +90,8 @@ export const Water = {
         // Mùa: đông mặt nước đóng băng (không sóng, không cá, vịt, cò, khúc gỗ, lá bèo, vật trôi); biển thì không đóng băng
         const season = sceneSeason();
         this.season = season;
-        // Biển khơi: giữa biển không có đá, gò đất, lá bèo, khúc gỗ, ếch, cò, vịt, lá rụng; xa xa có thuyền câu mực, du
-        // thuyền, tàu khách. Sông thành phố: không có gò đất, đá giữa dòng; có du thuyền nhà hàng, thuyền neo sát bờ
+        // Biển khơi: giữa biển không có đá, gò đất, lá bèo, khúc gỗ, ếch, cò, vịt, lá rụng; xa xa có thuyền câu mực, tàu
+        // khách. Sông thành phố: không có gò đất, đá giữa dòng; có thuyền neo sát bờ
         const shore = validBankStyle(bankKind);
         const sea = shore === 'none';
         const frozen = season === 'winter' && !sea;
