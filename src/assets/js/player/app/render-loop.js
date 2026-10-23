@@ -309,8 +309,11 @@ function render(speed) {
         BurstFlash.returnInstance(bf);
     }
 
-    // Bản vẽ còn lại trên canvas đường nhỏ sẽ sử dụng chế độ hòa trộn 'làm sáng'
-    trailsCtx.globalCompositeOperation = 'lighten';
+    // Nét hạt, tia lửa vẽ đè thường (source-over): lớp vệt sáng lót đen và vệt cũ của chính hạt luôn tối hơn nét mới cùng
+    // màu, nên ra y như "lighten" (chỉ khác chút ít chỗ hai màu chồng nhau). "lighten" thì mỗi lần stroke card đồ họa phải
+    // chép lại cả vùng đích (~40 lần mỗi khung), card tích hợp chậm hẳn. Phơi sáng lâu giữ "lighten": vệt tồn rất lâu, nét
+    // mờ đi qua sẽ làm tối vệt sáng cũ
+    trailsCtx.globalCompositeOperation = store.state.config.longExposure ? 'lighten' : 'source-over';
 
     // Giảm chớp sáng: hạt tàn dần nhưng không chập chờn
     const flickerOn = !reduceFlashingSelector();
