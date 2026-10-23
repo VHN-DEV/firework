@@ -84,7 +84,8 @@ export function createBurst(count, particleFactory, startAngle = 0, arcLength = 
 // Hiệu ứng sao khác nhau.
 // Chúng được thiết kế để gắn vào sự kiện `onDeath` của một ngôi sao.
 
-// Crossette chia ngôi sao thành bốn mảnh cùng màu, phân nhánh thành hình chữ thập.
+// Crossette chia ngôi sao thành bốn mảnh cùng màu, phân nhánh thành hình chữ thập. Mảnh văng ra mang theo đà của hạt mẹ
+// (chữ thập trôi tiếp theo hướng hạt đang bay) và đi đủ xa cho thấy rõ chữ thập
 export function crossetteEffect(star) {
     const startAngle = Math.random() * PI_HALF;
     createParticleArc(startAngle, PI_2, 4, 0.5, (angle) => {
@@ -93,8 +94,10 @@ export function crossetteEffect(star) {
             star.y,
             star.color,
             angle,
-            Math.random() * 0.6 + 0.75,
-            600
+            Math.random() * 0.6 + 1.1,
+            700,
+            star.speedX,
+            star.speedY
         );
     });
 }
@@ -144,18 +147,21 @@ export function fallingLeavesEffect(star) {
     soundManager.playSound('burstSmall');
 }
 
-// Crackle biến thành một đám mây nhỏ có tia lửa vàng.
+// Crackle biến thành một đám mây nhỏ có tia lửa vàng. Như hạt lách tách thật: mỗi hạt "tách" lóe một chớp nhỏ, vài tia
+// trắng nóng tắt nhanh lẫn trong tia vàng
 export function crackleEffect(star) {
     const count = isHighQuality ? 32 : 16;
     createParticleArc(0, PI_2, count, 1.8, (angle) => {
+        const white = Math.random() < 0.3;
         Spark.add(
             star.x,
             star.y,
-            COLOR.Gold,
+            white ? COLOR.White : COLOR.Gold,
             angle,
             // áp dụng lượng rơi gần khối để tăng tốc độ (đặt nhiều hạt hơn về phía bên ngoài)
             Math.pow(Math.random(), 0.45) * 2.4,
-            300 + Math.random() * 200
+            white ? 150 + Math.random() * 100 : 300 + Math.random() * 200
         );
     });
+    BurstFlash.add(star.x, star.y, 12);
 }

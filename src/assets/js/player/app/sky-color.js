@@ -79,9 +79,13 @@ export function colorSky(speed) {
     currentSkyColor.b += (targetSkyColor.b - currentSkyColor.b) / colorChange * speed;
 
     // Quả vừa nổ (quầng chớp chưa vẽ): cả bầu trời chợt lóe ánh trắng ấm rồi tối lại theo nhịp làm mượt ở trên. Nhiều quả
-    // nổ cùng lúc thì sáng hơn nhưng có giới hạn. Không gọi tới đây khi giảm chớp sáng
+    // nổ cùng lúc thì sáng hơn nhưng có giới hạn. Chớp nhỏ (hạt nổ lách tách, hoa con) tính theo diện tích: vài chục chớp li
+    // ti cùng khung không làm cả trời lóe như một quả nổ lớn. Không gọi tới đây khi giảm chớp sáng
     let flash = 0;
-    for (let i = 0; i < BurstFlash.active.length; i++) flash += BurstFlash.active[i].radius;
+    for (let i = 0; i < BurstFlash.active.length; i++) {
+        const r = BurstFlash.active[i].radius;
+        flash += r * Math.min(1, r / 60);
+    }
     if (flash > 0) {
         const lift = (1 - Math.exp(-flash / 120)) * maxSkySaturation;
         const cap = maxSkySaturation * 1.6;

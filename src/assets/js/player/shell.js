@@ -231,6 +231,9 @@ export class Shell {
                         isSubBurst: true
                     });
                     subShell.burst(x + offsetX, y + offsetY);
+                    // Mỗi quả con nổ cũng kêu "bùm", nhỏ hơn quả chính (quả con không có sao chổi nên burst() không tự phát tiếng)
+                    const snd = this.burstSound;
+                    if (snd !== 'none') soundManager.playSound(snd && soundManager.sources[snd] ? snd : 'burst', 0.7);
                 });
             }
         }

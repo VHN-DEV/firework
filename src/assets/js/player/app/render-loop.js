@@ -105,8 +105,9 @@ export function update(frameTime, lag) {
                 const left = star.life / star.fullLife;
                 const burnRate = Math.pow(left, 0.5);
                 const burnRateInverse = 1 - burnRate;
-                // Quả đang bay lên (còn chờ tới độ cao nổ) luôn sáng
-                star.fade = star.targetY === undefined ? fadeLevel(STAR_FADE, left) : 0;
+                // Quả đang bay lên (còn chờ tới độ cao nổ) luôn sáng; hạt nhấp nháy chớp đủ sáng tới lúc tắt hẳn (giảm chớp
+                // sáng: không nhấp nháy nên tàn dần như hạt thường)
+                star.fade = star.targetY === undefined && !(star.strobe && !reduceFlashing) ? fadeLevel(STAR_FADE, left) : 0;
 
                 star.prevX = star.x;
                 star.prevY = star.y;
@@ -169,6 +170,8 @@ export function update(frameTime, lag) {
                 if (star.life < star.transitionTime) {
                     if (star.secondColor && !star.colorChanged) {
                         star.colorChanged = true;
+                        // Hạt pháo "Ma" hiện màu lúc đã bay được một quãng: tàn dần theo quãng đời từ lúc hiện, không vừa hiện đã mờ
+                        if (star.color === INVISIBLE) star.fullLife = star.life;
                         star.color = star.secondColor;
                         removeAt(stars, i);
                         if (!Star.active[star.secondColor]) Star.active[star.secondColor] = [];
