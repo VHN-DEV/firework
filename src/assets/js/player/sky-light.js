@@ -198,11 +198,12 @@ export const SkyLight = {
                 }
                 return { i0, i1, t };
             };
-            layout = { key, cols: axis(ow, stageW, gw), rows: axis(oh, stageH, gh) };
+            // Nội suy ngang của từng hàng ô cho mọi cột (mỗi hàng ô dùng chung cho chừng chục hàng điểm ảnh)
+            layout = { key, cols: axis(ow, stageW, gw), rows: axis(oh, stageH, gh), lerp: new Float64Array(gh * ow * 3) };
             skyRows = 0;
         }
         const d = image.data;
-        const { cols, rows } = layout;
+        const { cols, rows, lerp } = layout;
         // Hàng có tâm trên mép nước là trời; mép nước dâng lên thì xóa phần hàng trời cũ giờ đã thành nước
         const sky = Math.min(oh, Math.max(0, Math.round(horizonY / stageH * oh)));
         if (sky < skyRows) {
@@ -210,22 +211,37 @@ export const SkyLight = {
             for (let o = sky * ow * 4 + 3; o < skyRows * ow * 4; o += 4) d[o] = 255;
         }
         skyRows = sky;
+        if (!sky) {
+            canvas.getContext('2d').putImageData(image, 0, 0);
+            return;
+        }
+        const lastRow = rows.i1[sky - 1];
+        for (let j = 0; j <= lastRow; j++) {
+            const r = j * gw;
+            for (let qx = 0, q = j * ow * 3; qx < ow; qx++, q += 3) {
+                const tx = cols.t[qx];
+                const a = (r + cols.i0[qx]) * 3, b = (r + cols.i1[qx]) * 3;
+                lerp[q] = cur[a] + (cur[b] - cur[a]) * tx;
+                lerp[q + 1] = cur[a + 1] + (cur[b + 1] - cur[a + 1]) * tx;
+                lerp[q + 2] = cur[a + 2] + (cur[b + 2] - cur[a + 2]) * tx;
+            }
+        }
+        const br = base.r, bg = base.g, bb = base.b;
         for (let py = 0; py < sky; py++) {
-            const r0 = rows.i0[py] * gw;
-            const r1 = rows.i1[py] * gw;
+            let q0 = rows.i0[py] * ow * 3;
+            let q1 = rows.i1[py] * ow * 3;
             const ty = rows.t[py];
             const noise = (py & 63) << 6;
-            for (let qx = 0, o = py * ow * 4; qx < ow; qx++, o += 4) {
-                const tx = cols.t[qx];
-                const a = (r0 + cols.i0[qx]) * 3, b = (r0 + cols.i1[qx]) * 3, c = (r1 + cols.i0[qx]) * 3, e = (r1 + cols.i1[qx]) * 3;
+            for (let qx = 0, o = py * ow * 4; qx < ow; qx++, o += 4, q0 += 3, q1 += 3) {
                 // Nhiễu ±0,5 bậc màu, mảng điểm ảnh tự làm tròn khi gán: trung bình đúng bằng giá trị gốc. Chỗ gần như
                 // tối hẳn (dưới một bậc) thì bớt nhiễu, không lấm tấm chấm sáng trên nền đen
                 const n = DITHER[noise + (qx & 63)];
-                for (let ch = 0; ch < 3; ch++) {
-                    const top = cur[a + ch] + (cur[b + ch] - cur[a + ch]) * tx;
-                    const v = (ch === 0 ? base.r : ch === 1 ? base.g : base.b) + top + (cur[c + ch] + (cur[e + ch] - cur[c + ch]) * tx - top) * ty;
-                    d[o + ch] = v + n * Math.min(1, Math.max(0, v - 0.5) * 2);
-                }
+                const vr = br + lerp[q0] + (lerp[q1] - lerp[q0]) * ty;
+                const vg = bg + lerp[q0 + 1] + (lerp[q1 + 1] - lerp[q0 + 1]) * ty;
+                const vb = bb + lerp[q0 + 2] + (lerp[q1 + 2] - lerp[q0 + 2]) * ty;
+                d[o] = vr + n * Math.min(1, Math.max(0, vr - 0.5) * 2);
+                d[o + 1] = vg + n * Math.min(1, Math.max(0, vg - 0.5) * 2);
+                d[o + 2] = vb + n * Math.min(1, Math.max(0, vb - 0.5) * 2);
             }
         }
         canvas.getContext('2d').putImageData(image, 0, 0);
