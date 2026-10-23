@@ -8,12 +8,12 @@
 // - Cặp đôi (Duo): chàng trai từ mép trái, cô gái từ mép phải thong thả đi dạo lại, vừa đi vừa ngước nhìn pháo; gặp
 //   nhau ở giữa thì dừng bước, nhìn nhau, cô vén tóc, anh đưa tay, cô nắm lấy; cùng quay ra mặt nước nắm tay ngước nhìn
 //   pháo hoa rồi lần lượt: cô tựa đầu vào vai anh, anh choàng tay ôm vai cô (cô vòng tay ôm eo anh), nhìn nhau rồi anh
-//   cúi hôn lên tóc cô, cô chỉ tay lên pháo, hai bàn tay nắm đung đưa. Mưa, tuyết: hai người che ô đi tới; gặp nhau anh
+//   cúi hôn lên tóc cô, cô chỉ tay lên pháo, hai bàn tay nắm đung đưa. Mưa: hai người che ô đi tới; gặp nhau anh
 //   giơ cao ô, cô gập ô của mình (tay kia vuốt khép tán), cầm buông bên người, bước vào đứng chung ô, khoác tay anh; anh
 //   nghiêng ô về phía cô.
 // - Một mình (Solo): bước chậm buồn bã, chàng trai đút tay túi quần, cô gái khoanh tay ôm lấy mình; đứng giữa bờ ngước
 //   nhìn pháo rồi lần lượt: cúi đầu lặng im, thở dài, nhìn quanh sang bên cạnh trống trải, gãi đầu (chàng), vén tóc (cô),
-//   đưa tay lên mặt lau nước mắt. Mưa, tuyết: cầm ô gác vai, ngước nhìn thì ngả ô ra sau, cúi đầu thì ô cụp xuống.
+//   đưa tay lên mặt lau nước mắt. Mưa: cầm ô gác vai, ngước nhìn thì ngả ô ra sau, cúi đầu thì ô cụp xuống.
 
 import * as THREE from 'three';
 

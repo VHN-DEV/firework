@@ -46,7 +46,7 @@ const HELP_TIPS = {
     people: 'Nhân vật hoạt hình kiểu anime đứng ở bờ bên này, quay lưng ngắm pháo hoa (chuyển động quay từ người thật nên đi đứng tự '
         + 'nhiên, tóc, váy bay theo bước chân). <strong>Nam</strong> hoặc <strong>Nữ</strong>: một người thong thả bước ra giữa bờ, đứng một '
         + 'mình ngắm pháo với dáng cô đơn (cúi đầu, thở dài, nhìn sang bên cạnh trống trải, lau nước mắt). <strong>Cả hai</strong>: chàng '
-        + 'trai, cô gái từ hai phía đi lại gặp nhau ở giữa, nắm tay, tựa vai, ôm nhau ngước nhìn pháo hoa. Trời mưa, tuyết thì che ô; cặp '
+        + 'trai, cô gái từ hai phía đi lại gặp nhau ở giữa, nắm tay, tựa vai, ôm nhau ngước nhìn pháo hoa. Trời mưa thì che ô; cặp '
         + 'đôi gặp nhau thì cô gái gập ô, chàng trai che ô cho cô. Quần áo theo <strong>Mùa</strong> của cảnh: xuân, thu áo hoodie đổi màu, '
         + 'cô gái mặc tay áo dài (thu thêm tất mỏng); đông cả hai mặc áo măng tô dài, quàng khăn len to bản có tua rua (chàng trai '
         + 'măng tô màu lạc đà, khăn xám; cô gái măng tô màu than, khăn kem, quần tất). Trời có tuyết thì đội thêm mũ len (chàng trai '

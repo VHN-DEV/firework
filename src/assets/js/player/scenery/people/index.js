@@ -126,7 +126,8 @@ export const People = {
             this.layout = null;
             return;
         }
-        const umbrella = ['rain', 'snow'].includes(sceneWeather());
+        // Trời mưa thì che ô; tuyết rơi không ướt như mưa, đội mũ len (outfit3d.js), không che ô
+        const umbrella = sceneWeather() === 'rain';
         const far = !near && bankStyle !== 'none';
         if (far) this.farLayout(cssW, cssH, level);
         else this.layoutFor(cssW, cssH, level);
