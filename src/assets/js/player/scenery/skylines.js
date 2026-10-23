@@ -373,10 +373,8 @@ export function drawStyledSkyline(ctx, cssW, ground, clock, calm, glow, drop) {
     ctx.save();
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
-    props(ctx);
     // Ánh pháo rọi lên cầu, nhà, cây như lên kè, bờ đất ở lớp mặt nước (đèn lồng tự sáng vẽ sau, không rọi)
-    const light = fireLight(glow);
-    if (light) fireLit(ctx, light, y0, h, props);
+    fireLit(ctx, fireLight(glow), y0, h, props);
     if (style.frame && style.selfLit) style.frame(ctx, layer, opts);
     ctx.globalCompositeOperation = 'lighter';
     ctx.drawImage(layer.glow, 0, y0, w, h);

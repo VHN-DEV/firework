@@ -258,10 +258,8 @@ export function drawBankSkyline(ctx, cssW, ground, clock, calm, glow, drop) {
     ctx.save();
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
-    plants(ctx);
     // Ánh pháo rọi lên cỏ, lau, bụi cây như lên vách đất ở lớp mặt nước
-    const light = fireLight(glow);
-    if (light) fireLit(ctx, light, ground - TUFT_H, TUFT_H + 8, plants);
+    fireLit(ctx, fireLight(glow), ground - TUFT_H, TUFT_H + 8, plants);
     const flyGlow = fireflyGlow();
     ctx.globalCompositeOperation = 'lighter';
     life.flies.forEach(fly => {

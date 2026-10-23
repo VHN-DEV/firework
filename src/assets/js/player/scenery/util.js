@@ -170,8 +170,10 @@ export function litCanvas(src, light, sx = 0, sy = 0, sw = src.width, sh = src.h
     return litCache;
 }
 
-// Rọi ánh pháo lên các vật paint(g) vẽ (cây, cầu, nhà, cỏ đung đưa) trong dải từ top, cao height (điểm ảnh CSS) của ctx:
-// vẽ lại vào canvas tạm cùng hệ tọa độ rồi cộng phần ánh pháo hắt lên
+// Vẽ các vật paint(g) vẽ (cây, cầu, nhà, cỏ đung đưa) lên ctx và rọi ánh pháo light (fireLight) lên chúng. Có ánh pháo
+// thì vẽ một lần vào canvas tạm cùng hệ tọa độ (dải từ top, cao height điểm ảnh CSS: phải chứa trọn các vật), chép lên
+// ctx rồi cộng phần ánh pháo hắt lên tính từ chính canvas đó: vẽ thẳng lên ctx rồi vẽ lại lần nữa để tính ánh pháo thì tốn
+// gấp đôi (vài trăm khóm cỏ, cây mỗi khung)
 let paintCache = null;
 
 export function fireLit(ctx, light, top, height, paint) {
@@ -179,7 +181,10 @@ export function fireLit(ctx, light, top, height, paint) {
     const W = ctx.canvas.width;
     const y = Math.round(top * k);
     const H = Math.ceil(height * k);
-    if (!W || H <= 0) return;
+    if (!light || !W || H <= 0) {
+        paint(ctx);
+        return;
+    }
     if (!paintCache) paintCache = document.createElement('canvas');
     if (paintCache.width < W || paintCache.height < H) {
         paintCache.width = Math.max(paintCache.width, W);
@@ -192,11 +197,13 @@ export function fireLit(ctx, light, top, height, paint) {
     g.clearRect(0, 0, W, H);
     g.setTransform(k, 0, 0, k, 0, -y);
     paint(g);
-    const lit = litCanvas(paintCache, light, 0, 0, W, H);
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
+    ctx.drawImage(paintCache, 0, 0, W, H, 0, y, W, H);
+    const lit = litCanvas(paintCache, light, 0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter';
     ctx.drawImage(lit, 0, 0, W, H, 0, y, W, H);
     ctx.restore();
 }
