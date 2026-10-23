@@ -37,6 +37,9 @@
     <!-- Phông Google (Inter, Outfit) được nạp trong CSS: nối sẵn tới máy chủ phông để chữ sớm hiện đúng phông -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Giao diện nạp ngay trong <head> (không import trong JS): trang chỉ hiện khi đã có CSS, kể cả khi chạy npm run dev
+         (CSS import trong JS chỉ được chèn sau khi JS chạy, lúc tải lại trang thấy chữ trần không có kiểu) -->
+    <link rel="stylesheet" href="./src/assets/scss/builder.scss">
 </head>
 
 <body>

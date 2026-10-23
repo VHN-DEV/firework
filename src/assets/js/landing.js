@@ -8,7 +8,6 @@
 // dịp tặng, quy trình, hỏi đáp, phiếu đặt làm riêng. Thông tin liên hệ, video giới thiệu: landing/content.js.
 // Không import module của trình phát (player/...): Vite sẽ tách module đó thành gói dùng chung, đổi cách chia gói của
 // demo.html. Từng gặp: tách player/bank-styles.js ra gói riêng thì cảnh tắt bờ bên này không còn người lên cầu.
-import '../scss/landing.scss';
 import { printCopyrightNotice } from './copyright.js';
 import { OCCASIONS } from './templates.js';
 import { initScroll } from './landing/scroll.js';

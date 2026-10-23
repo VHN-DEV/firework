@@ -11,7 +11,6 @@
 // phím), quality-tuning (độ phân giải, vẽ dư, chất lượng tự động), viewer-defaults, render-loop (cập nhật, vẽ mỗi khung),
 // sky-color (màu trời theo pháo), nature-scene (cảnh để nghe âm thanh thiên nhiên, xem player/nature/).
 
-import '../scss/style.scss';
 import fscreen from './fscreen@1.0.1.js';
 import { Stage, Ticker } from './Stage@0.1.4.js';
 import MyMath from './MyMath.js';

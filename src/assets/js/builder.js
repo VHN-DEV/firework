@@ -11,7 +11,6 @@
 // scene (bầu trời, mặt nước, mùa), nature-ui (âm thanh thiên nhiên), templates-ui (mẫu theo dịp), beat-ui (xếp theo nhịp), gift-watch (báo mở quà), video-ui,
 // share (chia sẻ, ảnh xem trước), scripts (danh sách kịch bản), layout (thanh bên, menu).
 
-import '../scss/builder.scss';
 import fscreen from './fscreen@1.0.1.js';
 import { renderShareImage } from './share-image.js';
 import { QUALITY_LEVELS } from './player/quality.js';
