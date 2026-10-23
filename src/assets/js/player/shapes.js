@@ -36,6 +36,9 @@ function emojiParticleColor(r, g, b) {
     return `#${channel(r)}${channel(g)}${channel(b)}`;
 }
 
+// Phần điểm giữ lại trong lòng chữ (viền chữ giữ hết)
+const TEXT_FILL = 0.55;
+
 // Hạt của chữ đã dựng (vẽ chữ rồi đọc điểm ảnh tốn ~10 ms, chữ lặp lại hoặc kịch bản lặp thì dùng lại)
 const textParticleCache = new Map();
 const TEXT_CACHE_LIMIT = 60;
@@ -90,26 +93,34 @@ function buildTextParticles(text, fontSize, step, ownColors) {
     }
     const points = [];
 
-    let minX = textCanvas.width, maxX = 0, minY = textCanvas.height, maxY = 0;
-    for (let y = 0; y < textCanvas.height; y += step) {
-        for (let x = 0; x < textCanvas.width; x += step) {
-            const index = (y * textCanvas.width + x) * 4;
-            const alpha = imgData[index + 3];
-            if (alpha > 128) {
-                const point = { x, y };
-                if (darkData) {
-                    const r = imgData[index];
-                    const g = imgData[index + 1];
-                    const b = imgData[index + 2];
-                    const change = Math.abs(r - darkData[index]) + Math.abs(g - darkData[index + 1]) + Math.abs(b - darkData[index + 2]);
-                    if (change < 60) point.color = emojiParticleColor(r, g, b);
-                }
-                points.push(point);
-                if (x < minX) minX = x;
-                if (x > maxX) maxX = x;
-                if (y < minY) minY = y;
-                if (y > maxY) maxY = y;
+    // Lấy điểm theo lưới đều tăm tắp thì chữ trông như bảng đèn LED: mỗi ô lưới lấy một điểm lệch ngẫu nhiên trong ô. Viền
+    // chữ giữ đủ điểm cho rõ nét, lòng chữ thưa bớt (còn TEXT_FILL) như chùm hạt pháo thật; biểu tượng màu giữ đủ điểm để
+    // còn thấy hình
+    const W = textCanvas.width;
+    const H = textCanvas.height;
+    const inside = (x, y) => x >= 0 && y >= 0 && x < W && y < H && imgData[((y | 0) * W + (x | 0)) * 4 + 3] > 128;
+    let minX = W, maxX = 0, minY = H, maxY = 0;
+    for (let gy = 0; gy < H; gy += step) {
+        for (let gx = 0; gx < W; gx += step) {
+            const x = Math.min(W - 1, gx + Math.random() * step);
+            const y = Math.min(H - 1, gy + Math.random() * step);
+            if (!inside(x, y)) continue;
+            const index = ((y | 0) * W + (x | 0)) * 4;
+            const point = { x, y };
+            if (darkData) {
+                const r = imgData[index];
+                const g = imgData[index + 1];
+                const b = imgData[index + 2];
+                const change = Math.abs(r - darkData[index]) + Math.abs(g - darkData[index + 1]) + Math.abs(b - darkData[index + 2]);
+                if (change < 60) point.color = emojiParticleColor(r, g, b);
             }
+            const edge = !inside(x - step, y) || !inside(x + step, y) || !inside(x, y - step) || !inside(x, y + step);
+            if (!edge && !point.color && Math.random() > TEXT_FILL) continue;
+            points.push(point);
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
         }
     }
 

@@ -395,9 +395,11 @@ export class Shell {
                         0, // Speed không quan trọng vì ta sẽ ghi đè speedX/Y
                         this.starLife + Math.random() * this.starLife * this.starLifeVariation
                     );
-                    // Vận tốc theo điểm p đã xoay một góc shapeStartAngle, đảm bảo hình đúng hướng tuyệt đối
-                    star.speedX = (p.x * cosA - p.y * sinA) * speed;
-                    star.speedY = (p.x * sinA + p.y * cosA) * speed;
+                    // Vận tốc theo điểm p đã xoay một góc shapeStartAngle, đảm bảo hình đúng hướng tuyệt đối. Chữ: mỗi hạt lệch
+                    // tốc độ chút ít như thuốc phóng thật, chữ nở ra không đều tăm tắp mà vẫn đọc rõ
+                    const kick = isText ? speed * (0.97 + Math.random() * 0.06) : speed;
+                    star.speedX = (p.x * cosA - p.y * sinA) * kick;
+                    star.speedY = (p.x * sinA + p.y * cosA) * kick;
                     decorateStar(star);
                 });
             } else if (this.ring) {
@@ -434,27 +436,33 @@ export class Shell {
                 const squash = galaxy ? MyMath.random(0.5, 0.8) : MyMath.random(0.8, 1);
                 const tilt = galaxy ? MyMath.random(-0.6, 0.6) : 0;
                 const startAngle = Math.random() * PI_2;
+                // Bánh xe: nan đều tăm tắp, hạt cách đều, cả bánh quay cứng một tốc độ thì trông như máy. Như chong chóng lửa
+                // thật: nan dài ngắn, lệch góc khác nhau, hạt trong nan cách không đều; vòng trong quay nhanh hơn vòng ngoài
+                // nên nan cong dần thành vệt xoáy; mỗi hạt văng ra nhanh chậm, rơi nhanh chậm khác nhau một chút
+                const wobble = (spread) => (galaxy ? 1 : 1 + (Math.random() - 0.5) * 2 * spread);
                 for (let a = 0; a < arms; a++) {
                     // Mỗi nhánh một màu khi chọn nhiều màu hoặc "Ngẫu nhiên"
                     const armColor = Array.isArray(color) ? color[a % color.length] : (color === 'random' ? randomColor() : color);
+                    const armAngle = startAngle + (a + (galaxy ? 0 : (Math.random() - 0.5) * 0.35)) * PI_2 / arms;
+                    const armLength = wobble(0.12);
                     for (let j = 1; j <= perArm; j++) {
-                        const t = j / perArm;
+                        const t = galaxy ? j / perArm : Math.max(0.05, (j - Math.random() * 0.8) / perArm);
                         const star = Star.add(x, y, armColor, 0, 0, this.starLife + Math.random() * this.starLife * this.starLifeVariation);
                         star.orbit = {
                             cx: x,
                             cy: y,
                             radius: 0,
-                            targetRadius: radius * (galaxy ? Math.pow(t, 0.85) : t),
-                            expand: galaxy ? 0.04 : 0.06,
+                            targetRadius: radius * (galaxy ? Math.pow(t, 0.85) : t * armLength * wobble(0.05)),
+                            expand: galaxy ? 0.04 : 0.06 * wobble(0.25),
                             // Nhánh cong ngược chiều quay, như vệt xoáy bị kéo lại phía sau
-                            angle: startAngle + a * PI_2 / arms - direction * curl * t,
-                            angularSpeed: direction * (galaxy ? 0.045 : 0.09),
+                            angle: armAngle - direction * curl * t + (galaxy ? 0 : (Math.random() - 0.5) * 0.08),
+                            angularSpeed: direction * (galaxy ? 0.045 : 0.09 * (1.15 - 0.3 * t) * wobble(0.06)),
                             spinDrag: galaxy ? 0.004 : 0.006,
                             squash,
                             tiltCos: Math.cos(tilt),
                             tiltSin: Math.sin(tilt),
                             fallSpeed: 0,
-                            fallAcc: 0.0025
+                            fallAcc: 0.0025 * wobble(0.2)
                         };
                         decorateStar(star);
                     }
