@@ -64,47 +64,101 @@ function loadScriptsList() {
                 });
             }
 
-            if (data.length === 0) {
-                list.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">Bạn chưa có kịch bản nào.</p>';
-                return;
-            }
-
-            data.forEach(script => {
-                const item = document.createElement('div');
-                item.className = 'script-item';
-                item.dataset.id = script.id;
-                const isPrivate = script.status === 'private';
-                const isLocal = script.status === 'local';
-                // Do máy khác tạo: chỉ xem, nhân bản được; sửa rồi lưu thì thành bản mới
-                const isOthers = script.locked && !ownerKeys[script.id];
-
-                item.onclick = (e) => {
-                    if (e.target.closest('.btn')) return;
-                    copyScriptLink(script.id);
-                };
-
-                // Nút có chữ (điện thoại không có chú thích khi rê chuột); nhãn trạng thái ghi rõ bằng chữ
-                item.innerHTML = `
-                <h4 title="${escapeHtml(script.title)}">${escapeHtml(script.title)}</h4>
-                <div class="meta">
-                    <span><i class="fas fa-user"></i> ${escapeHtml(script.author)}</span>
-                    <span><i class="fas fa-fireworks"></i> ${escapeHtml(script.eventCount)} phát bắn</span>
-                    <span class="script-badges">${isPrivate ? '<span class="gift-badge" title="Kịch bản riêng tư: không xóa được từ đây"><i class="fas fa-lock"></i>Riêng tư</span>' : ''}${isLocal ? '<span class="gift-badge" title="Chỉ lưu trên trình duyệt này"><i class="fas fa-laptop"></i>Trên máy này</span>' : ''}${isOthers ? '<span class="gift-badge" title="Chỉ máy đã tạo mới lưu đè, xóa được. Bạn vẫn xem, nhân bản được; sửa rồi lưu sẽ thành bản mới."><i class="fas fa-user-lock"></i>Máy khác tạo</span>' : ''}</span>
-                </div>
-                <div class="script-actions">
-                    <button class="btn primary small" onclick="editScript('${script.id}')"><i class="fas fa-edit"></i> Sửa</button>
-                    <button class="btn secondary small" onclick="duplicateScript('${script.id}')"><i class="fas fa-copy"></i> Nhân bản</button>
-                    <button class="btn secondary small" onclick="previewScript('${script.id}')"><i class="fas fa-play"></i> Xem</button>
-                    ${(!isPrivate || isLocal) && !isOthers ? `<button class="btn danger small is-icon" onclick="deleteScript('${script.id}')" title="Xóa" aria-label="Xóa kịch bản"><i class="fas fa-trash"></i></button>` : ''}
-                </div>
-            `;
-                list.appendChild(item);
-            });
+            // Ba nhóm: mẫu có sẵn (kịch bản "riêng tư" của trang), của tôi (trình duyệt này tạo), do máy khác tạo (máy chủ
+            // PHP lưu chung): khách mở "Của tôi" không thấy lẫn mẫu, kịch bản của người khác
+            const samples = data.filter(s => s.status === 'private');
+            const mine = data.filter(s => s.status !== 'private' && (s.status === 'local' || ownerKeys[s.id] || !s.locked));
+            const others = data.filter(s => s.status !== 'private' && s.status !== 'local' && !ownerKeys[s.id] && s.locked);
+            renderScriptGroups(list, { mine, samples, others });
             showGiftBadges();
         })
         .catch(err => {
             list.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--error);">Không thể tải danh sách: ${escapeHtml(err.message)}</p>`;
         });
+}
+
+// Thẻ một kịch bản. kind: 'sample' (dùng mẫu, xem), 'mine' (sửa, nhân bản, xem, xóa), 'other' (xem, nhân bản)
+function scriptCard(script, kind) {
+    const item = document.createElement('div');
+    item.className = `script-item script-item--${kind}`;
+    item.dataset.id = script.id;
+    const id = escapeHtml(script.id);
+    // Bấm vào thẻ: mẫu thì xem thử, kịch bản của mình thì chép link gửi tặng
+    item.onclick = e => {
+        if (e.target.closest('.btn')) return;
+        if (kind === 'sample') previewScript(script.id);
+        else copyScriptLink(script.id);
+    };
+    const local = script.status === 'local';
+    const actions = {
+        sample: `<button class="btn primary small" onclick="duplicateScript('${id}')"><i class="fas fa-wand-magic-sparkles"></i> Dùng mẫu này</button>
+            <button class="btn secondary small" onclick="previewScript('${id}')"><i class="fas fa-play"></i> Xem</button>`,
+        mine: `<button class="btn primary small" onclick="editScript('${id}')"><i class="fas fa-edit"></i> Sửa</button>
+            <button class="btn secondary small" onclick="duplicateScript('${id}')"><i class="fas fa-copy"></i> Nhân bản</button>
+            <button class="btn secondary small" onclick="previewScript('${id}')"><i class="fas fa-play"></i> Xem</button>
+            <button class="btn danger small is-icon" onclick="deleteScript('${id}')" title="Xóa" aria-label="Xóa kịch bản"><i class="fas fa-trash"></i></button>`,
+        other: `<button class="btn secondary small" onclick="previewScript('${id}')"><i class="fas fa-play"></i> Xem</button>
+            <button class="btn secondary small" onclick="duplicateScript('${id}')" title="Sửa rồi lưu sẽ thành bản mới của bạn"><i class="fas fa-copy"></i> Nhân bản</button>`
+    }[kind];
+    // Ảnh xem trước khi chia sẻ (configs/<tên>.jpg, có khi lưu trên máy chủ); không có ảnh thì nền chuyển màu
+    item.innerHTML = `
+        <div class="script-thumb">${local ? '' : `<img src="configs/${encodeURIComponent(script.id)}.jpg" alt="" loading="lazy" onerror="this.remove()">`}<i class="fas fa-wand-magic-sparkles"></i></div>
+        <h4 title="${escapeHtml(script.title)}">${escapeHtml(script.title)}</h4>
+        <div class="meta">
+            <span><i class="fas fa-user"></i> ${escapeHtml(script.author)}</span>
+            <span><i class="fas fa-fireworks"></i> ${escapeHtml(script.eventCount)} phát bắn</span>
+            <span class="script-badges">${local ? '<span class="gift-badge" title="Chỉ lưu trên trình duyệt này"><i class="fas fa-laptop"></i>Trên máy này</span>' : ''}</span>
+        </div>
+        <div class="script-actions">${actions}</div>`;
+    return item;
+}
+
+function renderScriptGroups(list, { mine, samples, others }) {
+    const grid = (items, kind) => {
+        const box = document.createElement('div');
+        box.className = 'scripts-grid';
+        items.forEach(s => box.appendChild(scriptCard(s, kind)));
+        return box;
+    };
+    list.innerHTML = `
+        <div class="scripts-tabs" role="tablist" aria-label="Nhóm kịch bản">
+            <button type="button" role="tab" data-tab="mine"><i class="fas fa-user"></i> Của tôi <small>${mine.length}</small></button>
+            <button type="button" role="tab" data-tab="samples"><i class="fas fa-star"></i> Mẫu có sẵn <small>${samples.length}</small></button>
+        </div>
+        <div class="scripts-tab" data-panel="mine"></div>
+        <div class="scripts-tab" data-panel="samples"></div>`;
+    const minePanel = list.querySelector('[data-panel="mine"]');
+    if (mine.length) {
+        minePanel.appendChild(grid(mine, 'mine'));
+    } else {
+        minePanel.innerHTML = `
+            <div class="scripts-empty">
+                <i class="fas fa-wand-magic-sparkles"></i>
+                <strong>Bạn chưa lưu kịch bản nào</strong>
+                <p>Bấm <b>Mới</b> để tạo nhanh theo dịp, hoặc chọn một mẫu có sẵn rồi chỉnh lại cho người nhận của bạn.</p>
+                <button type="button" class="btn primary small" data-go="samples"><i class="fas fa-star"></i> Xem mẫu có sẵn</button>
+            </div>`;
+    }
+    if (others.length) {
+        const more = document.createElement('details');
+        more.className = 'scripts-others';
+        more.innerHTML = `<summary><i class="fas fa-user-lock"></i> Do máy khác tạo (${others.length}) <small>chỉ máy đã tạo mới sửa, xóa được</small></summary>`;
+        more.appendChild(grid(others, 'other'));
+        minePanel.appendChild(more);
+    }
+    list.querySelector('[data-panel="samples"]').appendChild(grid(samples, 'sample'));
+
+    const show = tab => {
+        list.querySelectorAll('[role="tab"]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+        list.querySelectorAll('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== tab; });
+    };
+    list.querySelector('.scripts-tabs').addEventListener('click', e => {
+        const b = e.target.closest('[data-tab]');
+        if (b) show(b.dataset.tab);
+    });
+    list.querySelector('[data-go]')?.addEventListener('click', () => show('samples'));
+    // Chưa có kịch bản riêng thì mở thẳng phần mẫu
+    show(mine.length || !samples.length ? 'mine' : 'samples');
 }
 
 export async function duplicateScript(filename) {

@@ -50,3 +50,153 @@
         padding: 0;
     }
 }
+
+// Hộp Kịch bản: hai thẻ Của tôi, Mẫu có sẵn; mỗi kịch bản có ảnh xem trước
+.scripts-panel {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: 1.25rem;
+    text-align: left;
+}
+
+.scripts-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    gap: 0.4rem;
+    padding: 1rem 1.5rem 0.75rem;
+    background: $b-panel-2;
+    border-bottom: 1px solid $b-line;
+
+    button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        height: 36px;
+        padding: 0 0.9rem;
+        border: 1px solid $b-line-strong;
+        border-radius: 999px;
+        background: transparent;
+        color: $b-muted;
+        font: inherit;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+
+        small {
+            min-width: 1.4rem;
+            padding: 0.05rem 0.45rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            font-size: 0.72rem;
+            text-align: center;
+        }
+
+        &:hover {
+            color: $b-text;
+        }
+
+        &[aria-selected='true'] {
+            color: #fff;
+            background: rgba($b-accent, 0.28);
+            border-color: rgba($b-accent, 0.7);
+        }
+    }
+}
+
+.scripts-tab[hidden] {
+    display: none;
+}
+
+.scripts-panel .scripts-grid {
+    padding: 1rem 1.5rem 0;
+    overflow: visible;
+}
+
+.script-thumb {
+    position: relative;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1200 / 630;
+    margin-bottom: 0.35rem;
+    border-radius: 10px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #2b1d5e 0%, #0a0b19 100%);
+    color: rgba(255, 255, 255, 0.22);
+    font-size: 1.5rem;
+
+    img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+
+.scripts-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.55rem;
+    max-width: 400px;
+    margin: 2.25rem auto 1rem;
+    padding: 0 1rem;
+    color: $b-muted;
+    text-align: center;
+
+    > i {
+        font-size: 1.8rem;
+        color: $b-accent;
+    }
+
+    strong {
+        color: $b-text;
+        font-size: 1rem;
+    }
+
+    p {
+        margin: 0 0 0.4rem;
+        font-size: 0.86rem;
+    }
+}
+
+.scripts-others {
+    margin: 1.25rem 1.5rem 0;
+    border-top: 1px solid $b-line;
+
+    summary {
+        padding: 0.9rem 0 0;
+        color: $b-muted;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+
+        small {
+            margin-left: 0.4rem;
+            color: $b-faint;
+            font-weight: 400;
+        }
+    }
+
+    .scripts-grid {
+        padding: 0.75rem 0 0;
+    }
+}
+
+@include mobile {
+    .scripts-tabs {
+        padding: 0.8rem 0.9rem 0.6rem;
+    }
+
+    .scripts-panel .scripts-grid {
+        padding: 0.8rem 0.9rem 0;
+    }
+
+    .scripts-others {
+        margin: 1rem 0.9rem 0;
+    }
+}

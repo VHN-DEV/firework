@@ -123,6 +123,26 @@ export async function run(browser, base, { check }) {
             cfg && cfg.receiverShare === false && tapSummary.includes('Khóa chia sẻ'), JSON.stringify({ share: cfg && cfg.receiverShare, tapSummary }));
         check('lưu kèm ảnh xem trước khi chia sẻ', fs.existsSync(path.join(DIST, 'configs', `${ID}.jpg`)));
 
+        // Hộp Kịch bản: kịch bản vừa lưu ở "Của tôi" (có Sửa, Xóa), mẫu của trang ở "Mẫu có sẵn" (Dùng mẫu này), không lẫn
+        await page.evaluate(() => openScriptsModal());
+        await page.waitForSelector('#scripts-list .scripts-tabs', { timeout: 10000 }).catch(() => {});
+        const lists = await page.evaluate(id => {
+            const ids = panel => [...document.querySelectorAll(`[data-panel="${panel}"] > .scripts-grid .script-item`)].map(e => e.dataset.id);
+            const mineCard = document.querySelector(`[data-panel="mine"] .script-item[data-id="${id}"]`);
+            return {
+                tab: document.querySelector('.scripts-tabs [aria-selected="true"]')?.dataset.tab,
+                mine: ids('mine'),
+                samples: ids('samples'),
+                mineActions: mineCard ? [...mineCard.querySelectorAll('.script-actions .btn')].map(b => b.textContent.trim() || b.title).join(',') : '',
+                sampleAction: document.querySelector('[data-panel="samples"] .script-item .btn.primary')?.textContent.trim()
+            };
+        }, ID);
+        check('hộp Kịch bản: kịch bản đã lưu ở "Của tôi", mẫu ở "Mẫu có sẵn" (Dùng mẫu này), không lẫn nhau',
+            lists.tab === 'mine' && lists.mine.includes(ID) && !lists.samples.includes(ID) && lists.samples.length > 0
+                && lists.mine.every(id => !lists.samples.includes(id)) && lists.mineActions === 'Sửa,Nhân bản,Xem,Xóa' && lists.sampleAction === 'Dùng mẫu này',
+            JSON.stringify(lists));
+        await page.evaluate(() => hideModal('scripts-modal'));
+
         // Trang chia sẻ có tiêu đề cho mạng xã hội và chuyển tới màn trình diễn
         const html = await (await fetch(`${base}/s/${ID}`)).text();
         check('trang chia sẻ có og:title và chuyển tới màn trình diễn', html.includes('og:title') && html.includes(`demo?config=${ID}`));
