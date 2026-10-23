@@ -115,6 +115,7 @@ export class Actor3D {
         // Đích IK gần nhất của từng tay (tay thả ra thì nhả dần khỏi đích cũ)
         this.lastIk = [null, null];
         this.umbrella = null;
+        this.fresh = true;
         const hips = this.bone('hips');
         this.hipsRest = hips.position.clone();
         this.root.traverse(o => {
@@ -216,6 +217,12 @@ export class Actor3D {
         // bằng getWorld*, tự cập nhật theo chuỗi xương cha
         this.overlay(dt);
         this.vrm.update(dt);
+        // Lần cập nhật đầu (mô hình dùng lại từ cảnh trước, chỗ đứng, hướng nhảy cóc): tóc, váy về dáng nghỉ theo tư thế mới,
+        // không thì ngọn tóc còn ở chỗ cũ, hắt tung ra trước mặt vài khung
+        if (this.fresh) {
+            this.fresh = false;
+            if (this.vrm.springBoneManager) this.vrm.springBoneManager.reset();
+        }
     }
 
     // Lớp cử động thêm lên trên chuyển động: nhìn, nghiêng, ngón tay, IK tay
