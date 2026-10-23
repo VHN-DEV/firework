@@ -309,12 +309,15 @@ export function* buildCloud(w, h, seed, kind) {
                 body.data[i + 1] = 34 + 62 * shade;
                 body.data[i + 2] = 48 + 70 * shade;
                 body.data[i + 3] = 255 * a;
-                // Ánh trăng chỉ viền mặt trên hứng sáng: chỗ mây dày mà phía trên mỏng dần (không viền quanh cả khối)
-                const above = py >= up ? dens[j - up * tw] : 0;
-                const lit = (Math.max(0, a - above) * 1.1 * (0.4 + 0.6 * top) + a * (1 - a) * 0.25 * top) * rimK;
-                rim.data[i] = 212;
-                rim.data[i + 1] = 222;
-                rim.data[i + 2] = 244;
+                // Ánh trăng chỉ hắt lên mặt trên hứng sáng: chỗ mây dày mà phía trên mỏng dần (không viền quanh cả khối). Lấy
+                // chênh mật độ ở ba độ sâu: sáng loang dần từ mép vào trong như mây thật, không thành một nét trắng mảnh
+                // chạy dọc đỉnh mây (trông như tuyết đọng)
+                const above = k => (py >= k * up ? dens[j - k * up * tw] : 0);
+                const band = 0.5 * Math.max(0, a - above(1)) + 0.3 * Math.max(0, a - above(2)) + 0.2 * Math.max(0, a - above(3));
+                const lit = (band * 1.2 * (0.4 + 0.6 * top) + a * (1 - a) * 0.25 * top) * rimK;
+                rim.data[i] = 186;
+                rim.data[i + 1] = 198;
+                rim.data[i + 2] = 226;
                 rim.data[i + 3] = 255 * Math.min(1, lit);
                 alpha[j] = 255 * a;
             }

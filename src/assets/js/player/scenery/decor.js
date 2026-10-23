@@ -337,7 +337,8 @@ export const Decor = {
                 const dy = cloud.y - (this.moon.y + drift.y);
                 near = Math.max(0, 1 - Math.sqrt(dx * dx + dy * dy) / (this.width * 0.5));
             }
-            const rim = light * (0.25 + 0.75 * near) + cloudFlash * 0.5;
+            // Mây xa trăng chỉ hửng nhẹ, gần trăng mới ánh bạc rõ
+            const rim = light * (0.2 + 0.8 * near) + cloudFlash * 0.5;
             parts.forEach(([map, weight]) => {
                 if (weight < 0.01) return;
                 ctx.globalCompositeOperation = 'source-over';
