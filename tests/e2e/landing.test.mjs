@@ -130,4 +130,18 @@ export async function run(browser, base, { check }) {
     }
 
     check('bản build có ảnh banner trang chủ', fs.readdirSync(path.join(DIST, 'assets/img')).some(f => f.startsWith('landing-')));
+
+    // Logo, biểu tượng trang (scripts/brand-icons.mjs): đủ file, trang nào cũng trỏ tới, đường dẫn tương đối (trang chạy
+    // trong thư mục con như GitHub Pages)
+    const manifest = await (await fetch(`${base}/site.webmanifest`)).json().catch(() => null);
+    const files = ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png', ...(manifest ? manifest.icons.map(i => i.src) : [])];
+    const missing = [];
+    for (const file of files) if (!(await fetch(`${base}/${file}`)).ok) missing.push(file);
+    check('logo, biểu tượng trang: đủ file, site.webmanifest hợp lệ', manifest && manifest.icons.length >= 2 && !missing.length, missing.join(' '));
+    const noIcon = [];
+    for (const route of ['', 'demo', 'builder', 'privacy', 'terms', 'theo-doi']) {
+        const page = await (await fetch(`${base}/${route}`)).text();
+        if (!page.includes('<link rel="icon" href="./favicon.svg"') || !page.includes('href="./apple-touch-icon.png"')) noIcon.push(route || '/');
+    }
+    check('trang nào cũng có biểu tượng mới (đường dẫn tương đối)', !noIcon.length, noIcon.join(' '));
 }

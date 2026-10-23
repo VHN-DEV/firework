@@ -70,7 +70,7 @@ export function renderSharePage({ id, title, description, shareUrl, imageUrl }) 
     <meta name="twitter:description" content="${d}">
     <meta name="twitter:image" content="${escapeHtml(imageUrl)}">
     <meta name="theme-color" content="#000000">
-    <link rel="icon" type="image/png" href="../assets/img/firework-burst-icon-v2.png">
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml">
     <meta http-equiv="refresh" content="0; url=${escapeHtml(showPath)}">
     <script>location.replace(${JSON.stringify(showPath)} + location.hash);</script>
     <style>

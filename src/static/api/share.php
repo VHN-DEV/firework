@@ -89,7 +89,7 @@ $e = function ($v) {
     <meta name="twitter:description" content="<?= $e($description) ?>">
     <meta name="twitter:image" content="<?= $e($imageUrl) ?>">
     <meta name="theme-color" content="#000000">
-    <link rel="icon" type="image/png" href="../assets/img/firework-burst-icon-v2.png">
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml">
     <meta http-equiv="refresh" content="0; url=<?= $e($showPath) ?>">
     <script>location.replace(<?= json_encode($showPath) ?> + location.hash);</script>
     <style>

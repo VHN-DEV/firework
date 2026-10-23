@@ -90,6 +90,8 @@ Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và 
   Zalo, Messenger) và video giới thiệu YouTube sửa trong `landing/content.js`; kịch bản mẫu, mục nổi bật sửa trong
   `src/static/configs/configs_index.json` (xem README trong thư mục đó). Ảnh banner `src/assets/img/landing/` là ảnh
   chụp thật từ trình phát (WebP 1920 và 1280 px).
+- Logo, biểu tượng trang (`src/static/favicon.svg`, `favicon.ico`, `apple-touch-icon.png`, `icon-*.png`,
+  `site.webmanifest`): dựng bằng `scripts/brand-icons.mjs` (đổi hình, màu ở đó rồi chạy `npm run icons`, cần Chrome).
 - `src/assets/js/script.js`: trình phát (cài đặt, menu, khung mở quà, hẹn giờ, khớp nhịp nhạc, dựng video, vòng lặp
   vẽ). Lõi pháo hoa tách trong `src/assets/js/player/`:
   - `env.js`, `state.js`: môi trường, hằng số, trạng thái dùng chung (cỡ sân khấu, chất lượng, tốc độ, cài đặt);

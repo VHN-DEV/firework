@@ -37,17 +37,14 @@
     min-width: 0;
 }
 
+// Logo (favicon.svg: chùm pháo trên ô bo góc)
 .brand-logo {
     width: 36px;
     height: 36px;
     flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 11px;
-    background: $b-gradient;
-    color: #fff;
-    box-shadow: 0 6px 16px rgba(124, 108, 255, 0.4);
+    display: block;
+    border-radius: 9px;
+    box-shadow: 0 6px 16px rgba(255, 95, 162, 0.3);
 }
 
 .brand-text {
