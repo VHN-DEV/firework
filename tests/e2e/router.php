@@ -4,7 +4,8 @@
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  *
  * Bộ định tuyến cho máy chủ PHP có sẵn (php -S) khi chạy kiểm thử, làm thay .htaccess của Apache:
- * s/<tên>.html -> api/share.php?c=<tên>, chặn api/data/. Các đường dẫn khác phục vụ như bình thường.
+ * s/<tên> (hoặc s/<tên>.html) -> api/share.php?c=<tên>, /<trang> -> <trang>.html, chặn api/data/. Các đường dẫn
+ * khác phục vụ như bình thường.
  */
 // Không dùng parse_url: nó hiểu //api/... là tên máy chủ 'api' chứ không phải đường dẫn
 $path = explode('?', $_SERVER['REQUEST_URI'], 2)[0];
@@ -15,17 +16,26 @@ if (strpos($plain, '/api/data/') === 0 || $plain === '/api/data') {
     http_response_code(403);
     return true;
 }
-if (preg_match('#^/s/([A-Za-z0-9_-]+)\.html$#', $path, $m)) {
+if (preg_match('#^/s/([A-Za-z0-9_-]+)(\.html)?$#', $path, $m)) {
     $_GET['c'] = $m[1];
     $_SERVER['SCRIPT_NAME'] = '/api/share.php';
     require __DIR__ . '/../../dist/api/share.php';
     return true;
 }
 
-// php -S không hỗ trợ tải theo đoạn (HTTP Range) như Apache/GitHub Pages; thiếu nó trình duyệt không tua được nhạc
-// (nhạc nền "phát từ giây ..."). Tự trả 206 Partial Content cho file âm thanh.
 $dist = realpath(__DIR__ . '/../../dist');
 $file = realpath($dist . $path);
+
+// Đường dẫn không đuôi như GitHub Pages và .htaccess: /builder -> builder.html
+$page = preg_match('#^/[A-Za-z0-9_-]+$#', $path) ? realpath($dist . $path . '.html') : false;
+if (!$file && $page) {
+    header('Content-Type: text/html; charset=utf-8');
+    readfile($page);
+    return true;
+}
+
+// php -S không hỗ trợ tải theo đoạn (HTTP Range) như Apache/GitHub Pages; thiếu nó trình duyệt không tua được nhạc
+// (nhạc nền "phát từ giây ..."). Tự trả 206 Partial Content cho file âm thanh.
 $types = ['mp3' => 'audio/mpeg', 'wav' => 'audio/wav', 'm4a' => 'audio/mp4', 'ogg' => 'audio/ogg'];
 $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
 if ($file && strpos($file, $dist) === 0 && is_file($file) && isset($types[$ext])

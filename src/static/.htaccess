@@ -1,13 +1,22 @@
 # Không liệt kê file trong thư mục (uploads/, configs/...): ảnh, nhạc người dùng tải lên không bị duyệt hàng loạt
 Options -Indexes
 
-# Trang chia sẻ trên host PHP: s/<tên>.html -> api/share.php?c=<tên>
-# Luôn dùng trang động, kể cả kịch bản đã có file tĩnh s/<tên>.html từ lúc build: trang động đọc kịch bản hiện tại,
-# nên tiêu đề, mô tả, ảnh khi chia sẻ vừa sửa trong builder có hiệu lực ngay và ảnh trỏ đúng tên miền đang chạy.
-# (Trang tĩnh chỉ dùng trên host không có PHP như GitHub Pages, nơi file .htaccess không có tác dụng.)
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteRule ^s/([A-Za-z0-9_-]+)\.html$ api/share.php?c=$1 [L,QSA]
+
+    # Trang chia sẻ trên host PHP: s/<tên> (link cũ s/<tên>.html vẫn dùng được) -> api/share.php?c=<tên>
+    # Luôn dùng trang động, kể cả kịch bản đã có file tĩnh s/<tên>.html từ lúc build: trang động đọc kịch bản hiện tại,
+    # nên tiêu đề, mô tả, ảnh khi chia sẻ vừa sửa trong builder có hiệu lực ngay và ảnh trỏ đúng tên miền đang chạy.
+    # (Trang tĩnh chỉ dùng trên host không có PHP như GitHub Pages, nơi file .htaccess không có tác dụng.)
+    RewriteRule ^s/([A-Za-z0-9_-]+)(\.html)?$ api/share.php?c=$1 [L,QSA]
+
+    # Đường dẫn không đuôi như GitHub Pages: /builder -> builder.html (link cũ có ".html" vẫn mở được).
+    # Chỉ tên trang ở gốc: /builder/ hay /builder/x không khớp (Apache coi phần sau là PATH_INFO của "builder",
+    # điều kiện builder.html luôn đúng nên luật rộng hơn sẽ nối ".html" lặp vô hạn)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME}.html -f
+    RewriteRule ^([A-Za-z0-9_-]+)$ $1.html [L]
 </IfModule>
 
 # Ảnh xem trước & kịch bản: cho phép mạng xã hội lấy ảnh, cache vừa phải
