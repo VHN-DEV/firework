@@ -377,12 +377,14 @@ export class Duo {
             w.curlGoal = [0.25, 0.25];
             return;
         }
-        m.ik[1] = { target: bodyPoint(m, 0.09, 1.05, 0.28), pole: bodyDir(m, 0.6, -1, -0.2) };
-        w.ik[0] = { target: bodyPoint(w, -0.08, 0.98, 0.26), pole: bodyDir(w, -0.6, -1, -0.2) };
+        // Tay cầm ô trước ngực, cán hơi ngả về sau: tán ô nằm ngay trên đầu (tay thấp, cán chúi tới trước thì tán ô che
+        // trước mặt, không giống đang che ô)
+        m.ik[1] = { target: bodyPoint(m, 0.1, 1.22, 0.2), pole: bodyDir(m, 0.6, -1, -0.2) };
+        w.ik[0] = { target: bodyPoint(w, -0.08, 1.12, 0.19), pole: bodyDir(w, -0.6, -1, -0.2) };
         m.curlGoal = [0.3, 0.9];
         w.curlGoal = [0.9, 0.25];
-        m.umbrellaDir = bodyDir(m, 0, 1, 0.22).add(V(-env.wind * 0.06, 0, 0));
-        w.umbrellaDir = bodyDir(w, 0, 1, 0.22).add(V(-env.wind * 0.06, 0, 0));
+        m.umbrellaDir = bodyDir(m, -0.04, 1, -0.3).add(V(-env.wind * 0.06, 0, 0));
+        w.umbrellaDir = bodyDir(w, 0.04, 1, -0.26).add(V(-env.wind * 0.06, 0, 0));
     }
 
     // Gặp nhau (trời quang): cô vén tóc, anh đưa tay, cô nắm lấy
@@ -657,7 +659,7 @@ export class Solo {
         sides.forEach(i => {
             const sg = i ? 1 : -1;
             if (this.umbrella && i === this.umbHand) {
-                a.ik[i] = { target: bodyPoint(a, sg * 0.07, 1.08, 0.24), pole: bodyDir(a, sg * 0.6, -1, -0.2) };
+                a.ik[i] = { target: bodyPoint(a, sg * 0.08, 1.16, 0.2), pole: bodyDir(a, sg * 0.6, -1, -0.2) };
                 a.curlGoal[i] = 0.9;
                 return;
             }
@@ -681,7 +683,7 @@ export class Solo {
         if (this.umbrella) {
             const name = g ? g.name : '';
             const down = this.phase === 'enter' || name === 'down' || name === 'tear';
-            a.umbrellaDir = bodyDir(a, this.umbHand ? 0.18 : -0.18, 1, down ? 0.12 : -0.45).add(V(-env.wind * 0.05, 0, 0));
+            a.umbrellaDir = bodyDir(a, this.umbHand ? 0.12 : -0.12, 1, down ? -0.18 : -0.45).add(V(-env.wind * 0.05, 0, 0));
         }
     }
 }
