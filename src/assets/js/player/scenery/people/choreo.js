@@ -85,7 +85,7 @@ class Walker {
         return Math.abs(this.x - this.a.x);
     }
 
-    update() {
+    update(dt = 1 / 60) {
         const a = this.a;
         if (this.state === 'turn') {
             if (Math.abs(a.yaw - a.goalYaw) < 0.35) {
@@ -100,6 +100,13 @@ class Walker {
             const past = this.merge === null ? left <= this.stopDist + 1.2 : (a.x - this.merge) * this.dir >= 0;
             const aim = past ? this.z : this.lane;
             a.goalYaw = this.dir * (Math.PI / 2 - clamp((aim - a.z) * 1.5, -0.45, 0.45));
+        }
+        if (this.state === 'stop') {
+            // Động tác dừng trộn chuyển tiếp với bước đi nên quãng trượt thực tế hụt so với tính trước (anh dừng hụt gần
+            // 10 cm, hai người đứng xa nhau): bù dần phần còn thiếu trong lúc chân còn đang bước, để dừng đúng chỗ hẹn
+            // Còn bao xa tới chỗ hẹn theo hướng đi (âm: đã đi quá) trừ quãng động tác dừng còn trượt
+            const err = (this.x - a.x) * this.dir - a.remainingTravel('stop');
+            a.x += this.dir * clamp(err, -0.15 * dt, 0.15 * dt);
         }
         if (this.state === 'walk' && left <= this.stopDist) {
             this.state = 'stop';
@@ -121,13 +128,14 @@ function walkTime(actor, dist, gait = 'walk') {
     return Math.max(0, dist - stop.dist) / Math.max(0.1, speed) + actor.clips.stop.duration * 0.8;
 }
 
-// Điểm hai bàn tay nắm nhau, giữa hai người
-function holdPoint(m, w, h = 0.86) {
+// Điểm hai bàn tay nắm nhau, giữa hai người, lùi ra sau lưng back mét (về phía người xem). Đứng ngắm thì hai người sát vai,
+// giữa vạt áo của anh và váy xòe của cô không còn khe: hai bàn tay nắm phải thả ra sau lưng, lệch về phía anh một chút
+function holdPoint(m, w, h = 0.86, back = 0.06) {
     const a = m.worldOf('rightHand');
     const b = w.worldOf('leftHand');
     const mid = a.clone().lerp(b, 0.5);
     const hips = m.worldOf('hips').lerp(w.worldOf('hips'), 0.5);
-    return V((hips.x + mid.x) / 2, h, hips.z + 0.06);
+    return V((hips.x + mid.x) / 2 - 0.03, h, hips.z + back);
 }
 
 // ---------------------------------------------------------------------------
@@ -146,8 +154,9 @@ export class Duo {
         this.t = 0;
         this.g = null;
         this.last = '';
-        this.stopM = umbrella ? -0.5 : -0.26;
-        this.stopW = umbrella ? 0.56 : 0.26;
+        // Đứng sát vai nhau (cô tựa đầu được vào vai anh); che ô thì đứng cách ra cho hai tán ô
+        this.stopM = umbrella ? -0.5 : -0.19;
+        this.stopW = umbrella ? 0.56 : 0.19;
         const edge = halfW + 0.9;
         // Mỗi người: chỗ gặp (x, z), chỗ bắt đầu, xuất phát lúc nào (dep), đi mất bao lâu (walk), đã tới chưa
         const plan = (a, f, x, z) => ({ a, x, z, from: f.stand ? x : f.x, edge: !!f.edge && !f.stand, arrived: !!f.stand, lane: null });
@@ -236,6 +245,7 @@ export class Duo {
 
     update(dt, env) {
         const { m, w, rm, rw } = this;
+        this.dt = dt;
         this.t += dt;
         const t = this.t;
         // Tới bằng làn lệch chưa kịp về đúng chỗ đứng: nhích dần cho hai người đứng ngang nhau
@@ -249,7 +259,7 @@ export class Duo {
                     r.walker = new Walker(r.a, r.x, 'walk', { z: r.z, lane: r.lane ?? r.z, turn: r.a.root.visible, merge: r.merge, speed: r.speed });
                     r.a.root.visible = true;
                 }
-                if (r.walker && !r.arrived && r.walker.update()) {
+                if (r.walker && !r.arrived && r.walker.update(dt)) {
                     r.arrived = true;
                     r.g = null;
                 }
@@ -442,7 +452,7 @@ export class Duo {
             if (t > 2.8 && !this.stepIn) {
                 this.stepIn = new Walker(w, m.x + 0.4);
             }
-            if (this.stepIn) this.stepIn.update();
+            if (this.stepIn) this.stepIn.update(this.dt);
         }
     }
 
@@ -462,17 +472,18 @@ export class Duo {
             return;
         }
         if (name === 'embrace') {
-            // Anh choàng tay qua vai cô, cô vòng tay ôm eo anh
-            const sh = w.worldOf('rightUpperArm').add(V(0, 0.06, 0.07));
-            m.ik[1] = { target: sh, pole: bodyDir(m, 0.2, 1, -1), tau: 0.4 };
-            const waist = bodyPoint(m, -0.16, 0.95, -0.12);
-            w.ik[0] = { target: waist, pole: bodyDir(w, -0.2, -1, -1), tau: 0.4 };
+            // Anh choàng tay qua vai cô: bàn tay đặt lên đỉnh vai bên kia, cánh tay vòng sau lưng cô, khuỷu hạ xuống, ra sau
+            // (khuỷu giơ cao thì tay duỗi ngang qua đầu cô). Cô vòng tay ôm ngang lưng anh
+            const sh = w.worldOf('rightUpperArm').addScaledVector(bodyDir(w, -0.35, 0.4, -1), 0.1);
+            m.ik[1] = { target: sh, pole: bodyDir(m, 0.25, -0.35, -1), tau: 0.4 };
+            const waist = bodyPoint(m, -0.02, 0.98, -0.17);
+            w.ik[0] = { target: waist, pole: bodyDir(w, -0.2, -0.5, -1), tau: 0.4 };
             m.curlGoal = [0.3, 0.5];
             w.curlGoal = [0.5, 0.3];
             return;
         }
-        let p = holdPoint(m, w, 0.86);
-        if (name === 'swing') p = p.add(V(0, 0.02 * Math.sin(gt * 3.4), 0.12 * Math.sin(gt * 3.4)));
+        let p = holdPoint(m, w, 0.84, 0.16);
+        if (name === 'swing') p = p.add(V(0, 0.02 * Math.sin(gt * 3.4), 0.08 * Math.sin(gt * 3.4)));
         m.ik[1] = { target: p, pole: bodyDir(m, 0.3, -1, -0.5), tau: 0.3 };
         w.ik[0] = { target: p, pole: bodyDir(w, -0.3, -1, -0.5), tau: 0.3 };
         m.ik[0] = null;
@@ -514,9 +525,9 @@ export class Duo {
         m.leanGoal = 0;
         w.leanGoal = 0;
         if (g.name === 'lean' || g.name === 'embrace' || (g.name === 'shelter' && t > 1.5)) {
-            // Cô tựa đầu vào vai anh (nghiêng sang trái của cô), anh nghiêng đầu về phía cô
-            w.leanGoal = -0.55 * edge;
-            w.lookGoal.roll = -0.42 * edge;
+            // Cô tựa đầu vào vai anh (nghiêng sang trái của cô, thân ngả theo, cổ không gập), anh nghiêng đầu về phía cô
+            w.leanGoal = -0.5 * edge;
+            w.lookGoal.roll = -0.34 * edge;
             w.lookGoal.pitch -= 0.15 * edge;
             m.lookGoal.roll = 0.12 * edge;
         } else if (g.name === 'gaze') {
@@ -594,7 +605,7 @@ export class Solo {
                 a.lookGoal.yaw = 0;
                 a.lookGoal.pitch = -0.3;
             }
-            if (this.walker.update()) {
+            if (this.walker.update(dt)) {
                 this.phase = 'turn';
                 this.t = 0;
             }

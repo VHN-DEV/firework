@@ -83,6 +83,41 @@ function rotateWorld(node, q) {
     node.updateMatrixWorld(true);
 }
 
+// Váy (vật liệu "Bottoms" của mô hình VRoid): bán kính ngang lớn nhất quanh hông theo từng lát cao SKIRT_STEP, đo ở tư thế
+// nghỉ. Trả về { from (độ cao lát dưới cùng so với hông, mét), r: [bán kính từng lát] } hoặc null khi không có váy
+const SKIRT_STEP = 0.04;
+// Tay cách mép váy bấy nhiêu (nửa bề dày bàn tay, váy đung đưa khi đi)
+const SKIRT_GAP = 0.035;
+
+function measureSkirt(root, hips) {
+    const rows = new Map();
+    const v = new THREE.Vector3();
+    root.traverse(o => {
+        if (!o.isMesh) return;
+        const mats = [].concat(o.material);
+        const geo = o.geometry;
+        const index = geo.index;
+        const groups = geo.groups.length ? geo.groups : [{ start: 0, count: index ? index.count : geo.attributes.position.count, materialIndex: 0 }];
+        groups.forEach(g => {
+            const m = mats[g.materialIndex];
+            if (!m || !/Bottoms/i.test(m.name) || /Outline/i.test(m.name)) return;
+            for (let i = g.start; i < g.start + g.count; i++) {
+                o.getVertexPosition(index ? index.getX(i) : i, v).applyMatrix4(o.matrixWorld);
+                const k = Math.round((v.y - hips.y) / SKIRT_STEP);
+                rows.set(k, Math.max(rows.get(k) || 0, Math.hypot(v.x - hips.x, v.z - hips.z)));
+            }
+        });
+    });
+    if (!rows.size) return null;
+    const lo = Math.min(...rows.keys());
+    const hi = Math.max(...rows.keys());
+    const r = [];
+    for (let k = lo; k <= hi; k++) r.push(rows.get(k) || 0);
+    // Lát không có đỉnh nào: lấy theo lát bên cạnh
+    for (let i = 0; i < r.length; i++) if (!r[i]) r[i] = Math.max(r[i - 1] || 0, r[i + 1] || 0);
+    return { from: lo * SKIRT_STEP, r };
+}
+
 export class Actor3D {
     constructor(sex, vrm, clips) {
         this.sex = sex;
@@ -131,6 +166,8 @@ export class Actor3D {
         });
         this.height = new THREE.Box3().setFromObject(this.root).max.y;
         this.restHead = this.bone('head').getWorldPosition(new THREE.Vector3()).y;
+        // Váy xòe của cô gái (xem clearSkirt)
+        this.skirt = sex === 'f' ? measureSkirt(this.root, this.bone('hips').getWorldPosition(new THREE.Vector3())) : null;
     }
 
     // Chuyển sang động tác name (trộn mờ trong fade giây). loop: lặp; once: làm một lượt rồi đứng ở khung cuối
@@ -178,6 +215,14 @@ export class Actor3D {
         if (!clip) return { dist: 0, speed: 0 };
         const dist = forwardAt(clip, clip.duration) - forwardAt(clip, 0);
         return { dist, speed: dist / clip.duration };
+    }
+
+    // Quãng tiến còn lại (mét) của động tác name đang chạy, tới hết động tác
+    remainingTravel(name) {
+        const action = this.actions[name];
+        if (!action) return 0;
+        const clip = action.getClip();
+        return forwardAt(clip, clip.duration) - forwardAt(clip, action.time);
     }
 
     get facing() {
@@ -239,10 +284,11 @@ export class Actor3D {
         const up = _v2.set(0, 1, 0);
         const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(body);
         if (Math.abs(this.lean) > 1e-3) {
-            // Nghiêng thân, đầu sang bên (dương: sang phải của nhân vật) như tựa vào vai người kia
-            const q = new THREE.Quaternion().setFromAxisAngle(fwd, -this.lean * 0.35);
+            // Nghiêng thân, đầu sang bên (dương: sang phải của nhân vật) như tựa vào vai người kia. Xoay quanh trục nhìn tới
+            // trước (fwd) một góc dương thì đỉnh đầu ngả sang phải
+            const q = new THREE.Quaternion().setFromAxisAngle(fwd, this.lean * 0.35);
             rotateWorld(this.bone('spine'), q);
-            const q2 = new THREE.Quaternion().setFromAxisAngle(fwd, -this.lean * 0.25);
+            const q2 = new THREE.Quaternion().setFromAxisAngle(fwd, this.lean * 0.25);
             rotateWorld(this.bone('upperChest') || this.bone('chest'), q2);
         }
         ['neck', 'head'].forEach((name, i) => {
@@ -251,9 +297,12 @@ export class Actor3D {
             if (!node) return;
             const q = new THREE.Quaternion().setFromAxisAngle(up, -L.yaw * k);
             q.multiply(new THREE.Quaternion().setFromAxisAngle(right.clone().applyAxisAngle(up, -L.yaw * k), L.pitch * k));
-            q.premultiply(new THREE.Quaternion().setFromAxisAngle(fwd, -L.roll * k));
+            // Nghiêng đầu (dương: sang phải của nhân vật), cùng chiều với nghiêng thân
+            q.premultiply(new THREE.Quaternion().setFromAxisAngle(fwd, L.roll * k));
             rotateWorld(node, q);
         });
+        // Váy xòe: tay buông (tay đang với tới đích bằng IK thì không đụng)
+        if (this.skirt) ['left', 'right'].forEach((side, i) => this.clearSkirt(side, 1 - this.ikW[i]));
         // IK tay
         ['left', 'right'].forEach((side, i) => {
             const goal = this.ik[i];
@@ -267,6 +316,51 @@ export class Actor3D {
             this.curl[i] = approach(this.curl[i], this.curlGoal[i], dt, 0.2);
             this.curlFingers(side, this.curl[i]);
         });
+    }
+
+    // Bán kính váy ở độ cao dy (mét, so với hông); 0 là ngoài váy
+    skirtAt(dy) {
+        const { from, r } = this.skirt;
+        const x = (dy - from) / SKIRT_STEP;
+        if (x < -0.5 || x > r.length - 0.5) return 0;
+        const i = clamp(Math.floor(x), 0, r.length - 1);
+        const j = Math.min(r.length - 1, i + 1);
+        return r[i] + (r[j] - r[i]) * clamp(x - i, 0, 1);
+    }
+
+    // Chuyển động quay từ người mặc quần: tay buông, vung khi đi sát hông nên lọt vào trong váy xòe. Giữa cẳng tay, cổ tay,
+    // đầu ngón tay chỗ nào lọt vào trong vòng váy thì xoay bắp tay quanh vai, đẩy chỗ đó ra cách mép váy SKIRT_GAP theo
+    // hướng từ hông ra (như người mặc váy xòe dang tay nhẹ). w: mức áp dụng
+    clearSkirt(side, w) {
+        if (w < 0.01) return;
+        const ua = this.bone(`${side}UpperArm`);
+        const la = this.bone(`${side}LowerArm`);
+        const hand = this.bone(`${side}Hand`);
+        const H = this.bone('hips').getWorldPosition(new THREE.Vector3());
+        for (let pass = 0; pass < 2; pass++) {
+            const S = ua.getWorldPosition(new THREE.Vector3());
+            const E = la.getWorldPosition(new THREE.Vector3());
+            const W = hand.getWorldPosition(new THREE.Vector3());
+            let worst = 0.002;
+            let at = null;
+            let out = null;
+            [E.clone().lerp(W, 0.5), W, W.clone().addScaledVector(W.clone().sub(E), 0.35)].forEach(P => {
+                const R = this.skirtAt(P.y - H.y);
+                const dx = P.x - H.x;
+                const dz = P.z - H.z;
+                const r = Math.hypot(dx, dz);
+                if (!R || r < 1e-3 || R + SKIRT_GAP - r <= worst) return;
+                worst = R + SKIRT_GAP - r;
+                at = P;
+                out = new THREE.Vector3(dx / r, 0, dz / r);
+            });
+            if (!at) return;
+            // Xoay quanh trục vuông góc với (vai → chỗ lọt) và hướng ra ngoài: chỗ đó đi thẳng ra ngoài
+            const arm = at.sub(S);
+            const axis = arm.clone().cross(out);
+            if (axis.lengthSq() < 1e-8) return;
+            rotateWorld(ua, new THREE.Quaternion().setFromAxisAngle(axis.normalize(), worst * w / arm.length()));
+        }
     }
 
     // IK hai đoạn: vai cố định, khuỷu tay gập về phía pole, cổ tay tới đích (trộn với tư thế chuyển động theo w)
