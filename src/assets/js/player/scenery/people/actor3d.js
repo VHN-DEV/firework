@@ -212,7 +212,8 @@ export class Actor3D {
         hips.position.z = this.hipsRest.z;
         this.root.position.set(this.x, this.y, -this.z);
         this.root.rotation.y = -this.yaw;
-        this.root.updateMatrixWorld(true);
+        // Không cập nhật ma trận cả mô hình ở đây (lúc vẽ three.js làm lại): lớp cử động thêm đọc vị trí, hướng xương
+        // bằng getWorld*, tự cập nhật theo chuỗi xương cha
         this.overlay(dt);
         this.vrm.update(dt);
     }

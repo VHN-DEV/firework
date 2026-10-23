@@ -374,7 +374,6 @@ export const People = {
         // Chất lượng 480p trở xuống: dựng nhân vật thưa hơn cho máy yếu đỡ nặng. Bờ bên kia: nhìn gần như ngang
         stage.setView({ cssW: L.cssW, cssH: L.cssH, k: isLowQuality ? Math.min(k, 1) : k, cx: L.cx, gy: L.gy, ppm: L.ppm, tilt: L.far ? 0.08 : TILT });
         stage.setLight(sky, (this.focus.x - L.cx) / L.ppm);
-        stage.render();
         const box = this.bounds();
         if (!box) return;
         const I = clamp(Math.max(sky.r, sky.g, sky.b) / 30, 0, 1);
@@ -383,9 +382,13 @@ export const People = {
         const w = Math.min(W, Math.ceil(box[2] * k)) - x0;
         const h = Math.min(H, Math.ceil(box[3] * k)) - y0;
         if (w <= 2 || h <= 2) return;
-        // Vùng tương ứng trên lớp dựng hình (chất lượng thấp thì lớp dựng hình thưa hơn lớp này)
+        // Chỉ dựng vùng quanh nhân vật (chất lượng thấp thì lớp dựng hình thưa hơn lớp này), vùng đó nằm ở góc trên trái
+        // lớp dựng hình
         const r = stage.size.k / k;
-        const src = [x0 * r, y0 * r, Math.max(1, w * r), Math.max(1, h * r)];
+        const sx = Math.floor(x0 * r);
+        const sy = Math.floor(y0 * r);
+        stage.render(sx, sy, Math.ceil((x0 + w) * r) - sx, Math.ceil((y0 + h) * r) - sy);
+        const src = [x0 * r - sx, y0 * r - sy, Math.max(1, w * r), Math.max(1, h * r)];
         if (L.far) {
             this.farFigures(ctx, stage.canvas, src, x0, y0, w, h, k);
             return;
