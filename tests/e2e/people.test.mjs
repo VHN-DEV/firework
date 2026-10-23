@@ -81,10 +81,13 @@ export async function run(browser, base, { check }) {
         }
         check('mùa đông chàng trai mặc áo măng tô, mùa hạ thì không', seasonal.winter > 300 && seasonal.summer < seasonal.winter * 0.1, JSON.stringify(seasonal));
 
-        // Tắt bờ bên này: người ở bờ bên kia, đi lên giữa cầu vòm (dải chân trời giữa khung), không còn dải bờ ở đáy
-        await post(page, { loop: true, events, water: 'half', bank: 'arch', people: 'couple', nearBank: false });
+        // Tắt bờ bên này: người ở bờ bên kia, đi lên giữa cầu vòm (dải chân trời giữa khung), không còn dải bờ ở đáy.
+        // Người ở xa nhỏ (đứng trên cầu chừng 35-45 điểm ảnh trong dải đếm) nên đặt cứng 720p: máy không có card đồ họa (CI,
+        // WebGL dựng bằng phần mềm) chất lượng Tự động hạ xuống ~360p, cả khung nhỏ đi bốn lần thì không bao giờ đủ điểm.
+        // Máy đó cũng chậm (khung hình chậm thì màn trình diễn chậm theo) nên chờ tới 90 giây
+        await post(page, { loop: true, events, water: 'half', bank: 'arch', people: 'couple', nearBank: false, viewer: { quality: '720' } });
         let bridge = null;
-        for (let i = 0; i < 40; i++) {
+        for (let i = 0; i < 180; i++) {
             await sleep(500);
             bridge = await page.evaluate(() => {
                 const c = document.getElementById('front-canvas');
@@ -114,18 +117,30 @@ export async function run(browser, base, { check }) {
         await page.close();
     }
 
-    // Tạo video có người: khung dựng ẩn vẫn dựng nhanh, cặp đôi có trong khung hình cuối video
+    // Tạo video có người: khung dựng ẩn vẫn dựng nhanh, cặp đôi có trong khung hình cuối video. Máy không có card đồ họa
+    // (CI: WebGL dựng bằng phần mềm, mỗi khung chờ dựng nhân vật cả trăm mili giây) thì không đo được chuyện khung ẩn bị
+    // chậm: chỉ cần tạo xong
     const ID = 'zz_e2e_people_video';
     writeConfig(ID, { title: 'NGẮM PHÁO', loop: true, water: 'half', people: 'couple', events: [1, 2, 3].map(b => ({ burst: b, shell: 'Hoa cúc', x: 50, y: 65, color: 'Gold' })) });
     const vpage = await openPage(browser, { width: 1440, height: 900 });
     try {
         await vpage.goto(base + '/builder.html', { waitUntil: 'networkidle0' });
+        const gpu = await vpage.evaluate(() => {
+            const g = document.createElement('canvas').getContext('webgl2');
+            const ext = g && g.getExtension('WEBGL_debug_renderer_info');
+            return g ? String(g.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : g.RENDERER)) : '';
+        });
+        const limit = /swiftshader|llvmpipe|softpipe|software|basic render/i.test(gpu) ? 360 : 120;
         await vpage.evaluate(id => editScript(id), ID);
         await sleep(1200);
         await vpage.evaluate(() => { openVideoModal(); setVideoFormat('portrait'); setVideoQuality('hd'); });
         const started = Date.now();
         await vpage.click('#btn-video-create');
-        await vpage.waitForFunction(() => !document.getElementById('video-result').classList.contains('hide'), { timeout: 150000, polling: 1000 }).catch(() => {});
+        // Chờ ở phía kiểm thử (mỗi lần hỏi ngắn): một lệnh chờ dài trong trang vượt hạn giao thức 180 giây của trình duyệt
+        while (Date.now() - started < (limit + 30) * 1000) {
+            await sleep(1000);
+            if (await vpage.evaluate(() => !document.getElementById('video-result').classList.contains('hide'))) break;
+        }
         const seconds = (Date.now() - started) / 1000;
         const shot = await vpage.evaluate(async () => {
             const v = document.getElementById('video-output');
@@ -144,7 +159,7 @@ export async function run(browser, base, { check }) {
             for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 330) bright++;
             return { duration: v.duration, bright };
         });
-        check('video có người ngắm pháo, dựng nhanh dù khung dựng ẩn', !!shot && shot.bright > 400 && seconds < 120, JSON.stringify({ ...shot, seconds }));
+        check('video có người ngắm pháo, dựng nhanh dù khung dựng ẩn', !!shot && shot.bright > 400 && seconds < limit, JSON.stringify({ ...shot, seconds, limit, gpu }));
         check('tạo video có người không lỗi JS', vpage.errors.length === 0, vpage.errors.join(' | '));
     } finally {
         await vpage.close();

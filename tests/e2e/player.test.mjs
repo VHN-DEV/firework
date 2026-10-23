@@ -245,23 +245,36 @@ export async function run(browser, base, { check }) {
             return n;
         });
         check('sông chảy: hoa đăng trôi trên mặt nước', lanterns > 5, lanterns);
-        // Sông chảy: có khúc gỗ trôi (màu gỗ nâu trên mặt nước); tắt "Chim, cá, khúc gỗ" thì không có
-        const woodOnWater = () => page.evaluate(() => {
+        // Sông chảy: có khúc gỗ trôi (màu gỗ nâu trên mặt nước); tắt "Chim, cá, khúc gỗ" thì không có. Trang riêng: trang
+        // trên còn đèn trời bay dở, ánh pháo vàng in xuống nước, máy chậm (CI) thì chất lượng đã tự hạ cho bóng bờ đất lấn
+        // vào vùng đếm, đều ra màu nâu như gỗ. Chờ theo điều kiện: khúc gỗ đầu có thể là loại gỗ trôi bạc màu (xám)
+        const logPage = await openPage(browser);
+        await logPage.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        const woodOnWater = () => logPage.evaluate(() => {
             const c = document.getElementById('water-canvas');
             const d = c.getContext('2d').getImageData(0, Math.round(c.height * 0.56), c.width, Math.round(c.height * 0.44)).data;
             let n = 0;
             for (let i = 0; i < d.length; i += 4) if (d[i] > 60 && d[i] > d[i + 1] + 15 && d[i + 1] > d[i + 2] + 8) n++;
             return n;
         });
-        await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
+        const woodUntil = async (test, seconds) => {
+            let n = 0;
+            for (let i = 0; i < seconds * 2; i++) {
+                await sleep(500);
+                n = await woodOnWater();
+                if (test(n)) break;
+            }
+            return n;
+        };
+        await logPage.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
             { loop: true, events: [], water: 'half', waterStyle: 'river', waterRocks: false, waterPlants: false });
-        await sleep(1500);
-        const wood = await woodOnWater();
-        await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
+        const wood = await woodUntil(n => n > 20, 12);
+        await logPage.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
             { loop: true, events: [], water: 'half', waterStyle: 'river', waterLife: false, waterRocks: false, waterPlants: false });
-        await sleep(800);
-        const noWood = await woodOnWater();
+        const noWood = await woodUntil(n => n === 0, 4);
         check('sông chảy: có khúc gỗ trôi, tắt "Chim, cá, khúc gỗ" thì không còn', wood > 20 && noWood === 0, JSON.stringify({ wood, noWood }));
+        if (logPage.errors.length) page.errors.push(...logPage.errors);
+        await logPage.close();
         // Lá bèo (màu lá xanh trên mặt nước, dưới bờ); tắt thì không còn. Bờ đá màu đất ở mép nước.
         const onWater = (from, to, test) => page.evaluate((from, to, test) => {
             const c = document.getElementById('water-canvas');
