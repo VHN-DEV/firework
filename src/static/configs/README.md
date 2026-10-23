@@ -90,6 +90,7 @@ Mục "Kịch bản mẫu" và khung "Xem thử" của trang chủ (`index.html`
 | `category` | Nhóm để lọc (vd `"Sinh nhật"`, `"Lễ, Tết"`). Nhóm trùng tên dịp trong builder thì nút "Đặt mẫu này" chọn sẵn dịp đó trong phiếu đặt. |
 | `description` | Mô tả ngắn trên thẻ. |
 | `tags` | Tối đa 4 nhãn nhỏ trên thẻ, vd `["Mở quà", "Nhạc theo nhịp"]`. |
+| `hero` | `true`: kịch bản mở bằng nút "Xem demo" ở trang chủ, đứng đầu khung "Xem thử". Chỉ đánh dấu một mục; không có thì dùng mục nổi bật đầu tiên. |
 
 Thứ tự trên trang: các mục nổi bật trước, rồi tới các mục còn lại, giữ đúng thứ tự trong file.
 

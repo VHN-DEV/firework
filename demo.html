@@ -125,12 +125,15 @@
     <div class="container">
         <div class="start-screen">
             <div class="start-screen__content">
+                <!-- Logo, link xem mẫu / tự tạo: chỉ ở màn chào chung (không có ?config=), link tặng giữ thiệp mời riêng -->
+                <img class="start-screen__logo" src="/favicon.svg" alt="Hanabi" width="64" height="64">
                 <div class="start-screen__gift" aria-hidden="true">🎁</div>
                 <h1 class="start-screen__title">Xin chào!</h1>
-                <p class="start-screen__subtitle">Chào mừng bạn đến với Hanabi</p>
+                <p class="start-screen__subtitle">Chào mừng bạn đến với Hanabi. Bấm Bắt đầu rồi chạm vào bầu trời để tự bắn pháo hoa.</p>
                 <p class="start-screen__from"></p>
                 <button class="btn-start">Bắt đầu</button>
                 <p class="start-screen__hint"></p>
+                <p class="start-screen__links"><a href="./#kich-ban">Xem màn mẫu</a><span aria-hidden="true">·</span><a href="./builder">Tự tạo màn pháo hoa</a></p>
             </div>
             <!-- Khung bắt đầu có vật thể chính (hộp quà, bao lì xì...): vật thể do start-frames.js dựng vào __hero; chạm vật
                  thể hoặc nút thì mở rồi mới bắt đầu -->
@@ -383,7 +386,7 @@
                             </a>
                         </div>
                         <div class="credits">
-                            Được xây dựng đầy tâm huyết bởi Vũ Hoài Nam.
+                            <a href="./">Hanabi</a> · Pháo hoa gửi tặng · © 2026 Vũ Hoài Nam
                         </div>
                     </div>
                 </div>

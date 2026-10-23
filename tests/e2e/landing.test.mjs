@@ -51,6 +51,13 @@ export async function run(browser, base, { check }) {
         check('trang chủ: khung xem thử có thẻ chọn, phiếu đặt có danh sách mẫu và dịp',
             info.tabs > 0 && info.samples === index.length && info.occasions >= 5, JSON.stringify(info));
 
+        // Nút Xem demo mở kịch bản hero (có cảnh, nhạc), khung Xem thử đặt nó đầu tiên
+        const hero = (index.find(i => i.hero) || index.find(i => i.featured)).id;
+        const demoLinks = await page.$$eval('[data-demo-link]', l => l.map(a => a.getAttribute('href')));
+        const firstTab = await page.$eval('.demo__tabs [role="tab"]', b => b.dataset.key);
+        check('trang chủ: nút Xem demo mở kịch bản nổi bật có cảnh, nhạc; khung Xem thử đặt nó đầu tiên',
+            demoLinks.length >= 2 && demoLinks.every(h => h === `./demo?config=${hero}`) && firstTab === hero, JSON.stringify({ demoLinks, firstTab, hero }));
+
         // Bấm ảnh sau: ảnh khác hiện lên
         // Bấm bằng click() của phần tử: trang cuộn mượt (scroll-behavior: smooth) nên bấm theo tọa độ có thể trượt
         const tap = selector => page.$eval(selector, el => el.click());

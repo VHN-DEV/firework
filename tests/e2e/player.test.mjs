@@ -37,7 +37,12 @@ export async function run(browser, base, { check }) {
         let audio = [];
         page.on('request', r => { const m = r.url().match(/assets\/audio\/(.+\.mp3)/); if (m) audio.push(m[1]); });
         await page.goto(base + '/demo', { waitUntil: 'networkidle0' });
-        check('trang chủ hiện lời chào chung', await page.$eval('.start-screen__title', e => e.textContent) === 'Xin chào!');
+        const greet = await page.evaluate(() => ({
+            title: document.querySelector('.start-screen__title').textContent,
+            logo: getComputedStyle(document.querySelector('.start-screen__logo')).display !== 'none',
+            links: [...document.querySelectorAll('.start-screen__links a')].filter(a => a.offsetParent).map(a => a.getAttribute('href')).join()
+        }));
+        check('trang demo hiện lời chào chung có logo, link xem mẫu và tự tạo', greet.title === 'Xin chào!' && greet.logo && greet.links === './#kich-ban,./builder', JSON.stringify(greet));
         await page.click('.btn-start');
         await waitForShow(page);
         const t0 = Date.now();
@@ -62,6 +67,8 @@ export async function run(browser, base, { check }) {
             button: document.querySelector('.btn-start').textContent
         }));
         check('link tặng: thiệp mời "Gửi <người nhận>" và nút Mở quà', card.title === 'Gửi Mẹ yêu' && card.button === 'Mở quà', JSON.stringify(card));
+        check('link tặng: không có logo, link xem mẫu của màn chào chung', await page.evaluate(() => getComputedStyle(document.querySelector('.start-screen__logo')).display === 'none'
+            && getComputedStyle(document.querySelector('.start-screen__links')).display === 'none'));
         await page.click('.btn-start');
         await waitForShow(page);
         await page.waitForFunction(() => window.__music && !window.__music.paused, { timeout: 20000 }).catch(() => {});

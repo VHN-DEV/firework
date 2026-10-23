@@ -127,7 +127,8 @@ function initDemo(items) {
     const urlText = section.querySelector('.demo__url');
     const fullLink = section.querySelector('.demo__note a');
     const video = youtubeId(YOUTUBE);
-    const picks = items.filter(i => i.featured).slice(0, 4);
+    // Kịch bản "hero" (nút Xem demo) đứng đầu, rồi các kịch bản nổi bật khác
+    const picks = [...items.filter(i => i.hero), ...items.filter(i => i.featured && !i.hero)].slice(0, 4);
     const tabs = [
         ...(video ? [{ key: 'yt', label: '<i class="fa-brands fa-youtube"></i> Video giới thiệu', src: `https://www.youtube-nocookie.com/embed/${video}?autoplay=1&rel=0&playsinline=1`, open: `https://www.youtube.com/watch?v=${video}`, url: 'youtube.com' }] : []),
         ...(picks.length ? picks : items.slice(0, 3)).map(i => ({
@@ -192,6 +193,9 @@ export async function initShowcase({ onOrder, onItems }) {
     // Nổi bật đứng trước, giữ thứ tự trong file
     items = [...items.filter(i => i.featured), ...items.filter(i => !i.featured)];
     onItems(items);
+    // Nút "Xem demo": mở thẳng kịch bản "hero" (có cảnh, nhạc) thay vì pháo ngẫu nhiên trên nền đen
+    const hero = items.find(i => i.hero) || items.find(i => i.featured);
+    if (hero) document.querySelectorAll('[data-demo-link]').forEach(a => { a.href = showUrl(hero.id); });
     initDemo(items);
     if (items.length) initShowcaseCards(items, { onOrder });
 }

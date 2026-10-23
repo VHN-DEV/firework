@@ -153,6 +153,44 @@
     animation: none;
 }
 
+// Màn chào chung (trang demo không có kịch bản): logo trên cùng, hai link xem mẫu, tự tạo dưới nút Bắt đầu
+.start-screen__logo {
+    display: block;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1.1rem;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px -8px rgba(255, 95, 162, 0.6);
+}
+
+.start-screen__links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.35rem 0.6rem;
+    margin: 1.4rem 0 0;
+    font-size: 0.85rem;
+    letter-spacing: normal;
+    color: rgba(255, 255, 255, 0.35);
+
+    a {
+        color: rgba(255, 255, 255, 0.72);
+        text-decoration: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+
+        &:hover {
+            color: #fff;
+            border-color: currentColor;
+        }
+    }
+}
+
+.has-config .start-screen__logo,
+.has-config .start-screen__links,
+.is-preview .start-screen__links {
+    display: none;
+}
+
 .start-screen__gift {
     display: none;
     font-size: 4.5rem;
