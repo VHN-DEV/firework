@@ -36,11 +36,13 @@
     }
 }
 
+// Phong thư nằm trọn trong trái tim: dưới chỗ lõm giữa hai thùy, hai góc dưới còn cách mép tim (đặt thấp hơn thì hai góc
+// dưới thò ra ngoài đường viền, chỗ tim thu hẹp về đáy)
 .letter {
-    left: 19%;
-    width: 62%;
-    top: 34%;
-    height: 42%;
+    left: 21%;
+    width: 58%;
+    top: 26%;
+    height: 40%;
     perspective: 500px;
 
     .start-screen.is-ready & {
