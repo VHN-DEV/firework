@@ -439,4 +439,14 @@ function render(speed) {
     Weather.render(waterCtx, { cssW: frameW, cssH: frameH, time: now(), sky: currentSkyColor, state: waterState });
     // Người ngắm pháo đứng trước cảnh (lớp riêng); hạt mưa, tuyết gần rơi đè lên họ
     People.render(frontCtx, { sky: currentSkyColor, time: now(), calm: reduceFlashingSelector(), bank: burstConfig && burstConfig.bank });
+    // Lớp đang trống (không trang trí trời, không khói, không mặt nước, mưa tuyết) thì ẩn: lớp nào cũng phủ cả khung, trình
+    // duyệt ghép "lighten" từng lớp (chép nền rồi trộn) dù lớp không có gì, card tích hợp tốn vài mili giây mỗi lớp
+    showLayer(decoCanvas, Decor.drawn);
+    showLayer(smokeCanvas, Smoke.count() > 0);
+    showLayer(waterCtx.canvas, waterState !== 'none' || Weather.drawn);
+}
+
+function showLayer(canvas, on) {
+    const visibility = on ? '' : 'hidden';
+    if (canvas.style.visibility !== visibility) canvas.style.visibility = visibility;
 }
