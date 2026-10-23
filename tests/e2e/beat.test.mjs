@@ -94,7 +94,7 @@ export async function run(browser, base, { check }) {
         writeConfig(ID, config);
         page = await openPage(browser);
         await page.evaluateOnNewDocument(recordBurstSounds);
-        await page.goto(`${base}/index.html?config=${ID}`, { waitUntil: 'networkidle0' });
+        await page.goto(`${base}/demo.html?config=${ID}`, { waitUntil: 'networkidle0' });
         await page.waitForSelector('.start-screen.is-ready');
         await page.click('.btn-start');
         await page.waitForFunction(() => window.__music && window.__music.currentTime > 20, { timeout: 60000 }).catch(() => {});

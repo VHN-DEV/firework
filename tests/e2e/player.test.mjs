@@ -36,7 +36,7 @@ export async function run(browser, base, { check }) {
         let page = await openPage(browser);
         let audio = [];
         page.on('request', r => { const m = r.url().match(/assets\/audio\/(.+\.mp3)/); if (m) audio.push(m[1]); });
-        await page.goto(base + '/index.html', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html', { waitUntil: 'networkidle0' });
         check('trang chủ hiện lời chào chung', await page.$eval('.start-screen__title', e => e.textContent) === 'Xin chào!');
         await page.click('.btn-start');
         await waitForShow(page);
@@ -55,7 +55,7 @@ export async function run(browser, base, { check }) {
             const play = HTMLMediaElement.prototype.play;
             HTMLMediaElement.prototype.play = function () { if (/melody/.test(this.src)) window.__music = this; return play.call(this); };
         });
-        await page.goto(base + '/index.html?config=zz_e2e_card', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?config=zz_e2e_card', { waitUntil: 'networkidle0' });
         await page.waitForSelector('.start-screen.is-ready');
         const card = await page.evaluate(() => ({
             title: document.querySelector('.start-screen__title').textContent,
@@ -88,7 +88,7 @@ export async function run(browser, base, { check }) {
 
         // ---- Khung bắt đầu "Hộp quà" (điện thoại)
         page = await openPage(browser, { width: 390, height: 844 });
-        await page.goto(base + '/index.html?config=zz_e2e_gift', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?config=zz_e2e_gift', { waitUntil: 'networkidle0' });
         await page.waitForSelector('.start-screen.frame-gift.is-ready');
         await page.click('.gift-box');
         await sleep(800);
@@ -104,7 +104,7 @@ export async function run(browser, base, { check }) {
 
         // ---- Giảm chớp sáng: bật ngay trên màn mở quà (chưa bắt đầu màn trình diễn), lần sau vẫn nhớ
         page = await openPage(browser);
-        await page.goto(base + '/index.html?config=zz_e2e_card', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?config=zz_e2e_card', { waitUntil: 'networkidle0' });
         await page.waitForSelector('.start-screen.is-ready');
         await page.click('.start-screen__a11y');
         await sleep(200);
@@ -122,7 +122,7 @@ export async function run(browser, base, { check }) {
         // Thêm 1 giờ: trang tải mất vài giây vẫn còn đủ 3 ngày
         writeConfig('zz_e2e_lock', { ...story, openAt: new Date(Date.now() + 3 * 86400000 + 3600000).toISOString() });
         page = await openPage(browser);
-        await page.goto(base + '/index.html?config=zz_e2e_lock', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?config=zz_e2e_lock', { waitUntil: 'networkidle0' });
         await page.waitForSelector('.start-screen.is-ready');
         const locked = await page.evaluate(() => ({
             countdown: document.querySelector('.start-screen').className,
@@ -134,7 +134,7 @@ export async function run(browser, base, { check }) {
 
         writeConfig('zz_e2e_auto', { ...story, openAt: new Date(Date.now() + 4000).toISOString(), openMode: 'countdown' });
         page = await openPage(browser);
-        await page.goto(base + '/index.html?config=zz_e2e_auto', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?config=zz_e2e_auto', { waitUntil: 'networkidle0' });
         await page.waitForSelector('.start-screen.frame-countdown');
         await page.click('.countdown-stage__ready');
         await waitForShow(page).catch(() => {});
@@ -144,7 +144,7 @@ export async function run(browser, base, { check }) {
 
         // ---- Mọi loại pháo × kiểu bắn trong chế độ xem nhanh: không được có lỗi JS
         page = await openPage(browser);
-        await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?preview=1', { waitUntil: 'networkidle0' });
         await sleep(500);
         const events = SHELLS.map((shell, i) => ({
             burst: Math.floor(i / 5) + 1, shell, x: 15 + (i % 5) * 17, y: 55 + (i % 3) * 10, size: 1,
@@ -171,7 +171,7 @@ export async function run(browser, base, { check }) {
             ]
         });
         page = await openPage(browser);
-        await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?preview=1', { waitUntil: 'networkidle0' });
         await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin), smokeShow('heavy'));
         await sleep(5000);
         const heavy = await smokeCover(page);
@@ -186,7 +186,7 @@ export async function run(browser, base, { check }) {
         // Chạm vào trời bắn pháo; kịch bản khóa (tapToLaunch: false) thì chạm không bắn
         const tapLit = async tapToLaunch => {
             const p = await openPage(browser);
-            await p.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+            await p.goto(base + '/demo.html?preview=1', { waitUntil: 'networkidle0' });
             await p.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
                 { loop: true, events: [], tapToLaunch });
             await sleep(500);
@@ -203,7 +203,7 @@ export async function run(browser, base, { check }) {
 
         // Xem như người nhận trong bản xem nhanh: chạm ra ngoài hộp quà không bắn pháo phía sau màn mở quà
         page = await openPage(browser);
-        await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?preview=1', { waitUntil: 'networkidle0' });
         await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true, startFrame: true }, location.origin),
             { loop: true, startFrame: 'gift', events: [{ burst: 1, shell: 'Hoa cúc', x: 50, y: 60 }] });
         await sleep(800);
@@ -215,7 +215,7 @@ export async function run(browser, base, { check }) {
 
         // ---- Cảnh vật: mặt nước phản chiếu (pháo không vẽ dưới mép nước), đèn trời, khinh khí cầu
         page = await openPage(browser);
-        await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?preview=1', { waitUntil: 'networkidle0' });
         await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
             { ...smokeShow(undefined), water: 'half', decor: 'both', waterLife: false });
         await sleep(4500);
@@ -249,7 +249,7 @@ export async function run(browser, base, { check }) {
         // trên còn đèn trời bay dở, ánh pháo vàng in xuống nước, máy chậm (CI) thì chất lượng đã tự hạ cho bóng bờ đất lấn
         // vào vùng đếm, đều ra màu nâu như gỗ. Chờ theo điều kiện: khúc gỗ đầu có thể là loại gỗ trôi bạc màu (xám)
         const logPage = await openPage(browser);
-        await logPage.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        await logPage.goto(base + '/demo.html?preview=1', { waitUntil: 'networkidle0' });
         const woodOnWater = () => logPage.evaluate(() => {
             const c = document.getElementById('water-canvas');
             const d = c.getContext('2d').getImageData(0, Math.round(c.height * 0.56), c.width, Math.round(c.height * 0.44)).data;
@@ -315,7 +315,7 @@ export async function run(browser, base, { check }) {
         const wrong = known.filter(([iso, name]) => phaseOf(iso) !== name);
         check('pha trăng theo ngày khớp các kỳ trăng mới, tròn, bán nguyệt đã biết', wrong.length === 0, JSON.stringify(wrong));
         page = await openPage(browser);
-        await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?preview=1', { waitUntil: 'networkidle0' });
         await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
             { loop: true, events: [], stars: 'many', moon: { phase: 4, x: 25, y: 70 } });
         await sleep(1500);
@@ -362,7 +362,7 @@ export async function run(browser, base, { check }) {
         page = await openPage(browser);
         await page.evaluateOnNewDocument(() => localStorage.setItem('cm_fireworks_data',
             JSON.stringify({ schemaVersion: '1.2', data: { quality: '1', skyLighting: '2', scaleFactor: 1 } })));
-        await page.goto(base + '/index.html?config=zz_e2e_smoke', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?config=zz_e2e_smoke', { waitUntil: 'networkidle0' });
         await page.click('.btn-start');
         await waitForShow(page).catch(() => {});
         await sleep(5000);
@@ -374,7 +374,7 @@ export async function run(browser, base, { check }) {
         writeConfig('zz_e2e_viewer', { ...smokeShow(undefined), loop: false, viewer: { quality: '360', skyLighting: '1', scaleFactor: 0.75, hideControls: false } });
         page = await openPage(browser);
         await page.evaluateOnNewDocument(() => localStorage.removeItem('cm_fireworks_data'));
-        await page.goto(base + '/index.html?config=zz_e2e_viewer', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?config=zz_e2e_viewer', { waitUntil: 'networkidle0' });
         await page.click('.btn-start');
         await waitForShow(page).catch(() => {});
         const viewer = await page.evaluate(() => ({
@@ -398,7 +398,7 @@ export async function run(browser, base, { check }) {
                 if (q) localStorage.setItem('cm_fireworks_data', JSON.stringify({ schemaVersion: '1.2', data: { quality: q, skyLighting: '2', scaleFactor: 1 } }));
                 else localStorage.removeItem('cm_fireworks_data');
             }, stored);
-            await page.goto(base + '/index.html?config=zz_e2e_smoke', { waitUntil: 'networkidle0' });
+            await page.goto(base + '/demo.html?config=zz_e2e_smoke', { waitUntil: 'networkidle0' });
             await page.click('.btn-start');
             await waitForShow(page).catch(() => {});
             const q = await page.evaluate(() => ({
@@ -415,7 +415,7 @@ export async function run(browser, base, { check }) {
         // Ánh pháo trên trời theo chỗ nổ: quả nổ bên trái thì trời bên trái sáng hơn hẳn bên phải, kè bên trái (ngay dưới
         // quả nổ) sáng hơn kè bên phải; pháo toàn kim tuyến ("Lá rơi") cũng làm trời sáng lên
         page = await openPage(browser, { width: 1280, height: 720 });
-        await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?preview=1', { waitUntil: 'networkidle0' });
         const glowShow = shell => page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
             { loop: false, events: [{ burst: 1, shell, x: 15, y: 55 }], water: 'half', bank: 'stone', waterBirds: false, waterDucks: false });
         // Độ sáng trung bình của trời (sky-canvas, nửa trên) và của kè (lớp mặt nước, ngay dưới chân trời) theo ba phần ngang
@@ -463,7 +463,7 @@ export async function run(browser, base, { check }) {
             page = await openPage(browser, { width, height });
             await page.evaluateOnNewDocument(() => localStorage.setItem('cm_fireworks_data',
                 JSON.stringify({ schemaVersion: '1.2', data: { quality: '2160', skyLighting: '2', scaleFactor: 1, chosen: ['quality'] } })));
-            await page.goto(base + '/index.html?config=zz_e2e_smoke', { waitUntil: 'networkidle0' });
+            await page.goto(base + '/demo.html?config=zz_e2e_smoke', { waitUntil: 'networkidle0' });
             await page.click('.btn-start');
             await waitForShow(page).catch(() => {});
             // Đo ngay, trước khi vẽ dư tự lùi vì máy chạy thử vẽ chậm

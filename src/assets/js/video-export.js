@@ -4,7 +4,7 @@
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
 
-// Dùng chung cho builder và người nhận (Tạo video): khung ẩn (index.html?record=1) chạy chính trình phát ở cỡ video đã
+// Dùng chung cho builder và người nhận (Tạo video): khung ẩn (demo.html?record=1) chạy chính trình phát ở cỡ video đã
 // chọn, dựng màn trình diễn thành file MP4 nhanh hết mức máy cho phép (không phải chờ theo thời gian thật), kèm tiếng
 // pháo và nhạc nền, rồi gửi file về trang (xem recorder.js).
 import { eventTimes } from './timeline.js';
@@ -58,7 +58,7 @@ export function createVideoJob({ format, quality, config, length, onProgress, on
     frame.title = 'Khung dựng video';
     frame.tabIndex = -1;
     frame.style.cssText = `width:${frameW}px;height:${frameH}px;border:0`;
-    frame.src = `index.html?record=1&scale=${width / frameW}`;
+    frame.src = `demo.html?record=1&scale=${width / frameW}`;
     host.appendChild(frame);
     document.body.appendChild(host);
 

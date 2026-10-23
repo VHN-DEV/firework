@@ -16,7 +16,7 @@ const FRAMES = {
 export async function run(browser, base, { check }) {
     const page = await openPage(browser, { width: 1280, height: 760 });
     try {
-        await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?preview=1', { waitUntil: 'networkidle0' });
         const results = {};
         for (const [frame, selector] of Object.entries(FRAMES)) {
             await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true, startFrame: true }, location.origin),

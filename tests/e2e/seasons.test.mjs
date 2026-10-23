@@ -55,7 +55,7 @@ const waterLook = page => page.evaluate(() => {
 export async function run(browser, base, { check }) {
     const page = await openPage(browser, { width: 1280, height: 720 });
     try {
-        await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?preview=1', { waitUntil: 'networkidle0' });
         await show(page, {});
         await sleep(600);
         const clear = await skyMarks(page);

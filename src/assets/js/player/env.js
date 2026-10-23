@@ -11,10 +11,10 @@ export const IS_MOBILE = window.innerWidth <= 640;
 export const IS_DESKTOP = window.innerWidth > 800;
 export const IS_HEADER = IS_DESKTOP && window.innerHeight < 300;
 
-// Chế độ xem nhanh nhúng trong builder (index.html?preview=1): kịch bản được builder gửi sang qua postMessage
+// Chế độ xem nhanh nhúng trong builder (demo.html?preview=1): kịch bản được builder gửi sang qua postMessage
 export const IS_PREVIEW = new URLSearchParams(window.location.search).has('preview');
 
-// Quay video (index.html?record=1&scale=..., builder > Xuất video): khung có cỡ như màn hình thật, canvas vẽ phóng lên
+// Quay video (demo.html?record=1&scale=..., builder > Xuất video): khung có cỡ như màn hình thật, canvas vẽ phóng lên
 // `scale` lần để ra đúng độ phân giải video (Stage đọc devicePixelRatio khi tạo canvas)
 export const IS_RECORD = !IS_PREVIEW && new URLSearchParams(window.location.search).has('record');
 

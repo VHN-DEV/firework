@@ -38,6 +38,6 @@ export function closeMoreMenu() {
 
 /**
  * XEM NHANH
- * Chạy chính trình phát thật (index.html?preview=1) trong iframe, builder gửi kịch bản sang qua postMessage.
+ * Chạy chính trình phát thật (demo.html?preview=1) trong iframe, builder gửi kịch bản sang qua postMessage.
  * Nhờ vậy những gì thấy khi soạn giống hệt khi trình diễn: vật lý, hình dạng, ảnh, nền, cách xử lý riêng cho điện thoại.
  */

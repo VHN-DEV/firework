@@ -10,7 +10,7 @@ Thư mục này chứa các file JSON để **tùy biến lời chúc và hiệu
 2. **Đổi tên** (ví dụ `my_show.json`).
 3. **Sửa nội dung** JSON và lưu lại.
 4. **Xem kết quả** bằng cách thêm tham số `?config=tên_file` vào URL:
-   `http://localhost/firework/?config=my_show`
+   `http://localhost/firework/dist/demo.html?config=my_show`
 
 ---
 

@@ -49,7 +49,9 @@ export default defineConfig({
     chunkSizeWarningLimit: 800,
     rollupOptions: {
       input: {
+        // Trang chủ giới thiệu dịch vụ; trình phát (màn trình diễn, link tặng ?config=...) ở demo.html
         main: resolve(__dirname, 'index.html'),
+        demo: resolve(__dirname, 'demo.html'),
         builder: resolve(__dirname, 'builder.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         terms: resolve(__dirname, 'terms.html'),

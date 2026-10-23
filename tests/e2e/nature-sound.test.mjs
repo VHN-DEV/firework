@@ -122,7 +122,7 @@ export async function run(browser, base, { check }) {
     const page = await openPage(browser);
     try {
         await page.evaluateOnNewDocument(() => localStorage.removeItem('cm_fireworks_data'));
-        await page.goto(base + `/index.html?config=${id}`, { waitUntil: 'networkidle0' });
+        await page.goto(base + `/demo.html?config=${id}`, { waitUntil: 'networkidle0' });
         await page.waitForSelector('.start-screen.is-ready');
         await page.click('.btn-start');
         await sleep(3000);
@@ -143,7 +143,7 @@ export async function run(browser, base, { check }) {
     }
     const offPage = await openPage(browser);
     try {
-        await offPage.goto(base + `/index.html?config=${offId}`, { waitUntil: 'networkidle0' });
+        await offPage.goto(base + `/demo.html?config=${offId}`, { waitUntil: 'networkidle0' });
         await offPage.waitForSelector('.start-screen.is-ready');
         await offPage.click('.btn-start');
         await sleep(800);

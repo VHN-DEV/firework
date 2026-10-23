@@ -97,7 +97,7 @@ function refresh() {
     return refreshing;
 }
 
-$('#gift-show').href = `./index.html?config=${encodeURIComponent(id)}`;
+$('#gift-show').href = `./demo.html?config=${encodeURIComponent(id)}`;
 const notifyButton = $('#gift-notify');
 notifyButton.classList.toggle('hide', !('Notification' in window) || Notification.permission !== 'default');
 notifyButton.addEventListener('click', async () => {

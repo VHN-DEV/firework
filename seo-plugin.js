@@ -9,7 +9,7 @@
  *
  * Facebook, Zalo, Messenger, Telegram... chỉ đọc thẻ <meta> trong HTML tĩnh (không chạy JavaScript) để dựng
  * khung xem trước (ảnh, tiêu đề, mô tả). Vì vậy mỗi kịch bản trong src/static/configs có một trang chia sẻ riêng
- * s/<tên>.html chứa sẵn các thẻ đó rồi tự chuyển sang màn trình diễn (index.html?config=<tên>).
+ * s/<tên>.html chứa sẵn các thẻ đó rồi tự chuyển sang màn trình diễn (demo.html?config=<tên>).
  * Trên host PHP, kịch bản lưu sau khi build được phục vụ bằng api/share.php (cùng mẫu HTML).
  */
 import fs from 'fs';
@@ -38,7 +38,7 @@ function replacePlaceholders(text) {
 
 // Mẫu HTML trang chia sẻ. api/share.php dựng đúng mẫu này cho kịch bản lưu trên host PHP.
 export function renderSharePage({ id, title, description, shareUrl, imageUrl }) {
-    const showPath = `../index.html?config=${encodeURIComponent(id)}`;
+    const showPath = `../demo.html?config=${encodeURIComponent(id)}`;
     const t = escapeHtml(title);
     const d = escapeHtml(description);
     return `<!DOCTYPE html>
@@ -94,7 +94,7 @@ export default function seoPlugin({ configsDir }) {
     return {
         name: 'firework-seo',
 
-        // Điền địa chỉ tuyệt đối vào thẻ meta của index.html/builder.html
+        // Điền địa chỉ tuyệt đối vào thẻ meta của các trang (index.html, demo.html, builder.html)
         transformIndexHtml(html) {
             return html.replace(/__SITE_URL__/g, SITE_URL);
         },
@@ -136,6 +136,7 @@ export default function seoPlugin({ configsDir }) {
                 source: `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url><loc>${SITE_URL}</loc><lastmod>${today}</lastmod><priority>1.0</priority></url>
+    <url><loc>${SITE_URL}demo.html</loc><lastmod>${today}</lastmod><priority>0.9</priority></url>
     <url><loc>${SITE_URL}builder.html</loc><lastmod>${today}</lastmod><priority>0.8</priority></url>
     <url><loc>${SITE_URL}terms.html</loc><lastmod>${today}</lastmod><priority>0.3</priority></url>
     <url><loc>${SITE_URL}privacy.html</loc><lastmod>${today}</lastmod><priority>0.3</priority></url>

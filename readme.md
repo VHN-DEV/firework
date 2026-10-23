@@ -22,7 +22,7 @@
 
 3. **Chạy dự án**
    Dự án này là thuần Front-end (HTML, CSS, JS), không yêu cầu cài đặt Node.js hay bất kỳ build tool phức tạp nào. Bạn có thể chạy theo các cách sau:
-   - **Cách 1**: Mở trực tiếp tệp `index.html` bằng bất kỳ trình duyệt web nào (Chrome, Firefox, Edge, Safari...).
+   - **Cách 1**: Mở trực tiếp tệp `demo.html` (màn trình diễn) bằng bất kỳ trình duyệt web nào (Chrome, Firefox, Edge, Safari...).
    - **Cách 2**: Sử dụng các công cụ Live Server (như tiện ích Live Server của VS Code) để khởi chạy máy chủ web cục bộ và trải nghiệm mượt mà hơn.
 
 ## Kiểm thử & triển khai
@@ -76,7 +76,9 @@ Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và 
 
 ## Cấu trúc thư mục
 
-- `index.html`, `builder.html`, `theo-doi.html`, `privacy.html`, `terms.html`: các trang (Vite build ra `dist/`).
+- `index.html` (trang chủ giới thiệu dịch vụ), `demo.html` (trình phát: màn trình diễn, link tặng `demo.html?config=<tên>`;
+  link cũ `index.html?config=...` tự chuyển sang), `builder.html`, `theo-doi.html`, `privacy.html`, `terms.html`: các
+  trang (Vite build ra `dist/`).
 - `src/assets/js/script.js`: trình phát (cài đặt, menu, khung mở quà, hẹn giờ, khớp nhịp nhạc, dựng video, vòng lặp
   vẽ). Lõi pháo hoa tách trong `src/assets/js/player/`:
   - `env.js`, `state.js`: môi trường, hằng số, trạng thái dùng chung (cỡ sân khấu, chất lượng, tốc độ, cài đặt);

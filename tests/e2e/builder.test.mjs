@@ -125,7 +125,7 @@ export async function run(browser, base, { check }) {
 
         // Trang chia sẻ có tiêu đề cho mạng xã hội và chuyển tới màn trình diễn
         const html = await (await fetch(`${base}/s/${ID}.html`)).text();
-        check('trang chia sẻ có og:title và chuyển tới màn trình diễn', html.includes('og:title') && html.includes(`index.html?config=${ID}`));
+        check('trang chia sẻ có og:title và chuyển tới màn trình diễn', html.includes('og:title') && html.includes(`demo.html?config=${ID}`));
 
         // Bản nháp: đã lưu thì không còn nháp; sửa thì có nháp; hoàn tác về bản đã lưu thì hết nháp
         await sleep(3500);

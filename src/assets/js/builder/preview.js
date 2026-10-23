@@ -237,7 +237,7 @@ window.addEventListener('message', (e) => {
 function loadPreviewFrame() {
     previewReady = false;
     resizeMiniStages();
-    getPreviewFrame().src = 'index.html?preview=1';
+    getPreviewFrame().src = 'demo.html?preview=1';
 }
 
 // Đặt iframe ở kích thước màn hình giả lập rồi thu nhỏ cho vừa khung xem nhanh (giữ đúng tỉ lệ)

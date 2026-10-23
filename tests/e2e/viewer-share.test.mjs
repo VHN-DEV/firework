@@ -17,7 +17,7 @@ const LOCKED = 'zz_e2e_viewer_locked';
 async function openGift(browser, base, id, viewport, title) {
     const page = await openPage(browser, viewport);
     for (let attempt = 0; attempt < 2; attempt++) {
-        await page.goto(`${base}/index.html?config=${id}`, { waitUntil: 'networkidle0' });
+        await page.goto(`${base}/demo.html?config=${id}`, { waitUntil: 'networkidle0' });
         const loaded = await page.waitForFunction(t => document.title.includes(t), { timeout: 8000 }, title).then(() => true, () => false);
         if (loaded) break;
     }
@@ -173,7 +173,7 @@ export async function run(browser, base, { check }) {
 
         // Bản xem nhanh trong builder: bấm chia sẻ chỉ báo nút dùng làm gì
         page = await openPage(browser);
-        await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?preview=1', { waitUntil: 'networkidle0' });
         await page.evaluate(() => window.postMessage({ type: 'firework-preview', config: { loop: true, events: [] }, restart: true }, location.origin));
         await sleep(500);
         await page.click('.moment-bar__share');

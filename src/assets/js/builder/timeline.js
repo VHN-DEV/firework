@@ -351,7 +351,7 @@ function addEventAtTime(time) {
 }
 
 // ---------------------------------------------------------------------------
-// TẠO VIDEO: khung ẩn (index.html?record=1) chạy chính trình phát ở cỡ video đã chọn, dựng màn trình diễn thành file
+// TẠO VIDEO: khung ẩn (demo.html?record=1) chạy chính trình phát ở cỡ video đã chọn, dựng màn trình diễn thành file
 // MP4 kèm tiếng pháo và nhạc nền, nhanh hết mức máy cho phép (xem video-export.js, recorder.js), rồi gửi file về đây
 // để xem lại, tải về hoặc chia sẻ
 // ---------------------------------------------------------------------------

@@ -58,7 +58,7 @@ $imageUrl = is_file($imageFile)
     ? $siteUrl . 'configs/' . $id . '.jpg?v=' . filemtime($imageFile)
     : $siteUrl . 'og-default.jpg';
 $shareUrl = $siteUrl . 's/' . $id . '.html';
-$showPath = '../index.html?config=' . rawurlencode($id);
+$showPath = '../demo.html?config=' . rawurlencode($id);
 
 $e = function ($v) {
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');

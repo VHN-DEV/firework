@@ -958,7 +958,7 @@ function replayShow() {
 
 // ---------------------------------------------------------------------------
 // DỰNG VIDEO (builder > Tạo video, người nhận > Tạo video): trang gửi kịch bản và cỡ video sang khung ẩn
-// (index.html?record=1). Khung chạy màn trình diễn một lượt theo đồng hồ giả lập, từng khung hình một và nhanh hết
+// (demo.html?record=1). Khung chạy màn trình diễn một lượt theo đồng hồ giả lập, từng khung hình một và nhanh hết
 // mức máy cho phép (không phải chờ theo thời gian thật, không cần phát ra loa), mã hóa thành MP4 kèm tiếng pháo và
 // nhạc nền trộn sẵn, kết bằng thiệp lời chúc, rồi gửi file về. Xem recorder.js, player/clock.js.
 // ---------------------------------------------------------------------------

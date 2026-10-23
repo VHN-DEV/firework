@@ -41,7 +41,7 @@ export async function run(browser, base, { check }) {
         recipientCtx = await browser.createBrowserContext();
         const recipient = await recipientCtx.newPage();
         await recipient.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
-        await recipient.goto(`${base}/index.html?config=${ID}`, { waitUntil: 'networkidle0' });
+        await recipient.goto(`${base}/demo.html?config=${ID}`, { waitUntil: 'networkidle0' });
         await recipient.waitForSelector('.start-screen.is-ready');
         check('người nhận được báo trước "Người gửi sẽ biết khi bạn mở quà"',
             /Người gửi sẽ biết khi bạn mở quà/.test(await recipient.$eval('.start-screen__legal', e => e.textContent)));
@@ -52,7 +52,7 @@ export async function run(browser, base, { check }) {
 
         // Người gửi tự xem thử: không tính
         const own = await sender.browserContext().newPage();
-        await own.goto(`${base}/index.html?config=${ID}`, { waitUntil: 'networkidle0' });
+        await own.goto(`${base}/demo.html?config=${ID}`, { waitUntil: 'networkidle0' });
         await sleep(1200);
         await own.close();
         s = await status(key);

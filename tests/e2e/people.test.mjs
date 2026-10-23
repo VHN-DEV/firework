@@ -46,7 +46,7 @@ export async function run(browser, base, { check }) {
         JSON.stringify({ start, odd }));
     const page = await openPage(browser, { width: 700, height: 700 });
     try {
-        await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?preview=1', { waitUntil: 'networkidle0' });
         const events = [{ burst: 1, shell: 'Hoa cúc', color: 'Gold', x: 50, y: 70 }];
         await post(page, { loop: true, events, water: 'half', people: 'couple' });
         // Chờ theo điều kiện (máy chậm thì tải nhân vật lâu hơn), tối đa chừng ấy giây

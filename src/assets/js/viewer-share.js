@@ -112,7 +112,7 @@ export function setupViewerShare({ composeFrame, describe, pauseShow, configName
         if (shareUrlRequest) return shareUrlRequest;
         if (!configName) return (shareUrlRequest = Promise.resolve(new URL('./', window.location.href).href));
         const page = new URL(`s/${encodeURIComponent(configName)}.html`, window.location.href).href;
-        const direct = new URL(`index.html?config=${encodeURIComponent(configName)}`, window.location.href).href;
+        const direct = new URL(`demo.html?config=${encodeURIComponent(configName)}`, window.location.href).href;
         shareUrlRequest = fetch(page, { method: 'HEAD', cache: 'no-store' })
             .then(r => (r.ok ? page : direct), () => direct);
         return shareUrlRequest;

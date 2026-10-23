@@ -49,7 +49,7 @@ const footing = page => page.evaluate(() => {
 export async function run(browser, base, { check }) {
     const page = await openPage(browser, { width: 1280, height: 720 });
     try {
-        await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo.html?preview=1', { waitUntil: 'networkidle0' });
         const results = {};
         for (const bank of ['', 'brick', 'stone', 'sand', 'oldtown', 'bridge', 'arch', 'city', 'none']) {
             await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
