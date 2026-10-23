@@ -63,21 +63,23 @@ export async function run(browser, base, { check }) {
         const solo = await waitFor(f => f.center > 200 && f.left < f.center * 0.25, 20);
         check('một mình, trời mưa: cô gái che ô đi ra giữa bờ', solo.center > 200, JSON.stringify(solo));
 
-        // Đồ theo mùa: mùa đông chàng trai quàng khăn len đỏ, mùa hạ thì không (đếm điểm đỏ trên lớp người)
-        const reds = () => page.evaluate(() => {
+        // Đồ theo mùa: mùa đông chàng trai mặc áo măng tô màu lạc đà, mùa hạ áo hoodie trắng (đếm điểm màu nâu trên lớp
+        // người: dưới ánh đêm ngả xanh thành nâu đỏ trầm; pháo trắng cho ánh pháo không nhuộm vàng áo trắng)
+        const camel = () => page.evaluate(() => {
             const c = document.getElementById('front-canvas');
             const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
             let n = 0;
-            for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 200 && d[i] > 60 && d[i] > d[i + 1] * 1.8 && d[i] > d[i + 2] * 1.5) n++;
+            for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 200 && d[i] > 50 && d[i] > d[i + 2] * 1.3 && d[i] > d[i + 1] * 1.1) n++;
             return n;
         });
+        const white = [{ burst: 1, shell: 'Hoa cúc', color: 'White', x: 50, y: 70 }];
         const seasonal = {};
         for (const season of ['winter', 'summer']) {
-            await post(page, { loop: true, events, water: 'half', people: 'man', season });
+            await post(page, { loop: true, events: white, water: 'half', people: 'man', season });
             await waitFor(f => f.center > 200, 20);
-            seasonal[season] = await reds();
+            seasonal[season] = await camel();
         }
-        check('mùa đông chàng trai quàng khăn len, mùa hạ thì không', seasonal.winter > 15 && seasonal.summer < seasonal.winter * 0.15, JSON.stringify(seasonal));
+        check('mùa đông chàng trai mặc áo măng tô, mùa hạ thì không', seasonal.winter > 300 && seasonal.summer < seasonal.winter * 0.1, JSON.stringify(seasonal));
 
         // Tắt bờ bên này: người ở bờ bên kia, đi lên giữa cầu vòm (dải chân trời giữa khung), không còn dải bờ ở đáy
         await post(page, { loop: true, events, water: 'half', bank: 'arch', people: 'couple', nearBank: false });
