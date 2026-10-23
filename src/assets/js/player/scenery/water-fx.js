@@ -8,6 +8,7 @@
 // né đá, mặt băng mùa đông, vệt sáng của đèn in dài xuống nước.
 
 import { IS_MOBILE } from '../env.js';
+import { isHighQuality } from '../state.js';
 import { fbm, hash, makeNoise, smooth01 } from './util.js';
 import { makeCanvas, seededRandom } from '../utils.js';
 
@@ -17,13 +18,17 @@ import { makeCanvas, seededRandom } from '../utils.js';
 export function drawLightStreak(ctx, x, top, reach, width, rgb, alpha, time, seed, s) {
     if (alpha <= 0.01 || reach <= 0) return;
     ctx.fillStyle = `rgb(${rgb})`;
-    const n = Math.max(6, Math.round(reach / (2.2 * s)));
+    // Dưới 1080p (máy yếu, "Tự động" đã hạ): nét thưa gấp đôi, mỗi nét dày gấp đôi bù lại cho vệt sáng như cũ. Khung vẽ thưa
+    // hơn màn hình nên các nét vốn đã sát nhau (720p: cách ~1,5 điểm ảnh), mà thành phố có du thuyền bớt được gần 2000 lệnh
+    // vẽ mỗi khung. Từ 1080p trở lên giữ đủ nét
+    const thin = isHighQuality ? 1 : 2;
+    const n = Math.max(6, Math.round(reach / (2.2 * s * thin)));
     for (let i = 0; i < n; i++) {
         const q = i / n;
         const wobble = Math.sin(time * 0.004 + i * 1.7 + seed * 9) * (1 + 2.5 * q) * s;
         ctx.globalAlpha = alpha * Math.pow(1 - q, 1.3) * (0.55 + 0.45 * Math.sin(time * 0.006 + i * 2.3 + seed * 5));
         const w = width * (1 + 0.8 * q) * (0.6 + 0.4 * Math.sin(i * 3.1 + seed * 7 + time * 0.002));
-        ctx.fillRect(x + wobble - w / 2, top + q * reach, w, Math.max(0.5, 0.55 * s));
+        ctx.fillRect(x + wobble - w / 2, top + q * reach, w, Math.max(0.5, 0.55 * s) * thin);
     }
     ctx.globalAlpha = 1;
 }
