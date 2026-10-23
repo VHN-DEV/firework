@@ -71,6 +71,9 @@ export const People = {
     layout: null,
     time: 0,
     drawn: false,
+    // 480p trở xuống: khung này bỏ qua (giữ hình khung trước), thời gian dồn sang khung sau
+    skip: false,
+    lagMs: 0,
     focus: { x: 0, y: 0, ready: false },
     stars: 0,
     burst: false,
@@ -228,8 +231,17 @@ export const People = {
 
     // dt: ms (đã nhân tốc độ mô phỏng); time: đồng hồ màn trình diễn (ms); scale: hệ số thu phóng
     update(dtMs, { time, scale = 1 }) {
+        // Chất lượng 480p trở xuống: cử động và dựng người cách một khung hình như mặt nước (máy yếu: three.js, vật lý tóc
+        // chiếm tới nửa công mỗi khung dù vẽ thưa), bước thời gian gộp cả hai khung
+        this.skip = isLowQuality && !this.skip;
+        if (this.skip) {
+            if (dtMs > 0) this.lagMs += dtMs;
+            return;
+        }
+        dtMs += this.lagMs;
+        this.lagMs = 0;
         if (!this.show || !this.layout) return;
-        const dt = Math.min(0.05, dtMs / 1000);
+        const dt = Math.min(isLowQuality ? 0.1 : 0.05, dtMs / 1000);
         if (!(dt > 0)) return;
         this.time += dt;
         this.trackFocus(dt, scale);
@@ -365,6 +377,7 @@ export const People = {
             }
             return;
         }
+        if (this.skip && this.drawn) return;
         this.drawn = true;
         const k = W / L.cssW;
         const wet = sceneWeather() === 'rain';
