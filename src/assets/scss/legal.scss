@@ -1,5 +1,5 @@
 /*!
- * Trình diễn Pháo hoa – trang Điều khoản & Bảo mật
+ * Hanabi – trang Điều khoản & Bảo mật
  * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
@@ -79,9 +79,31 @@ a {
     white-space: nowrap;
 
     img {
-        width: 28px;
-        height: 28px;
-        border-radius: 7px;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+    }
+}
+
+// Logo chữ: "Hanabi" đậm, dòng mô tả nhỏ bên dưới
+.brand__text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+
+    b {
+        font-size: 1.12rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+    }
+
+    small {
+        margin-top: 3px;
+        color: $muted;
+        font-size: 0.62rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
     }
 }
 

@@ -1,5 +1,5 @@
 /*!
- * Trình diễn Pháo hoa – trình phát (âm thanh thiên nhiên của cảnh)
+ * Hanabi – trình phát (âm thanh thiên nhiên của cảnh)
  * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */

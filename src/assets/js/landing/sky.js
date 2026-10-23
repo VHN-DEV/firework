@@ -1,5 +1,5 @@
 /*!
- * Trình diễn Pháo hoa – trang chủ: tia lửa bay trên banner, pháo hoa nhỏ ở mục liên hệ
+ * Hanabi – trang chủ: tia lửa bay trên banner, pháo hoa nhỏ ở mục liên hệ
  * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */

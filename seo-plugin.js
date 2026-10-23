@@ -1,5 +1,5 @@
 /*!
- * Trình diễn Pháo hoa – SEO và trang chia sẻ lúc build
+ * Hanabi – SEO và trang chia sẻ lúc build
  * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
@@ -20,7 +20,7 @@ import path from 'path';
 
 // Địa chỉ trang khi đăng lên mạng (bắt buộc là URL tuyệt đối cho ảnh xem trước). Đổi bằng biến môi trường SITE_URL.
 export const SITE_URL = (process.env.SITE_URL || 'https://vhn-dev.github.io/firework/').replace(/\/?$/, '/');
-export const SITE_NAME = 'Trình diễn Pháo hoa';
+export const SITE_NAME = 'Hanabi';
 export const SITE_DESCRIPTION = 'Tự thiết kế và gửi tặng những màn pháo hoa lung linh kèm lời chúc cho người thân yêu: sinh nhật, tốt nghiệp, năm mới, kỷ niệm...';
 
 const escapeHtml = (value) => String(value ?? '')

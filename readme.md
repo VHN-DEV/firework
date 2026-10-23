@@ -1,6 +1,6 @@
-# Trình mô phỏng Pháo hoa
+# Hanabi – Pháo hoa gửi tặng
 
-Đây là một dự án Trình mô phỏng Pháo hoa (Firework Simulator) tuyệt đẹp chạy trực tiếp trên nền tảng Web (HTML5/Canvas), cho phép bạn tạo và tùy chỉnh các hiệu ứng pháo hoa một cách sinh động, mượt mà và chân thực.
+**Hanabi** (花火, "pháo hoa" trong tiếng Nhật; trước đây tên là Trình diễn Pháo hoa) là dự án Trình mô phỏng Pháo hoa (Firework Simulator) tuyệt đẹp chạy trực tiếp trên nền tảng Web (HTML5/Canvas), cho phép bạn tạo và tùy chỉnh các hiệu ứng pháo hoa một cách sinh động, mượt mà và chân thực.
 
 ## Cài đặt và Chạy dự án
 
@@ -92,6 +92,8 @@ Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và 
   chụp thật từ trình phát (WebP 1920 và 1280 px).
 - Logo, biểu tượng trang (`src/static/favicon.svg`, `favicon.ico`, `apple-touch-icon.png`, `icon-*.png`,
   `site.webmanifest`): dựng bằng `scripts/brand-icons.mjs` (đổi hình, màu ở đó rồi chạy `npm run icons`, cần Chrome).
+  Ảnh xem trước mặc định khi chia sẻ link (`src/static/og-default.jpg`, tên Hanabi trên nền ảnh chụp thật): `npm run og-image`
+  (`scripts/og-image.mjs`). Trình soạn kịch bản mang tên Hanabi Studio.
 - `src/assets/js/script.js`: trình phát (cài đặt, menu, khung mở quà, hẹn giờ, khớp nhịp nhạc, dựng video, vòng lặp
   vẽ). Lõi pháo hoa tách trong `src/assets/js/player/`:
   - `env.js`, `state.js`: môi trường, hằng số, trạng thái dùng chung (cỡ sân khấu, chất lượng, tốc độ, cài đặt);

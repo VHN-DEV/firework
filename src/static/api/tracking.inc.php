@@ -1,6 +1,6 @@
 <?php
 /**
- * Trình diễn Pháo hoa – © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+ * Hanabi – © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  *
  * Báo mở quà: lưu lúc người nhận mở link, bấm mở quà, xem hết (chỉ thời điểm và loại thiết bị, không lưu IP).

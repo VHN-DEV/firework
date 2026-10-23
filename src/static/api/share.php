@@ -1,6 +1,6 @@
 <?php
 /**
- * Trình diễn Pháo hoa – © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+ * Hanabi – © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  *
  * Trang chia sẻ cho kịch bản lưu trên host PHP (kịch bản có sẵn lúc build đã có file tĩnh s/<tên>.html).
@@ -9,7 +9,7 @@
  */
 header('Content-Type: text/html; charset=utf-8');
 
-const SITE_NAME = 'Trình diễn Pháo hoa';
+const SITE_NAME = 'Hanabi';
 const SITE_DESCRIPTION = 'Tự thiết kế và gửi tặng những màn pháo hoa lung linh kèm lời chúc cho người thân yêu: sinh nhật, tốt nghiệp, năm mới, kỷ niệm...';
 
 $id = isset($_GET['c']) && is_string($_GET['c']) ? preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['c']) : '';

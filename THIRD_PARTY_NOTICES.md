@@ -1,6 +1,6 @@
 # Thành phần bên thứ ba
 
-Dự án **Trình diễn Pháo hoa** (© 2026 Vũ Hoài Nam, xem [LICENSE](LICENSE)) sử dụng các thành phần dưới đây.
+Dự án **Hanabi** (trước đây là "Trình diễn Pháo hoa", © 2026 Vũ Hoài Nam, xem [LICENSE](LICENSE)) sử dụng các thành phần dưới đây.
 Mỗi thành phần thuộc quyền của tác giả tương ứng và tuân theo giấy phép riêng của nó, **không** thuộc
 phạm vi giấy phép độc quyền của dự án.
 

@@ -1,5 +1,5 @@
 /*!
- * Trình diễn Pháo hoa – trang theo dõi mở quà
+ * Hanabi – trang theo dõi mở quà
  * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
@@ -10,7 +10,7 @@
 import { saveOwnerKey, fetchOpenStatus, formatWhen, EVENT_NAMES, DEVICE_NAMES, describeOpenStatus } from './gift-tracking.js';
 import { printCopyrightNotice } from './copyright.js';
 
-printCopyrightNotice('Trình diễn Pháo hoa – Theo dõi món quà');
+printCopyrightNotice('Hanabi – Theo dõi món quà');
 
 const params = new URLSearchParams(window.location.search);
 const id = (params.get('id') || '').toLowerCase();

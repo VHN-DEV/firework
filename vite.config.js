@@ -1,5 +1,5 @@
 /*!
- * Trình diễn Pháo hoa – cấu hình build
+ * Hanabi – cấu hình build
  * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
@@ -14,7 +14,7 @@ import seoPlugin from './seo-plugin.js';
 // Thông báo bản quyền ở đầu mỗi file JS đã build (Rollup thêm banner sau bước nén nên không bị lược bỏ).
 const jsBanner = (chunk) => {
   const lines = [
-    '/*! Trình diễn Pháo hoa | © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu, xem LICENSE.txt',
+    '/*! Hanabi – Pháo hoa gửi tặng | © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu, xem LICENSE.txt',
     ' * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép. Liên hệ: vuhoainam18032002@gmail.com',
   ];
   return lines.join('\n') + ' */';

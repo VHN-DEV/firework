@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-    Trình diễn Pháo hoa – trang chủ
+    Hanabi – trang chủ
     © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
     Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
 -->
@@ -13,7 +13,7 @@
         // chuyển sang ngay, giữ nguyên tham số
         if (/[?&](config|preview|record)(=|&|$)/.test(location.search)) location.replace('./demo' + location.search + location.hash);
     </script>
-    <title>Trình diễn Pháo hoa – Đặt làm màn pháo hoa tặng người thân yêu</title>
+    <title>Hanabi – Gửi tặng màn pháo hoa của riêng bạn</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!-- SEO -->
@@ -28,8 +28,8 @@
     <!-- Xem trước khi chia sẻ (Facebook, Zalo, Messenger, Telegram...) -->
     <meta property="og:type" content="website">
     <meta property="og:locale" content="vi_VN">
-    <meta property="og:site_name" content="Trình diễn Pháo hoa">
-    <meta property="og:title" content="Trình diễn Pháo hoa – Gửi tặng cả một bầu trời pháo hoa">
+    <meta property="og:site_name" content="Hanabi">
+    <meta property="og:title" content="Hanabi – Gửi tặng cả một bầu trời pháo hoa">
     <meta property="og:description"
         content="Màn pháo hoa có tên người nhận, lời chúc, ảnh và nhạc riêng, gửi bằng một đường link.">
     <meta property="og:url" content="__SITE_URL__">
@@ -39,7 +39,7 @@
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="Màn trình diễn pháo hoa">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Trình diễn Pháo hoa – Gửi tặng cả một bầu trời pháo hoa">
+    <meta name="twitter:title" content="Hanabi – Gửi tặng cả một bầu trời pháo hoa">
     <meta name="twitter:description"
         content="Màn pháo hoa có tên người nhận, lời chúc, ảnh và nhạc riêng, gửi bằng một đường link.">
     <meta name="twitter:image" content="__SITE_URL__og-default.jpg">
@@ -47,7 +47,8 @@
     {
         "@context": "https://schema.org",
         "@type": "WebApplication",
-        "name": "Trình diễn Pháo hoa",
+        "name": "Hanabi",
+        "alternateName": ["Hanabi – Pháo hoa gửi tặng", "Trình diễn Pháo hoa"],
         "url": "__SITE_URL__",
         "image": "__SITE_URL__og-default.jpg",
         "description": "Màn pháo hoa có tên người nhận, lời chúc, ảnh và nhạc riêng, gửi bằng một đường link.",
@@ -83,9 +84,9 @@
     <!-- Thanh trên cùng: trong suốt trên banner, mờ kính khi cuộn xuống -->
     <header class="topbar">
         <div class="container topbar__inner">
-            <a class="brand" href="./" aria-label="Trình diễn Pháo hoa – Trang chủ">
+            <a class="brand" href="./" aria-label="Hanabi – Trang chủ">
                 <img src="/favicon.svg" alt="" width="38" height="38">
-                <span>Trình diễn <b>Pháo hoa</b></span>
+                <span class="brand__text"><b>Hanabi</b><small>Pháo hoa gửi tặng</small></span>
             </a>
             <nav class="topnav" id="topnav" aria-label="Mục chính">
                 <a href="#tinh-nang">Tính năng</a>
@@ -530,9 +531,9 @@
             <div class="footer__brand">
                 <a class="brand" href="./">
                     <img src="/favicon.svg" alt="" width="38" height="38">
-                    <span>Trình diễn <b>Pháo hoa</b></span>
+                    <span class="brand__text"><b>Hanabi</b><small>Pháo hoa gửi tặng</small></span>
                 </a>
-                <p>Gửi tặng cả một bầu trời pháo hoa cho người thân yêu.</p>
+                <p>Hanabi (花火) là "pháo hoa" trong tiếng Nhật: hoa và lửa. Gửi tặng cả một bầu trời pháo hoa cho người thân yêu.</p>
             </div>
             <div>
                 <h4>Sản phẩm</h4>
@@ -552,7 +553,7 @@
                 <a href="./privacy">Bảo mật</a>
             </div>
         </div>
-        <div class="container footer__legal">© 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu.</div>
+        <div class="container footer__legal">© 2026 Hanabi · Vũ Hoài Nam. Mọi quyền được bảo lưu.</div>
     </footer>
 
     <a class="to-top" href="#trang-chu" aria-label="Lên đầu trang"><i class="fa-solid fa-arrow-up"></i></a>

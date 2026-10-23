@@ -1,5 +1,5 @@
 /*!
- * Trình diễn Pháo hoa – kiểm thử tự động
+ * Hanabi – kiểm thử tự động
  * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
@@ -144,4 +144,16 @@ export async function run(browser, base, { check }) {
         if (!page.includes('<link rel="icon" href="./favicon.svg"') || !page.includes('href="./apple-touch-icon.png"')) noIcon.push(route || '/');
     }
     check('trang nào cũng có biểu tượng mới (đường dẫn tương đối)', !noIcon.length, noIcon.join(' '));
+
+    // Tên thương hiệu Hanabi: tiêu đề mọi trang, tên trang khi chia sẻ (cả trang chia sẻ của kịch bản)
+    const noBrand = [];
+    for (const route of ['', 'demo', 'builder', 'privacy', 'terms', 'theo-doi', 's/graduation_nguyen_van']) {
+        const page = await (await fetch(`${base}/${route}`)).text();
+        const title = (page.match(/<title>([^<]*)<\/title>/) || [])[1] || '';
+        const site = (page.match(/og:site_name" content="([^"]*)"/) || [])[1];
+        if (!/Hanabi/.test(title) && site !== 'Hanabi') noBrand.push(`/${route}: ${title}`);
+        if (site !== undefined && site !== 'Hanabi') noBrand.push(`/${route} og:site_name=${site}`);
+        if (/Trình diễn Pháo hoa/.test(title) || /Firework Builder/.test(page)) noBrand.push(`/${route}: còn tên cũ`);
+    }
+    check('tên thương hiệu Hanabi ở mọi trang, không còn tên cũ', !noBrand.length, noBrand.join(' | '));
 }

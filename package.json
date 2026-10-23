@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "npm run build && node tests/e2e/run.mjs",
     "test:e2e": "node tests/e2e/run.mjs",
-    "icons": "node scripts/brand-icons.mjs"
+    "icons": "node scripts/brand-icons.mjs",
+    "og-image": "node scripts/og-image.mjs"
   },
   "keywords": [],
   "author": "Vũ Hoài Nam <vuhoainam18032002@gmail.com> (https://github.com/VHN-DEV)",

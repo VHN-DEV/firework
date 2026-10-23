@@ -1,5 +1,5 @@
 /*!
- * Trình diễn Pháo hoa – trang chủ
+ * Hanabi – trang chủ
  * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
@@ -17,7 +17,7 @@ import { initSky } from './landing/sky.js';
 import { initShowcase } from './landing/showcase.js';
 import { initOrder } from './landing/order.js';
 
-printCopyrightNotice('Trình diễn Pháo hoa');
+printCopyrightNotice('Hanabi – Pháo hoa gửi tặng');
 
 // Hình pháo chạy ở hàng thứ hai của mục Dịp tặng
 const SHAPES = [

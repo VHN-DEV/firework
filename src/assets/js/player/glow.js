@@ -1,5 +1,5 @@
 /*!
- * Trình diễn Pháo hoa – trình phát: quầng sáng quanh pháo
+ * Hanabi – trình phát: quầng sáng quanh pháo
  * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */

@@ -1,5 +1,5 @@
 /*!
- * Trình diễn Pháo hoa – trình soạn kịch bản (builder)
+ * Hanabi – trình soạn kịch bản (builder)
  * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
@@ -43,7 +43,7 @@ import { closeMoreMenu, toggleMoreMenu, toggleSidebar } from './builder/layout.j
 // Assign to window for global access
 window.fscreen = fscreen;
 
-printCopyrightNotice('Trình diễn Pháo hoa – Builder');
+printCopyrightNotice('Hanabi Studio');
 
 // Windows không có cờ trong font emoji: khai báo font cờ riêng (đã đặt đầu font-family của trang)
 polyfillCountryFlagEmojis('Twemoji Country Flags', flagFontUrl);

@@ -1,5 +1,5 @@
 /*!
- * Trình diễn Pháo hoa – trình phát
+ * Hanabi – trình phát
  * Phần bổ sung và chỉnh sửa © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
@@ -66,7 +66,7 @@ window.MyMath = MyMath;
 
 console.clear();
 
-printCopyrightNotice('Trình diễn Pháo hoa');
+printCopyrightNotice('Hanabi – Pháo hoa gửi tặng');
 
 // Màn trình diễn tặng riêng (?config=..., có tên người nhận) không đưa lên công cụ tìm kiếm.
 // Đặt ngay khi tải trang vì Google không bấm nút "Bắt đầu".
@@ -1078,7 +1078,7 @@ const viewerShare = setupViewerShare({
     composeFrame: composeSnapshot,
     describe() {
         const config = burstConfig || {};
-        const title = replacePlaceholders(config.seoTitle) || config.title || 'Trình diễn Pháo hoa';
+        const title = replacePlaceholders(config.seoTitle) || config.title || 'Hanabi';
         const description = replacePlaceholders(config.seoDescription) || [config.subtitle, config.author].filter(Boolean).join(' – ');
         return { title, description };
     },
@@ -1171,7 +1171,7 @@ async function prepareBurstConfig(burstConfig, { showOverlay }) {
     if (burstConfig.seoTitle) {
         document.title = burstConfig.seoTitle;
     } else if (burstConfig.title) {
-        document.title = `${burstConfig.title} | Trình diễn Pháo hoa`;
+        document.title = `${burstConfig.title} | Hanabi`;
     }
     // Mô tả trang theo kịch bản (mô tả tự nhập khi chia sẻ, không có thì ghép dòng phụ và người thực hiện)
     const description = replacePlaceholders(burstConfig.seoDescription) || [burstConfig.subtitle, burstConfig.author].filter(Boolean).join(' – ');

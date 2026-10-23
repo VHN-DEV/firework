@@ -1,5 +1,5 @@
 /*!
- * Trình diễn Pháo hoa – trình phát: giao diện màn mở quà và màn kết theo dịp
+ * Hanabi – trình phát: giao diện màn mở quà và màn kết theo dịp
  * © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
