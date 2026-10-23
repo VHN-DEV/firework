@@ -192,6 +192,30 @@ export async function run(browser, base, { check }) {
         await sleep(300);
         const backFromPause = await page.$eval('#inspector .shell-option.selected', b => b.textContent.trim()).catch(() => '');
         check('phát "Tạm dừng" vẫn đổi lại được loại pháo khác', backFromPause.endsWith('Hoa cúc'), backFromPause);
+
+        // Thu gọn Cấu hình chung: dải biểu tượng các nhóm, dòng thời gian rộng thêm, nhớ sau khi tải lại; bấm biểu tượng
+        // một nhóm thì mở rộng lại và mở đúng nhóm đó
+        const widths = () => page.evaluate(() => ({
+            panel: Math.round(document.getElementById('settings-panel').getBoundingClientRect().width),
+            timeline: Math.round(document.querySelector('.timeline-panel').getBoundingClientRect().width),
+            rail: document.querySelectorAll('.settings-rail button').length
+        }));
+        const open = await widths();
+        await page.click('.collapse-panel');
+        await sleep(700);
+        const folded = await widths();
+        await page.reload({ waitUntil: 'networkidle0' });
+        await sleep(500);
+        const kept = await page.evaluate(() => document.querySelector('.workspace').classList.contains('settings-collapsed'));
+        await page.evaluate(() => document.querySelector('.settings-rail button[onclick*="sound"]').click());
+        await sleep(700);
+        const back = await page.evaluate(() => ({
+            collapsed: document.querySelector('.workspace').classList.contains('settings-collapsed'),
+            sound: document.querySelector('details[data-group="sound"]').open
+        }));
+        check('thu gọn Cấu hình chung thành dải biểu tượng, nhớ sau khi tải lại, bấm biểu tượng nhóm thì mở lại đúng nhóm',
+            open.panel >= 310 && folded.panel <= 64 && folded.rail >= 5 && folded.timeline > open.timeline + 200 && kept && !back.collapsed && back.sound,
+            JSON.stringify({ open, folded, kept, back }));
         check('builder không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
         await page.close();

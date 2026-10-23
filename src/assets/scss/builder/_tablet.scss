@@ -8,8 +8,29 @@
 // Tablet: 2 cột, cấu hình chung thành ngăn trượt bên trái
 // ---------------------------------------------------------------------------
 @include tablet-down {
-    .workspace {
+    .workspace,
+    .workspace.settings-collapsed {
         grid-template-columns: minmax(0, 1fr) 400px;
+    }
+
+    .panel-header .collapse-panel,
+    .settings-collapsed .settings-panel .settings-rail {
+        display: none;
+    }
+
+    .settings-collapsed .settings-panel {
+        .panel-header {
+            justify-content: space-between;
+            padding: 1rem 1.1rem 0.75rem;
+
+            h2 {
+                display: flex;
+            }
+        }
+
+        .panel-body {
+            display: block;
+        }
     }
 
     .settings-panel {

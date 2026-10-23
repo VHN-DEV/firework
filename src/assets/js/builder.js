@@ -38,7 +38,7 @@ import { checkGiftOpens, copyTrackingLink, enableOpenNotifications, renderNotify
 import { closeVideoModal, createVideo, downloadVideo, openVideoModal, restartVideo, setVideoFormat, setVideoQuality, shareVideo } from './builder/video-ui.js';
 import { closeShareModal, copyShareLink, downloadShareImage, downloadShareQr, handleSeoImageUpload, openShareModal, renderSeoControls, scheduleSeoPreview, setSeoImageMode, shareTo, storeImageFile } from './builder/share.js';
 import { copyScriptLink, deleteScript, duplicateScript, editScript, exportConfig, importConfig, openScriptsModal, previewScript } from './builder/scripts.js';
-import { closeMoreMenu, toggleMoreMenu, toggleSidebar } from './builder/layout.js';
+import { closeMoreMenu, initSettingsRail, openSettingsGroup, toggleMoreMenu, toggleSettingsCollapsed, toggleSidebar } from './builder/layout.js';
 
 // Assign to window for global access
 window.fscreen = fscreen;
@@ -261,6 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Nút "?" giải thích từng mục
     helpTooltip.init();
     initSettingsGroups();
+    initSettingsRail();
 
     // Báo mở quà: công tắc, hỏi trạng thái các món quà của mình
     document.getElementById('notify-open')?.addEventListener('change', (e) => {
@@ -281,7 +282,7 @@ Object.assign(window, {
     createNewScript, selectEvent, closeInspector, addEventFromUI, addBurst, removeEvent, duplicateEvent, updateEvent,
     handleShellChange, toggleEmojiPicker, showEmojiGroup, pickTextEmoji, changeBurst, toggleEventColor, addColorToEvent, addCustomColor, removeColorFromEvent,
     rememberSection, editScript, duplicateScript, deleteScript, previewScript, copyShareLink, copyScriptLink,
-    openScriptsModal, exportConfig, previewConfig, saveConfig, toggleSidebar, toggleMoreMenu, showModal,
+    openScriptsModal, exportConfig, previewConfig, saveConfig, toggleSidebar, toggleSettingsCollapsed, openSettingsGroup, toggleMoreMenu, showModal,
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
     togglePreviewSound, previewAsRecipient, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,

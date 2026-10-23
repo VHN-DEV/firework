@@ -171,11 +171,18 @@
             <!-- Cột trái: cấu hình chung (thành ngăn trượt trên tablet/điện thoại) -->
             <aside id="settings-panel" class="settings-panel">
                 <div class="panel-header">
-                    <h2><i class="fas fa-sliders"></i> Cấu hình chung</h2>
+                    <h2><i class="fas fa-sliders"></i> <span>Cấu hình chung</span></h2>
+                    <!-- Máy tính: thu gọn thành dải biểu tượng để dòng thời gian rộng hơn (nhớ cho lần sau) -->
+                    <button type="button" class="btn icon collapse-panel" onclick="toggleSettingsCollapsed()"
+                        title="Thu gọn Cấu hình chung" aria-label="Thu gọn Cấu hình chung" aria-expanded="true">
+                        <i class="fas fa-angles-left"></i>
+                    </button>
                     <button class="btn icon close-panel" onclick="toggleSidebar()" title="Đóng">
                         <i class="fas fa-xmark"></i>
                     </button>
                 </div>
+                <!-- Khi thu gọn: mỗi nhóm một biểu tượng, bấm là mở lại và tới thẳng nhóm đó (layout.js dựng) -->
+                <nav class="settings-rail" aria-label="Các nhóm cấu hình"></nav>
                 <div class="panel-body">
                     <!-- Các nhóm gấp/mở được; khi gấp, dòng tiêu đề tóm tắt những gì đã đặt bên trong -->
                     <details class="settings-group" data-group="basics" open>
