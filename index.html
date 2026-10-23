@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-    Trình diễn Pháo hoa
+    Trình diễn Pháo hoa – trang chủ
     © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
     Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
 -->
@@ -8,17 +8,554 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Trình diễn Pháo hoa</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/png" href="./src/assets/img/firework-burst-icon-v2.png">
     <script>
-        // Trình phát đã chuyển sang demo.html; link cũ (index.html?config=..., ?preview, ?record) vẫn mở đúng màn trình diễn
-        location.replace('demo.html' + location.search + location.hash);
+        // Link tặng cũ trỏ vào trang chủ (index.html?config=..., ?preview, ?record): trình phát nay ở trang demo,
+        // chuyển sang ngay, giữ nguyên tham số
+        if (/[?&](config|preview|record)(=|&|$)/.test(location.search)) location.replace('./demo' + location.search + location.hash);
     </script>
+    <title>Trình diễn Pháo hoa – Đặt làm màn pháo hoa tặng người thân yêu</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- SEO -->
+    <meta name="description"
+        content="Màn pháo hoa có tên người nhận, lời chúc, ảnh và nhạc riêng, gửi bằng một đường link: sinh nhật, tốt nghiệp, đám cưới, năm mới, kỷ niệm... Đặt làm riêng hoặc tự tạo miễn phí, xem ngay trên điện thoại.">
+    <meta name="keywords" content="pháo hoa, bắn pháo hoa online, quà tặng online, thiệp chúc mừng, đặt làm pháo hoa, chúc mừng sinh nhật, chúc mừng tốt nghiệp, chúc mừng năm mới">
+    <meta name="author" content="Vũ Hoài Nam">
+    <meta name="copyright" content="© 2026 Vũ Hoài Nam">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <link rel="canonical" href="__SITE_URL__">
+
+    <!-- Xem trước khi chia sẻ (Facebook, Zalo, Messenger, Telegram...) -->
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="vi_VN">
+    <meta property="og:site_name" content="Trình diễn Pháo hoa">
+    <meta property="og:title" content="Trình diễn Pháo hoa – Gửi tặng cả một bầu trời pháo hoa">
+    <meta property="og:description"
+        content="Màn pháo hoa có tên người nhận, lời chúc, ảnh và nhạc riêng, gửi bằng một đường link.">
+    <meta property="og:url" content="__SITE_URL__">
+    <meta property="og:image" content="__SITE_URL__og-default.jpg">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Màn trình diễn pháo hoa">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Trình diễn Pháo hoa – Gửi tặng cả một bầu trời pháo hoa">
+    <meta name="twitter:description"
+        content="Màn pháo hoa có tên người nhận, lời chúc, ảnh và nhạc riêng, gửi bằng một đường link.">
+    <meta name="twitter:image" content="__SITE_URL__og-default.jpg">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Trình diễn Pháo hoa",
+        "url": "__SITE_URL__",
+        "image": "__SITE_URL__og-default.jpg",
+        "description": "Màn pháo hoa có tên người nhận, lời chúc, ảnh và nhạc riêng, gửi bằng một đường link.",
+        "applicationCategory": "EntertainmentApplication",
+        "operatingSystem": "Web",
+        "inLanguage": "vi",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "VND" },
+        "author": { "@type": "Person", "name": "Vũ Hoài Nam" },
+        "copyrightHolder": { "@type": "Person", "name": "Vũ Hoài Nam" },
+        "copyrightYear": 2026
+    }
+    </script>
+    <meta name="theme-color" content="#06070d">
+    <link rel="icon" type="image/png" href="./src/assets/img/firework-burst-icon-v2.png">
+    <link rel="apple-touch-icon-precomposed" href="./src/assets/img/firework-burst-icon-v2.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+    <!-- Biểu tượng: tải không chặn hiển thị trang -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
+    <link rel="preload" as="image" href="./src/assets/img/landing/landing-city-1280.webp" fetchpriority="high"
+        imagesrcset="./src/assets/img/landing/landing-city-1280.webp 1280w, ./src/assets/img/landing/landing-city-1920.webp 1920w" imagesizes="100vw">
 </head>
 
 <body>
-    <p><a href="./demo.html">Mở màn trình diễn</a></p>
+    <a class="skip-link" href="#gioi-thieu">Bỏ qua phần đầu trang</a>
+
+    <!-- Thanh trên cùng: trong suốt trên banner, mờ kính khi cuộn xuống -->
+    <header class="topbar">
+        <div class="container topbar__inner">
+            <a class="brand" href="./" aria-label="Trình diễn Pháo hoa – Trang chủ">
+                <img src="./src/assets/img/firework-burst-icon-v2.png" alt="" width="36" height="36">
+                <span>Trình diễn <b>Pháo hoa</b></span>
+            </a>
+            <nav class="topnav" id="topnav" aria-label="Mục chính">
+                <a href="#tinh-nang">Tính năng</a>
+                <a href="#kich-ban">Kịch bản mẫu</a>
+                <a href="#quy-trinh">Quy trình</a>
+                <a href="#hoi-dap">Hỏi đáp</a>
+                <a href="#lien-he">Liên hệ</a>
+                <a class="btn btn--ghost topnav__cta" href="./builder"><i class="fa-solid fa-wand-magic-sparkles"></i> Tự tạo miễn phí</a>
+                <a class="btn btn--primary topnav__cta" href="#lien-he"><i class="fa-solid fa-paper-plane"></i> Đặt làm riêng</a>
+            </nav>
+            <button type="button" class="menu-toggle" aria-controls="topnav" aria-expanded="false" aria-label="Mở menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Thanh cuộn nhanh giữa các mục (JS dựng từ các section có data-nav) -->
+    <nav class="section-nav" aria-label="Chuyển nhanh tới mục"></nav>
+    <div class="scroll-progress" aria-hidden="true"><span></span></div>
+
+    <main>
+        <!-- 1. Banner: ảnh chụp thật từ màn trình diễn, tự chuyển -->
+        <section id="trang-chu" class="hero" data-nav="Trang chủ" aria-roledescription="carousel" aria-label="Những màn pháo hoa tiêu biểu">
+            <div class="hero__slides">
+                <figure class="hero__slide is-active" aria-roledescription="slide" aria-label="1 / 5">
+                    <img src="./src/assets/img/landing/landing-city-1280.webp"
+                        srcset="./src/assets/img/landing/landing-city-1280.webp 1280w, ./src/assets/img/landing/landing-city-1920.webp 1920w"
+                        sizes="100vw" alt="Pháo hoa trên sông thành phố về đêm, đôi bạn đứng ngắm bên bờ" fetchpriority="high">
+                </figure>
+                <figure class="hero__slide" aria-roledescription="slide" aria-label="2 / 5">
+                    <img src="./src/assets/img/landing/landing-text-1280.webp" loading="lazy"
+                        srcset="./src/assets/img/landing/landing-text-1280.webp 1280w, ./src/assets/img/landing/landing-text-1920.webp 1920w"
+                        sizes="100vw" alt="Chữ chúc mừng sinh nhật hiện trên bầu trời pháo hoa">
+                </figure>
+                <figure class="hero__slide" aria-roledescription="slide" aria-label="3 / 5">
+                    <img src="./src/assets/img/landing/landing-sea-1280.webp" loading="lazy"
+                        srcset="./src/assets/img/landing/landing-sea-1280.webp 1280w, ./src/assets/img/landing/landing-sea-1920.webp 1920w"
+                        sizes="100vw" alt="Pháo hoa trên biển đêm dưới trăng và dải Ngân Hà">
+                </figure>
+                <figure class="hero__slide" aria-roledescription="slide" aria-label="4 / 5">
+                    <img src="./src/assets/img/landing/landing-bridge-1280.webp" loading="lazy"
+                        srcset="./src/assets/img/landing/landing-bridge-1280.webp 1280w, ./src/assets/img/landing/landing-bridge-1920.webp 1920w"
+                        sizes="100vw" alt="Pháo hoa trên cây cầu đá nhiều vòm in bóng xuống sông dưới trăng tròn">
+                </figure>
+                <figure class="hero__slide" aria-roledescription="slide" aria-label="5 / 5">
+                    <img src="./src/assets/img/landing/landing-oldtown-1280.webp" loading="lazy"
+                        srcset="./src/assets/img/landing/landing-oldtown-1280.webp 1280w, ./src/assets/img/landing/landing-oldtown-1920.webp 1920w"
+                        sizes="100vw" alt="Pháo hoa trên phố cổ đèn lồng bên sông">
+                </figure>
+            </div>
+            <div class="hero__shade" aria-hidden="true"></div>
+            <canvas class="hero__sparks" aria-hidden="true"></canvas>
+
+            <div class="container hero__inner">
+                <div class="hero__copy">
+                    <p class="eyebrow hero__eyebrow"><span class="dot"></span> Quà tặng bằng ánh sáng</p>
+                    <h1 class="hero__title">Gửi tặng cả một <span class="text-gradient hero__title-glow">bầu trời pháo hoa</span></h1>
+                    <p class="hero__lead">Màn pháo hoa có tên người nhận, lời chúc, ảnh và bài hát của riêng bạn. Gửi bằng
+                        một đường link, người nhận mở ngay trên điện thoại, không cần cài gì.</p>
+                    <div class="hero__ctas">
+                        <a class="btn btn--primary btn--lg" href="#lien-he"><i class="fa-solid fa-paper-plane"></i> Đặt làm riêng</a>
+                        <a class="btn btn--glass btn--lg" href="./demo"><i class="fa-solid fa-play"></i> Xem demo</a>
+                    </div>
+                    <ul class="hero__trust">
+                        <li><i class="fa-solid fa-check"></i> Không cần cài ứng dụng</li>
+                        <li><i class="fa-solid fa-check"></i> Có nhạc &amp; lời chúc</li>
+                        <li><i class="fa-solid fa-check"></i> Xuất video MP4</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="container hero__bottom">
+                <!-- Chú thích của ảnh đang hiện (trình đọc màn hình chỉ đọc khi người xem tự chuyển ảnh) -->
+                <div class="hero__captions" aria-live="off">
+                    <p class="hero__caption is-active"><b>Sông thành phố về đêm</b> Pháo in bóng xuống mặt sông, đôi bạn đứng ngắm bên bờ.</p>
+                    <p class="hero__caption"><b>Chữ của bạn trên trời</b> Tên người nhận, lời chúc nở ra giữa những chùm pháo.</p>
+                    <p class="hero__caption"><b>Biển đêm, trăng và Ngân Hà</b> Trăng đúng pha theo ngày, thuyền câu mực lấp lánh ngoài khơi.</p>
+                    <p class="hero__caption"><b>Cầu đá dưới trăng</b> Vòm cầu và bóng nước khép thành vòng tròn, trăng tròn trên cao.</p>
+                    <p class="hero__caption"><b>Phố cổ đèn lồng</b> Bờ sông, phố cổ, cầu đá, bãi biển: chọn cảnh hợp với dịp.</p>
+                </div>
+                <div class="hero__controls">
+                    <button type="button" class="icon-btn hero__prev" aria-label="Ảnh trước"><i class="fa-solid fa-chevron-left"></i></button>
+                    <div class="hero__dots" role="group" aria-label="Chọn ảnh">
+                        <button type="button" class="is-active" aria-label="Ảnh 1"><span></span></button>
+                        <button type="button" aria-label="Ảnh 2"><span></span></button>
+                        <button type="button" aria-label="Ảnh 3"><span></span></button>
+                        <button type="button" aria-label="Ảnh 4"><span></span></button>
+                        <button type="button" aria-label="Ảnh 5"><span></span></button>
+                    </div>
+                    <button type="button" class="icon-btn hero__next" aria-label="Ảnh sau"><i class="fa-solid fa-chevron-right"></i></button>
+                    <button type="button" class="icon-btn hero__pause" aria-label="Tạm dừng tự chuyển ảnh" aria-pressed="false"><i class="fa-solid fa-pause"></i></button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Giới thiệu, con số -->
+        <section id="gioi-thieu" class="section intro" data-nav="Giới thiệu">
+            <div class="container">
+                <div class="intro__grid">
+                    <div class="intro__text reveal">
+                        <p class="eyebrow">Vì sao chọn pháo hoa?</p>
+                        <h2 class="section-title">Món quà khiến người nhận <span class="text-gradient">nhớ mãi</span></h2>
+                        <p class="section-lead">Một tấm thiệp thì đọc xong là thôi. Một màn pháo hoa có tên mình rực sáng
+                            giữa trời, có bài hát mình thích và lời chúc của người thân thì người nhận sẽ xem đi xem lại, chụp
+                            màn hình, khoe với bạn bè.</p>
+                        <ul class="checklist">
+                            <li><i class="fa-solid fa-circle-check"></i> Làm riêng cho từng người: tên, ngày, lời chúc, ảnh, nhạc</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Mở bằng link trên Zalo, Messenger, Facebook, tin nhắn</li>
+                            <li><i class="fa-solid fa-circle-check"></i> Đẹp trên điện thoại, máy tính, TV, tới độ nét 4K</li>
+                        </ul>
+                    </div>
+                    <div class="stats reveal" style="--i: 1">
+                        <div class="stat">
+                            <strong><span data-count="25">25</span>+</strong>
+                            <span>loại pháo, hình và chữ</span>
+                        </div>
+                        <div class="stat">
+                            <strong><span data-count="10" data-count-from="occasions">10</span></strong>
+                            <span>dịp có sẵn mẫu</span>
+                        </div>
+                        <div class="stat">
+                            <strong><span data-count="9">9</span></strong>
+                            <span>cảnh bờ sông, phố cổ, biển</span>
+                        </div>
+                        <div class="stat">
+                            <strong><span data-count="1">1</span> chạm</strong>
+                            <span>ra video MP4 để đăng TikTok, Reels</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Xem thử: video giới thiệu (nếu có) hoặc chạy thật trình phát trong khung -->
+        <section id="xem-thu" class="section demo" data-nav="Xem thử">
+            <div class="container">
+                <header class="section-head reveal">
+                    <p class="eyebrow">Xem thử</p>
+                    <h2 class="section-title">Xem ngay một màn pháo hoa thật</h2>
+                    <p class="section-lead">Đây chính là thứ người nhận sẽ thấy. Bấm phát, bật loa, rồi chạm vào màn hình
+                        để tự bắn thêm pháo.</p>
+                </header>
+                <div class="demo__tabs reveal" role="tablist" aria-label="Chọn màn để xem thử"></div>
+                <div class="demo__frame reveal" style="--i: 1">
+                    <div class="demo__bar" aria-hidden="true">
+                        <span class="demo__dots"><i></i><i></i><i></i></span>
+                        <span class="demo__url">trinh-dien-phao-hoa / demo</span>
+                    </div>
+                    <div class="demo__screen">
+                        <img class="demo__poster" src="./src/assets/img/landing/landing-city2-1280.webp" alt="" loading="lazy">
+                        <button type="button" class="demo__play">
+                            <span class="demo__play-icon"><i class="fa-solid fa-play"></i></span>
+                            <span class="demo__play-text">Phát màn trình diễn</span>
+                        </button>
+                    </div>
+                </div>
+                <p class="demo__note reveal"><a class="link-arrow" href="./demo" target="_blank" rel="noopener">Mở toàn màn
+                        hình <i class="fa-solid fa-arrow-up-right-from-square"></i></a></p>
+            </div>
+        </section>
+
+        <!-- 4. Tính năng -->
+        <section id="tinh-nang" class="section features" data-nav="Tính năng">
+            <div class="container">
+                <header class="section-head reveal">
+                    <p class="eyebrow">Tính năng</p>
+                    <h2 class="section-title">Không chỉ là pháo hoa</h2>
+                    <p class="section-lead">Cả một sân khấu thu nhỏ: bầu trời, mặt nước, âm nhạc, lời chúc và khoảnh khắc mở
+                        quà, gói gọn trong một đường link.</p>
+                </header>
+                <div class="bento">
+                    <article class="bento__card bento__card--hero reveal">
+                        <img class="bento__bg" src="./src/assets/img/landing/landing-sea-1280.webp" alt="" loading="lazy">
+                        <div class="bento__body">
+                            <span class="bento__icon"><i class="fa-solid fa-water"></i></span>
+                            <h3>Cảnh vật sống động</h3>
+                            <p>Mặt nước phản chiếu, sông thành phố, phố cổ, cầu đá, biển khơi. Trăng đúng pha theo ngày, Ngân
+                                Hà, sao băng, đèn trời; hoa mai, đào rơi, tuyết, mưa theo mùa.</p>
+                        </div>
+                    </article>
+                    <article class="bento__card reveal" style="--i: 1">
+                        <span class="bento__icon"><i class="fa-solid fa-font"></i></span>
+                        <h3>Chữ và ảnh trên trời</h3>
+                        <p>Tên người nhận, ngày kỷ niệm, lời chúc nở ra thành chữ; ảnh của bạn hiện trong khung trái tim, ngôi
+                            sao.</p>
+                    </article>
+                    <!-- Màn mở quà chụp thật trên điện thoại -->
+                    <article class="bento__card bento__card--phone reveal" style="--i: 2">
+                        <span class="bento__icon"><i class="fa-solid fa-gift"></i></span>
+                        <h3>Mở quà, hẹn giờ</h3>
+                        <p>Hộp quà, bao lì xì, bánh kem chờ người nhận chạm vào. Hẹn giờ mở quà, đếm ngược tới đúng khoảnh
+                            khắc giao thừa.</p>
+                        <div class="phone" aria-hidden="true">
+                            <img src="./src/assets/img/landing/landing-gift-phone-600.webp" alt="" loading="lazy" width="600" height="1298">
+                        </div>
+                    </article>
+                    <article class="bento__card reveal" style="--i: 1">
+                        <span class="bento__icon"><i class="fa-solid fa-music"></i></span>
+                        <h3>Pháo nổ theo nhịp nhạc</h3>
+                        <p>Chọn bài trong kho nhạc hoặc bài của bạn, pháo được xếp khớp từng nhịp như một buổi trình diễn
+                            thật.</p>
+                    </article>
+                    <article class="bento__card bento__card--wide reveal" style="--i: 1">
+                        <span class="bento__icon"><i class="fa-solid fa-film"></i></span>
+                        <div>
+                            <h3>Video MP4 một chạm</h3>
+                            <p>Dựng cả màn trình diễn thành video có nhạc: khổ dọc cho TikTok, Reels, Shorts; ngang cho
+                                YouTube; vuông cho Facebook. Không phải ngồi quay màn hình.</p>
+                        </div>
+                        <!-- Cùng một khung hình ở ba khổ video -->
+                        <div class="formats" aria-hidden="true">
+                            <span class="formats__item formats__item--v"><b>9:16</b></span>
+                            <span class="formats__item formats__item--h"><b>16:9</b></span>
+                            <span class="formats__item formats__item--s"><b>1:1</b></span>
+                        </div>
+                    </article>
+                    <article class="bento__card reveal" style="--i: 2">
+                        <span class="bento__icon"><i class="fa-solid fa-user-group"></i></span>
+                        <h3>Người ngắm pháo</h3>
+                        <p>Chàng trai, cô gái hay cả hai đứng bên bờ ngắm pháo, che ô khi mưa, đội mũ len khi tuyết rơi.</p>
+                    </article>
+                    <article class="bento__card reveal" style="--i: 1">
+                        <span class="bento__icon"><i class="fa-solid fa-share-nodes"></i></span>
+                        <h3>Link có ảnh xem trước</h3>
+                        <p>Gửi qua Zalo, Messenger, Facebook hiện sẵn ảnh, tiêu đề, lời chúc, nhìn là muốn bấm.</p>
+                    </article>
+                    <article class="bento__card reveal" style="--i: 2">
+                        <span class="bento__icon"><i class="fa-solid fa-bell"></i></span>
+                        <h3>Biết khi quà được mở</h3>
+                        <p>Người gửi được báo khi người nhận mở link, bấm mở quà và xem hết.</p>
+                    </article>
+                    <article class="bento__card reveal" style="--i: 3">
+                        <span class="bento__icon"><i class="fa-solid fa-mobile-screen"></i></span>
+                        <h3>Mượt trên mọi máy</h3>
+                        <p>Tự chỉnh độ nét theo sức máy, từ điện thoại cũ tới màn hình 4K; có chế độ giảm chớp sáng.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Kịch bản mẫu: đọc từ configs/configs_index.json, mục "featured": true là nổi bật -->
+        <section id="kich-ban" class="section showcase" data-nav="Kịch bản mẫu">
+            <div class="container">
+                <header class="section-head reveal">
+                    <p class="eyebrow">Kịch bản mẫu</p>
+                    <h2 class="section-title">Chọn một mẫu, mình làm lại cho riêng bạn</h2>
+                    <p class="section-lead">Bấm xem thử từng màn. Ưng mẫu nào thì bấm "Đặt mẫu này", mình thay tên, lời chúc,
+                        ảnh, nhạc theo ý bạn.</p>
+                </header>
+                <div class="filters reveal" role="group" aria-label="Lọc kịch bản"></div>
+                <div class="showcase__featured"></div>
+                <div class="showcase__grid"></div>
+                <p class="showcase__status" role="status"></p>
+                <noscript><p class="showcase__status">Bật JavaScript để xem danh sách kịch bản, hoặc <a href="./demo">mở trang demo</a>.</p></noscript>
+            </div>
+        </section>
+
+        <!-- 6. Dịp tặng: chạy ngang liên tục -->
+        <section id="dip-le" class="section occasions" data-nav="Dịp tặng">
+            <div class="container">
+                <header class="section-head reveal">
+                    <p class="eyebrow">Dịp tặng</p>
+                    <h2 class="section-title">Dịp nào cũng có một bầu trời riêng</h2>
+                    <p class="section-lead">Mỗi dịp có sẵn bảng màu, hình pháo, chữ, khung mở quà và giao diện thiệp riêng.</p>
+                </header>
+            </div>
+            <div class="marquee" aria-label="Các dịp có sẵn mẫu">
+                <div class="marquee__row"></div>
+                <div class="marquee__row marquee__row--reverse"></div>
+            </div>
+        </section>
+
+        <!-- 7. Quy trình đặt làm -->
+        <section id="quy-trinh" class="section process" data-nav="Quy trình">
+            <div class="container">
+                <header class="section-head reveal">
+                    <p class="eyebrow">Quy trình</p>
+                    <h2 class="section-title">Đặt làm riêng trong 4 bước</h2>
+                    <p class="section-lead">Bạn chỉ cần kể về người nhận, phần còn lại để mình lo.</p>
+                </header>
+                <ol class="steps">
+                    <li class="step reveal">
+                        <span class="step__num">01</span>
+                        <span class="step__icon"><i class="fa-regular fa-comments"></i></span>
+                        <h3>Gửi yêu cầu</h3>
+                        <p>Cho mình biết dịp tặng, tên người nhận, lời chúc, ảnh, bài hát và ngày cần gửi.</p>
+                    </li>
+                    <li class="step reveal" style="--i: 1">
+                        <span class="step__num">02</span>
+                        <span class="step__icon"><i class="fa-solid fa-pen-ruler"></i></span>
+                        <h3>Dựng kịch bản</h3>
+                        <p>Mình chọn pháo, chữ, cảnh, khung mở quà và xếp pháo khớp với nhạc.</p>
+                    </li>
+                    <li class="step reveal" style="--i: 2">
+                        <span class="step__num">03</span>
+                        <span class="step__icon"><i class="fa-solid fa-eye"></i></span>
+                        <h3>Xem thử, góp ý</h3>
+                        <p>Bạn nhận link xem thử trên điện thoại của mình và góp ý chỗ muốn đổi.</p>
+                    </li>
+                    <li class="step reveal" style="--i: 3">
+                        <span class="step__num">04</span>
+                        <span class="step__icon"><i class="fa-solid fa-gift"></i></span>
+                        <h3>Nhận link và video</h3>
+                        <p>Link gửi tặng có ảnh xem trước, hẹn giờ mở quà nếu cần, kèm video MP4 để đăng mạng xã hội.</p>
+                    </li>
+                </ol>
+                <div class="diy reveal">
+                    <div>
+                        <h3>Muốn tự tay làm?</h3>
+                        <p>Trình tạo kịch bản miễn phí: chọn mẫu theo dịp, gõ tên người nhận là có ngay một màn pháo hoa.</p>
+                    </div>
+                    <a class="btn btn--ghost" href="./builder"><i class="fa-solid fa-wand-magic-sparkles"></i> Tự tạo miễn phí</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. Hỏi đáp -->
+        <section id="hoi-dap" class="section faq" data-nav="Hỏi đáp">
+            <div class="container faq__grid">
+                <header class="section-head section-head--left reveal">
+                    <p class="eyebrow">Hỏi đáp</p>
+                    <h2 class="section-title">Câu hỏi thường gặp</h2>
+                    <p class="section-lead">Chưa thấy câu trả lời bạn cần? <a href="#lien-he">Nhắn cho mình</a>.</p>
+                </header>
+                <div class="faq__list">
+                    <details class="faq__item reveal">
+                        <summary>Người nhận có phải cài ứng dụng không?</summary>
+                        <div class="faq__answer"><p>Không. Người nhận chỉ cần bấm vào link, màn pháo hoa mở ngay trên trình
+                                duyệt của điện thoại, máy tính bảng hay máy tính.</p></div>
+                    </details>
+                    <details class="faq__item reveal" style="--i: 1">
+                        <summary>Điện thoại đời cũ xem có mượt không?</summary>
+                        <div class="faq__answer"><p>Trang tự chọn độ nét theo màn hình và sức máy, thấy giật thì tự hạ xuống
+                                cho mượt. Máy mạnh, màn hình lớn thì vẽ sắc nét tới 4K.</p></div>
+                    </details>
+                    <details class="faq__item reveal" style="--i: 2">
+                        <summary>Có hẹn giờ cho quà tự mở được không?</summary>
+                        <div class="faq__answer"><p>Có. Trước giờ hẹn, link hiện đồng hồ đếm ngược; tới giờ thì mở được quà,
+                                hoặc pháo tự bắn đúng giây đó, hợp với đêm giao thừa.</p></div>
+                    </details>
+                    <details class="faq__item reveal" style="--i: 3">
+                        <summary>Dùng bài hát riêng được không?</summary>
+                        <div class="faq__answer"><p>Được. Bạn gửi file nhạc hoặc chọn trong kho nhạc có sẵn; pháo được xếp
+                                khớp nhịp bài hát.</p></div>
+                    </details>
+                    <details class="faq__item reveal" style="--i: 4">
+                        <summary>Có lưu lại thành video được không?</summary>
+                        <div class="faq__answer"><p>Có. Màn pháo hoa xuất được thành video MP4 Full HD có nhạc, khổ dọc,
+                                ngang hoặc vuông; người nhận cũng tự tạo video, chụp ảnh khoảnh khắc ngay trên link.</p></div>
+                    </details>
+                    <details class="faq__item reveal" style="--i: 5">
+                        <summary>Người nhạy cảm với ánh sáng nhấp nháy xem được không?</summary>
+                        <div class="faq__answer"><p>Có chế độ giảm chớp sáng: hạt pháo không chớp tắt, không có quầng chớp lúc
+                                nổ. Người xem tự bật trước khi mở quà.</p></div>
+                    </details>
+                </div>
+            </div>
+        </section>
+
+        <!-- 9. Liên hệ, đặt làm -->
+        <section id="lien-he" class="section contact" data-nav="Liên hệ">
+            <canvas class="contact__sky" aria-hidden="true"></canvas>
+            <div class="container contact__grid">
+                <div class="contact__intro reveal">
+                    <p class="eyebrow">Đặt làm riêng</p>
+                    <h2 class="section-title">Cùng làm một màn pháo hoa <span class="text-gradient">thật đáng nhớ</span></h2>
+                    <p class="section-lead">Điền vài dòng về món quà, mình sẽ liên hệ lại. Hoặc nhắn trực tiếp qua kênh bạn
+                        tiện nhất.</p>
+                    <div class="contact__channels">
+                        <a class="channel" data-contact="email" href="mailto:vuhoainam18032002@gmail.com">
+                            <span class="channel__icon"><i class="fa-solid fa-envelope"></i></span>
+                            <span><b>Email</b><small>vuhoainam18032002@gmail.com</small></span>
+                        </a>
+                        <a class="channel" data-contact="zalo" href="#" target="_blank" rel="noopener" hidden>
+                            <span class="channel__icon channel__icon--zalo">Zalo</span>
+                            <span><b>Zalo</b><small>Nhắn tin, gửi ảnh</small></span>
+                        </a>
+                        <a class="channel" data-contact="facebook" href="#" target="_blank" rel="noopener" hidden>
+                            <span class="channel__icon channel__icon--fb"><i class="fa-brands fa-facebook-messenger"></i></span>
+                            <span><b>Messenger</b><small>Nhắn qua Facebook</small></span>
+                        </a>
+                    </div>
+                    <div class="deliver">
+                        <h3>Bạn nhận được</h3>
+                        <ul class="checklist">
+                            <li><i class="fa-solid fa-link"></i> Link gửi tặng có ảnh, lời chúc xem trước</li>
+                            <li><i class="fa-solid fa-film"></i> Video MP4 có nhạc để đăng mạng xã hội</li>
+                            <li><i class="fa-regular fa-clock"></i> Hẹn giờ mở quà, đếm ngược nếu cần</li>
+                        </ul>
+                    </div>
+                </div>
+                <form class="order reveal" style="--i: 1" novalidate>
+                    <h3 class="order__title">Phiếu đặt màn pháo hoa</h3>
+                    <div class="order__row">
+                        <label class="field">
+                            <span>Tên của bạn</span>
+                            <input name="name" type="text" autocomplete="name" required placeholder="Nguyễn Văn A">
+                        </label>
+                        <label class="field">
+                            <span>Số điện thoại / Zalo</span>
+                            <input name="phone" type="tel" autocomplete="tel" placeholder="Để mình gọi lại">
+                        </label>
+                    </div>
+                    <div class="order__row">
+                        <label class="field">
+                            <span>Dịp tặng</span>
+                            <select name="occasion"></select>
+                        </label>
+                        <label class="field">
+                            <span>Ngày cần gửi</span>
+                            <input name="date" type="date">
+                        </label>
+                    </div>
+                    <div class="order__row">
+                        <label class="field">
+                            <span>Người nhận</span>
+                            <input name="recipient" type="text" placeholder="Tên hiện trên trời">
+                        </label>
+                        <label class="field">
+                            <span>Mẫu bạn thích</span>
+                            <select name="sample">
+                                <option value="">Để mình tư vấn</option>
+                            </select>
+                        </label>
+                    </div>
+                    <label class="field">
+                        <span>Lời chúc, ý tưởng</span>
+                        <textarea name="message" rows="4" placeholder="Lời chúc, bài hát, ảnh muốn đưa vào, màu yêu thích..."></textarea>
+                    </label>
+                    <div class="order__actions">
+                        <button type="submit" class="btn btn--primary"><i class="fa-solid fa-envelope"></i> Gửi qua email</button>
+                        <button type="button" class="btn btn--ghost order__copy"><i class="fa-regular fa-copy"></i> Chép để nhắn tin</button>
+                    </div>
+                    <p class="order__hint" role="status">Bấm gửi sẽ mở ứng dụng email với nội dung đã điền sẵn.</p>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer__grid">
+            <div class="footer__brand">
+                <a class="brand" href="./">
+                    <img src="./src/assets/img/firework-burst-icon-v2.png" alt="" width="36" height="36">
+                    <span>Trình diễn <b>Pháo hoa</b></span>
+                </a>
+                <p>Gửi tặng cả một bầu trời pháo hoa cho người thân yêu.</p>
+            </div>
+            <div>
+                <h4>Sản phẩm</h4>
+                <a href="./demo">Xem demo</a>
+                <a href="./builder">Tự tạo pháo hoa</a>
+                <a href="#kich-ban">Kịch bản mẫu</a>
+            </div>
+            <div>
+                <h4>Hỗ trợ</h4>
+                <a href="#quy-trinh">Quy trình đặt làm</a>
+                <a href="#hoi-dap">Hỏi đáp</a>
+                <a href="#lien-he">Liên hệ</a>
+            </div>
+            <div>
+                <h4>Pháp lý</h4>
+                <a href="./terms">Điều khoản</a>
+                <a href="./privacy">Bảo mật</a>
+            </div>
+        </div>
+        <div class="container footer__legal">© 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu.</div>
+    </footer>
+
+    <a class="to-top" href="#trang-chu" aria-label="Lên đầu trang"><i class="fa-solid fa-arrow-up"></i></a>
+
+    <script type="module" src="./src/assets/js/landing.js"></script>
 </body>
 
 </html>

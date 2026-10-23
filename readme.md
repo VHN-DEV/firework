@@ -85,6 +85,11 @@ Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và 
 - `index.html` (trang chủ giới thiệu dịch vụ), `demo.html` (trình phát: màn trình diễn, link tặng `/demo?config=<tên>`;
   link cũ `index.html?config=...` tự chuyển sang), `builder.html`, `theo-doi.html`, `privacy.html`, `terms.html`: các
   trang (Vite build ra `dist/`).
+- `src/assets/js/landing.js` + `src/assets/js/landing/`, `src/assets/scss/landing.scss`: trang chủ (banner ảnh tự chuyển,
+  thanh chuyển mục dọc, xem thử trình phát trong khung, kịch bản mẫu, phiếu đặt làm riêng). Thông tin liên hệ (email,
+  Zalo, Messenger) và video giới thiệu YouTube sửa trong `landing/content.js`; kịch bản mẫu, mục nổi bật sửa trong
+  `src/static/configs/configs_index.json` (xem README trong thư mục đó). Ảnh banner `src/assets/img/landing/` là ảnh
+  chụp thật từ trình phát (WebP 1920 và 1280 px).
 - `src/assets/js/script.js`: trình phát (cài đặt, menu, khung mở quà, hẹn giờ, khớp nhịp nhạc, dựng video, vòng lặp
   vẽ). Lõi pháo hoa tách trong `src/assets/js/player/`:
   - `env.js`, `state.js`: môi trường, hằng số, trạng thái dùng chung (cỡ sân khấu, chất lượng, tốc độ, cài đặt);

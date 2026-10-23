@@ -4,48 +4,72 @@
     "title": "CHÚC MỪNG SINH NHẬT",
     "author": "Đạo diễn: Mr. Nam",
     "eventCount": 90,
-    "status": "private"
+    "status": "private",
+    "featured": true,
+    "category": "Sinh nhật",
+    "description": "90 phát bắn liền mạch: tên người nhận, ngày sinh, cung hoàng đạo hiện trên trời giữa trái tim, bướm, kim cương và liễu rủ.",
+    "tags": ["Tên người nhận", "Chữ trên trời", "Trái tim"]
   },
   {
     "id": "graduation_nguyen_van",
     "title": "CHÚC MỪNG TỐT NGHIỆP",
     "author": "Đạo diễn: Mr. Nam",
     "eventCount": 120,
-    "status": "private"
+    "status": "private",
+    "featured": true,
+    "category": "Tốt nghiệp",
+    "description": "Hộp quà mở ra, nhạc tốt nghiệp vang lên, pháo nổ khớp từng nhịp, ảnh tốt nghiệp hiện trong khung trái tim cùng lời nhắn như phụ đề.",
+    "tags": ["Mở quà", "Nhạc theo nhịp", "Ảnh trên trời"]
   },
   {
     "id": "birthday_special",
     "title": "Sinh nhật đặc biệt",
     "author": "Đạo diễn: Mr. Nam",
     "eventCount": 37,
-    "status": "private"
-  },
-  {
-    "id": "christmas",
-    "title": "Giáng sinh an lành",
-    "author": "Đạo diễn: Mr. Nam",
-    "eventCount": 16,
-    "status": "private"
-  },
-  {
-    "id": "national_day_vn",
-    "title": "Quốc khánh Việt Nam",
-    "author": "Đạo diễn: Mr. Nam",
-    "eventCount": 17,
-    "status": "private"
+    "status": "private",
+    "featured": true,
+    "category": "Sinh nhật",
+    "description": "Chuỗi lời chúc nối nhau trên trời: tuổi mới, bình an, sức khỏe, vạn sự như ý, giữa trái tim, ngôi sao và cây cọ.",
+    "tags": ["Lời chúc", "Chữ trên trời"]
   },
   {
     "id": "tet_holiday",
     "title": "Chúc mừng năm mới",
     "author": "Đạo diễn: Mr. Nam",
     "eventCount": 19,
-    "status": "private"
+    "status": "private",
+    "category": "Lễ, Tết",
+    "description": "Xuân về với năm âm lịch tự đổi theo năm, lời chúc an khang thịnh vượng, phát tài phát lộc.",
+    "tags": ["Tết", "Tự đổi theo năm"]
+  },
+  {
+    "id": "christmas",
+    "title": "Giáng sinh an lành",
+    "author": "Đạo diễn: Mr. Nam",
+    "eventCount": 16,
+    "status": "private",
+    "category": "Lễ, Tết",
+    "description": "Merry Christmas, Giáng sinh an lành, hạnh phúc, ấm áp cùng ngôi sao và trái tim.",
+    "tags": ["Giáng sinh"]
+  },
+  {
+    "id": "national_day_vn",
+    "title": "Quốc khánh Việt Nam",
+    "author": "Đạo diễn: Mr. Nam",
+    "eventCount": 17,
+    "status": "private",
+    "category": "Kỷ niệm",
+    "description": "Mừng 2 tháng 9, số năm Độc lập tự tính theo năm hiện tại.",
+    "tags": ["Quốc khánh", "Tự đổi theo năm"]
   },
   {
     "id": "victory_day_vn",
     "title": "Kỷ niệm Giải phóng miền Nam",
     "author": "Đạo diễn: Mr. Nam",
     "eventCount": 13,
-    "status": "private"
+    "status": "private",
+    "category": "Kỷ niệm",
+    "description": "30 tháng 4: giải phóng miền Nam, thống nhất, hòa bình.",
+    "tags": ["30/4", "Tự đổi theo năm"]
   }
 ]

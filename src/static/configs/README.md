@@ -79,6 +79,22 @@ Mỗi phần tử trong mảng `events` đại diện cho một phát bắn ho�
 
 ---
 
+## ⭐ Kịch bản mẫu trên trang chủ
+
+Mục "Kịch bản mẫu" và khung "Xem thử" của trang chủ (`index.html`) lấy danh sách từ `configs_index.json`, ảnh thẻ là
+`<tên_file>.jpg` cạnh kịch bản. Mỗi mục có thể thêm:
+
+| Trường | Mô tả |
+|--------|-------|
+| `featured` | `true`: kịch bản nổi bật, có nhãn "Nổi bật", thẻ lớn đứng đầu; tối đa 4 mục nổi bật đầu tiên thành thẻ chọn trong khung "Xem thử". |
+| `category` | Nhóm để lọc (vd `"Sinh nhật"`, `"Lễ, Tết"`). Nhóm trùng tên dịp trong builder thì nút "Đặt mẫu này" chọn sẵn dịp đó trong phiếu đặt. |
+| `description` | Mô tả ngắn trên thẻ. |
+| `tags` | Tối đa 4 nhãn nhỏ trên thẻ, vd `["Mở quà", "Nhạc theo nhịp"]`. |
+
+Thứ tự trên trang: các mục nổi bật trước, rồi tới các mục còn lại, giữ đúng thứ tự trong file.
+
+---
+
 ## 🔗 Chia sẻ có ảnh & tiêu đề xem trước
 
 - Link gửi tặng có dạng `.../s/<tên_file>` (link cũ có `.html` vẫn mở được): trang này chứa sẵn ảnh, tiêu đề, lời chúc để Facebook, Zalo,
