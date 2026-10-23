@@ -18,26 +18,30 @@ const BOTTOMS = 4;
 // Tóc (chỉ mũ len đo theo tóc; các món khác, cả trọng số xương, bỏ qua tóc)
 const HAIR = 8;
 
-// Đồ theo mùa của từng người ('m' chàng trai, 'f' cô gái); mùa hạ để nguyên bộ đồ gốc. tops: màu áo (nhân với ảnh áo gốc);
-// jacket: áo len thay áo hoodie (bỏ mũ trùm, mặc trong áo măng tô); sleeves: tay áo dài; tights: quần tất (alpha: độ dày,
-// thấp thì thấy da như tất mỏng); coat: áo măng tô dài (overSkirt: phủ ngoài váy, váy ẩn đi; không thì đo theo ống quần để
-// lộ dưới gấu áo); scarf: khăn len quàng cổ (length, width: đuôi khăn dài, rộng bao nhiêu lần bề cao khăn; fringe: tua rua;
-// backDepth: phía sau vòng khăn mỏng lại cho tóc dài phủ lên)
-const SHIRT = 0xf3f3f6;
+// Đồ theo mùa của từng người ('m' chàng trai, 'f' cô gái); mùa hạ để nguyên bộ đồ gốc. sweater: áo nỉ, áo len thay áo
+// hoodie (bỏ mũ trùm, mặc trong áo khoác); tee: áo thun ôm theo da thay áo hoodie (length như coat); pants: màu quần (tô lại theo độ sáng); tights: quần tất (alpha: độ dày, thấp thì
+// thấy da như tất mỏng); coat: áo khoác (style: kiểu vải, không có là áo măng tô; length: gấu áo cao hơn xương hông bao
+// nhiêu mét, không có là dài tới trên gối; open: vạt trước mở, xem coat(); overSkirt: phủ ngoài váy, váy ẩn đi; không thì
+// đo theo ống quần, váy để lộ dưới gấu áo); scarf: khăn len quàng cổ (length, width: đuôi khăn dài, rộng bao nhiêu lần bề cao
+// khăn; fringe: tua rua; backDepth: phía sau vòng khăn mỏng lại cho tóc dài phủ lên)
 const OUTFITS = {
+    // Xuân kiểu phố Nhật, Hàn: áo khoác mỏng ngoài áo. Chàng trai áo khoác jean màu nhạt mặc mở ngoài áo thun trắng; cô gái
+    // áo trench màu be dài tới gối khoác ngoài đồng phục
     spring: {
-        m: { tops: 0xd6efc0 },
-        f: { sleeves: { color: SHIRT } }
+        m: { tee: { color: 0xf4f4f6, length: -0.07 }, coat: { color: 0x86a3c8, style: 'denim', length: 0.02, open: { neck: 0.07, depth: 0.12, rest: 0.05 } } },
+        f: { coat: { color: 0xd9c49c, style: 'trench', overSkirt: true } }
     },
+    // Thu: áo cardigan len cổ chữ V. Chàng trai cardigan xanh than ngoài áo thun trắng, quần màu be; cô gái cardigan màu nâu
+    // caramel ngoài đồng phục, quần tất mỏng
     autumn: {
-        m: { tops: 0xead0a0 },
-        f: { sleeves: { color: SHIRT }, tights: { color: 0x2e2426, alpha: 0.6 } }
+        m: { tee: { color: 0xf4f4f6, length: -0.07 }, pants: 0xcdb48c, coat: { color: 0x323a52, style: 'knit', length: -0.04, open: { neck: 0.065, depth: 0.2, rest: 0 } } },
+        f: { coat: { color: 0xc49a6c, style: 'knit', length: -0.02, open: { neck: 0.06, depth: 0.19, rest: 0 } }, tights: { color: 0x2e2426, alpha: 0.6 } }
     },
     // Đông kiểu phố Nhật, Hàn: áo măng tô dài, khăn len to bản quấn một vòng, hai đuôi có tua rua rủ trước ngực. Chàng trai
     // măng tô màu lạc đà ngoài áo len sẫm (hoodie bỏ mũ), khăn xám; cô gái măng tô màu than, khăn kem, quần tất đen
     winter: {
         m: {
-            jacket: { color: 0x34363e },
+            sweater: { color: 0x34363e },
             coat: { color: 0xb08d66 },
             scarf: { color: 0x7c7f88, height: 0.085, depth: 0.05, length: 5.6, width: 1.5, fringe: true }
         },
@@ -91,9 +95,9 @@ function bindY(skeleton, i, fallback) {
 }
 
 // Các đỉnh của thân lúc gắn khung: vị trí, 4 xương + trọng số, loại (da, vải, quần váy), xương chính; lưới ô 2 cm để tìm đỉnh
-// gần. noHood: bỏ phần mũ trùm của áo (mặc thành áo cardigan)
-function sampleBody(vrm, noHood = false) {
-    let skeleton = null;
+// gần. without: 'hood' bỏ phần mũ trùm của áo (mặc thành áo len), 'tops' bỏ cả áo (thay bằng áo thun ôm theo da)
+function sampleBody(vrm, without = '') {
+    let skin = null;
     let cloth = null;
     const meshes = [];
     vrm.scene.traverse(o => {
@@ -102,15 +106,16 @@ function sampleBody(vrm, noHood = false) {
         let kind = /_SKIN/.test(mat.name) ? SKIN : /_CLOTH/.test(mat.name) ? CLOTH : /_HAIR/.test(mat.name) ? HAIR : 0;
         if (!kind) return;
         if (/Bottoms_01_CLOTH/.test(mat.name)) kind |= BOTTOMS;
-        if (!skeleton && /Body_00_SKIN/.test(mat.name)) skeleton = o.skeleton;
+        if (!skin && /Body_00_SKIN/.test(mat.name)) skin = o;
         if (!cloth && /Tops_01_CLOTH/.test(mat.name)) cloth = o;
         meshes.push({ o, kind });
     });
-    if (!skeleton || !cloth) return null;
-    const body = { n: 0, pos: [], idx: [], wt: [], kinds: [], main: [], skeleton, cloth, grid: new Map(), CELL: 0.02 };
+    if (!skin || !cloth) return null;
+    const { skeleton } = skin;
+    const body = { n: 0, pos: [], idx: [], wt: [], kinds: [], main: [], skeleton, skin, cloth, grid: new Map(), CELL: 0.02 };
     meshes.forEach(({ o, kind }) => {
-        if (o.skeleton !== skeleton) return;
-        absorb(body, o.geometry, kind, noHood && o === cloth ? hoodMask(vrm, o) : null);
+        if (o.skeleton !== skeleton || (without === 'tops' && o === cloth)) return;
+        absorb(body, o.geometry, kind, without === 'hood' && o === cloth ? hoodMask(vrm, o) : null);
     });
     body.bone = name => {
         const node = vrm.humanoid.getRawBoneNode(name);
@@ -279,6 +284,13 @@ function skinnedGeometry(body, part) {
     g.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
     g.setIndex(faces);
     g.computeVertexNormals();
+    // Hai đỉnh trùng chỗ nối vòng (mỗi đỉnh chỉ thấy mặt một bên): pháp tuyến chung cho khỏi lộ đường nối khi tô sáng tối
+    const nrm = g.attributes.normal;
+    (part.seams || []).forEach(([a, b]) => {
+        const v = new THREE.Vector3().fromBufferAttribute(nrm, a).add(new THREE.Vector3().fromBufferAttribute(nrm, b)).normalize();
+        nrm.setXYZ(a, v.x, v.y, v.z);
+        nrm.setXYZ(b, v.x, v.y, v.z);
+    });
     g.computeBoundingBox();
     g.computeBoundingSphere();
     return g;
@@ -414,9 +426,13 @@ function tube(body, chain, { from, to, offset, flare = 0, taper = 0, kinds = SKI
         const prev = rings[Math.max(0, s - 1)].r;
         const next = rings[Math.min(rings.length - 1, s + 1)].r;
         const end = Math.max(0, (s - (rings.length - 3)) / 2);
+        // Đoạn lùi vào trong thân (from < 0, như đầu ống tay áo khoác) thu nhỏ dần cho chìm vào trong thân áo, không thành gờ
+        // trên vai
+        const t = from + (to - from) * s / count;
+        const sink = t < 0 ? 1 - 0.3 * t / from : 1;
         for (let k = 0; k <= side; k++) {
             const kk = k % side;
-            const rr = Math.max(ring.r[kk], (prev[kk] + 2 * ring.r[kk] + next[kk]) / 4) + offset + flare * end;
+            const rr = (Math.max(ring.r[kk], (prev[kk] + 2 * ring.r[kk] + next[kk]) / 4) + offset) * sink + flare * end;
             const ang = kk / side * Math.PI * 2;
             const p = ring.C.clone().addScaledVector(ring.U, Math.cos(ang) * rr).addScaledVector(ring.V, Math.sin(ang) * rr);
             verts.push(p.x, p.y, p.z);
@@ -448,9 +464,13 @@ function join(parts) {
     return out;
 }
 
-// Thân áo măng tô dài: từ chân cổ ôm theo vai, ngực, lưng (không tính tay; overSkirt: không tính váy); từ eo trở xuống buông
-// thẳng (không bó vào giữa hai chân) tới trên gối. Tọa độ ảnh: u quanh thân (0 sau lưng, 0,5 giữa ngực), v từ cổ xuống gấu áo
-function coat(body, { overSkirt = false } = {}) {
+// Thân áo khoác: từ chân cổ ôm theo vai, ngực, lưng (không tính tay; overSkirt: không tính váy); từ eo trở xuống buông thẳng
+// (không bó vào giữa hai chân). length: gấu áo cao hơn xương hông chừng này (mét; áo ngắn như áo khoác jean, cardigan), không
+// có thì dài tới trên gối như áo măng tô. open: vạt trước mở, nửa bề ngang chỗ hở (mét) ở chân cổ là neck, đổi dần tới rest ở
+// depth dưới chân cổ (cổ chữ V của cardigan: rest 0, dưới đó cài cúc; áo khoác mặc mở: rest > 0). Tọa độ ảnh: u quanh thân (0
+// sau lưng, 0,5 giữa ngực; áo có vạt mở thì u từ 0,5 ở mép vạt này vòng qua lưng tới 1,5 ở mép vạt kia), v từ cổ xuống gấu áo;
+// marks: chiều dài áo (mét), v của eo, của đáy cổ chữ V (vẽ ảnh áo). offset: vải cách bề mặt bên dưới bao xa (mét)
+function coat(body, { overSkirt = false, length = null, open = null, offset = 0.013 } = {}) {
     const neck = body.at('neck');
     const hips = body.at('hips');
     const knee = body.at('leftLowerLeg');
@@ -460,7 +480,7 @@ function coat(body, { overSkirt = false } = {}) {
     const cx = hips.x, cz = hips.z;
     // Mép trên ôm sát chân cổ (cổ áo bên trong không nhô lên quá)
     const top = neck.y + 0.012;
-    const hem = knee.y + 0.07;
+    const hem = length === null ? knee.y + 0.07 : hips.y + length;
     const waist = hips.y + 0.06;
     const step = 0.015;
     const N = 40;
@@ -473,7 +493,9 @@ function coat(body, { overSkirt = false } = {}) {
         const y = P[i * 3 + 1];
         const s0 = Math.max(0, Math.round((top - y - 0.03) / step));
         const s1 = Math.min(count, Math.round((top - y + 0.03) / step));
-        for (let s = s0; s <= s1; s++) byStation[s].push(i);
+        // Mấy lát sát cổ chỉ đo đỉnh ngang hoặc cao hơn lát (dốc vai thấp hơn vài cm đã rộng gần bằng vai: đo cả vào thì mép cổ
+        // áo xòe ngang thành gờ sau gáy)
+        for (let s = s0; s <= s1; s++) if (s * step >= 0.045 || y >= top - s * step - 0.006) byStation[s].push(i);
     }
     const rings = [];
     for (let s = 0; s <= count; s++) {
@@ -493,18 +515,45 @@ function coat(body, { overSkirt = false } = {}) {
         }
         rings.push(r);
     }
-    const verts = [];
-    const uvs = [];
-    rings.forEach((r, s) => {
+    // Bán kính mượt dọc thân, phồng ra khỏi thân; ở góc bất kỳ thì nội suy hai hướng kề
+    const radii = rings.map((r, s) => {
         const prev = rings[Math.max(0, s - 1)];
         const next = rings[Math.min(rings.length - 1, s + 1)];
+        return r.map((v, k) => Math.max(v, (prev[k] + 2 * v + next[k]) / 4) + offset);
+    });
+    const radiusAt = (R, th) => {
+        const f = (th / (Math.PI * 2) % 1 + 1) % 1 * N;
+        const k = Math.floor(f);
+        return R[k % N] + (R[(k + 1) % N] - R[k % N]) * (f - k);
+    };
+    // Nửa góc chỗ hở về một bên (side ±1) để mép vạt cách đường giữa đúng half theo chiều ngang
+    const gap = (R, half, side) => {
+        let g = 0;
+        for (let i = 0; i < 3 && half > 0; i++) g = Math.asin(Math.min(0.95, half / radiusAt(R, Math.PI + side * g)));
+        return g;
+    };
+    const verts = [];
+    const uvs = [];
+    // Áo có vạt mở: mỗi vòng đi từ mép vạt này qua lưng tới mép vạt kia, nên mép vạt là đường liền (bỏ ô lưới thì mép răng
+    // cưa); vòng kín (dưới cổ chữ V) thì hai đầu trùng nhau ở giữa ngực, pháp tuyến hai đỉnh đó lấy chung (seams)
+    const seams = [];
+    const spans = [];
+    radii.forEach((R, s) => {
         const y = top - s * step;
+        let a = 0, b = Math.PI * 2;
+        if (open) {
+            const d = s * step;
+            const half = d < open.depth ? open.neck + (open.rest - open.neck) * d / open.depth : open.rest;
+            a = Math.PI + gap(R, half, 1);
+            b = Math.PI * 3 - gap(R, half, -1);
+            if (half <= 0) seams.push([s * (N + 1), s * (N + 1) + N]);
+        }
+        spans.push([a, b]);
         for (let k = 0; k <= N; k++) {
-            const kk = k % N;
-            const th = kk / N * Math.PI * 2;
-            const R = Math.max(r[kk], (prev[kk] + 2 * r[kk] + next[kk]) / 4) + 0.013;
-            verts.push(cx + Math.sin(th) * R, y, cz + Math.cos(th) * R);
-            uvs.push(k / N, s / count);
+            const th = a + (b - a) * k / N;
+            const r = radiusAt(R, th);
+            verts.push(cx + Math.sin(th) * r, y, cz + Math.cos(th) * r);
+            uvs.push((open ? 0.5 : 0) + k / N, s / count);
         }
     });
     const faces = [];
@@ -519,7 +568,19 @@ function coat(body, { overSkirt = false } = {}) {
     // vật lý của váy (váy xếp ly xòe mạnh khi bước, vạt áo dạ theo thì tung lên như váy)
     const skip = armBones(body, 2);
     if (overSkirt) body.skeleton.bones.forEach((b, i) => { if (/Skirt/i.test(b.name)) skip.add(i); });
-    return { verts, faces, uvs, allow: b => !skip.has(b) };
+    const len = top - hem;
+    const marks = { len, waist: (top - hips.y - 0.1) / len, vneck: open && !open.rest ? open.depth / len : 0 };
+    // Điểm (x, y, z) lúc gắn khung có khuất hẳn dưới thân áo không: trừ dải sát mép cổ, gấu áo, mép vạt mở (margin mét)
+    const cover = (x, y, z, margin = 0.025) => {
+        if (y > top - 0.01 || y < hem + 0.02) return false;
+        if (!open) return true;
+        const s = Math.round((top - y) / step);
+        let th = Math.atan2(x - cx, z - cz);
+        if (th < Math.PI) th += Math.PI * 2;
+        const m = margin / radiusAt(radii[s], th);
+        return th > spans[s][0] + m && th < spans[s][1] - m;
+    };
+    return { verts, faces, uvs, seams, marks, cover, allow: b => !skip.has(b) };
 }
 
 // Ảnh áo măng tô (nhân màu chất liệu): nẹp cài giữa ngực, hàng cúc, nắp túi hai bên hông, gấu áo
@@ -565,6 +626,248 @@ function coatTexture() {
         coatCache.flipY = false;
     }
     return coatCache;
+}
+
+// Ảnh trắng W×H để vẽ lên (chỉ vẽ tối hơn: ảnh nhân màu chất liệu) và bút vẽ: nét liền, nét đứt (chỉ may), cúc, sợi vải chéo
+function sketch(W, H) {
+    const c = document.createElement('canvas');
+    c.width = W;
+    c.height = H;
+    const g = c.getContext('2d');
+    g.fillStyle = '#ffffff';
+    g.fillRect(0, 0, W, H);
+    const dark = a => `rgba(0, 0, 0, ${a})`;
+    const path = (pts, a, width, dash) => {
+        g.setLineDash(dash || []);
+        g.strokeStyle = dark(a);
+        g.lineWidth = width;
+        g.beginPath();
+        pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+        g.stroke();
+        g.setLineDash([]);
+    };
+    return {
+        c, g, dark,
+        fold: (pts, a = 0.32, width = 2) => path(pts, a, width),
+        stitch: (pts, a = 0.3) => path(pts, a, 1.4, [4, 3]),
+        button: (x, y, r, a = 0.62) => {
+            g.fillStyle = dark(a);
+            g.beginPath();
+            g.arc(x, y, r, 0, Math.PI * 2);
+            g.fill();
+            g.fillStyle = 'rgba(255, 255, 255, 0.45)';
+            g.beginPath();
+            g.arc(x - r * 0.3, y - r * 0.3, r * 0.3, 0, Math.PI * 2);
+            g.fill();
+        },
+        twill: (a, gap = 4) => {
+            g.strokeStyle = dark(a);
+            g.lineWidth = 1;
+            g.beginPath();
+            for (let x = -H; x < W; x += gap) {
+                g.moveTo(x, 0);
+                g.lineTo(x + H, H);
+            }
+            g.stroke();
+        },
+        ribs: (x0, x1, y0, y1, a, gap = 4) => {
+            g.fillStyle = dark(a);
+            for (let x = x0; x < x1; x += gap) g.fillRect(x, y0, gap / 2, y1 - y0);
+        }
+    };
+}
+
+function canvasTexture(c) {
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    // Áo có vạt mở: u từ 0,5 tới 1,5
+    tex.wrapS = THREE.RepeatWrapping;
+    // Ảnh vẽ: dòng trên cùng là v = 0 (mặc định ảnh canvas bị lật dọc)
+    tex.flipY = false;
+    return tex;
+}
+
+// Ảnh thân áo theo kiểu (nhân màu chất liệu), vẽ theo số đo của áo (marks của coat): u = 0,5 giữa ngực (áo có vạt mở: cả
+// hai mép vạt), 0 sau lưng; v từ cổ xuống gấu. Kích thước tính bằng mét: dọc chia chiều dài áo, ngang chia vòng thân ~0,9 m.
+// knit: cardigan len (gân đan, nẹp len dọc hai mép cổ chữ V, cúc dưới cổ, gấu bo len); denim: áo khoác jean (vải chéo, cầu
+// vai nhọn, túi ngực có nắp, đường may dọc, hàng cúc kim loại, cạp áo); trench: áo trench (hai hàng cúc, vạt chồng lệch,
+// nắp vai, cầu vai sau, đai thắt eo có khóa, túi chéo, xẻ tà sau)
+const garmentCache = {};
+
+function garmentTexture(style, marks) {
+    const key = [style, marks.len, marks.waist, marks.vneck].map(v => (typeof v === 'number' ? v.toFixed(3) : v)).join('_');
+    if (garmentCache[key]) return garmentCache[key];
+    const W = 512, H = 512;
+    const { c, g, dark, fold, stitch, button, twill, ribs } = sketch(W, H);
+    const X = m => m / 0.9 * W;
+    const Y = m => m / marks.len * H;
+    const mid = W / 2;
+    if (style === 'tee') {
+        // Áo thun: cổ tròn bo gân, gấu may
+        const neck = Y(0.018);
+        ribs(0, W, 0, neck, 0.12, 3);
+        fold([[0, neck], [W, neck]], 0.22, 1.5);
+        stitch([[0, H - Y(0.015)], [W, H - Y(0.015)]], 0.18);
+    } else if (style === 'knit') {
+        ribs(0, W, 0, H, 0.06, 5);
+        // Gấu bo len: gân dọc dày
+        const rib = H - Y(0.05);
+        ribs(0, W, rib, H, 0.16);
+        fold([[0, rib], [W, rib]], 0.26);
+        // Nẹp len hai mép vạt (gân chạy dọc mép); dưới cổ chữ V hai nẹp chồng lên nhau, cài cúc
+        const pw = X(0.022);
+        ribs(mid - pw, mid + pw, 0, rib, 0.12, 3);
+        fold([[mid - pw, 0], [mid - pw, H]], 0.3, 1.5);
+        fold([[mid + pw, 0], [mid + pw, H]], 0.3, 1.5);
+        const v0 = marks.vneck * H;
+        fold([[mid + 1, v0], [mid + 1, rib]], 0.32, 1.5);
+        for (let y = v0 + Y(0.03); y < rib - Y(0.02); y += Y(0.07)) button(mid, y, 3.6);
+    } else if (style === 'denim') {
+        twill(0.06);
+        const band = H - Y(0.045);
+        const yoke = Y(0.1);
+        [-1, 1].forEach(s => {
+            const at = m => mid + s * X(m);
+            // Nẹp mép vạt, cầu vai trước nhọn xuống giữa túi ngực
+            stitch([[at(0.022), 0], [at(0.022), band]]);
+            fold([[at(0.022), yoke], [at(0.085), yoke + Y(0.022)], [at(0.22), yoke - Y(0.01)]]);
+            stitch([[at(0.022), yoke + 4], [at(0.085), yoke + Y(0.022) + 4], [at(0.22), yoke - Y(0.01) + 4]]);
+            // Túi ngực: nắp năm cạnh, cúc ở mũi nắp, miệng túi dưới nắp
+            const flap = [[at(0.045), yoke + Y(0.03)], [at(0.125), yoke + Y(0.03)], [at(0.125), yoke + Y(0.06)], [at(0.085), yoke + Y(0.075)], [at(0.045), yoke + Y(0.06)]];
+            g.fillStyle = dark(0.1);
+            g.beginPath();
+            flap.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+            g.closePath();
+            g.fill();
+            fold(flap.concat([flap[0]]), 0.38, 1.5);
+            button(at(0.085), yoke + Y(0.062), 3);
+            stitch([[at(0.045), yoke + Y(0.03)], [at(0.045), yoke + Y(0.14)], [at(0.125), yoke + Y(0.14)], [at(0.125), yoke + Y(0.03)]], 0.24);
+            // Hai đường may dọc từ cầu vai xuống cạp
+            [0.045, 0.125].forEach(m => stitch([[at(m), yoke + Y(0.14)], [at(m), band]], 0.26));
+            // Đường sườn
+            fold([[mid + s * W / 4, 0], [mid + s * W / 4, H]], 0.14, 1.5);
+        });
+        // Hàng cúc kim loại ở một vạt, khuyết ở vạt kia
+        for (let y = Y(0.05); y < band; y += Y(0.085)) {
+            button(mid + X(0.012), y, 3.2, 0.55);
+            fold([[mid - X(0.018), y], [mid - X(0.006), y]], 0.45, 2);
+        }
+        // Cầu vai sau nhọn xuống giữa lưng (giữa lưng ở u = 0 = 1), hai đường may dọc lưng
+        const back = Y(0.14);
+        fold([[W * 0.75, back], [W, back + Y(0.035)]]);
+        fold([[0, back + Y(0.035)], [W * 0.25, back]]);
+        [X(0.075), W - X(0.075)].forEach(x => stitch([[x, back + Y(0.03)], [x, band]], 0.28));
+        // Cạp áo, cúc ở cạp hai mép vạt
+        fold([[0, band], [W, band]], 0.4);
+        stitch([[0, band + 4], [W, band + 4]], 0.26);
+        stitch([[0, H - 4], [W, H - 4]], 0.26);
+        button(mid + X(0.012), band + Y(0.022), 3.2, 0.55);
+    } else if (style === 'trench') {
+        twill(0.035, 5);
+        const belt = marks.waist * H;
+        const bh = Y(0.04);
+        // Vạt chồng cài chéo: mép vạt lệch sang một bên giữa ngực; hai hàng cúc trên đai, một hàng dưới đai
+        const edge = mid + X(0.06);
+        fold([[mid + X(0.015), 0], [edge, Y(0.07)], [edge, H]], 0.4);
+        [Y(0.09), Y(0.18), belt - Y(0.08), belt + Y(0.1)].forEach(y => [-1, 1].forEach(s => button(mid + s * X(0.035), y, 3.6)));
+        // Nắp vai che mưa một bên ngực, cầu vai sau
+        fold([[mid + X(0.11), 0], [mid + X(0.11), Y(0.13)], [mid + X(0.2), Y(0.15)]], 0.3);
+        const back = Y(0.17);
+        fold([[W * 0.78, back], [W, back + Y(0.02)]], 0.3);
+        fold([[0, back + Y(0.02)], [W * 0.22, back]], 0.3);
+        // Đai thắt eo, khóa ở phía trước lệch bên, đuôi đai rủ xuống; quai giữ đai hai bên sườn
+        g.fillStyle = dark(0.12);
+        g.fillRect(0, belt - bh / 2, W, bh);
+        fold([[0, belt - bh / 2], [W, belt - bh / 2]], 0.34, 1.5);
+        fold([[0, belt + bh / 2], [W, belt + bh / 2]], 0.34, 1.5);
+        stitch([[0, belt], [W, belt]], 0.18);
+        const bx = mid + X(0.09);
+        g.strokeStyle = dark(0.6);
+        g.lineWidth = 2.5;
+        g.strokeRect(bx - X(0.014), belt - bh * 0.62, X(0.028), bh * 1.24);
+        g.fillStyle = dark(0.14);
+        g.fillRect(bx + X(0.016), belt - bh * 0.4, X(0.026), bh * 0.8 + Y(0.1));
+        fold([[bx + X(0.016), belt - bh * 0.4], [bx + X(0.016), belt + bh * 0.4 + Y(0.1)], [bx + X(0.042), belt + bh * 0.4 + Y(0.1)], [bx + X(0.042), belt - bh * 0.4]], 0.34, 1.5);
+        [W * 0.25, W * 0.75].forEach(x => fold([[x - X(0.012), belt - bh * 0.7], [x - X(0.012), belt + bh * 0.7], [x + X(0.012), belt + bh * 0.7], [x + X(0.012), belt - bh * 0.7]], 0.34, 1.5));
+        // Túi chéo có nắp hai bên
+        [-1, 1].forEach(s => {
+            const p = [[mid + s * X(0.13), belt + Y(0.07)], [mid + s * X(0.17), belt + Y(0.19)]];
+            fold(p, 0.42);
+            fold(p.map(([x, y]) => [x - s * X(0.014), y]), 0.2, 1.5);
+        });
+        // Đường giữa lưng, xẻ tà sau, gấu áo
+        [1.5, W - 1.5].forEach(x => {
+            fold([[x, back + Y(0.02)], [x, belt - bh / 2]], 0.18, 1.5);
+            fold([[x, belt + Y(0.25)], [x, H]], 0.4);
+        });
+        stitch([[0, H - Y(0.025)], [W, H - Y(0.025)]], 0.26);
+    }
+    return (garmentCache[key] = canvasTexture(c));
+}
+
+// Ảnh tay áo theo kiểu áo (u quanh tay, v từ vai xuống cổ tay): knit gân đan, cổ tay bo len; denim vải chéo, măng sét cài
+// cúc; trench quai cài ở cổ tay
+const sleeveCache = {};
+
+function sleeveTexture(style) {
+    if (sleeveCache[style]) return sleeveCache[style];
+    const W = 128, H = 256;
+    const { c, g, dark, fold, stitch, button, twill, ribs } = sketch(W, H);
+    if (style === 'knit') {
+        ribs(0, W, 0, H, 0.06, 5);
+        const rib = H * 0.9;
+        ribs(0, W, rib, H, 0.16);
+        fold([[0, rib], [W, rib]], 0.26);
+    } else if (style === 'denim') {
+        twill(0.06);
+        const cuff = H * 0.92;
+        fold([[0, cuff], [W, cuff]], 0.4);
+        stitch([[0, cuff + 4], [W, cuff + 4]], 0.26);
+        button(W * 0.5, H * 0.96, 3, 0.55);
+    } else if (style === 'trench') {
+        twill(0.035, 5);
+        g.fillStyle = dark(0.12);
+        g.fillRect(0, H * 0.84, W, H * 0.04);
+        fold([[0, H * 0.84], [W, H * 0.84]], 0.34, 1.5);
+        fold([[0, H * 0.88], [W, H * 0.88]], 0.34, 1.5);
+        g.strokeStyle = dark(0.6);
+        g.lineWidth = 2;
+        g.strokeRect(W * 0.5 - 4, H * 0.835, 8, H * 0.05);
+    }
+    return (sleeveCache[style] = canvasTexture(c));
+}
+
+// Bản sao ảnh tex đổi sang màu color theo độ sáng (quần đen thành quần màu be): độ sáng từng điểm (lấy khoảng 5%-95% của
+// các điểm ảnh) thành độ đậm nhạt quanh màu mới, giữ nếp vải, đường may
+function recolorTexture(tex, color) {
+    const img = tex.image;
+    const W = img.width, H = img.height;
+    const c = document.createElement('canvas');
+    c.width = W;
+    c.height = H;
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0);
+    const data = g.getImageData(0, 0, W, H);
+    const d = data.data;
+    const lum = new Float32Array(W * H);
+    const list = [];
+    for (let i = 0; i < W * H; i++) {
+        lum[i] = 0.3 * d[i * 4] + 0.59 * d[i * 4 + 1] + 0.11 * d[i * 4 + 2];
+        if (d[i * 4 + 3] > 8 && i % 7 === 0) list.push(lum[i]);
+    }
+    list.sort((a, b) => a - b);
+    const lo = list[Math.floor(list.length * 0.05)] || 0;
+    const hi = Math.max(lo + 1, list[Math.floor(list.length * 0.95)] || 255);
+    const rgb = [(color >> 16) & 255, (color >> 8) & 255, color & 255];
+    for (let i = 0; i < W * H; i++) {
+        const f = 0.62 + 0.5 * Math.max(0, Math.min(1, (lum[i] - lo) / (hi - lo)));
+        for (let j = 0; j < 3; j++) d[i * 4 + j] = Math.min(255, rgb[j] * f);
+    }
+    g.putImageData(data, 0, 0);
+    const out = tex.clone();
+    out.source = new THREE.Source(c);
+    out.needsUpdate = true;
+    return out;
 }
 
 // Mặt trước (-Z) hoặc sau (+Z) của thân trong dải ngang |x - xc| < half, ở độ cao y: z của đỉnh nhô ra nhất
@@ -975,8 +1278,9 @@ function squeezeHair(vrm, squeeze, on) {
 }
 
 // Chất liệu vải mới từ chất liệu áo của nhân vật (giữ cách tô, viền), màu color, ảnh map (cutout: cắt chỗ trong suốt của
-// ảnh, như tua rua); kèm chất liệu viền nét như three-vrm dựng cho từng mảnh
-const UV_MAPS = ['map', 'normalMap', 'emissiveMap', 'shadeMultiplyTexture', 'shadingShiftTexture', 'rimMultiplyTexture', 'outlineWidthMultiplyTexture', 'uvAnimationMaskTexture'];
+// ảnh, như tua rua); kèm chất liệu viền nét như three-vrm dựng cho từng mảnh. Bỏ ảnh ánh kim (matcap) của áo gốc: vải len, dạ
+// mờ đục, mà ánh đó cộng sáng trắng cả mảng lớn ở chỗ mặt áo nghiêng xiên (vạt sau áo dài nhìn ngang)
+const UV_MAPS = ['map', 'matcapTexture', 'normalMap', 'emissiveMap', 'shadeMultiplyTexture', 'shadingShiftTexture', 'rimMultiplyTexture', 'outlineWidthMultiplyTexture', 'uvAnimationMaskTexture'];
 
 function clothMaterials(base, color, map, cutout = false) {
     const m = base.clone();
@@ -991,6 +1295,7 @@ function clothMaterials(base, color, map, cutout = false) {
     m.transparent = false;
     m.needsUpdate = true;
     const outline = m.clone();
+    outline.outlineColorFactor.setRGB(c.r * 0.3, c.g * 0.27, c.b * 0.3);
     outline.isOutline = true;
     outline.side = THREE.BackSide;
     outline.needsUpdate = true;
@@ -1016,9 +1321,9 @@ function garment(body, part, mats, name) {
     return mesh;
 }
 
-// Áo len từ áo hoodie gốc (mặc trong áo măng tô): bỏ mũ trùm, dây mũ (cùng đỉnh, ảnh, trọng số xương của áo gốc, chỉ bớt các
-// tam giác chạm vào phần mũ), đổi màu. Áo gốc ẩn đi trong mùa đó (dressBase)
-function jacket(vrm, tops, { color }) {
+// Áo len, áo nỉ từ áo hoodie gốc (mặc trong áo khoác): bỏ mũ trùm, dây mũ (cùng đỉnh, ảnh, trọng số xương của áo gốc, chỉ bớt
+// các tam giác chạm vào phần mũ), đổi màu. Áo gốc ẩn đi trong mùa đó (dressBase)
+function sweater(vrm, tops, { color }) {
     const mask = hoodMask(vrm, tops);
     const src = tops.geometry;
     const old = src.index.array;
@@ -1034,15 +1339,14 @@ function jacket(vrm, tops, { color }) {
     const tint = new THREE.Color(color);
     const mats = [].concat(tops.material).map(m => {
         const c = m.clone();
-        const orig = m.userData.color;
-        c.name = m.name.replace('Tops', 'Jacket');
-        c.color.copy(orig ? orig.lit : m.color).multiply(tint);
-        c.shadeColorFactor.copy(orig ? orig.shade : m.shadeColorFactor).multiply(tint);
+        c.name = m.name.replace('Tops', 'Sweater');
+        c.color.multiply(tint);
+        c.shadeColorFactor.multiply(tint);
         c.update(0);
         return c;
     });
     const mesh = new THREE.SkinnedMesh(geo, mats);
-    mesh.name = 'jacket';
+    mesh.name = 'sweater';
     mesh.userData.outfit = true;
     mesh.renderOrder = tops.renderOrder;
     mesh.frustumCulled = false;
@@ -1050,6 +1354,38 @@ function jacket(vrm, tops, { color }) {
     mesh.boundingSphere = tops.boundingSphere ? tops.boundingSphere.clone() : null;
     mesh.bind(tops.skeleton, tops.bindMatrix);
     return mesh;
+}
+
+// Danh sách tam giác của lớp bên trong (mesh: da, áo gốc) bỏ đi phần khuất hẳn dưới áo khoác (cover: điểm lúc gắn khung có
+// bị thân áo che không; phần theo xương cánh tay thì ống tay áo che, trừ chỗ sát cổ tay): không bao giờ thấy, cử động thì
+// xuyên ra (vạt áo gile ở nách, da đầu vai khi hạ tay). null nếu lưới chia nhóm tam giác kiểu khác
+function coverIndex(body, mesh, cover) {
+    const g = mesh.geometry;
+    const full = g.userData.fullIndex || (g.userData.fullIndex = g.index);
+    if (!full || !g.groups.every(gr => gr.start === 0 && gr.count === full.count)) return null;
+    const arms = new Set(['left', 'right'].flatMap(s => ['UpperArm', 'LowerArm'].map(n => body.bone(s + n))));
+    const hands = ['leftHand', 'rightHand'].map(body.at).filter(Boolean);
+    const p = g.attributes.position, si = g.attributes.skinIndex, sw = g.attributes.skinWeight;
+    const v = new THREE.Vector3();
+    const hidden = new Uint8Array(p.count);
+    for (let i = 0; i < p.count; i++) {
+        let best = 0;
+        for (let j = 1; j < 4; j++) if (sw.getComponent(i, j) > sw.getComponent(i, best)) best = j;
+        v.fromBufferAttribute(p, i);
+        const arm = arms.has(si.getComponent(i, best)) && hands.every(h => h.distanceTo(v) > 0.07);
+        hidden[i] = arm || cover(v.x, v.y, v.z) ? 1 : 0;
+    }
+    const a = full.array;
+    const keep = [];
+    for (let t = 0; t < a.length; t += 3) if (!hidden[a[t]] || !hidden[a[t + 1]] || !hidden[a[t + 2]]) keep.push(a[t], a[t + 1], a[t + 2]);
+    return new THREE.BufferAttribute(new a.constructor(keep), 1);
+}
+
+function setIndex(mesh, index) {
+    const g = mesh.geometry;
+    if (!index || g.index === index) return;
+    g.setIndex(index);
+    g.groups.forEach(gr => { gr.count = index.count; });
 }
 
 // Mặc đồ mùa season cho nhân vật (sex 'm' | 'f'), trời có tuyết (weather 'snow') thì đội thêm mũ len; đổi mùa thì ẩn đồ mùa
@@ -1071,11 +1407,17 @@ export function dress(vrm, sex, season, weather = '') {
     if (data.hatSqueeze) squeezeHair(vrm, data.hatSqueeze, weather === 'snow');
     const store = data.outfits || (data.outfits = {});
     Object.entries(store).forEach(([s, list]) => list.forEach(m => { m.visible = s === season; }));
-    if (store[season]) return store[season];
+    // Áo bên trong: mùa này bỏ phần khuất dưới áo khoác, mùa khác đủ cả
+    Object.values(store).forEach(list => list.covers.forEach(([mesh]) => setIndex(mesh, mesh.geometry.userData.fullIndex)));
+    if (store[season]) {
+        store[season].covers.forEach(([mesh, index]) => setIndex(mesh, index));
+        return store[season];
+    }
     const spec = OUTFITS[season] && OUTFITS[season][sex];
     const list = store[season] = [];
+    list.covers = [];
     if (!spec) return list;
-    const body = sampleBody(vrm, !!spec.jacket);
+    const body = sampleBody(vrm, spec.tee ? 'tops' : spec.sweater ? 'hood' : '');
     if (!body) return list;
     const base = [].concat(body.cloth.material)[0];
     const add = (part, color, map, name, cutout) => {
@@ -1086,26 +1428,42 @@ export function dress(vrm, sex, season, weather = '') {
         return mesh;
     };
     const armsOf = opts => ['left', 'right'].map(s => tube(body, [`${s}UpperArm`, `${s}LowerArm`, `${s}Hand`], opts));
-    if (spec.jacket) {
-        const cardigan = jacket(vrm, body.cloth, spec.jacket);
-        body.cloth.parent.add(cardigan);
-        list.push(cardigan);
+    let inner = spec.tee ? [] : [body.cloth];
+    if (spec.sweater) {
+        const sweaterMesh = sweater(vrm, body.cloth, spec.sweater);
+        body.cloth.parent.add(sweaterMesh);
+        list.push(sweaterMesh);
+        inner = [sweaterMesh];
     }
-    // Tay áo dài nối từ trong tay áo ngắn của áo gốc tới cổ tay
-    if (spec.sleeves) add(join(armsOf({ from: 0.22, to: 0.97, offset: 0.005, flare: 0.006 })), spec.sleeves.color, null, 'sleeves');
+    if (spec.tee) {
+        // Áo thun ôm theo da thân (áo hoodie gốc ẩn), thành bề mặt mới cho áo khoác đo: áo khoác gọn theo người
+        const part = coat(body, { length: spec.tee.length, offset: 0.006 });
+        const tee = add(part, spec.tee.color, part && garmentTexture('tee', part.marks), 'tee');
+        if (tee) absorb(body, tee.geometry);
+    }
     if (spec.coat) {
-        // Áo măng tô: thân áo rồi tay áo rộng phủ ngoài tay áo sơ mi, thu dần về cổ tay; cả hai thành bề mặt mới cho khăn đo
-        const coatBody = add(coat(body, spec.coat), spec.coat.color, coatTexture(), 'coat');
-        // Ống tay bắt đầu lùi vào trong vai (khuất trong thân áo) cho kín chỗ nối
-        const coatArms = add(join(armsOf({ from: -0.1, to: 0.96, offset: 0.012, taper: 0.985, kinds: SKIN | CLOTH, flare: 0.004, reach: 0.03 })), spec.coat.color, null, 'coatSleeves');
+        // Áo khoác: thân áo rồi tay áo rộng phủ ngoài tay áo bên trong, thu dần về cổ tay; cả hai thành bề mặt mới cho khăn đo
+        const { style } = spec.coat;
+        const part = coat(body, spec.coat);
+        const coatBody = add(part, spec.coat.color, part && style ? garmentTexture(style, part.marks) : coatTexture(), 'coat');
+        // Ống tay bắt đầu lùi vào trong vai (khuất trong thân áo) cho kín chỗ nối; trọng số lấy như thân áo (cả xương vai,
+        // ngực): đầu ống tay chỉ theo xương cánh tay thì hạ tay xuống, mép trên đầu ống vểnh ra thành sừng ở vai
+        const coatArms = add(join(armsOf({ from: -0.1, to: 0.96, offset: 0.012, taper: 0.985, kinds: SKIN | CLOTH, flare: 0.004, reach: 0.03, allow: part ? part.allow : undefined })), spec.coat.color, style ? sleeveTexture(style) : null, 'coatSleeves');
         [coatBody, coatArms].forEach(m => m && absorb(body, m.geometry));
+        // Da và áo bên trong (đồng phục của cô gái, áo len): bỏ phần khuất
+        [body.skin].concat(inner).forEach(mesh => {
+            const index = part && coverIndex(body, mesh, part.cover);
+            if (!index) return;
+            list.covers.push([mesh, index]);
+            setIndex(mesh, index);
+        });
     }
     if (spec.scarf) add(scarf(body, spec.scarf), spec.scarf.color, knitTexture(), 'scarf', spec.scarf.fringe);
     return list;
 }
 
 // Phần gốc của nhân vật theo mùa: quần tất tô lên ảnh da chân (chân mô hình gồ ghề chỗ mép tất, bắp chân: dựng ống bọc
-// ngoài không khít), màu áo, ẩn áo hoodie khi mặc áo len, ẩn váy khi mặc áo măng tô phủ ngoài; mùa khác trả lại gốc
+// ngoài không khít), màu quần, ẩn áo hoodie khi mặc áo nỉ, áo len, ẩn váy khi mặc áo khoác phủ ngoài; mùa khác trả lại gốc
 function dressBase(vrm, sex, season) {
     const spec = (OUTFITS[season] && OUTFITS[season][sex]) || {};
     const parts = {};
@@ -1124,18 +1482,11 @@ function dressBase(vrm, sex, season) {
         swapMaps(skin, spec.tights && `tights_${spec.tights.color}_${spec.tights.alpha}`,
             tex => paintRegion(tex, skin.geometry, (x, y) => y < below, spec.tights.color, spec.tights.alpha));
     }
-    if (tops) {
-        tops.visible = !spec.jacket;
-        // Màu áo nhân với ảnh áo gốc (áo hoodie gốc gần trắng nên ra đúng màu); mặt tối nhân theo
-        [].concat(tops.material).forEach(m => {
-            const data = m.userData;
-            if (!data.color) data.color = { lit: m.color.clone(), shade: m.shadeColorFactor.clone() };
-            const tint = new THREE.Color(spec.tops === undefined ? 0xffffff : spec.tops);
-            m.color.copy(data.color.lit).multiply(tint);
-            m.shadeColorFactor.copy(data.color.shade).multiply(tint);
-        });
+    if (tops) tops.visible = !spec.sweater && !spec.tee;
+    if (bottoms) {
+        bottoms.visible = !(spec.coat && spec.coat.overSkirt);
+        swapMaps(bottoms, spec.pants && `pants_${spec.pants}`, tex => recolorTexture(tex, spec.pants));
     }
-    if (bottoms) bottoms.visible = !(spec.coat && spec.coat.overSkirt);
 }
 
 // Đổi ảnh (và ảnh mặt tối nếu dùng chung) của lưới mesh sang bản make(ảnh gốc) lưu theo key; key rỗng thì trả ảnh gốc
@@ -1170,7 +1521,8 @@ function paintRegion(tex, geometry, test, color, alpha) {
     g.drawImage(img, 0, 0);
     const uv = geometry.attributes.uv;
     const pos = geometry.attributes.position;
-    const index = geometry.index;
+    // Đủ cả các tam giác (kể cả phần đang bỏ đi vì khuất dưới áo khoác)
+    const index = geometry.userData.fullIndex || geometry.index;
     const mask = document.createElement('canvas');
     mask.width = W;
     mask.height = H;
