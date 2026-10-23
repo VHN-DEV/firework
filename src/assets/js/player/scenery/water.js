@@ -207,10 +207,34 @@ export const Water = {
                 const speed = 0.0008 + hash(i + 50) * 0.0016;
                 const amp = frozen ? 0 : (river ? 0.6 + d * 9 : 0.2 + d * 3) * k;
                 const dx = Math.round((Math.sin(time * speed + phase) + 0.5 * Math.sin(time * speed * 1.7 + phase * 2)) * amp);
-                // Khe tối ngang, càng xa bờ càng nhiều: bóng trăng, bóng pháo vỡ thành từng lát. Mặt băng: bóng phẳng, mờ
-                const gap = !frozen && hash(i + 99) < 0.1 + d * 0.3 ? 0.6 : 1;
-                ctx.globalAlpha = frozen ? 0.4 * (1 - d * 0.5) : (river ? 0.6 * (1 - d * 0.6) : 0.78 * (1 - d * 0.5)) * gap;
-                ctx.drawImage(mirror, 0, y, W, band, dx, from + y, W, band);
+                const alpha = frozen ? 0.4 * (1 - d * 0.5) : (river ? 0.6 * (1 - d * 0.6) : 0.78 * (1 - d * 0.5));
+                // Khe tối, càng xa bờ càng nhiều: bóng trăng, bóng pháo vỡ thành từng lát như mặt nước gợn. Mỗi khe chỉ là
+                // một đoạn ngắn, trôi theo dòng (hồ trôi rất chậm) và mờ dần rồi hiện lại theo nhịp riêng: không thành vạch
+                // tối kẻ suốt bề ngang đứng yên như vạch quét màn hình. Mặt băng: bóng phẳng, không khe
+                let dark = 0;
+                let gx = 0;
+                let gw = 0;
+                if (!frozen && hash(i + 99) < 0.16 + d * 0.4) {
+                    dark = 0.4 * (0.5 - 0.5 * Math.cos((time / (3000 + hash(i + 31) * 4000) + hash(i + 17)) * Math.PI * 2));
+                    const gwCss = cssW * (0.12 + hash(i + 13) * 0.3);
+                    const loop = cssW + gwCss;
+                    const x = (hash(i + 7) * loop + this.flow * (river ? 0.5 + d * 0.8 : 0.6 + hash(i + 23))) % loop - gwCss;
+                    gx = Math.round(x * k);
+                    gw = Math.round(gwCss * k);
+                }
+                ctx.globalAlpha = alpha;
+                if (dark < 0.02) {
+                    ctx.drawImage(mirror, 0, y, W, band, dx, from + y, W, band);
+                } else {
+                    // Phần trước khe, khe (tối hơn), phần sau khe
+                    const a = Math.max(0, gx);
+                    const b = Math.min(W, gx + gw);
+                    if (a > 0) ctx.drawImage(mirror, 0, y, a, band, dx, from + y, a, band);
+                    ctx.globalAlpha = alpha * (1 - dark);
+                    if (b > a) ctx.drawImage(mirror, a, y, b - a, band, dx + a, from + y, b - a, band);
+                    ctx.globalAlpha = alpha;
+                    if (b < W) ctx.drawImage(mirror, b, y, W - b, band, dx + b, from + y, W - b, band);
+                }
                 y += band;
             }
         };
