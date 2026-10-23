@@ -162,12 +162,13 @@ export async function run(browser, base, { check }) {
         await sleep(500);
         const locked = await page.evaluate(() => ({
             bar: !!document.querySelector('.moment-bar').closest('.remove'),
-            end: document.querySelector('.end-screen__share').classList.contains('remove'),
+            end: document.querySelector('.end-screen__share').classList.contains('remove')
+                && document.querySelector('.end-screen__video').classList.contains('remove'),
             endShown: !document.querySelector('.end-screen').classList.contains('hide'),
             snapped: !document.querySelector('.snap-toast').classList.contains('hide'),
             title: document.title
         }));
-        check('kịch bản tắt chia sẻ (receiverShare: false): ẩn nút chụp, chia sẻ, kể cả ở màn kết', locked.bar && locked.end && locked.endShown && !locked.snapped,
+        check('kịch bản tắt chia sẻ (receiverShare: false): ẩn nút chụp, chia sẻ, tạo video, kể cả ở màn kết', locked.bar && locked.end && locked.endShown && !locked.snapped,
             JSON.stringify(locked));
         await page.close();
 

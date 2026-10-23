@@ -247,61 +247,115 @@
         }
     }
 
+    // Ba thao tác cùng một kiểu: biểu tượng tròn ở trên, chữ ở dưới; Xem lại nổi bật theo màu của giao diện
     &__actions {
         display: flex;
-        flex-wrap: wrap;
         justify-content: center;
-        gap: 0.75rem;
-        margin-top: 1.5rem;
+        gap: 0.5rem;
+        margin-top: 1.6rem;
     }
 
-    &__replay,
-    &__share,
-    &__create {
-        display: inline-flex;
+    &__action {
+        flex: 0 1 96px;
+        display: flex;
+        flex-direction: column;
         align-items: center;
-        justify-content: center;
-        min-height: 46px;
-        padding: 0 1.4rem;
-        border-radius: 999px;
-        // <button> và <a> cùng phông chữ, giãn chữ
+        gap: 0.55rem;
+        padding: 0.25rem 0.15rem;
+        border: 0;
+        background: none;
+        color: #fff;
+        // <button> dùng cùng phông, giãn chữ với thiệp
         font-family: inherit;
         letter-spacing: inherit;
-        font-size: 0.95rem;
-        font-weight: 700;
-        text-decoration: none;
+        font-size: 0.86rem;
+        font-weight: 600;
+        line-height: 1.2;
         cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
 
-        &:hover {
-            transform: translateY(-1px);
+        svg {
+            fill: currentColor;
+        }
+
+        &:hover .end-screen__action-icon {
+            transform: translateY(-2px);
+            background-color: rgba(255, 255, 255, 0.18);
+        }
+
+        &:focus-visible {
+            outline: none;
+
+            .end-screen__action-icon {
+                outline: 2px solid var(--st-accent, #ffbf36);
+                outline-offset: 3px;
+            }
         }
     }
 
-    &__replay {
-        border: none;
-        color: #fff;
+    &__action-icon {
+        display: grid;
+        place-items: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.1);
+        transition: transform 0.25s, background-color 0.25s, box-shadow 0.25s;
+    }
+
+    &__replay &__action-icon,
+    &__replay:hover &__action-icon {
+        border: 0;
         background: linear-gradient(135deg, var(--st-main, #ff0043) 0%, var(--st-accent, #ffbf36) 100%);
-        box-shadow: 0 10px 20px rgba(var(--st-main-rgb, 255, 0, 67), 0.3);
+        box-shadow: 0 10px 24px -6px rgba(var(--st-main-rgb, 255, 0, 67), 0.65);
     }
 
-    &__share {
-        border: 1px solid rgba(168, 85, 247, 0.55);
-        color: #fff;
-        background: rgba(99, 102, 241, 0.22);
-
-        &:hover {
-            background: rgba(99, 102, 241, 0.34);
-        }
-    }
-
+    // Lời mời tạo màn pháo hoa: dòng nhỏ có logo dưới vạch ngăn, không giành chỗ với lời chúc
     &__create {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        margin: 1.5rem -0.25rem 0;
+        padding: 1rem 0.25rem 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
         color: #fff;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        text-align: left;
+        text-decoration: none;
 
-        &:hover {
-            background: rgba(255, 255, 255, 0.14);
+        img {
+            flex: none;
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+        }
+
+        span {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            letter-spacing: normal;
+            font-size: 0.92rem;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        small {
+            color: rgba(255, 255, 255, 0.62);
+            font-size: 0.78rem;
+            font-weight: 500;
+        }
+
+        svg {
+            flex: none;
+            fill: currentColor;
+            opacity: 0.6;
+            transition: transform 0.25s, opacity 0.25s;
+        }
+
+        &:hover svg {
+            opacity: 1;
+            transform: translateX(3px);
         }
     }
 }

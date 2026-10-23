@@ -49,6 +49,7 @@ async function shareFile(file, title) {
 export function setupViewerShare({ composeFrame, describe, pauseShow, configName, preview, reduceFlashing, natureSound = () => true, off }) {
     const bar = $('.moment-bar');
     const endShare = $('.end-screen__share');
+    const endVideo = $('.end-screen__video');
     const shareSheet = $('.share-sheet');
     const videoSheet = $('.video-sheet');
     const snapToast = $('.snap-toast');
@@ -65,7 +66,7 @@ export function setupViewerShare({ composeFrame, describe, pauseShow, configName
 
     // Các lớp phủ của bảng: chạm/bấm không lọt xuống bầu trời (Stage nghe trên document) làm bắn pháo hay mở menu
     const stop = e => e.stopPropagation();
-    [bar, endShare, shareSheet, videoSheet, snapToast].forEach(el => {
+    [bar, endShare, endVideo, shareSheet, videoSheet, snapToast].forEach(el => {
         el.addEventListener('mousedown', stop);
         el.addEventListener('touchstart', stop);
     });
@@ -425,6 +426,10 @@ export function setupViewerShare({ composeFrame, describe, pauseShow, configName
     bar.querySelector('.moment-bar__snap').addEventListener('click', snap);
     bar.querySelector('.moment-bar__share').addEventListener('click', openShare);
     endShare.addEventListener('click', openShare);
+    endVideo.addEventListener('click', () => {
+        if (preview) notify('Bản xem nhanh: người nhận bấm nút này để tạo video màn pháo hoa (TikTok, Reels, Shorts...).');
+        else openVideo();
+    });
 
     window.addEventListener('keydown', e => {
         if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -443,6 +448,8 @@ export function setupViewerShare({ composeFrame, describe, pauseShow, configName
             show.enabled = !off && (!config || config.receiverShare !== false);
             bar.classList.toggle('remove', !show.enabled);
             endShare.classList.toggle('remove', !show.enabled);
+            // Máy không dựng được video (trình duyệt cũ): không hiện nút Tạo video
+            endVideo.classList.toggle('remove', !show.enabled || (!preview && !canMakeVideo()));
         },
         snap
     };
