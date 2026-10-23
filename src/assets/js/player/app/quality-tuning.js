@@ -53,10 +53,15 @@ export function applyQualityLimits() {
     if (IS_RECORD) return;
     const shortSide = Math.min(frameW || window.innerWidth, frameH || window.innerHeight);
     const native = window.devicePixelRatio || 1;
-    let dpr = Math.min(maxRenderScale(), Number(level.value) / shortSide);
+    const max = maxRenderScale();
+    let dpr = Math.min(max, Number(level.value) / shortSide);
     // Sát độ phân giải gốc (vd điện thoại 412px × 2,625 ở mức 1080p ra 2,621): vẽ bằng đúng màn hình. Lệch chút ít thì
     // trình duyệt vẫn phải co giãn cả lớp (nhòe mọi nét) chỉ để bớt vài phần trăm điểm ảnh
     if (dpr < native && dpr > native * 0.95) dpr = native;
+    // Vẽ dư chỉ gấp đúng 2 lần màn hình: tỉ lệ lẻ (vd 2160p trong cửa sổ màn 2K ra 1,66 lần, màn 4K ra 1,08 lần) thì trình
+    // duyệt co cả lớp lại bằng nội suy, tia pháo, hạt lửa nhòe đi, còn kém hơn vẽ bằng màn hình. Gần gấp đôi thì vẽ gấp đôi
+    // (mỗi điểm ảnh màn hình đúng 2×2 điểm ảnh vẽ), không đủ chỗ thì vẽ bằng màn hình
+    if (dpr > native) dpr = dpr >= native * 1.5 && max >= native * 2 ? native * 2 : native;
     // Đổi mật độ điểm ảnh, hoặc qua lại mức 480p (mặt nước vẽ thưa/nét): dựng lại các lớp
     if (stages.some(stage => stage.dpr !== dpr) || waterLowQuality !== isLowQuality) {
         stages.forEach(stage => { stage.dpr = dpr; });
@@ -78,8 +83,9 @@ function maxRenderScale() {
 }
 
 // Vẽ dư tự lùi: đang vẽ dư mà máy không kịp (khung hình trung bình chậm hơn ~54 khung/giây trong 2 giây có pháo, vd card
-// đồ họa tích hợp) thì bớt vẽ dư: gấp đôi -> 1,5 lần -> bằng độ phân giải màn hình. Mức chất lượng đã chọn giữ nguyên;
-// không nâng lại trong lần xem này (chọn lại mức chất lượng thì thử lại từ đầu)
+// đồ họa tích hợp) thì thôi vẽ dư, vẽ bằng độ phân giải màn hình (không lùi về tỉ lệ lẻ như 1,5 lần: nhòe, xem
+// applyQualityLimits). Mức chất lượng đã chọn giữ nguyên; không nâng lại trong lần xem này (chọn lại mức chất lượng thì thử
+// lại từ đầu)
 export const superSampler = {
     limit: 2,
     last: 0,
@@ -105,7 +111,7 @@ export const superSampler = {
         this.sum = 0;
         this.count = 0;
         if (avg > 18.5) {
-            this.limit = this.limit > 1.5 ? 1.5 : 1;
+            this.limit = 1;
             // Chờ vẽ lại ở độ phân giải mới rồi mới đo tiếp
             this.waitUntil = now + 1500;
             applyQualityLimits();

@@ -398,6 +398,26 @@ export async function run(browser, base, { check }) {
             check(name, q.value === value && (value !== 'auto' || /^Tự động \(\d+p\)$/.test(q.label)) && Math.abs(q.ratio - ratio) < 0.01, JSON.stringify(q));
             await page.close();
         }
+
+        // Chọn 2160p trên máy tính, cửa sổ không toàn màn hình: vẽ dư đúng gấp đôi hoặc vẽ bằng màn hình, không tỉ lệ lẻ
+        // (màn 2K ra 1,66 lần, màn 4K ra 1,08 lần: trình duyệt co lớp vẽ bằng nội suy, tia pháo nhòe). Màn 4K không đủ chỗ
+        // vẽ gấp đôi nên vẽ bằng màn hình
+        const scales = {};
+        for (const [width, height] of [[2560, 1300], [3840, 2000]]) {
+            page = await openPage(browser, { width, height });
+            await page.evaluateOnNewDocument(() => localStorage.setItem('cm_fireworks_data',
+                JSON.stringify({ schemaVersion: '1.2', data: { quality: '2160', skyLighting: '2', scaleFactor: 1, chosen: ['quality'] } })));
+            await page.goto(base + '/index.html?config=zz_e2e_smoke', { waitUntil: 'networkidle0' });
+            await page.click('.btn-start');
+            await waitForShow(page).catch(() => {});
+            // Đo ngay, trước khi vẽ dư tự lùi vì máy chạy thử vẽ chậm
+            scales[width] = await page.evaluate(() => ['trails-canvas', 'main-canvas', 'deco-canvas', 'water-canvas']
+                .map(id => document.getElementById(id).width / document.getElementById(id).clientWidth));
+            await page.close();
+        }
+        const whole = list => list.every(r => Math.abs(r - 1) < 0.01 || Math.abs(r - 2) < 0.01);
+        check('chất lượng 2160p trong cửa sổ màn 2K, 4K: vẽ đúng gấp đôi hoặc bằng màn hình (không tỉ lệ lẻ làm nhòe)',
+            whole(scales[2560]) && scales[3840].every(r => Math.abs(r - 1) < 0.01), JSON.stringify(scales));
     } finally {
         removeConfig('zz_e2e_card');
         removeConfig('zz_e2e_gift');
