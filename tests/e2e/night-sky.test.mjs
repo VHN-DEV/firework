@@ -100,6 +100,23 @@ export async function run(browser, base, { check }) {
             setMilkyWay('');
         });
         await sleep(1200);
+        // Bảng Bầu trời: không có nút "Không"; bấm "Ít" là bật, bấm "Nhiều" là đổi mức, bấm lại nút đang bật là tắt (tên mục
+        // mờ đi)
+        const stars = await builder.evaluate(async () => {
+            // Mở nhóm như người dùng (nội dung nhóm đang đóng không được tính lại kiểu chữ)
+            document.querySelector('details[data-group="scene"]').open = true;
+            const tap = async level => {
+                document.querySelector(`.sky-stars [data-stars="${level}"]`).click();
+                await new Promise(r => setTimeout(r, 350)); // chờ chữ đổi màu xong
+                const row = document.querySelector('.sky-stars').closest('.option-row');
+                const on = row.querySelector('.active');
+                return `${on ? on.dataset.stars : '-'}/${getComputedStyle(row.querySelector('.option-row__name')).color}`;
+            };
+            return { none: document.querySelectorAll('.sky-stars [data-stars=""]').length, steps: [await tap('few'), await tap('many'), await tap('many')] };
+        });
+        const [few, many, off] = stars.steps.map(s => s.split('/'));
+        check('builder: bảng Bầu trời bấm để bật, đổi mức, bấm lại để tắt (không còn nút "Không")',
+            stars.none === 0 && few[0] === 'few' && many[0] === 'many' && off[0] === '-' && off[1] !== many[1], JSON.stringify(stars));
         check('builder: bầu trời sao không lỗi JS', builder.errors.length === 0, builder.errors.join(' | '));
     } finally {
         await builder.close();

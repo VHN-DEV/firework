@@ -106,15 +106,6 @@
 }
 
 .segmented.viewer-sky,
-.segmented.beat-density,
-.segmented.smoke-levels,
-.segmented.scene-water,
-.segmented.sky-stars,
-.segmented.sky-meteors,
-.segmented.sky-milky-way,
-.segmented.sky-clouds,
-.segmented.sky-moon,
-.segmented.scene-decor,
-.segmented.scene-weather {
+.segmented.beat-density {
     grid-template-columns: repeat(3, 1fr);
 }

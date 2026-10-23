@@ -86,6 +86,28 @@ export function toggleDecor(kind) {
     refreshMiniPreview();
 }
 
+const moonMode = moon => (!moon ? '' : moon.phase === 'auto' ? 'auto' : 'pick');
+
+// Nút "bấm lại để tắt": các mục có/không (sao, mây, trăng, mưa, khói, mặt nước...) không còn nút "Không" riêng; bấm nút
+// đang bật thì tắt mục đó, không bật nút nào là không có. Các hàm set...() vẫn đặt đúng giá trị được truyền vào.
+const OPTIONAL = {
+    stars: [() => state.stars, v => setStars(v)],
+    meteors: [() => state.meteors, v => setMeteors(v)],
+    milkyWay: [() => state.milkyWay, v => setMilkyWay(v)],
+    clouds: [() => state.clouds, v => setClouds(v)],
+    moon: [() => moonMode(state.moon), v => setMoonMode(v)],
+    weather: [() => state.weather, v => setWeather(v)],
+    smoke: [() => state.smoke, v => setSmoke(v)],
+    water: [() => state.water, v => setWater(v)],
+    floating: [() => state.floating, v => setFloating(v)],
+    peopleFirst: [() => state.peopleFirst, v => setPeopleFirst(v)]
+};
+
+export function toggleOption(key, value) {
+    const [get, set] = OPTIONAL[key];
+    set((get() || '') === value ? '' : value);
+}
+
 export function renderSky() {
     const mark = (selector, attr, value) => document.querySelectorAll(selector).forEach(btn => {
         const on = typeof value === 'function' ? value(btn.dataset[attr]) : btn.dataset[attr] === value;
@@ -93,7 +115,7 @@ export function renderSky() {
         btn.setAttribute('aria-pressed', String(on));
     });
     const moon = state.moon;
-    const mode = !moon ? '' : moon.phase === 'auto' ? 'auto' : 'pick';
+    const mode = moonMode(moon);
     mark('.sky-stars [data-stars]', 'stars', state.stars || '');
     mark('.sky-milky-way [data-milky-way]', 'milkyWay', state.milkyWay || '');
     mark('.sky-meteors [data-meteors]', 'meteors', state.meteors || '');
@@ -128,6 +150,8 @@ export function renderSky() {
     }
     hint.classList.toggle('hide', !mode);
     document.getElementById('moon-position').classList.toggle('hide', !mode);
+    // Pha, vị trí trăng: ngay dưới dòng Trăng, chỉ hiện khi có trăng
+    document.getElementById('moon-more')?.classList.toggle('hide', !mode);
     if (moon) {
         document.getElementById('moon-x').value = moon.x;
         document.getElementById('moon-y').value = moon.y;
@@ -192,6 +216,16 @@ export function setPeople(value) {
     state.people = validPeople(value);
     renderScene();
     refreshMiniPreview();
+}
+
+// Hai nút Nam, Nữ bật/tắt riêng: bật cả hai là một đôi, tắt cả hai là không có người
+const PEOPLE_ON = { '': [], man: ['man'], woman: ['woman'], couple: ['man', 'woman'] };
+
+export function togglePerson(who) {
+    const on = new Set(PEOPLE_ON[state.people || '']);
+    if (on.has(who)) on.delete(who);
+    else on.add(who);
+    setPeople(on.size === 2 ? 'couple' : [...on][0] || '');
 }
 
 // Cách người ngắm pháo đi vào: chỗ bắt đầu từng người (key 'm' | 'f', phần trăm bề ngang), ai đến trước, đợi bao lâu.
@@ -301,18 +335,23 @@ export function setFloating(kind) {
 }
 
 export function renderScene() {
+    const peopleOn = PEOPLE_ON[state.people || ''];
     [['.scene-water [data-water]', 'water', state.water || ''], ['.water-style [data-style]', 'style', state.waterStyle],
-        ['.water-floating [data-floating]', 'floating', state.floating || ''], ['.water-people [data-people]', 'people', state.people || '']].forEach(([selector, attr, value]) => {
-        document.querySelectorAll(selector).forEach(btn => {
-            const on = btn.dataset[attr] === value;
-            btn.classList.toggle('active', on);
-            btn.setAttribute('aria-pressed', String(on));
+        ['.water-floating [data-floating]', 'floating', state.floating || ''], ['.water-people [data-person-toggle]', 'personToggle', who => peopleOn.includes(who)]]
+        .forEach(([selector, attr, value]) => {
+            document.querySelectorAll(selector).forEach(btn => {
+                const on = typeof value === 'function' ? value(btn.dataset[attr]) : btn.dataset[attr] === value;
+                btn.classList.toggle('active', on);
+                btn.setAttribute('aria-pressed', String(on));
+            });
         });
-    });
     document.getElementById('water-options')?.classList.toggle('hide', !state.water);
     renderBankStyles();
     const peopleHint = document.getElementById('people-hint');
-    if (peopleHint) peopleHint.textContent = (PEOPLE_OPTIONS.find(p => p.value === state.people) || PEOPLE_OPTIONS[0]).hint;
+    if (peopleHint) {
+        peopleHint.textContent = state.people ? PEOPLE_OPTIONS.find(p => p.value === state.people).hint
+            : 'Bấm Nam hoặc Nữ để có người đứng ngắm pháo bên bờ, bấm cả hai thành một đôi.';
+    }
     // Bờ bên này, cách đi vào: chỉ có ý nghĩa khi có người ngắm pháo
     document.querySelector('.near-bank-row')?.classList.toggle('hide', !state.people);
     renderPeoplePlan();

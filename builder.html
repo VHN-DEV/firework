@@ -412,79 +412,6 @@
                             </div>
 
                             <div class="field">
-                                <label>Sao<button type="button" class="help-tip" data-help="stars" aria-label="Giải thích">?</button></label>
-                                <div class="segmented sky-stars" role="group" aria-label="Sao">
-                                    <button type="button" data-stars="" onclick="setStars('')">Không</button>
-                                    <button type="button" data-stars="few" onclick="setStars('few')">Ít</button>
-                                    <button type="button" data-stars="many" onclick="setStars('many')">Nhiều</button>
-                                </div>
-                            </div>
-
-                            <div class="field">
-                                <label>Sao băng<button type="button" class="help-tip" data-help="meteors" aria-label="Giải thích">?</button></label>
-                                <div class="segmented sky-meteors" role="group" aria-label="Sao băng">
-                                    <button type="button" data-meteors="" onclick="setMeteors('')">Không</button>
-                                    <button type="button" data-meteors="few" onclick="setMeteors('few')" title="Thỉnh thoảng một sao băng">Ít</button>
-                                    <button type="button" data-meteors="shower" onclick="setMeteors('shower')" title="Mưa sao băng">Nhiều</button>
-                                </div>
-                            </div>
-
-                            <div class="field">
-                                <label>Dải Ngân Hà<button type="button" class="help-tip" data-help="milkyWay" aria-label="Giải thích">?</button></label>
-                                <div class="segmented sky-milky-way" role="group" aria-label="Dải Ngân Hà">
-                                    <button type="button" data-milky-way="" onclick="setMilkyWay('')">Không</button>
-                                    <button type="button" data-milky-way="faint" onclick="setMilkyWay('faint')">Mờ</button>
-                                    <button type="button" data-milky-way="bright" onclick="setMilkyWay('bright')">Rõ</button>
-                                </div>
-                            </div>
-
-                            <div class="field">
-                                <label>Mây<button type="button" class="help-tip" data-help="clouds" aria-label="Giải thích">?</button></label>
-                                <div class="segmented sky-clouds" role="group" aria-label="Mây">
-                                    <button type="button" data-clouds="" onclick="setClouds('')">Không</button>
-                                    <button type="button" data-clouds="few" onclick="setClouds('few')">Ít</button>
-                                    <button type="button" data-clouds="many" onclick="setClouds('many')">Nhiều</button>
-                                </div>
-                            </div>
-
-                            <div class="field">
-                                <label>Trăng<button type="button" class="help-tip" data-help="moon" aria-label="Giải thích">?</button></label>
-                                <div class="segmented sky-moon" role="group" aria-label="Trăng">
-                                    <button type="button" data-moon="" onclick="setMoonMode('')">Không</button>
-                                    <button type="button" data-moon="auto" onclick="setMoonMode('auto')">Theo ngày</button>
-                                    <button type="button" data-moon="pick" onclick="setMoonMode('pick')">Tự chọn</button>
-                                </div>
-                                <div id="moon-phases" class="moon-phases hide" role="group" aria-label="Pha trăng"></div>
-                                <small id="moon-hint" class="field-hint"></small>
-                                <div id="moon-position" class="grid-2 moon-position hide">
-                                    <div>
-                                        <div class="field-label-row">
-                                            <label for="moon-x">Vị trí ngang</label>
-                                            <output id="out-moon-x"></output>
-                                        </div>
-                                        <input type="range" id="moon-x" min="5" max="95" step="1">
-                                    </div>
-                                    <div>
-                                        <div class="field-label-row">
-                                            <label for="moon-y">Độ cao</label>
-                                            <output id="out-moon-y"></output>
-                                        </div>
-                                        <input type="range" id="moon-y" min="15" max="95" step="1">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="field">
-                                <label>Trang trí<button type="button" class="help-tip" data-help="decor" aria-label="Giải thích">?</button></label>
-                                <div class="segmented scene-decor" role="group" aria-label="Trang trí bầu trời">
-                                    <button type="button" data-decor="lanterns" onclick="toggleDecor('lanterns')">🏮</button>
-                                    <button type="button" data-decor="balloons" onclick="toggleDecor('balloons')">🎈</button>
-                                    <button type="button" data-decor="planes" onclick="toggleDecor('planes')">✈️</button>
-                                </div>
-                                <small class="field-hint">Bấm để bật/tắt từng thứ, chọn được nhiều</small>
-                            </div>
-
-                            <div class="field">
                                 <label>Mùa<button type="button" class="help-tip" data-help="season" aria-label="Giải thích">?</button></label>
                                 <div class="segmented scene-season" role="group" aria-label="Mùa">
                                     <button type="button" data-season="auto" onclick="setSeason('auto')"><span class="emoji">📅</span>Theo ngày xem</button>
@@ -496,33 +423,98 @@
                                 <small id="season-hint" class="field-hint"></small>
                             </div>
 
+                            <!-- Bầu trời & không khí: mỗi mục một dòng. Không có nút "Không": bấm lại nút đang bật là tắt -->
                             <div class="field">
-                                <label>Thời tiết<button type="button" class="help-tip" data-help="weather" aria-label="Giải thích">?</button></label>
-                                <div class="segmented scene-weather" role="group" aria-label="Thời tiết">
-                                    <button type="button" data-weather="" onclick="setWeather('')" title="Trời quang" aria-label="Trời quang"><span class="emoji" aria-hidden="true">✨</span></button>
-                                    <button type="button" data-weather="rain" onclick="setWeather('rain')" title="Mưa" aria-label="Mưa"><span class="emoji" aria-hidden="true">🌧️</span></button>
-                                    <button type="button" data-weather="snow" onclick="setWeather('snow')" title="Tuyết rơi" aria-label="Tuyết rơi"><span class="emoji" aria-hidden="true">🌨️</span></button>
+                                <label>Bầu trời & không khí</label>
+                                <div class="option-rows">
+                                    <div class="option-row">
+                                        <span class="option-row__name"><span class="emoji" aria-hidden="true">⭐</span><span>Sao<button type="button" class="help-tip" data-help="stars" aria-label="Giải thích">?</button></span></span>
+                                        <div class="segmented sky-stars" role="group" aria-label="Sao">
+                                            <button type="button" data-stars="few" onclick="toggleOption('stars', 'few')">Ít</button>
+                                            <button type="button" data-stars="many" onclick="toggleOption('stars', 'many')">Nhiều</button>
+                                        </div>
+                                    </div>
+                                    <div class="option-row">
+                                        <span class="option-row__name"><span class="emoji" aria-hidden="true">☄️</span><span>Sao băng<button type="button" class="help-tip" data-help="meteors" aria-label="Giải thích">?</button></span></span>
+                                        <div class="segmented sky-meteors" role="group" aria-label="Sao băng">
+                                            <button type="button" data-meteors="few" onclick="toggleOption('meteors', 'few')" title="Thỉnh thoảng một sao băng">Ít</button>
+                                            <button type="button" data-meteors="shower" onclick="toggleOption('meteors', 'shower')" title="Mưa sao băng">Nhiều</button>
+                                        </div>
+                                    </div>
+                                    <div class="option-row">
+                                        <span class="option-row__name"><span class="emoji" aria-hidden="true">🌌</span><span>Ngân Hà<button type="button" class="help-tip" data-help="milkyWay" aria-label="Giải thích">?</button></span></span>
+                                        <div class="segmented sky-milky-way" role="group" aria-label="Ngân Hà">
+                                            <button type="button" data-milky-way="faint" onclick="toggleOption('milkyWay', 'faint')">Mờ</button>
+                                            <button type="button" data-milky-way="bright" onclick="toggleOption('milkyWay', 'bright')">Rõ</button>
+                                        </div>
+                                    </div>
+                                    <div class="option-row">
+                                        <span class="option-row__name"><span class="emoji" aria-hidden="true">☁️</span><span>Mây<button type="button" class="help-tip" data-help="clouds" aria-label="Giải thích">?</button></span></span>
+                                        <div class="segmented sky-clouds" role="group" aria-label="Mây">
+                                            <button type="button" data-clouds="few" onclick="toggleOption('clouds', 'few')">Ít</button>
+                                            <button type="button" data-clouds="many" onclick="toggleOption('clouds', 'many')">Nhiều</button>
+                                        </div>
+                                    </div>
+                                    <div class="option-row">
+                                        <span class="option-row__name"><span class="emoji" aria-hidden="true">🌙</span><span>Trăng<button type="button" class="help-tip" data-help="moon" aria-label="Giải thích">?</button></span></span>
+                                        <div class="segmented sky-moon" role="group" aria-label="Trăng">
+                                            <button type="button" data-moon="auto" onclick="toggleOption('moon', 'auto')" title="Trăng đúng pha của hôm người nhận mở xem">Theo ngày</button>
+                                            <button type="button" data-moon="pick" onclick="toggleOption('moon', 'pick')" title="Chọn pha trăng, vị trí">Tự chọn</button>
+                                        </div>
+                                    </div>
+                                    <div id="moon-more" class="option-row__more hide">
+                                        <div id="moon-phases" class="moon-phases hide" role="group" aria-label="Pha trăng"></div>
+                                        <small id="moon-hint" class="field-hint"></small>
+                                        <div id="moon-position" class="grid-2 moon-position hide">
+                                            <div>
+                                                <div class="field-label-row">
+                                                    <label for="moon-x">Vị trí ngang</label>
+                                                    <output id="out-moon-x"></output>
+                                                </div>
+                                                <input type="range" id="moon-x" min="5" max="95" step="1">
+                                            </div>
+                                            <div>
+                                                <div class="field-label-row">
+                                                    <label for="moon-y">Độ cao</label>
+                                                    <output id="out-moon-y"></output>
+                                                </div>
+                                                <input type="range" id="moon-y" min="15" max="95" step="1">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="option-row">
+                                        <span class="option-row__name"><span class="emoji" aria-hidden="true">🎈</span><span>Trang trí<button type="button" class="help-tip" data-help="decor" aria-label="Giải thích">?</button></span></span>
+                                        <div class="segmented scene-decor" role="group" aria-label="Trang trí">
+                                            <button type="button" data-decor="lanterns" onclick="toggleDecor('lanterns')" title="Đèn trời" aria-label="Đèn trời">🏮</button>
+                                            <button type="button" data-decor="balloons" onclick="toggleDecor('balloons')" title="Khinh khí cầu" aria-label="Khinh khí cầu">🎈</button>
+                                            <button type="button" data-decor="planes" onclick="toggleDecor('planes')" title="Máy bay" aria-label="Máy bay">✈️</button>
+                                        </div>
+                                    </div>
+                                    <div class="option-row">
+                                        <span class="option-row__name"><span class="emoji" aria-hidden="true">🌦️</span><span>Thời tiết<button type="button" class="help-tip" data-help="weather" aria-label="Giải thích">?</button></span></span>
+                                        <div class="segmented scene-weather" role="group" aria-label="Thời tiết">
+                                            <button type="button" data-weather="rain" onclick="toggleOption('weather', 'rain')">Mưa</button>
+                                            <button type="button" data-weather="snow" onclick="toggleOption('weather', 'snow')">Tuyết</button>
+                                        </div>
+                                    </div>
+                                    <div class="option-row">
+                                        <span class="option-row__name"><span class="emoji" aria-hidden="true">💨</span><span>Khói pháo<button type="button" class="help-tip" data-help="smoke" aria-label="Giải thích">?</button></span></span>
+                                        <div class="segmented smoke-levels" role="group" aria-label="Khói pháo">
+                                            <button type="button" data-smoke="light" onclick="toggleOption('smoke', 'light')">Nhẹ</button>
+                                            <button type="button" data-smoke="heavy" onclick="toggleOption('smoke', 'heavy')">Dày</button>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div class="field">
-                                <label>Khói pháo<button type="button" class="help-tip" data-help="smoke" aria-label="Giải thích">?</button></label>
-                                <div class="segmented smoke-levels" role="group" aria-label="Khói pháo">
-                                    <button type="button" data-smoke="" onclick="setSmoke('')">Tắt</button>
-                                    <button type="button" data-smoke="light" onclick="setSmoke('light')">Nhẹ</button>
-                                    <button type="button" data-smoke="heavy" onclick="setSmoke('heavy')">Dày</button>
-                                </div>
-                                <small class="field-hint">Khói trắng khi pháo nổ, được pháo rọi màu và trôi theo gió như ngoài đời</small>
+                                <small class="field-hint">Bấm để bật, bấm lại để tắt. Trang trí chọn được nhiều thứ cùng lúc; khói trắng khi pháo nổ, được pháo rọi màu và trôi theo gió.</small>
                             </div>
 
                             <div class="field">
                                 <label>Mặt nước<button type="button" class="help-tip" data-help="water" aria-label="Giải thích">?</button></label>
                                 <div class="segmented scene-water" role="group" aria-label="Mặt nước">
-                                    <button type="button" data-water="" onclick="setWater('')">Không</button>
-                                    <button type="button" data-water="third" onclick="setWater('third')">1/3</button>
-                                    <button type="button" data-water="half" onclick="setWater('half')">Nửa</button>
+                                    <button type="button" data-water="third" onclick="toggleOption('water', 'third')"><span class="emoji" aria-hidden="true">🌊</span> 1/3 màn hình</button>
+                                    <button type="button" data-water="half" onclick="toggleOption('water', 'half')"><span class="emoji" aria-hidden="true">🌊</span> Nửa màn hình</button>
                                 </div>
-                                <small class="field-hint">Mặt nước chiếm 1/3 hoặc nửa màn hình: pháo bắn lên từ mép nước, bóng pháo phản chiếu lung linh dưới nước</small>
+                                <small class="field-hint">Bấm để có mặt nước, bấm lại để tắt. Pháo bắn lên từ mép nước, bóng pháo phản chiếu lung linh dưới nước.</small>
                                 <div id="water-options" class="water-options hide">
                                     <label>Kiểu mặt nước</label>
                                     <div class="segmented water-style" role="group" aria-label="Kiểu mặt nước">
@@ -535,10 +527,8 @@
                                     <small id="bank-hint" class="field-hint"></small>
                                     <label>Người ngắm pháo<button type="button" class="help-tip" data-help="people" aria-label="Giải thích">?</button></label>
                                     <div class="segmented water-people" role="group" aria-label="Người ngắm pháo">
-                                        <button type="button" data-people="" onclick="setPeople('')">Không</button>
-                                        <button type="button" data-people="man" onclick="setPeople('man')"><span class="emoji" aria-hidden="true">🧍‍♂️</span> Nam</button>
-                                        <button type="button" data-people="woman" onclick="setPeople('woman')"><span class="emoji" aria-hidden="true">🧍‍♀️</span> Nữ</button>
-                                        <button type="button" data-people="couple" onclick="setPeople('couple')"><span class="emoji" aria-hidden="true">👫</span> Cả hai</button>
+                                        <button type="button" data-person-toggle="man" onclick="togglePerson('man')"><span class="emoji" aria-hidden="true">🧍‍♂️</span> Nam</button>
+                                        <button type="button" data-person-toggle="woman" onclick="togglePerson('woman')"><span class="emoji" aria-hidden="true">🧍‍♀️</span> Nữ</button>
                                     </div>
                                     <small id="people-hint" class="field-hint"></small>
                                     <!-- Cách đi vào: thanh ngang là bề ngang khung (0 mép trái, 50 đứng đợi ở giữa, 100 mép phải) -->
@@ -560,11 +550,10 @@
                                         </div>
                                         <div class="people-start-ticks" aria-hidden="true"><span>Mép trái</span><span>Đứng đợi ở giữa</span><span>Mép phải</span></div>
                                         <div id="people-order" class="people-order">
-                                            <label>Ai đến trước</label>
+                                            <label>Ai đến trước <small class="label-note">không chọn: cùng đến</small></label>
                                             <div class="segmented people-first" role="group" aria-label="Ai đến trước">
-                                                <button type="button" data-first="" onclick="setPeopleFirst('')">Cùng đến</button>
-                                                <button type="button" data-first="m" onclick="setPeopleFirst('m')"><span class="emoji" aria-hidden="true">🧍‍♂️</span> Nam</button>
-                                                <button type="button" data-first="f" onclick="setPeopleFirst('f')"><span class="emoji" aria-hidden="true">🧍‍♀️</span> Nữ</button>
+                                                <button type="button" data-first="m" onclick="toggleOption('peopleFirst', 'm')"><span class="emoji" aria-hidden="true">🧍‍♂️</span> Nam</button>
+                                                <button type="button" data-first="f" onclick="toggleOption('peopleFirst', 'f')"><span class="emoji" aria-hidden="true">🧍‍♀️</span> Nữ</button>
                                             </div>
                                             <div id="people-wait-row">
                                                 <div class="field-label-row">
@@ -585,9 +574,8 @@
                                     </label>
                                     <label>Vật trôi trên nước<button type="button" class="help-tip" data-help="floating" aria-label="Giải thích">?</button></label>
                                     <div class="segmented water-floating" role="group" aria-label="Vật trôi trên nước">
-                                        <button type="button" data-floating="" onclick="setFloating('')">Không</button>
-                                        <button type="button" data-floating="lanterns" onclick="setFloating('lanterns')">🪷</button>
-                                        <button type="button" data-floating="petals" onclick="setFloating('petals')">🌸</button>
+                                        <button type="button" data-floating="lanterns" onclick="toggleOption('floating', 'lanterns')"><span class="emoji" aria-hidden="true">🪷</span> Hoa đăng</button>
+                                        <button type="button" data-floating="petals" onclick="toggleOption('floating', 'petals')"><span class="emoji" aria-hidden="true">🌸</span> Cánh hoa</button>
                                     </div>
                                     <label>Trên mặt nước<button type="button" class="help-tip" data-help="waterThings" aria-label="Giải thích">?</button></label>
                                     <div class="toggle-chips water-things" role="group" aria-label="Trên mặt nước">

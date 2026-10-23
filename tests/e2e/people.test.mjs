@@ -195,18 +195,30 @@ export async function run(browser, base, { check }) {
             title.dispatchEvent(new Event('input', { bubbles: true }));
             setWater('half');
         });
-        await builder.evaluate(() => document.querySelector('[data-people="couple"]').click());
+        // Hai nút Nam, Nữ bật/tắt riêng: bật cả hai là một đôi
+        await builder.evaluate(() => {
+            document.querySelector('[data-person-toggle="man"]').click();
+            document.querySelector('[data-person-toggle="woman"]').click();
+        });
         await sleep(1200);
         const draft = () => builder.evaluate(() => {
             const d = JSON.parse(localStorage.getItem('firework_builder_draft') || 'null');
             return d && d.config ? { people: d.config.people ?? null, water: d.config.water ?? null } : null;
         });
         const saved = await draft();
-        const active = await builder.$eval('.water-people .active', e => e.textContent.trim()).catch(() => '');
+        const active = await builder.$$eval('.water-people .active', list => list.map(e => e.dataset.personToggle).join()).catch(() => '');
         const summary = await builder.$eval('[data-summary="scene"]', e => e.textContent).catch(() => '');
         const hint = await builder.$eval('#people-hint', e => e.textContent).catch(() => '');
-        check('builder: chọn "Cả hai" thì lưu people: "couple", tóm tắt, gợi ý ghi rõ',
-            saved && saved.people === 'couple' && /Cả hai/.test(active) && /người ngắm pháo/i.test(summary) && /gặp nhau/.test(hint), JSON.stringify({ saved, active, summary, hint }));
+        check('builder: bật cả Nam lẫn Nữ thì lưu people: "couple", tóm tắt, gợi ý ghi rõ',
+            saved && saved.people === 'couple' && active === 'man,woman' && /người ngắm pháo/i.test(summary) && /gặp nhau/.test(hint), JSON.stringify({ saved, active, summary, hint }));
+        // Tắt Nam: còn cô gái; tắt nốt Nữ: không có người. Bật lại cả hai cho các bước sau
+        const peopleAfter = who => builder.evaluate(who => {
+            document.querySelector(`[data-person-toggle="${who}"]`).click();
+            return [...document.querySelectorAll('.water-people .active')].map(e => e.dataset.personToggle).join();
+        }, who);
+        const steps = [await peopleAfter('man'), await peopleAfter('woman'), await peopleAfter('man'), await peopleAfter('woman')];
+        check('builder: tắt từng người bằng nút Nam, Nữ; không bật nút nào là không có người',
+            steps.join('|') === 'woman||man|man,woman', steps.join('|'));
         // Cách đi vào: kéo chàng trai vào giữa thì đứng đợi sẵn, nút "Ai đến trước" khóa vào chàng trai, lưu peopleStart,
         // peopleWait; kéo về mép trái (mặc định) rồi chọn cô gái đến trước thì chỉ lưu peopleFirst
         const slide = (id, value) => builder.evaluate((id, value) => {
@@ -249,7 +261,7 @@ export async function run(browser, base, { check }) {
         const nearHint = await builder.$eval('#near-bank-hint', e => e.textContent);
         check('builder: tắt bờ bên này thì lưu nearBank: false, gợi ý người đi lên giữa cầu',
             nearShown && farDraft.nearBank === false && /giữa cầu/.test(nearHint), JSON.stringify({ nearShown, nearBank: farDraft.nearBank, nearHint }));
-        await builder.evaluate(() => document.querySelector('[data-water=""]').click());
+        await builder.evaluate(() => document.querySelector('.scene-water .active').click());
         await sleep(1200);
         const off = await draft();
         check('builder: tắt mặt nước thì không lưu người ngắm pháo', off && off.people === null, JSON.stringify(off));

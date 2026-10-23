@@ -10,7 +10,7 @@ export const PEOPLE_OPTIONS = [
     { value: '', name: 'Không', icon: '', hint: '' },
     { value: 'man', name: 'Nam', icon: '🧍‍♂️', hint: 'Một chàng trai một mình thong thả đi ra giữa bờ, tay đút túi, ngước nhìn pháo hoa rồi cúi đầu, thở dài, ngoái sang bên cạnh trống trải. Trời mưa thì che ô, tuyết rơi thì đội mũ len.' },
     { value: 'woman', name: 'Nữ', icon: '🧍‍♀️', hint: 'Một cô gái tóc dài một mình đi ra giữa bờ, tay ôm lấy mình, ngước nhìn pháo hoa rồi cúi đầu, vén tóc, ngoái sang bên cạnh trống trải. Trời mưa thì che ô, tuyết rơi thì đội mũ len.' },
-    { value: 'couple', name: 'Cả hai', icon: '👫', hint: 'Chàng trai, cô gái từ hai phía đi lại gặp nhau ở giữa, nắm tay, tựa vai, ôm nhau ngước nhìn pháo hoa. Trời mưa thì cô gái gập ô, chàng trai che ô cho cô; tuyết rơi thì cả hai đội mũ len.' }
+    { value: 'couple', name: 'Nam và nữ', icon: '👫', hint: 'Chàng trai, cô gái từ hai phía đi lại gặp nhau ở giữa, nắm tay, tựa vai, ôm nhau ngước nhìn pháo hoa. Trời mưa thì cô gái gập ô, chàng trai che ô cho cô; tuyết rơi thì cả hai đội mũ len.' }
 ];
 
 export const validPeople = value => (PEOPLE_OPTIONS.some(option => option.value && option.value === value) ? value : '');

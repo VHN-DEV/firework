@@ -136,7 +136,8 @@ export async function run(browser, base, { check }) {
         // Bấm nút như người dùng: bản nháp được chụp sau mỗi lần bấm (gọi thẳng hàm thì phải chờ lượt chụp 3 giây một lần)
         await builder.evaluate(() => {
             document.querySelector('[data-season=""]').click();
-            document.querySelector('[data-weather=""]').click();
+            // Bấm lại nút đang bật (Tuyết) là tắt: trời quang
+            document.querySelector('.scene-weather .active').click();
         });
         await sleep(1200);
         const off = await draft();
