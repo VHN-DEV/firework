@@ -32,7 +32,7 @@ export default defineConfig({
   // Base path for deployment
   base: './',
   publicDir: 'src/static',
-  // Trang chia sẻ s/<tên>.html (ảnh + tiêu đề khi gửi link), sitemap.xml, robots.txt
+  // Trang chia sẻ s/<tên> (ảnh + tiêu đề khi gửi link), sitemap.xml, robots.txt
   plugins: [seoPlugin({ configsDir: resolve(__dirname, 'src/static/configs') }), legalFilesPlugin()],
   // Worker dựng âm thanh thiên nhiên: cùng thư mục, cùng thông báo bản quyền như các file JS khác
   worker: {
@@ -55,7 +55,7 @@ export default defineConfig({
         builder: resolve(__dirname, 'builder.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         terms: resolve(__dirname, 'terms.html'),
-        // Trang theo dõi mở quà của người gửi (theo-doi.html?id=...&key=...)
+        // Trang theo dõi mở quà của người gửi (theo-doi?id=...&key=...)
         track: resolve(__dirname, 'theo-doi.html'),
       },
       output: {
@@ -113,7 +113,7 @@ export default defineConfig({
         target: 'http://localhost/firework/src/static',
         changeOrigin: true,
       },
-      // Trang chia sẻ: .htaccess của Apache chuyển s/<tên>.html sang api/share.php
+      // Trang chia sẻ: .htaccess của Apache chuyển s/<tên> sang api/share.php
       '/s/': {
         target: 'http://localhost/firework/src/static',
         changeOrigin: true,

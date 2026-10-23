@@ -27,7 +27,7 @@ const skyPixels = (page, part = 0.4) => page.evaluate(part => {
 export async function run(browser, base, { check }) {
     const page = await openPage(browser, { width: 1280, height: 720 });
     try {
-        await page.goto(base + '/demo.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo?preview=1', { waitUntil: 'networkidle0' });
         await show(page, { stars: 'many' });
         await sleep(2500);
         const stars = await skyPixels(page);
@@ -75,7 +75,7 @@ export async function run(browser, base, { check }) {
 
     const builder = await openPage(browser, { width: 1440, height: 900 });
     try {
-        await builder.goto(base + '/builder.html', { waitUntil: 'networkidle0' });
+        await builder.goto(base + '/builder', { waitUntil: 'networkidle0' });
         await builder.evaluate(() => {
             localStorage.clear();
             const title = document.getElementById('title');

@@ -44,7 +44,7 @@ export async function openPage(browser, { width = 1280, height = 720 } = {}) {
     return page;
 }
 
-// Máy chủ PHP có sẵn (php -S) phục vụ dist; router.php làm thay .htaccess (trang chia sẻ s/<tên>.html)
+// Máy chủ PHP có sẵn (php -S) phục vụ dist; router.php làm thay .htaccess (đường dẫn không đuôi /builder, trang chia sẻ s/<tên>)
 export async function startServer(port) {
     const server = spawn(process.env.PHP_BIN || 'php', ['-S', `127.0.0.1:${port}`, '-t', DIST, path.join(ROOT, 'tests/e2e/router.php')], { stdio: 'ignore' });
     const base = `http://127.0.0.1:${port}`;

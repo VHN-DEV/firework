@@ -10,7 +10,7 @@ Thư mục này chứa các file JSON để **tùy biến lời chúc và hiệu
 2. **Đổi tên** (ví dụ `my_show.json`).
 3. **Sửa nội dung** JSON và lưu lại.
 4. **Xem kết quả** bằng cách thêm tham số `?config=tên_file` vào URL:
-   `http://localhost/firework/dist/demo.html?config=my_show`
+   `http://localhost/firework/dist/demo?config=my_show`
 
 ---
 
@@ -81,11 +81,11 @@ Mỗi phần tử trong mảng `events` đại diện cho một phát bắn ho�
 
 ## 🔗 Chia sẻ có ảnh & tiêu đề xem trước
 
-- Link gửi tặng có dạng `.../s/<tên_file>.html`: trang này chứa sẵn ảnh, tiêu đề, lời chúc để Facebook, Zalo,
+- Link gửi tặng có dạng `.../s/<tên_file>` (link cũ có `.html` vẫn mở được): trang này chứa sẵn ảnh, tiêu đề, lời chúc để Facebook, Zalo,
   Messenger, Telegram... hiện khung xem trước, rồi tự mở màn trình diễn.
 - Ảnh xem trước nằm cạnh kịch bản: `<tên_file>.jpg` (1200×630). Builder tự vẽ và lưu ảnh này khi bấm **Lưu**
   trên máy chủ có PHP. Kịch bản không có ảnh riêng sẽ dùng ảnh chung `og-default.jpg`.
-- Trên GitHub Pages, các trang `s/*.html` được tạo khi build cho mọi file `.json` trong thư mục này. Hãy thêm kịch bản
+- Trên GitHub Pages, các trang `s/<tên_file>` (file `s/*.html`) được tạo khi build cho mọi file `.json` trong thư mục này. Hãy thêm kịch bản
   mới vào `configs_index.json` để nó hiện trong mục "Mở kịch bản" của builder.
 - Địa chỉ trang dùng trong thẻ xem trước được đặt bằng biến môi trường `SITE_URL` khi build
   (mặc định `https://vhn-dev.github.io/firework/`).

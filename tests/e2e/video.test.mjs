@@ -25,7 +25,7 @@ export async function run(browser, base, { check }) {
     });
     const page = await openPage(browser, { width: 1440, height: 900 });
     try {
-        await page.goto(base + '/builder.html', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/builder', { waitUntil: 'networkidle0' });
         await page.evaluate(id => editScript(id), ID);
         await sleep(1200);
         await page.evaluate(() => { openVideoModal(); setVideoFormat('portrait'); setVideoQuality('hd'); });

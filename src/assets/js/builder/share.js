@@ -171,9 +171,9 @@ export async function handleSeoImageUpload(input) {
 // CHIA SẺ: link có ảnh + tiêu đề xem trước, nhiều nền tảng, mã QR, ảnh thiệp
 // ---------------------------------------------------------------------------
 
-// Trang chia sẻ s/<tên>.html chứa sẵn ảnh, tiêu đề, mô tả cho mạng xã hội rồi tự mở màn trình diễn
+// Trang chia sẻ s/<tên> chứa sẵn ảnh, tiêu đề, mô tả cho mạng xã hội rồi tự mở màn trình diễn
 function getShareUrl(filename) {
-    return new URL(`s/${encodeURIComponent(filename)}.html`, window.location.href).href;
+    return new URL(`s/${encodeURIComponent(filename)}`, window.location.href).href;
 }
 
 // Thông tin của lần chia sẻ hiện tại

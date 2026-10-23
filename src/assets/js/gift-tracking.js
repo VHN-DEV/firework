@@ -54,7 +54,7 @@ export async function fetchOpenStatus(items) {
 }
 
 export function trackingUrl(id, key) {
-    return new URL(`theo-doi.html?id=${encodeURIComponent(id)}&key=${encodeURIComponent(key)}`, window.location.href).href;
+    return new URL(`theo-doi?id=${encodeURIComponent(id)}&key=${encodeURIComponent(key)}`, window.location.href).href;
 }
 
 // "20:15 hôm nay", "08:02 hôm qua", "20:15 21/10/2026"

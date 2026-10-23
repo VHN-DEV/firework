@@ -81,7 +81,7 @@ export async function run(browser, base, { check }) {
     // Builder: bật/tắt, âm lượng, từng nhóm
     const builder = await openPage(browser, { width: 1440, height: 900 });
     try {
-        await builder.goto(base + '/builder.html', { waitUntil: 'networkidle0' });
+        await builder.goto(base + '/builder', { waitUntil: 'networkidle0' });
         const chips = await builder.$$eval('#nature-things [data-nature-group]', list => list.map(i => i.dataset.natureGroup + (i.checked ? '' : '-off')));
         check('builder: có nút bật/tắt từng nhóm tiếng, mặc định bật hết', chips.join(',') === NATURE_GROUPS.map(g => g.key).join(','), chips.join(','));
         await builder.evaluate(() => {
@@ -122,7 +122,7 @@ export async function run(browser, base, { check }) {
     const page = await openPage(browser);
     try {
         await page.evaluateOnNewDocument(() => localStorage.removeItem('cm_fireworks_data'));
-        await page.goto(base + `/demo.html?config=${id}`, { waitUntil: 'networkidle0' });
+        await page.goto(base + `/demo?config=${id}`, { waitUntil: 'networkidle0' });
         await page.waitForSelector('.start-screen.is-ready');
         await page.click('.btn-start');
         await sleep(3000);
@@ -143,7 +143,7 @@ export async function run(browser, base, { check }) {
     }
     const offPage = await openPage(browser);
     try {
-        await offPage.goto(base + `/demo.html?config=${offId}`, { waitUntil: 'networkidle0' });
+        await offPage.goto(base + `/demo?config=${offId}`, { waitUntil: 'networkidle0' });
         await offPage.waitForSelector('.start-screen.is-ready');
         await offPage.click('.btn-start');
         await sleep(800);

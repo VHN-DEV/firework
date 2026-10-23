@@ -37,7 +37,7 @@ export async function run(browser, base, { check }) {
     try {
         // Bộ Tết: màu, kiểu chữ, biểu tượng, viền kép, thiệp đậm màu, hoa mai đào rơi
         writeConfig(ID, { loop: false, title: 'CHÚC MỪNG NĂM MỚI', author: 'Từ: Nam', recipient: 'Mẹ', screenTheme: { preset: 'tet' }, events: [] });
-        await page.goto(`${base}/demo.html?config=${ID}`, { waitUntil: 'networkidle0' });
+        await page.goto(`${base}/demo?config=${ID}`, { waitUntil: 'networkidle0' });
         await page.waitForSelector('.start-screen.is-ready', { timeout: 10000 });
         await sleep(1200);
         let s = await themeState(page);
@@ -65,7 +65,7 @@ export async function run(browser, base, { check }) {
         writeConfig(ID, {
             loop: false, title: 'GIÁNG SINH AN LÀNH', screenTheme: { preset: 'noel', main: '#123456', effect: 'hearts', card: 'light', font: 'dancing', icon: '⛄' }, events: []
         });
-        await page.goto(`${base}/demo.html?config=${ID}`, { waitUntil: 'networkidle0' });
+        await page.goto(`${base}/demo?config=${ID}`, { waitUntil: 'networkidle0' });
         await page.waitForSelector('.start-screen.is-ready', { timeout: 10000 });
         await sleep(1200);
         s = await themeState(page);
@@ -79,7 +79,7 @@ export async function run(browser, base, { check }) {
 
         // Giá trị lạ (bộ không có, màu sai, kiểu chữ lạ) bỏ qua; kịch bản cũ không có giao diện giữ như trước
         writeConfig(ID, { loop: false, title: 'X', screenTheme: { preset: 'khong-co', main: 'red', font: 'comic', effect: 'mua' }, events: [] });
-        await page.goto(`${base}/demo.html?config=${ID}`, { waitUntil: 'networkidle0' });
+        await page.goto(`${base}/demo?config=${ID}`, { waitUntil: 'networkidle0' });
         await page.waitForSelector('.start-screen.is-ready', { timeout: 10000 });
         await sleep(800);
         s = await themeState(page);
@@ -94,7 +94,7 @@ export async function run(browser, base, { check }) {
     // Builder: chọn bộ, tự chỉnh, lưu gọn; mẫu theo dịp tự gắn giao diện
     const builder = await openPage(browser, { width: 1440, height: 900 });
     try {
-        await builder.goto(`${base}/builder.html`, { waitUntil: 'networkidle0' });
+        await builder.goto(`${base}/builder`, { waitUntil: 'networkidle0' });
         await builder.evaluate(() => {
             localStorage.clear();
             document.querySelector('details.settings-group[data-group="gift"]').open = true;

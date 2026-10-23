@@ -17,7 +17,7 @@ const LOCKED = 'zz_e2e_viewer_locked';
 async function openGift(browser, base, id, viewport, title) {
     const page = await openPage(browser, viewport);
     for (let attempt = 0; attempt < 2; attempt++) {
-        await page.goto(`${base}/demo.html?config=${id}`, { waitUntil: 'networkidle0' });
+        await page.goto(`${base}/demo?config=${id}`, { waitUntil: 'networkidle0' });
         const loaded = await page.waitForFunction(t => document.title.includes(t), { timeout: 8000 }, title).then(() => true, () => false);
         if (loaded) break;
     }
@@ -85,7 +85,7 @@ export async function run(browser, base, { check }) {
             moments: document.querySelectorAll('.moments .moment').length,
             paused: document.querySelector('.pause-btn use').getAttribute('href')
         }));
-        check('bảng chia sẻ: link trang chia sẻ của kịch bản', sheet.open && sheet.url.endsWith(`/s/${ID}.html`), sheet.url);
+        check('bảng chia sẻ: link trang chia sẻ của kịch bản', sheet.open && sheet.url.endsWith(`/s/${ID}`), sheet.url);
         check('bảng chia sẻ có Facebook, Messenger, Zalo, Telegram, TikTok...',
             ['facebook', 'messenger', 'zalo', 'telegram', 'whatsapp', 'x', 'tiktok', 'email'].every(p => sheet.platforms.includes(p)), sheet.platforms.join(','));
         check('bảng chia sẻ có 2 ảnh đã chụp (nút và phím C)', sheet.moments === 2, String(sheet.moments));
@@ -102,7 +102,7 @@ export async function run(browser, base, { check }) {
         await page.click('.share-grid [data-platform="facebook"]');
         await sleep(300);
         const opened = await page.evaluate(() => window.__opened);
-        check('chia sẻ Facebook mở sharer với link kịch bản', opened.length === 1 && opened[0].includes('facebook.com/sharer') && opened[0].includes(encodeURIComponent(`/s/${ID}.html`)),
+        check('chia sẻ Facebook mở sharer với link kịch bản', opened.length === 1 && opened[0].includes('facebook.com/sharer') && opened[0].includes(encodeURIComponent(`/s/${ID}`)),
             opened.join(' '));
 
         // TikTok không nhận link: mở tạo video khổ dọc
@@ -173,7 +173,7 @@ export async function run(browser, base, { check }) {
 
         // Bản xem nhanh trong builder: bấm chia sẻ chỉ báo nút dùng làm gì
         page = await openPage(browser);
-        await page.goto(base + '/demo.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo?preview=1', { waitUntil: 'networkidle0' });
         await page.evaluate(() => window.postMessage({ type: 'firework-preview', config: { loop: true, events: [] }, restart: true }, location.origin));
         await sleep(500);
         await page.click('.moment-bar__share');

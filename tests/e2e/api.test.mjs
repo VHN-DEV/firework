@@ -72,7 +72,7 @@ export async function run(browser, base, { check }) {
 
         // Trang chia sẻ: tiêu đề sai kiểu không in "Array" hay cảnh báo PHP
         writeConfig('zz_e2e_api_share', { seoTitle: ['x'], title: 'Tiêu đề đúng', subtitle: ['y'], events: [] });
-        const share = await (await fetch(`${base}/s/zz_e2e_api_share.html`)).text();
+        const share = await (await fetch(`${base}/s/zz_e2e_api_share`)).text();
         check('trang chia sẻ bỏ qua giá trị sai kiểu', share.includes('<title>Tiêu đề đúng</title>') && !/Array|Warning|Notice/.test(share));
 
         // Dữ liệu báo mở quà không tải được bằng đường dẫn biến thể

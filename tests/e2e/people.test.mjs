@@ -46,7 +46,7 @@ export async function run(browser, base, { check }) {
         JSON.stringify({ start, odd }));
     const page = await openPage(browser, { width: 700, height: 700 });
     try {
-        await page.goto(base + '/demo.html?preview=1', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/demo?preview=1', { waitUntil: 'networkidle0' });
         const events = [{ burst: 1, shell: 'Hoa cúc', color: 'Gold', x: 50, y: 70 }];
         await post(page, { loop: true, events, water: 'half', people: 'couple' });
         // Chờ theo điều kiện (máy chậm thì tải nhân vật lâu hơn), tối đa chừng ấy giây
@@ -143,7 +143,7 @@ export async function run(browser, base, { check }) {
     writeConfig(ID, { title: 'NGẮM PHÁO', loop: true, water: 'half', people: 'couple', events: [1, 2, 3].map(b => ({ burst: b, shell: 'Hoa cúc', x: 50, y: 65, color: 'Gold' })) });
     const vpage = await openPage(browser, { width: 1440, height: 900 });
     try {
-        await vpage.goto(base + '/builder.html', { waitUntil: 'networkidle0' });
+        await vpage.goto(base + '/builder', { waitUntil: 'networkidle0' });
         const gpu = await vpage.evaluate(() => {
             const g = document.createElement('canvas').getContext('webgl2');
             const ext = g && g.getExtension('WEBGL_debug_renderer_info');
@@ -187,7 +187,7 @@ export async function run(browser, base, { check }) {
 
     const builder = await openPage(browser, { width: 1440, height: 900 });
     try {
-        await builder.goto(base + '/builder.html', { waitUntil: 'networkidle0' });
+        await builder.goto(base + '/builder', { waitUntil: 'networkidle0' });
         await builder.evaluate(() => {
             localStorage.clear();
             const title = document.getElementById('title');

@@ -41,9 +41,9 @@ export function normalizeAssetPath(path) {
     return './' + cleanPath.replace(/^dist\//, '');
 }
 
-// Link xem/chia sẻ kịch bản, tính từ vị trí builder.html hiện tại (đúng cả khi URL không có ".html")
+// Link xem/chia sẻ kịch bản (…/demo?config=<tên>), tính từ vị trí trang builder hiện tại
 export function getShowUrl(filename) {
-    const url = new URL('demo.html', window.location.href);
+    const url = new URL('demo', window.location.href);
     url.searchParams.set('config', filename);
     return url.href;
 }

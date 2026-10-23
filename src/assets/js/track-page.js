@@ -4,7 +4,7 @@
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
 
-// theo-doi.html?id=<tên kịch bản>&key=<mã theo dõi>: người gửi xem người nhận đã mở link, mở quà, xem hết chưa.
+// theo-doi?id=<tên kịch bản>&key=<mã theo dõi>: người gửi xem người nhận đã mở link, mở quà, xem hết chưa.
 // Tự cập nhật mỗi 30 giây; có thể bật thông báo của trình duyệt khi người nhận vừa mở quà (trang phải đang mở).
 
 import { saveOwnerKey, fetchOpenStatus, formatWhen, EVENT_NAMES, DEVICE_NAMES, describeOpenStatus } from './gift-tracking.js';
@@ -97,7 +97,7 @@ function refresh() {
     return refreshing;
 }
 
-$('#gift-show').href = `./demo.html?config=${encodeURIComponent(id)}`;
+$('#gift-show').href = `./demo?config=${encodeURIComponent(id)}`;
 const notifyButton = $('#gift-notify');
 notifyButton.classList.toggle('hide', !('Notification' in window) || Notification.permission !== 'default');
 notifyButton.addEventListener('click', async () => {

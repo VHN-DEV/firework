@@ -107,12 +107,12 @@ export function setupViewerShare({ composeFrame, describe, pauseShow, configName
         });
     });
 
-    // ---- Link chia sẻ: trang chia sẻ s/<tên>.html (khung xem trước đẹp trên mạng xã hội), chưa có thì link xem trực tiếp
+    // ---- Link chia sẻ: trang chia sẻ s/<tên> (khung xem trước đẹp trên mạng xã hội), chưa có thì link xem trực tiếp
     function shareUrl() {
         if (shareUrlRequest) return shareUrlRequest;
         if (!configName) return (shareUrlRequest = Promise.resolve(new URL('./', window.location.href).href));
-        const page = new URL(`s/${encodeURIComponent(configName)}.html`, window.location.href).href;
-        const direct = new URL(`demo.html?config=${encodeURIComponent(configName)}`, window.location.href).href;
+        const page = new URL(`s/${encodeURIComponent(configName)}`, window.location.href).href;
+        const direct = new URL(`demo?config=${encodeURIComponent(configName)}`, window.location.href).href;
         shareUrlRequest = fetch(page, { method: 'HEAD', cache: 'no-store' })
             .then(r => (r.ok ? page : direct), () => direct);
         return shareUrlRequest;

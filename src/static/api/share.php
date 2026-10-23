@@ -4,7 +4,7 @@
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  *
  * Trang chia sẻ cho kịch bản lưu trên host PHP (kịch bản có sẵn lúc build đã có file tĩnh s/<tên>.html).
- * .htaccess chuyển s/<tên>.html -> api/share.php?c=<tên>. Cùng mẫu HTML với seo-plugin.js:
+ * .htaccess chuyển s/<tên> (cả link cũ s/<tên>.html) -> api/share.php?c=<tên>. Cùng mẫu HTML với seo-plugin.js:
  * mạng xã hội đọc thẻ meta (ảnh, tiêu đề, mô tả) để dựng khung xem trước, người xem được chuyển sang màn trình diễn.
  */
 header('Content-Type: text/html; charset=utf-8');
@@ -57,8 +57,8 @@ $imageFile = $configsDir . $id . '.jpg';
 $imageUrl = is_file($imageFile)
     ? $siteUrl . 'configs/' . $id . '.jpg?v=' . filemtime($imageFile)
     : $siteUrl . 'og-default.jpg';
-$shareUrl = $siteUrl . 's/' . $id . '.html';
-$showPath = '../demo.html?config=' . rawurlencode($id);
+$shareUrl = $siteUrl . 's/' . $id;
+$showPath = '../demo?config=' . rawurlencode($id);
 
 $e = function ($v) {
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');

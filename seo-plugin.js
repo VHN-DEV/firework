@@ -9,8 +9,11 @@
  *
  * Facebook, Zalo, Messenger, Telegram... chỉ đọc thẻ <meta> trong HTML tĩnh (không chạy JavaScript) để dựng
  * khung xem trước (ảnh, tiêu đề, mô tả). Vì vậy mỗi kịch bản trong src/static/configs có một trang chia sẻ riêng
- * s/<tên>.html chứa sẵn các thẻ đó rồi tự chuyển sang màn trình diễn (demo.html?config=<tên>).
+ * s/<tên> chứa sẵn các thẻ đó rồi tự chuyển sang màn trình diễn (demo?config=<tên>).
  * Trên host PHP, kịch bản lưu sau khi build được phục vụ bằng api/share.php (cùng mẫu HTML).
+ *
+ * Mọi link dùng đường dẫn không đuôi .html (/builder, /demo, /s/<tên>): GitHub Pages tự phục vụ /<tên> bằng <tên>.html,
+ * Apache theo src/static/.htaccess. Link cũ có .html vẫn mở được; canonical của mỗi trang trỏ về bản không đuôi.
  */
 import fs from 'fs';
 import path from 'path';
@@ -38,7 +41,7 @@ function replacePlaceholders(text) {
 
 // Mẫu HTML trang chia sẻ. api/share.php dựng đúng mẫu này cho kịch bản lưu trên host PHP.
 export function renderSharePage({ id, title, description, shareUrl, imageUrl }) {
-    const showPath = `../demo.html?config=${encodeURIComponent(id)}`;
+    const showPath = `../demo?config=${encodeURIComponent(id)}`;
     const t = escapeHtml(title);
     const d = escapeHtml(description);
     return `<!DOCTYPE html>
@@ -123,7 +126,7 @@ export default function seoPlugin({ configsDir }) {
                 this.emitFile({
                     type: 'asset',
                     fileName: `s/${id}.html`,
-                    source: renderSharePage({ id, ...shareMetaFromConfig(config), shareUrl: `${SITE_URL}s/${id}.html`, imageUrl })
+                    source: renderSharePage({ id, ...shareMetaFromConfig(config), shareUrl: `${SITE_URL}s/${id}`, imageUrl })
                 });
                 ids.push(id);
             }
@@ -136,10 +139,10 @@ export default function seoPlugin({ configsDir }) {
                 source: `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url><loc>${SITE_URL}</loc><lastmod>${today}</lastmod><priority>1.0</priority></url>
-    <url><loc>${SITE_URL}demo.html</loc><lastmod>${today}</lastmod><priority>0.9</priority></url>
-    <url><loc>${SITE_URL}builder.html</loc><lastmod>${today}</lastmod><priority>0.8</priority></url>
-    <url><loc>${SITE_URL}terms.html</loc><lastmod>${today}</lastmod><priority>0.3</priority></url>
-    <url><loc>${SITE_URL}privacy.html</loc><lastmod>${today}</lastmod><priority>0.3</priority></url>
+    <url><loc>${SITE_URL}demo</loc><lastmod>${today}</lastmod><priority>0.9</priority></url>
+    <url><loc>${SITE_URL}builder</loc><lastmod>${today}</lastmod><priority>0.8</priority></url>
+    <url><loc>${SITE_URL}terms</loc><lastmod>${today}</lastmod><priority>0.3</priority></url>
+    <url><loc>${SITE_URL}privacy</loc><lastmod>${today}</lastmod><priority>0.3</priority></url>
 </urlset>
 `
             });
@@ -149,7 +152,7 @@ export default function seoPlugin({ configsDir }) {
                 source: `User-agent: *
 Allow: /
 Disallow: ${new URL(SITE_URL).pathname}api/
-Disallow: ${new URL(SITE_URL).pathname}theo-doi.html
+Disallow: ${new URL(SITE_URL).pathname}theo-doi
 
 Sitemap: ${SITE_URL}sitemap.xml
 `

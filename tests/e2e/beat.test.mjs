@@ -64,7 +64,7 @@ export async function run(browser, base, { check }) {
     try {
         // ---- Builder: nghe bài nhạc, xếp pháo
         let page = await openPage(browser, { width: 1440, height: 900 });
-        await page.goto(base + '/builder.html', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/builder', { waitUntil: 'networkidle0' });
         await page.evaluate(() => { try { localStorage.clear(); } catch (e) { /* bỏ qua */ } });
         await page.$eval('#music-url', (input, url) => { input.value = url; }, './' + MUSIC);
         await page.evaluate(() => setMusicFromUrl());
@@ -94,7 +94,7 @@ export async function run(browser, base, { check }) {
         writeConfig(ID, config);
         page = await openPage(browser);
         await page.evaluateOnNewDocument(recordBurstSounds);
-        await page.goto(`${base}/demo.html?config=${ID}`, { waitUntil: 'networkidle0' });
+        await page.goto(`${base}/demo?config=${ID}`, { waitUntil: 'networkidle0' });
         await page.waitForSelector('.start-screen.is-ready');
         await page.click('.btn-start');
         await page.waitForFunction(() => window.__music && window.__music.currentTime > 20, { timeout: 60000 }).catch(() => {});

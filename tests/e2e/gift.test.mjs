@@ -22,7 +22,7 @@ export async function run(browser, base, { check }) {
     const sender = await openPage(browser, { width: 1440, height: 900 });
     try {
         // Người gửi: lưu kịch bản đang bật "Báo cho tôi khi người nhận mở quà"
-        await sender.goto(base + '/builder.html', { waitUntil: 'networkidle0' });
+        await sender.goto(base + '/builder', { waitUntil: 'networkidle0' });
         await sender.evaluate(() => { localStorage.clear(); openTemplatesModal('sinh_nhat'); });
         await sender.type('#tpl-recipient', 'Mẹ');
         await sender.click('#btn-create-template');
@@ -33,7 +33,7 @@ export async function run(browser, base, { check }) {
         await sender.waitForFunction(() => /chưa mở link/.test(document.getElementById('share-track-status').textContent), { timeout: 10000 }).catch(() => {});
         const key = await sender.evaluate(id => JSON.parse(localStorage.getItem('firework_owner_keys') || '{}')[id], ID);
         const link = await sender.$eval('#share-track-input', i => i.value);
-        check('lưu kịch bản: người gửi có mã và link theo dõi riêng', /^[a-f0-9]{32}$/.test(key || '') && link.includes(`theo-doi.html?id=${ID}`), key);
+        check('lưu kịch bản: người gửi có mã và link theo dõi riêng', /^[a-f0-9]{32}$/.test(key || '') && link.includes(`theo-doi?id=${ID}`), key);
         await sender.evaluate(() => closeShareModal());
         check('dữ liệu theo dõi không tải trực tiếp được', (await fetch(`${base}/api/data/owners/${ID}.json`)).status === 403);
 
@@ -41,7 +41,7 @@ export async function run(browser, base, { check }) {
         recipientCtx = await browser.createBrowserContext();
         const recipient = await recipientCtx.newPage();
         await recipient.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
-        await recipient.goto(`${base}/demo.html?config=${ID}`, { waitUntil: 'networkidle0' });
+        await recipient.goto(`${base}/demo?config=${ID}`, { waitUntil: 'networkidle0' });
         await recipient.waitForSelector('.start-screen.is-ready');
         check('người nhận được báo trước "Người gửi sẽ biết khi bạn mở quà"',
             /Người gửi sẽ biết khi bạn mở quà/.test(await recipient.$eval('.start-screen__legal', e => e.textContent)));
@@ -52,7 +52,7 @@ export async function run(browser, base, { check }) {
 
         // Người gửi tự xem thử: không tính
         const own = await sender.browserContext().newPage();
-        await own.goto(`${base}/demo.html?config=${ID}`, { waitUntil: 'networkidle0' });
+        await own.goto(`${base}/demo?config=${ID}`, { waitUntil: 'networkidle0' });
         await sleep(1200);
         await own.close();
         s = await status(key);

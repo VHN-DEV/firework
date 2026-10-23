@@ -39,6 +39,12 @@
 - Thư mục `dist` và `node_modules` không còn đưa lên git. Kịch bản lưu bằng builder trên XAMPP nằm trong `dist/configs`
   (và ảnh, nhạc trong `dist/uploads`): muốn giữ lâu dài hoặc đưa lên GitHub Pages thì chép sang `src/static/configs`
   (và `src/static/uploads`) rồi commit.
+- **Đường dẫn (route)**: mọi link dùng đường dẫn không đuôi `.html`: `/` (trang chủ), `/demo` (trình phát, link tặng
+  `/demo?config=<tên>`), `/builder`, `/terms`, `/privacy`, `/theo-doi?id=...&key=...`, `/s/<tên>` (trang chia sẻ). Mỗi
+  route là file `<tên>.html` ở thư mục gốc nên đường dẫn tương đối (`assets/`, `api/`, `configs/`) không đổi. GitHub
+  Pages và Vite dev tự phục vụ `/<tên>` bằng `<tên>.html`; Apache dùng `.htaccess` (cần `mod_rewrite`); máy chủ kiểm thử
+  dùng `tests/e2e/router.php`. Nginx cần thêm `try_files $uri $uri.html $uri/ =404;` và chuyển `s/<tên>` sang
+  `api/share.php?c=<tên>`. Link cũ có `.html` vẫn mở được; thẻ `canonical` của mỗi trang trỏ về bản không đuôi.
 - **Báo mở quà** (cần máy chủ PHP): mã theo dõi và lịch sử mở quà nằm trong `api/data/` (file JSON, các hàm đọc/ghi gom
   trong `api/tracking.inc.php` để sau này chuyển sang cơ sở dữ liệu). Thư mục này cần quyền ghi và phải chặn tải trực
   tiếp: Apache dùng sẵn `api/data/.htaccess`; Nginx cần thêm `location ^~ /api/data/ { deny all; }`. Khi triển khai bản
@@ -49,7 +55,7 @@
 Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và tính năng chính:
 
 - **Tự do tương tác**: Bạn có thể nhấp chuột hoặc chạm (trên màn hình cảm ứng) vào bất cứ đâu trên màn hình bầu trời đêm để tự bắn một quả pháo hoa.
-- **Tạo màn trình diễn riêng**: Mở trình soạn kịch bản (`builder.html`, nút "Tạo kịch bản pháo hoa") để chọn loại pháo, chữ trên trời, nhạc nền (tự tải lên hoặc chọn từ kho nhạc có sẵn), ảnh (kho ảnh), lời chúc, khói pháo (Tắt / Nhẹ / Dày), mặt nước phản chiếu, bầu trời đêm (sao, trăng đúng pha, đèn trời,
+- **Tạo màn trình diễn riêng**: Mở trình soạn kịch bản (`/builder`, nút "Tạo kịch bản pháo hoa") để chọn loại pháo, chữ trên trời, nhạc nền (tự tải lên hoặc chọn từ kho nhạc có sẵn), ảnh (kho ảnh), lời chúc, khói pháo (Tắt / Nhẹ / Dày), mặt nước phản chiếu, bầu trời đêm (sao, trăng đúng pha, đèn trời,
   khinh khí cầu, máy bay) rồi chia sẻ link.
 - **Cài đặt** (nút bánh răng ⚙️ ở góc trên bên phải, hoặc phím `O`): chỉ gồm các tùy chọn khi xem, mỗi mục có nút "?" giải thích:
   - **Chất lượng**: theo độ phân giải như trang xem phim: Tự động (mặc định: theo màn hình và sức máy, giật thì tự hạ
@@ -76,7 +82,7 @@ Khi bạn đã mở dự án trên trình duyệt, đây là các thao tác và 
 
 ## Cấu trúc thư mục
 
-- `index.html` (trang chủ giới thiệu dịch vụ), `demo.html` (trình phát: màn trình diễn, link tặng `demo.html?config=<tên>`;
+- `index.html` (trang chủ giới thiệu dịch vụ), `demo.html` (trình phát: màn trình diễn, link tặng `/demo?config=<tên>`;
   link cũ `index.html?config=...` tự chuyển sang), `builder.html`, `theo-doi.html`, `privacy.html`, `terms.html`: các
   trang (Vite build ra `dist/`).
 - `src/assets/js/script.js`: trình phát (cài đặt, menu, khung mở quà, hẹn giờ, khớp nhịp nhạc, dựng video, vòng lặp
@@ -114,4 +120,4 @@ Lõi mô phỏng pháo hoa dựa trên **Firework Simulator v2** của Caleb Mil
 được chia sẻ bởi Jay Ramoliya. Danh sách đầy đủ các thành phần bên thứ ba và giấy phép của chúng:
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-Chính sách bảo mật và điều khoản sử dụng của trang: `privacy.html`, `terms.html`.
+Chính sách bảo mật và điều khoản sử dụng của trang: `/privacy`, `/terms`.

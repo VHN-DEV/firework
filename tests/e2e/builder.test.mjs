@@ -16,7 +16,7 @@ export async function run(browser, base, { check }) {
     removeConfig(ID);
     const page = await openPage(browser, { width: 1600, height: 900 });
     try {
-        await page.goto(base + '/builder.html', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/builder', { waitUntil: 'networkidle0' });
         check('builder mới mở: có dải "Tạo nhanh theo dịp"', await page.$eval('#template-strip', e => !e.classList.contains('hide')));
         // Dải gọn một hàng; lăn chuột trên các dịp thì cuộn ngang
         const strip = await page.$eval('#template-strip', e => e.getBoundingClientRect().height);
@@ -124,8 +124,8 @@ export async function run(browser, base, { check }) {
         check('lưu kèm ảnh xem trước khi chia sẻ', fs.existsSync(path.join(DIST, 'configs', `${ID}.jpg`)));
 
         // Trang chia sẻ có tiêu đề cho mạng xã hội và chuyển tới màn trình diễn
-        const html = await (await fetch(`${base}/s/${ID}.html`)).text();
-        check('trang chia sẻ có og:title và chuyển tới màn trình diễn', html.includes('og:title') && html.includes(`demo.html?config=${ID}`));
+        const html = await (await fetch(`${base}/s/${ID}`)).text();
+        check('trang chia sẻ có og:title và chuyển tới màn trình diễn', html.includes('og:title') && html.includes(`demo?config=${ID}`));
 
         // Bản nháp: đã lưu thì không còn nháp; sửa thì có nháp; hoàn tác về bản đã lưu thì hết nháp
         await sleep(3500);
@@ -142,7 +142,7 @@ export async function run(browser, base, { check }) {
         check('Ctrl+Z hoàn tác và bỏ nháp khi về đúng bản đã lưu', undone.subtitle !== 'Sửa thêm' && !undone.draft, JSON.stringify(undone));
 
         // Mở lại kịch bản đã lưu
-        await page.goto(base + '/builder.html', { waitUntil: 'networkidle0' });
+        await page.goto(base + '/builder', { waitUntil: 'networkidle0' });
         await page.evaluate(id => editScript(id), ID);
         await sleep(1500);
         const reopened = await page.evaluate(() => ({
