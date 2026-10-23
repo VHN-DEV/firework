@@ -53,6 +53,13 @@ const HELP_TIPS = {
         + 'mặc áo măng tô dài, quàng khăn len to bản có tua rua (chàng trai măng tô màu lạc đà, khăn xám; cô gái măng tô màu than, '
         + 'khăn kem, quần tất). Trời có tuyết thì đội thêm mũ len (chàng trai mũ xám ôm đầu, cô gái mũ kem có quả bông). Lần đầu '
         + 'xem cần tải thêm khoảng 4 MB.',
+    peoplePlan: 'Mỗi thanh ngang là bề ngang màn hình, kéo để chọn chỗ người đó bắt đầu: <strong>mép trái</strong>, <strong>mép phải</strong> '
+        + 'thì đi vào từ ngoài khung (như mặc định: chàng trai từ trái, cô gái từ phải); <strong>giữa</strong> thì đứng đợi sẵn ở giữa từ '
+        + 'đầu; chỗ khác thì đứng ở đó ngắm pháo rồi đi ra giữa. Hai người cùng một chỗ thì nắm tay đi cùng nhau; cùng một phía thì '
+        + 'người tới sau đi vòng qua người kia. <strong>Ai đến trước</strong>: người đó tới giữa trước, đứng đợi người kia đúng số giây '
+        + 'đã chọn (quay ra mặt nước ngắm pháo, ngó về phía người kia sẽ tới, nhìn quanh, chàng trai gãi đầu, cô gái vén tóc), người '
+        + 'kia sắp tới thì quay sang nhìn. Có một người đứng đợi sẵn ở giữa thì người đó là người đợi. Ở bờ bên kia, hai mép là hai '
+        + 'đầu cầu (hoặc cách giữa bờ ít bước). Chàng trai luôn đứng bên trái cô gái khi hai người gặp nhau.',
     nearBank: 'Bật (mặc định): người ngắm pháo đứng ở bờ bên này, sát người xem, thấy rõ dáng người. Tắt: bỏ dải bờ bên này, '
         + 'người đứng nhỏ xa xa ở bờ bên kia, ngay dưới chỗ pháo bắn lên; bờ bên kia là <strong>cầu vòm cong</strong> hoặc '
         + '<strong>cầu nhiều vòm</strong> thì người đi lên giữa cầu theo độ vồng của mặt cầu, lan can cầu che phần dưới người. '

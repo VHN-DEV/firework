@@ -542,6 +542,41 @@
                                         <button type="button" data-people="couple" onclick="setPeople('couple')"><span class="emoji" aria-hidden="true">👫</span> Cả hai</button>
                                     </div>
                                     <small id="people-hint" class="field-hint"></small>
+                                    <!-- Cách đi vào: thanh ngang là bề ngang khung (0 mép trái, 50 đứng đợi ở giữa, 100 mép phải) -->
+                                    <div id="people-plan" class="people-plan hide">
+                                        <label>Chỗ bắt đầu<button type="button" class="help-tip" data-help="peoplePlan" aria-label="Giải thích">?</button></label>
+                                        <div class="people-start" data-person="m">
+                                            <div class="field-label-row">
+                                                <label for="people-start-m"><span class="emoji" aria-hidden="true">🧍‍♂️</span> Chàng trai</label>
+                                                <output id="out-people-start-m"></output>
+                                            </div>
+                                            <input type="range" id="people-start-m" min="0" max="100" step="5" value="0">
+                                        </div>
+                                        <div class="people-start" data-person="f">
+                                            <div class="field-label-row">
+                                                <label for="people-start-f"><span class="emoji" aria-hidden="true">🧍‍♀️</span> Cô gái</label>
+                                                <output id="out-people-start-f"></output>
+                                            </div>
+                                            <input type="range" id="people-start-f" min="0" max="100" step="5" value="100">
+                                        </div>
+                                        <div class="people-start-ticks" aria-hidden="true"><span>Mép trái</span><span>Đứng đợi ở giữa</span><span>Mép phải</span></div>
+                                        <div id="people-order" class="people-order">
+                                            <label>Ai đến trước</label>
+                                            <div class="segmented people-first" role="group" aria-label="Ai đến trước">
+                                                <button type="button" data-first="" onclick="setPeopleFirst('')">Cùng đến</button>
+                                                <button type="button" data-first="m" onclick="setPeopleFirst('m')"><span class="emoji" aria-hidden="true">🧍‍♂️</span> Nam</button>
+                                                <button type="button" data-first="f" onclick="setPeopleFirst('f')"><span class="emoji" aria-hidden="true">🧍‍♀️</span> Nữ</button>
+                                            </div>
+                                            <div id="people-wait-row">
+                                                <div class="field-label-row">
+                                                    <label for="people-wait">Người đến trước đứng đợi</label>
+                                                    <output id="out-people-wait"></output>
+                                                </div>
+                                                <input type="range" id="people-wait" min="2" max="60" step="1" value="8">
+                                            </div>
+                                        </div>
+                                        <small id="people-plan-hint" class="field-hint"></small>
+                                    </div>
                                     <label class="switch-row near-bank-row hide" for="near-bank">
                                         <span>
                                             <strong>Bờ bên này<button type="button" class="help-tip" data-help="nearBank" aria-label="Giải thích">?</button></strong>

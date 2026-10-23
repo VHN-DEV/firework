@@ -19,7 +19,7 @@ import { autoTuner, superSampler } from './quality-tuning.js';
 import { clearSkyLight, colorSky, currentSkyColor } from './sky-color.js';
 import { currentNatureScene } from './nature-scene.js';
 import { NatureSound } from '../nature/index.js';
-import { validPeople } from '../people-options.js';
+import { peoplePlan, validPeople } from '../people-options.js';
 import { SMOKE_LEVELS, appNodes, burstConfig, currentFrame, decoCanvas, decoCtx, frameH, frameW, frontCtx, horizonSelector, isRunning, mainStage, reduceFlashingSelector, scaleFactorSelector, sceneSelector, skyCanvas, skyLightingSelector, smokeCanvas, smokeCtx, speedBarOpacity, store, syncShow, trailsStage, updateGlobals, waterCtx, waterLifeFlags } from '../../script.js';
 
 // Bỏ phần tử thứ i: đưa phần tử cuối vào chỗ của nó thay vì splice (splice dồn cả mảng, hàng nghìn tia lửa tắt mỗi
@@ -74,7 +74,7 @@ export function update(frameTime, lag) {
     Decor.sync(sceneSelector(), frameW, frameH);
     Decor.update(timeStep);
     // Người ngắm pháo (chỉ khi có mặt nước)
-    People.sync(burstConfig && validPeople(burstConfig.people), frameW, frameH, !burstConfig || burstConfig.nearBank !== false);
+    People.sync(burstConfig && validPeople(burstConfig.people), frameW, frameH, !burstConfig || burstConfig.nearBank !== false, peoplePlan(burstConfig || {}));
     People.update(timeStep, { time: now(), scale: scaleFactorSelector() });
     Smoke.update(timeStep, !burstConfig || !SMOKE_LEVELS[burstConfig.smoke]);
 

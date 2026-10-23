@@ -16,7 +16,7 @@ import { refreshInspectorHeader, renderInspector, syncXYPad } from './inspector.
 import { renderMusic } from './music.js';
 import { refreshMiniPreview, stopPreviewMusic, updateMiniInfo } from './preview.js';
 import { renderSchedule, renderScreenTheme, renderStartFrames } from './settings.js';
-import { WATER_THINGS, renderScene, renderSky, renderSmoke, renderViewer } from './scene.js';
+import { WATER_THINGS, loadPeoplePlan, renderScene, renderSky, renderSmoke, renderViewer } from './scene.js';
 import { renderNotifyOpen } from './gift-watch.js';
 import { loadNatureSound } from './nature-ui.js';
 import { renderSeoControls } from './share.js';
@@ -176,6 +176,7 @@ export function createNewScript() {
         state.bank = '';
         state.people = '';
         state.nearBank = true;
+        loadPeoplePlan();
         state.floating = '';
         WATER_THINGS.forEach(key => { state[key] = true; });
         renderScene();

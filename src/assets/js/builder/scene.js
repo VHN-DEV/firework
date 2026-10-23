@@ -7,7 +7,7 @@
 // Khung cảnh: khói, sao, mây, trăng, trang trí, mùa, thời tiết, mặt nước, kiểu bờ, khi người nhận xem.
 
 import { BANK_STYLES, validBankStyle } from '../player/bank-styles.js';
-import { PEOPLE_OPTIONS, validPeople } from '../player/people-options.js';
+import { PEOPLE_MIDDLE, PEOPLE_OPTIONS, PEOPLE_START, PEOPLE_WAIT, peoplePlan, validPeople, validPeopleFirst, validPeopleStart, validPeopleWait } from '../player/people-options.js';
 import { SEASONS, seasonOfDate, validSeason, validWeather } from '../player/seasons.js';
 import { MOON_PHASES, moonFraction, moonIllumination, moonPhaseIndex } from '../player/moon.js';
 import { QUALITY_AUTO, validQuality } from '../player/quality.js';
@@ -194,6 +194,106 @@ export function setPeople(value) {
     refreshMiniPreview();
 }
 
+// Cách người ngắm pháo đi vào: chỗ bắt đầu từng người (key 'm' | 'f', phần trăm bề ngang), ai đến trước, đợi bao lâu.
+// Đang kéo thanh trượt (refresh: false) chỉ đổi chữ, thả tay mới chạy lại khung xem nhanh
+export function setPeopleStart(key, value, refresh = true) {
+    state.peopleStart = validPeopleStart({ ...state.peopleStart, [key]: value });
+    renderPeoplePlan();
+    if (refresh) refreshMiniPreview();
+}
+
+export function setPeopleFirst(value) {
+    state.peopleFirst = validPeopleFirst(value);
+    renderPeoplePlan();
+    refreshMiniPreview();
+}
+
+export function setPeopleWait(value, refresh = true) {
+    state.peopleWait = validPeopleWait(value);
+    renderPeoplePlan();
+    if (refresh) refreshMiniPreview();
+}
+
+const PERSON = { m: 'chàng trai', f: 'cô gái' };
+
+const startLabel = p => (p === 0 ? 'Đi vào từ mép trái' : p === 100 ? 'Đi vào từ mép phải' : p === PEOPLE_MIDDLE ? 'Đứng đợi sẵn ở giữa'
+    : `Đứng ở ${p}% rồi đi ra giữa`);
+
+// Mô tả ngắn cách đi vào (gợi ý dưới thanh trượt, tóm tắt nhóm)
+function peoplePlanText() {
+    const { start, first, wait } = peoplePlan(state);
+    const stand = key => start[key] === PEOPLE_MIDDLE;
+    if (state.people !== 'couple') {
+        const key = state.people === 'man' ? 'm' : 'f';
+        return stand(key) ? 'đứng sẵn ở giữa ngắm pháo từ đầu' : start[key] === PEOPLE_START[key] ? '' : startLabel(start[key]).toLowerCase();
+    }
+    if (stand('m') && stand('f')) return 'hai người đứng sẵn bên nhau ở giữa';
+    const other = first === 'm' ? 'f' : 'm';
+    if (first && stand(first)) return `${PERSON[first]} đứng đợi sẵn ở giữa, ${PERSON[other]} tới sau ${wait} giây`;
+    if (first) return `${PERSON[first]} đến trước, đứng đợi ${PERSON[other]} ${wait} giây`;
+    if (start.m === start.f) return 'hai người đi cùng nhau, nắm tay ra giữa';
+    if ((start.m < PEOPLE_MIDDLE) === (start.f < PEOPLE_MIDDLE)) return 'cùng một phía, người tới sau đi vòng qua người kia';
+    return start.m === PEOPLE_START.m && start.f === PEOPLE_START.f ? '' : 'hai người tới giữa gần như cùng lúc';
+}
+
+function renderPeoplePlan() {
+    const box = document.getElementById('people-plan');
+    if (!box) return;
+    const couple = state.people === 'couple';
+    box.classList.toggle('hide', !state.people);
+    const shown = { m: couple || state.people === 'man', f: couple || state.people === 'woman' };
+    ['m', 'f'].forEach(key => {
+        box.querySelector(`[data-person="${key}"]`).classList.toggle('hide', !shown[key]);
+        document.getElementById('people-start-' + key).value = state.peopleStart[key];
+        document.getElementById('out-people-start-' + key).textContent = startLabel(state.peopleStart[key]);
+    });
+    const plan = peoplePlan(state);
+    // Có một người đứng sẵn ở giữa thì người đó là người đợi; cả hai đứng sẵn thì không ai phải đợi
+    const standM = state.peopleStart.m === PEOPLE_MIDDLE;
+    const standF = state.peopleStart.f === PEOPLE_MIDDLE;
+    document.getElementById('people-order').classList.toggle('hide', !couple || (standM && standF));
+    document.querySelectorAll('.people-first [data-first]').forEach(btn => {
+        const on = btn.dataset.first === plan.first;
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-pressed', String(on));
+        btn.disabled = standM !== standF;
+    });
+    document.getElementById('people-wait-row').classList.toggle('hide', !plan.first);
+    document.getElementById('people-wait').value = plan.wait;
+    document.getElementById('out-people-wait').textContent = `${plan.wait} giây`;
+    const text = peoplePlanText();
+    const far = !state.nearBank && state.bank !== 'none';
+    document.getElementById('people-plan-hint').textContent = (text ? text[0].toUpperCase() + text.slice(1) + '. ' : '')
+        + (far ? 'Ở bờ bên kia, hai mép là hai đầu cầu (hoặc cách giữa bờ ít bước).' : 'Kéo ra mép thì đi vào từ ngoài khung, kéo vào giữa thì đứng đợi sẵn.');
+    scheduleSettingsSummaries();
+}
+
+// Phần ghi vào kịch bản: chỉ ghi phần khác mặc định, của người đang có trong cảnh
+export function peoplePlanConfig() {
+    if (!state.water || !state.people) return {};
+    const couple = state.people === 'couple';
+    const keys = couple ? ['m', 'f'] : [state.people === 'man' ? 'm' : 'f'];
+    const start = Object.fromEntries(keys.filter(key => state.peopleStart[key] !== PEOPLE_START[key]).map(key => [key, state.peopleStart[key]]));
+    const plan = peoplePlan(state);
+    const standM = state.peopleStart.m === PEOPLE_MIDDLE;
+    const standF = state.peopleStart.f === PEOPLE_MIDDLE;
+    return {
+        peopleStart: Object.keys(start).length ? start : undefined,
+        peopleFirst: couple && standM === standF && !standM && state.peopleFirst ? state.peopleFirst : undefined,
+        peopleWait: couple && plan.first && !(standM && standF) && plan.wait !== PEOPLE_WAIT ? plan.wait : undefined
+    };
+}
+
+// Tóm tắt nhóm: thêm cách đi vào khi khác mặc định
+export const peoplePlanSummary = () => peoplePlanText();
+
+// Kịch bản đọc vào (không có thì như trước: chàng trai từ mép trái, cô gái từ mép phải, cùng đến)
+export function loadPeoplePlan(config = {}) {
+    state.peopleStart = validPeopleStart(config.peopleStart);
+    state.peopleFirst = validPeopleFirst(config.peopleFirst);
+    state.peopleWait = validPeopleWait(config.peopleWait);
+}
+
 export function setFloating(kind) {
     state.floating = kind;
     renderScene();
@@ -213,8 +313,9 @@ export function renderScene() {
     renderBankStyles();
     const peopleHint = document.getElementById('people-hint');
     if (peopleHint) peopleHint.textContent = (PEOPLE_OPTIONS.find(p => p.value === state.people) || PEOPLE_OPTIONS[0]).hint;
-    // Bờ bên này: chỉ có ý nghĩa khi có người ngắm pháo
+    // Bờ bên này, cách đi vào: chỉ có ý nghĩa khi có người ngắm pháo
     document.querySelector('.near-bank-row')?.classList.toggle('hide', !state.people);
+    renderPeoplePlan();
     const near = document.getElementById('near-bank');
     if (near) near.checked = state.nearBank;
     const nearHint = document.getElementById('near-bank-hint');

@@ -55,23 +55,55 @@ function bodyDir(actor, r, u, f) {
 }
 
 // Đi tới hoành độ x: đi dạo (động tác walk / walkSad) theo đúng quãng tiến của chuyển động, gần tới thì chuyển sang
-// động tác dừng bước, xong thì đứng thở. Trả true khi đã đứng yên
+// động tác dừng bước, xong thì đứng thở. Trả true khi đã đứng yên. lane: đi lệch ra trước, ra sau bao nhiêu (độ sâu z,
+// để đi cạnh người kia hoặc vòng qua người đang đứng), còn vài bước (hoặc đã qua khỏi hoành độ merge) thì chéo về z (chỗ
+// đứng); turn: đang đứng trong khung thì quay người sang hướng đi rồi mới bước (ở ngoài khung thì quay ngay); speed: nhịp
+// bước (đi cùng người kia thì bước theo người chậm hơn)
 class Walker {
-    constructor(actor, x, gait = 'walk') {
+    constructor(actor, x, gait = 'walk', { z = actor.z, lane = z, turn = false, merge = null, speed = 1 } = {}) {
         this.a = actor;
         this.x = x;
+        this.z = z;
+        this.lane = lane;
+        this.merge = merge;
+        this.speed = speed;
         this.gait = gait;
-        this.state = 'walk';
+        this.dir = x > actor.x ? 1 : -1;
         this.stopDist = Math.max(0.2, actor.stride('stop').dist);
-        actor.goalYaw = actor.yaw = x > actor.x ? Math.PI / 2 : -Math.PI / 2;
-        actor.play(gait, { fade: 0.01 });
+        actor.goalYaw = this.dir * Math.PI / 2;
+        if (turn && Math.abs(actor.yaw - actor.goalYaw) > 0.35) {
+            this.state = 'turn';
+        } else {
+            actor.yaw = actor.goalYaw;
+            this.state = 'walk';
+            actor.play(gait, { fade: 0.01, speed });
+        }
+    }
+
+    // Còn bao xa (mét theo bề ngang)
+    get left() {
+        return Math.abs(this.x - this.a.x);
     }
 
     update() {
         const a = this.a;
-        const left = Math.abs(this.x - a.x);
+        if (this.state === 'turn') {
+            if (Math.abs(a.yaw - a.goalYaw) < 0.35) {
+                this.state = 'walk';
+                a.play(this.gait, { fade: 0.4, speed: this.speed });
+            }
+            return false;
+        }
+        const left = this.left;
+        if (this.state === 'walk') {
+            // Lái theo độ sâu: đi trên làn, còn chừng hơn một mét (hoặc đã qua khỏi người kia) thì chéo về chỗ đứng
+            const past = this.merge === null ? left <= this.stopDist + 1.2 : (a.x - this.merge) * this.dir >= 0;
+            const aim = past ? this.z : this.lane;
+            a.goalYaw = this.dir * (Math.PI / 2 - clamp((aim - a.z) * 1.5, -0.45, 0.45));
+        }
         if (this.state === 'walk' && left <= this.stopDist) {
             this.state = 'stop';
+            a.goalYaw = this.dir * Math.PI / 2;
             a.play('stop', { loop: false, fade: 0.35 });
         } else if (this.state === 'stop' && a.remaining < 0.4) {
             this.state = 'idle';
@@ -81,8 +113,9 @@ class Walker {
     }
 }
 
-// Thời gian đi hết quãng (để hai người tới cùng lúc)
+// Thời gian đi hết quãng (để hai người tới cùng lúc, hoặc người sau tới đúng lúc hẹn)
 function walkTime(actor, dist, gait = 'walk') {
+    if (dist < 0.05) return 0;
     const { speed } = actor.stride(gait);
     const stop = actor.stride('stop');
     return Math.max(0, dist - stop.dist) / Math.max(0.1, speed) + actor.clips.stop.duration * 0.8;
@@ -101,8 +134,11 @@ function holdPoint(m, w, h = 0.86) {
 // Cặp đôi
 // ---------------------------------------------------------------------------
 export class Duo {
-    // start: đi vào từ cách giữa bờ bao xa (mét; mặc định từ ngoài mép khung); together: hai người cùng xuất phát
-    constructor(man, woman, { halfW, umbrella, start: from, together = false }) {
+    // from: chỗ bắt đầu của từng người { m, f }: { x: mét tính từ giữa, edge: đi vào từ ngoài khung (bờ bên kia: từ đầu
+    // cầu), stand: đứng sẵn ở chỗ gặp }, mặc định từ ngoài hai mép khung; first: ai đến trước ('' cùng đến, 'm', 'f'),
+    // wait: người đến trước đứng đợi bao lâu (giây); together: cùng đến thì tới đúng cùng lúc (không thì anh tới trước
+    // chừng nửa giây, đứng nhìn cô đi lại)
+    constructor(man, woman, { halfW, umbrella, from = {}, first = '', wait = 8, together = false }) {
         this.m = man;
         this.w = woman;
         this.umbrella = umbrella;
@@ -110,27 +146,78 @@ export class Duo {
         this.t = 0;
         this.g = null;
         this.last = '';
-        const start = from ?? halfW + 0.9;
-        man.x = -start;
-        woman.x = start;
-        man.z = 0;
-        woman.z = 0.05;
-        man.yaw = man.goalYaw = Math.PI / 2;
-        woman.yaw = woman.goalYaw = -Math.PI / 2;
         this.stopM = umbrella ? -0.5 : -0.26;
         this.stopW = umbrella ? 0.56 : 0.26;
-        // Anh tới trước chừng nửa giây, đứng nhìn cô đi lại
-        const tm = walkTime(man, start + this.stopM);
-        const tw = walkTime(woman, start - this.stopW);
-        this.startM = 0.6;
-        this.startW = together ? 0.6 : Math.max(0.4, this.startM + tm - tw + 0.6);
-        man.play('idle', { fade: 0.01 });
-        woman.play('idle', { fade: 0.01 });
-        // Đứng ngoài khung chờ tới lượt
-        man.root.visible = woman.root.visible = false;
+        const edge = halfW + 0.9;
+        // Mỗi người: chỗ gặp (x, z), chỗ bắt đầu, xuất phát lúc nào (dep), đi mất bao lâu (walk), đã tới chưa
+        const plan = (a, f, x, z) => ({ a, x, z, from: f.stand ? x : f.x, edge: !!f.edge && !f.stand, arrived: !!f.stand, lane: null });
+        const rm = this.rm = plan(man, from.m || { x: -edge, edge: true }, this.stopM, 0);
+        const rw = this.rw = plan(woman, from.f || { x: edge, edge: true }, this.stopW, 0.05);
+        rm.other = rw;
+        rw.other = rm;
+        [rm, rw].forEach(r => {
+            const a = r.a;
+            a.x = r.from;
+            a.z = r.z;
+            r.dir = r.x >= r.from ? 1 : -1;
+            r.walk = r.arrived ? 0 : walkTime(a, Math.abs(r.x - r.from));
+            // Ngoài khung thì quay sẵn hướng đi, chờ tới lượt mới hiện; đứng trong khung thì quay ra mặt nước ngắm pháo
+            a.yaw = a.goalYaw = r.edge ? r.dir * Math.PI / 2 : 0;
+            a.play('idle', { fade: 0.01 });
+            a.root.visible = !r.edge;
+        });
+        // Xuất phát theo lúc tới nơi: cùng đến, hoặc người sau tới chậm hơn wait giây (người đứng sẵn ở giữa đã tới từ đầu).
+        // Cùng một chỗ, cùng đến thì đi cùng nhau
+        const gap = first === 'm' ? wait : first === 'f' ? -wait : together ? 0 : 0.6;
+        if (rm.arrived && rw.arrived) {
+            rm.dep = rw.dep = 0;
+        } else if (rm.arrived) {
+            rm.dep = 0;
+            rw.dep = Math.max(0.6, Math.max(gap, 0.6) - rw.walk);
+        } else if (rw.arrived) {
+            rw.dep = 0;
+            rm.dep = Math.max(0.6, Math.max(-gap, 0.6) - rm.walk);
+        } else if (!first && rm.dir === rw.dir && Math.abs(rm.from - rw.from) < 0.5) {
+            this.pair = true;
+            rm.dep = rw.dep = 0.6;
+            const sm = man.stride('walk').speed;
+            const sw = woman.stride('walk').speed;
+            rm.speed = Math.min(1, sw / Math.max(0.1, sm));
+            rw.speed = Math.min(1, sm / Math.max(0.1, sw));
+        } else {
+            rm.dep = 0.6;
+            rw.dep = rm.dep + rm.walk + gap - rw.walk;
+            const shift = 0.6 - Math.min(rm.dep, rw.dep);
+            if (shift > 0) {
+                rm.dep += shift;
+                rw.dep += shift;
+            }
+        }
+        // Đường đi chạm người kia (đang đứng ở chỗ bắt đầu trong khung, hay đã đứng ở chỗ gặp lúc mình đi qua): đi trên làn
+        // lệch theo độ sâu, qua khỏi người đó mới chéo về chỗ đứng. Cô luôn ở bên tay phải anh (như lúc nắm tay đi cạnh nhau)
+        const on = (r, x) => x > Math.min(r.from, r.x) - 0.35 && x < Math.max(r.from, r.x) + 0.35;
+        [rw, rm].forEach(r => {
+            const o = r.other;
+            if (r.arrived || o.lane !== null) return;
+            const blocks = [];
+            if (!o.edge && !o.arrived && o.dep > r.dep && on(r, o.from)) blocks.push(o.from);
+            if (o.dep + o.walk <= r.dep + r.walk && on(r, o.x)) blocks.push(o.x);
+            if (!blocks.length) return;
+            r.lane = r.z + (r === rw ? -r.dir : r.dir) * 0.45;
+            r.merge = r.dir > 0 ? Math.max(...blocks) + 0.3 : Math.min(...blocks) - 0.3;
+            r.a.z = r.edge ? r.lane : r.a.z;
+            // Đi cùng nhau: người đi làn ngoài nhích lên trước nửa bước, nhìn từ sau lưng không chồng khít lên người kia
+            if (this.pair) r.a.x += r.dir * 0.35;
+        });
         if (umbrella) {
             man.umbrellaDir = V(0, 1, 0);
             woman.umbrellaDir = V(0, 1, 0);
+        }
+        // Cả hai đứng sẵn ở giữa (trời quang): đã đứng cạnh nhau ngắm pháo từ đầu
+        if (rm.arrived && rw.arrived && !umbrella) {
+            man.yaw = man.goalYaw = 0.32;
+            woman.yaw = woman.goalYaw = -0.32;
+            this.phase = 'watch';
         }
     }
 
@@ -139,30 +226,63 @@ export class Duo {
         this.t = 0;
     }
 
+    // Còn bao lâu nữa người này tới chỗ gặp (giây)
+    eta(r) {
+        if (r.arrived) return 0;
+        const speed = Math.max(0.1, r.a.stride('walk').speed);
+        if (r.walker) return r.walker.left / speed;
+        return Math.max(0, r.dep - this.t) + r.walk;
+    }
+
     update(dt, env) {
-        const { m, w } = this;
+        const { m, w, rm, rw } = this;
         this.t += dt;
         const t = this.t;
+        // Tới bằng làn lệch chưa kịp về đúng chỗ đứng: nhích dần cho hai người đứng ngang nhau
+        [rm, rw].forEach(r => {
+            if (r.arrived && this.phase !== 'meet' && Math.abs(r.a.z - r.z) > 0.01) r.a.z += clamp(r.z - r.a.z, -0.25 * dt, 0.25 * dt);
+        });
         if (this.phase === 'wait' || this.phase === 'enter') {
             this.phase = 'enter';
-            if (!this.wm && t >= this.startM) {
-                this.wm = new Walker(m, this.stopM);
-                m.root.visible = true;
-            }
-            if (!this.ww && t >= this.startW) {
-                this.ww = new Walker(w, this.stopW);
-                w.root.visible = true;
-            }
-            const doneM = this.wm && this.wm.update();
-            const doneW = this.ww && this.ww.update();
-            // Vừa đi vừa ngước nhìn pháo; tới trước thì nhìn người kia đang đi lại
-            [[m, this.wm, doneM, w], [w, this.ww, doneW, m]].forEach(([a, walker, done, other]) => {
-                if (!walker) return;
-                if (done) lookAtActor(a, other, a === m ? -0.05 : 0.08);
-                else this.glance(a, dt, env);
+            [rm, rw].forEach(r => {
+                if (!r.arrived && !r.walker && t >= r.dep) {
+                    r.walker = new Walker(r.a, r.x, 'walk', { z: r.z, lane: r.lane ?? r.z, turn: r.a.root.visible, merge: r.merge, speed: r.speed });
+                    r.a.root.visible = true;
+                }
+                if (r.walker && !r.arrived && r.walker.update()) {
+                    r.arrived = true;
+                    r.g = null;
+                }
             });
             this.carry(env);
-            if (doneM && doneW) this.go('meet');
+            [rm, rw].forEach(r => {
+                const a = r.a;
+                const o = r.other;
+                if (!a.root.visible) return;
+                if (!r.arrived && !r.walker) {
+                    // Đứng chờ tới lượt đi: quay ra mặt nước, lâu lâu ngước nhìn pháo
+                    a.goalYaw = 0;
+                    this.glance(a, dt, env);
+                } else if (!r.arrived) {
+                    // Vừa đi vừa ngước nhìn pháo; người kia đã đứng đợi ở gần thì nhìn người đó
+                    if (o.arrived && Math.abs(o.a.x - a.x) < 2.5) lookAtActor(a, o.a, 0);
+                    else this.glance(a, dt, env);
+                } else if (!o.arrived && this.eta(o) > 3) {
+                    this.waiting(r, dt, env);
+                } else {
+                    // Người kia sắp tới (hoặc đang dừng bước): quay sang phía người đó, nhìn người đó
+                    if (a.clipName !== 'idle' && a.clipName !== 'stop') a.play('idle', { fade: 0.5 });
+                    a.goalYaw = r === rm ? Math.PI / 2 : -Math.PI / 2;
+                    if (o.a.root.visible) lookAtActor(a, o.a, a === m ? -0.05 : 0.08);
+                }
+            });
+            this.handInHand();
+            // Hai người đã tới: quay hẳn vào nhau rồi mới chào
+            if (rm.arrived && rw.arrived) {
+                m.goalYaw = Math.PI / 2;
+                w.goalYaw = -Math.PI / 2;
+                if (Math.abs(m.yaw - m.goalYaw) < 0.3 && Math.abs(w.yaw - w.goalYaw) < 0.3) this.go('meet');
+            }
         } else if (this.phase === 'meet') {
             lookAtActor(m, w, -0.12);
             lookAtActor(w, m, 0.16);
@@ -199,6 +319,52 @@ export class Duo {
             a.lookGoal.yaw = 0;
             a.lookGoal.pitch = -0.05;
         }
+    }
+
+    // Người tới trước đứng đợi người kia: quay ra mặt nước hơi ngoảnh về phía người kia sẽ tới, ngắm pháo, ngó về phía đó,
+    // nhìn quanh, đổi chân, chàng trai gãi đầu, cô gái vén tóc (che ô thì chỉ ngó, nhìn quanh)
+    waiting(r, dt, env) {
+        const a = r.a;
+        const o = r.other;
+        const side = Math.sign((o.a.root.visible || o.walker ? o.a.x : o.from) - a.x) || (r === this.rm ? 1 : -1);
+        a.goalYaw = side * 0.35;
+        if (!r.g || r.g.t >= r.g.dur) {
+            const options = this.umbrella ? ['sky', 'toward', 'look', 'sky', 'toward']
+                : ['sky', 'toward', 'look', 'sky', 'shift', 'toward', a.sex === 'm' ? 'scratch' : 'hair'];
+            let name = r.g ? pick(options) : 'sky';
+            if (r.g && name === r.g.name) name = pick(options);
+            const clip = { look: 'look', shift: 'idle2', scratch: 'scratch', hair: 'hair' }[name];
+            const dur = clip && a.clips[clip] ? a.clips[clip].duration : name === 'toward' ? rand(1.8, 3) : rand(3, 5.5);
+            r.g = { name, t: 0, dur, clip };
+            if (clip && a.clips[clip]) a.play(clip, { loop: false, fade: 0.6 });
+            else if (a.clipName !== 'idle') a.play('idle', { fade: 0.6 });
+        }
+        const g = r.g;
+        g.t += dt;
+        a.lookGoal.roll = 0;
+        if (g.name === 'toward') {
+            // Ngó về phía người kia sẽ tới
+            a.lookGoal.yaw = clamp(side * 1.6 - a.goalYaw, -1.1, 1.1);
+            a.lookGoal.pitch = -0.05;
+        } else if (g.clip && g.name !== 'shift') {
+            a.lookGoal.yaw = 0;
+            a.lookGoal.pitch = 0;
+        } else {
+            lookSky(a, env);
+        }
+        if (g.clip && a.clipName === g.clip && a.remaining < 0.6) a.play('idle', { fade: 0.8 });
+    }
+
+    // Đi cùng nhau (cùng một phía, sát cạnh nhau): nắm tay nhau mà đi
+    handInHand() {
+        const { m, w, rm, rw } = this;
+        if (this.umbrella || !rm.walker || !rw.walker || rm.walker.state !== 'walk' || rw.walker.state !== 'walk') return;
+        if (rm.dir !== rw.dir || Math.abs(m.x - w.x) > 0.7 || Math.abs(m.z - w.z) < 0.25) return;
+        const p = holdPoint(m, w, 0.86);
+        m.ik[1] = { target: p, pole: bodyDir(m, 0.3, -1, -0.5), tau: 0.3 };
+        w.ik[0] = { target: p, pole: bodyDir(w, -0.3, -1, -0.5), tau: 0.3 };
+        m.curlGoal[1] = 0.75;
+        w.curlGoal[0] = 0.75;
     }
 
     // Lúc đi: tay buông theo chuyển động (che ô thì tay cầm ô trước ngực)
@@ -374,20 +540,27 @@ export class Duo {
 // Một mình
 // ---------------------------------------------------------------------------
 export class Solo {
-    constructor(actor, { halfW, umbrella, start: from }) {
+    // from: chỗ bắt đầu { x: mét tính từ giữa, edge: đi vào từ ngoài khung, stand: đứng sẵn ở giữa }, mặc định chàng trai
+    // từ mép trái, cô gái từ mép phải
+    constructor(actor, { halfW, umbrella, from }) {
         this.a = actor;
         this.umbrella = umbrella;
         this.phase = 'wait';
         this.t = 0;
         this.g = null;
         this.last = '';
-        this.dir = actor.sex === 'm' ? 1 : -1;
-        const start = from ?? halfW + 0.9;
-        actor.x = -this.dir * start;
+        const edge = halfW + 0.9;
+        const f = from || { x: actor.sex === 'm' ? -edge : edge, edge: true };
+        this.dir = f.stand || Math.abs(f.x) < 0.3 ? (actor.sex === 'm' ? 1 : -1) : f.x < 0 ? 1 : -1;
+        this.edge = !!f.edge && !f.stand;
+        actor.x = f.stand ? this.dir * 0.12 : f.x;
         actor.z = 0;
-        actor.yaw = actor.goalYaw = this.dir * Math.PI / 2;
+        // Ngoài khung thì quay sẵn hướng đi, chờ tới lượt mới hiện; đứng trong khung thì quay ra mặt nước ngắm pháo
+        actor.yaw = actor.goalYaw = this.edge ? this.dir * Math.PI / 2 : this.dir * 0.1;
         actor.play('idle', { fade: 0.01 });
-        actor.root.visible = false;
+        actor.root.visible = !this.edge;
+        // Đứng sẵn ở giữa: ngắm pháo luôn
+        if (f.stand) this.phase = 'watch';
         this.umbHand = actor.sex === 'm' ? 1 : 0;
         if (umbrella) actor.umbrellaDir = V(0, 1, 0);
     }
@@ -397,8 +570,12 @@ export class Solo {
         this.t += dt;
         const t = this.t;
         if (this.phase === 'wait') {
+            if (a.root.visible) {
+                a.lookGoal.yaw = 0;
+                a.lookGoal.pitch = -0.3;
+            }
             if (t > 1) {
-                this.walker = new Walker(a, this.dir * 0.12, 'walkSad');
+                this.walker = new Walker(a, this.dir * 0.12, 'walkSad', { turn: a.root.visible });
                 a.root.visible = true;
                 this.phase = 'enter';
             }

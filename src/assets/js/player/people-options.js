@@ -14,3 +14,41 @@ export const PEOPLE_OPTIONS = [
 ];
 
 export const validPeople = value => (PEOPLE_OPTIONS.some(option => option.value && option.value === value) ? value : '');
+
+// Chỗ bắt đầu của từng người (kịch bản `peopleStart`: { m: chàng trai, f: cô gái }), phần trăm bề ngang khung theo bước
+// 5: 0, 100 là đi vào từ ngoài mép trái, mép phải; 50 là đứng đợi sẵn ở giữa từ đầu; chỗ khác thì đứng ở đó ngắm pháo
+// rồi đi ra giữa. Bờ bên kia: 0, 100 là hai đầu cầu (hoặc cách giữa bờ ít bước). Hai người cùng một phía thì đi cùng nhau.
+export const PEOPLE_START = { m: 0, f: 100 };
+export const PEOPLE_MIDDLE = 50;
+// Số hoặc chuỗi số (kịch bản sửa tay), không nhận true, null, chuỗi rỗng
+const numberOf = v => ((typeof v === 'number' || (typeof v === 'string' && v.trim())) && Number.isFinite(Number(v)) ? Number(v) : null);
+export const validPeopleStart = value => {
+    const out = { ...PEOPLE_START };
+    if (value && typeof value === 'object') {
+        ['m', 'f'].forEach(key => {
+            const n = numberOf(value[key]);
+            if (n !== null) out[key] = Math.round(Math.max(0, Math.min(100, n)) / 5) * 5;
+        });
+    }
+    return out;
+};
+
+// Ai đến trước (`peopleFirst`: '' cùng đến, 'm', 'f') và người đến trước đứng đợi bao lâu (`peopleWait`, giây). Có
+// người đứng đợi sẵn ở giữa thì người đó là người đợi
+export const PEOPLE_WAIT = 8;
+export const PEOPLE_WAIT_MIN = 2;
+export const PEOPLE_WAIT_MAX = 60;
+export const validPeopleFirst = value => (value === 'm' || value === 'f' ? value : '');
+export const validPeopleWait = value => {
+    const n = numberOf(value);
+    return n !== null ? Math.round(Math.max(PEOPLE_WAIT_MIN, Math.min(PEOPLE_WAIT_MAX, n))) : PEOPLE_WAIT;
+};
+
+// Cách đi vào của kịch bản cho trình phát: chỗ bắt đầu, ai đến trước (người đứng sẵn ở giữa tính là đến trước), đợi bao lâu
+export function peoplePlan(config = {}) {
+    const start = validPeopleStart(config.peopleStart);
+    const standM = start.m === PEOPLE_MIDDLE;
+    const standF = start.f === PEOPLE_MIDDLE;
+    const first = standM !== standF ? (standM ? 'm' : 'f') : validPeopleFirst(config.peopleFirst);
+    return { start, first, wait: validPeopleWait(config.peopleWait) };
+}

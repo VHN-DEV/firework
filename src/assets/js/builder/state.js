@@ -8,6 +8,7 @@
 
 import { resolveScreenTheme } from '../player/screen-themes.js';
 import { NATURE_VOLUME } from '../player/nature/scene.js';
+import { PEOPLE_START, PEOPLE_WAIT } from '../player/people-options.js';
 
 export const state = {
     events: [],
@@ -28,6 +29,11 @@ export const state = {
     people: '',
     // Có bờ bên này (tắt: người ngắm pháo đứng ở bờ bên kia, bờ có cầu thì đi lên giữa cầu)
     nearBank: true,
+    // Cách người ngắm pháo đi vào: chỗ bắt đầu của từng người (phần trăm bề ngang, 50 là đứng đợi sẵn ở giữa), ai đến
+    // trước ('' cùng đến, 'm', 'f'), người đến trước đợi bao lâu (giây); xem player/people-options.js
+    peopleStart: { ...PEOPLE_START },
+    peopleFirst: '',
+    peopleWait: PEOPLE_WAIT,
     // Mùa ('' hạ, 'auto' theo ngày xem, 'spring', 'autumn', 'winter') và thời tiết ('' / 'rain' / 'snow'), xem player/seasons.js
     season: '',
     weather: '',

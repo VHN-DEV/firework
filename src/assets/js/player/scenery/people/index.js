@@ -21,6 +21,7 @@ import { Weather } from '../weather.js';
 import { bankStyle } from '../bank.js';
 import { skylineCache } from '../skylines.js';
 import { drawGround, groundKind } from './ground.js';
+import { PEOPLE_MIDDLE, peoplePlan } from '../../people-options.js';
 
 // Góc nhìn hơi từ trên xuống: điểm xa hơn lên cao chừng này phần
 const TILT = 0.26;
@@ -115,9 +116,10 @@ export const People = {
         return this.stagePromise;
     },
 
-    // kind: '' | 'man' | 'woman' | 'couple'; near: có bờ bên này (tắt thì người ở bờ bên kia). Đổi người, chỗ đứng, mùa
-    // hoặc thời tiết (mưa, tuyết, tạnh) thì dựng lại (đi vào từ đầu)
-    sync(kind, cssW, cssH, near = true) {
+    // kind: '' | 'man' | 'woman' | 'couple'; near: có bờ bên này (tắt thì người ở bờ bên kia); plan: cách đi vào (chỗ bắt
+    // đầu, ai đến trước, đợi bao lâu: peoplePlan trong people-options.js). Đổi người, chỗ đứng, cách đi vào, mùa hoặc thời
+    // tiết (mưa, tuyết, tạnh) thì dựng lại (đi vào từ đầu)
+    sync(kind, cssW, cssH, near = true, plan = peoplePlan()) {
         const level = horizon();
         if (level >= 1 || !kind || !cssW || !cssH || this.failed) {
             this.show = null;
@@ -131,7 +133,7 @@ export const People = {
         const far = !near && bankStyle !== 'none';
         if (far) this.farLayout(cssW, cssH, level);
         else this.layoutFor(cssW, cssH, level);
-        const key = `${kind}_${sceneSeason()}_${sceneWeather()}_${umbrella}_${far ? `far_${bankStyle}` : 'near'}`;
+        const key = `${kind}_${sceneSeason()}_${sceneWeather()}_${umbrella}_${far ? `far_${bankStyle}` : 'near'}_${plan.start.m}_${plan.start.f}_${plan.first}_${plan.wait}`;
         if (key === this.key) return;
         this.key = key;
         this.show = null;
@@ -158,11 +160,19 @@ export const People = {
                 const halfW = this.layout.halfW;
                 this.actors = actors;
                 this.time = 0;
-                // Bờ bên kia: đi vào từ hai đầu cầu (hoặc cách giữa bờ ít bước), hiện dần, hai người cùng xuất phát
+                // Chỗ bắt đầu (phần trăm bề ngang) ra mét tính từ giữa: bờ bên này 0, 100 là ngoài hai mép khung; bờ bên kia
+                // là hai đầu cầu (hoặc cách giữa bờ ít bước), hiện dần, cùng đến thì tới cùng lúc
                 const deck = far ? this.deck() : null;
-                const start = far ? (deck ? Math.min(12, Math.max(4, (deck.to - deck.from) / 2 / this.layout.ppm + 1.2)) : 7) : undefined;
-                const opts = { halfW, umbrella, start, together: far };
-                this.show = kind === 'couple' ? new mod.Duo(actors[0], actors[1], opts) : new mod.Solo(actors[0], opts);
+                const reach = far ? (deck ? Math.min(12, Math.max(4, (deck.to - deck.from) / 2 / this.layout.ppm + 1.2)) : 7) : halfW;
+                const at = p => ({
+                    x: p === 0 ? -(far ? reach : halfW + 0.9) : p === 100 ? (far ? reach : halfW + 0.9) : (p / PEOPLE_MIDDLE - 1) * reach,
+                    edge: p === 0 || p === 100,
+                    stand: p === PEOPLE_MIDDLE
+                });
+                const from = { m: at(plan.start.m), f: at(plan.start.f) };
+                this.show = kind === 'couple'
+                    ? new mod.Duo(actors[0], actors[1], { halfW, umbrella, from, first: plan.first, wait: plan.wait, together: far })
+                    : new mod.Solo(actors[0], { halfW, umbrella, from: from[actors[0].sex] });
             });
         }).catch(e => {
             this.failed = true;

@@ -62,6 +62,55 @@
     }
 }
 
+// Cách người ngắm pháo đi vào: thanh ngang từng người, ai đến trước, đợi bao lâu (hiện khi có người)
+.people-plan {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid $b-line;
+    border-radius: 10px;
+
+    &.hide,
+    .hide {
+        display: none;
+    }
+
+    output {
+        color: $b-gold;
+        font-size: 0.78rem;
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+.people-start-ticks {
+    display: flex;
+    justify-content: space-between;
+    margin-top: -0.2rem;
+    color: $b-muted;
+    font-size: 0.7rem;
+}
+
+.people-order {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-top: 0.3rem;
+
+    &.hide {
+        display: none;
+    }
+}
+
+.segmented.people-first {
+    grid-template-columns: repeat(3, 1fr);
+
+    button:disabled {
+        opacity: 0.55;
+        cursor: default;
+    }
+}
+
 .segmented.water-floating {
     grid-template-columns: repeat(3, 1fr);
 }

@@ -23,7 +23,7 @@ import { renderMusic } from './music.js';
 import { refreshMiniPreview, stopPreviewMusic, updateMiniInfo } from './preview.js';
 import { clearDraft, markSaved } from './history.js';
 import { renderSchedule, renderScreenTheme, renderStartFrames, revealSetting } from './settings.js';
-import { WATER_LIFE_THINGS, WATER_THINGS, normalizeDecor, normalizeMoon, normalizeViewer, renderScene, renderSky, renderSmoke, renderViewer } from './scene.js';
+import { WATER_LIFE_THINGS, WATER_THINGS, loadPeoplePlan, normalizeDecor, normalizeMoon, normalizeViewer, peoplePlanConfig, renderScene, renderSky, renderSmoke, renderViewer } from './scene.js';
 import { renderNotifyOpen } from './gift-watch.js';
 import { loadNatureSound, natureSoundConfig } from './nature-ui.js';
 import { detectSeoImageAxis, getSeoImageConfig, openShareModal, renderSeoControls, scheduleSeoPreview, updateShareBar } from './share.js';
@@ -102,6 +102,7 @@ export function getFinalConfig() {
         bank: state.water && state.bank ? state.bank : undefined,
         people: state.water && state.people ? state.people : undefined,
         nearBank: state.water && state.people && !state.nearBank ? false : undefined,
+        ...peoplePlanConfig(),
         floating: state.water && state.floating ? state.floating : undefined,
         ...Object.fromEntries(WATER_THINGS.map(key => [key, state.water && !state[key] ? false : undefined])),
         viewer: Object.keys(state.viewer).length ? { ...state.viewer } : undefined,
@@ -404,6 +405,7 @@ export function loadConfigIntoState(config, filename, { migrate = true } = {}) {
     state.bank = validBankStyle(config.bank);
     state.people = validPeople(config.people);
     state.nearBank = config.nearBank !== false;
+    loadPeoplePlan(config);
     state.floating = ['lanterns', 'petals'].includes(config.floating) ? config.floating : '';
     // Kịch bản cũ ghi waterLife: false (tắt cả cò, vịt, cá, gỗ)
     WATER_THINGS.forEach(key => {

@@ -31,7 +31,7 @@ import { saveConfig } from './builder/config.js';
 import { initEditHistory, redo, undo } from './builder/history.js';
 import { setupNatureSound } from './builder/nature-ui.js';
 import { initScreenThemeControls, initSettingsGroups, previewScreen, renderSchedule, renderStartFrames, resetScreenTheme, setOpenMode, setScreenThemeField, setScreenThemePreset, setStartFrame } from './builder/settings.js';
-import { renderScene, renderSky, renderSmoke, renderViewer, setBank, setNearBank, setPeople, setClouds, setFloating, setMeteors, setMilkyWay, setMoonMode, setMoonPhase, setSeason, setSmoke, setStars, setViewerOption, setWater, setWaterStyle, setWeather, toggleDecor } from './builder/scene.js';
+import { renderScene, renderSky, renderSmoke, renderViewer, setBank, setNearBank, setPeople, setPeopleFirst, setPeopleStart, setPeopleWait, setClouds, setFloating, setMeteors, setMilkyWay, setMoonMode, setMoonPhase, setSeason, setSmoke, setStars, setViewerOption, setWater, setWaterStyle, setWeather, toggleDecor } from './builder/scene.js';
 import { createFromTemplate, openTemplatesModal, renderTemplateChips, selectOccasion, startBlankScript, updateTemplateStrip } from './builder/templates-ui.js';
 import { afterMusicStartChange, applyBeatShow, drawBeatChart, openBeatModal, setBeatDensity } from './builder/beat-ui.js';
 import { checkGiftOpens, copyTrackingLink, enableOpenNotifications, renderNotifyOpen, startGiftWatch } from './builder/gift-watch.js';
@@ -103,6 +103,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('viewer-fullscreen')?.addEventListener('change', (e) => setViewerOption('fullscreen', e.target.checked || ''));
     document.getElementById('viewer-controls')?.addEventListener('change', (e) => setViewerOption('hideControls', e.target.checked ? false : ''));
     document.getElementById('near-bank')?.addEventListener('change', (e) => setNearBank(e.target.checked));
+    // Chỗ bắt đầu, thời gian đợi của người ngắm pháo: đang kéo chỉ đổi chữ, thả tay mới chạy lại khung xem nhanh
+    ['m', 'f'].forEach(key => {
+        const input = document.getElementById('people-start-' + key);
+        input?.addEventListener('input', (e) => setPeopleStart(key, Number(e.target.value), false));
+        input?.addEventListener('change', (e) => setPeopleStart(key, Number(e.target.value)));
+    });
+    document.getElementById('people-wait')?.addEventListener('input', (e) => setPeopleWait(Number(e.target.value), false));
+    document.getElementById('people-wait')?.addEventListener('change', (e) => setPeopleWait(Number(e.target.value)));
     document.getElementById('tap-to-launch')?.addEventListener('change', (e) => {
         state.tapToLaunch = e.target.checked;
         renderViewer();
@@ -277,7 +285,7 @@ Object.assign(window, {
     resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
     togglePreviewSound, previewAsRecipient, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
-    hideModal, setBank, setPeople, setSeason, setWeather, setStartFrame, setScreenThemePreset, setScreenThemeField, resetScreenTheme, previewScreen, undo, redo, setOpenMode, setSmoke, setViewerOption, setWater, setWaterStyle, setFloating, setStars, setMilkyWay, setMeteors, setClouds, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
+    hideModal, setBank, setPeople, setPeopleFirst, setSeason, setWeather, setStartFrame, setScreenThemePreset, setScreenThemeField, resetScreenTheme, previewScreen, undo, redo, setOpenMode, setSmoke, setViewerOption, setWater, setWaterStyle, setFloating, setStars, setMilkyWay, setMeteors, setClouds, setMoonMode, setMoonPhase, toggleDecor, openLibrary, closeLibrary, setLibraryTag,
     toggleLibraryPreview, chooseLibraryItem, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
     openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, createVideo, downloadVideo, shareVideo,
     restartVideo, setTimelineView, zoomTrack, copyTrackingLink, enableOpenNotifications, checkGiftOpens,
