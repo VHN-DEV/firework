@@ -10,7 +10,7 @@ import MyMath from '../../MyMath.js';
 import { IS_MOBILE } from '../env.js';
 import { horizon, isLowQuality, season as sceneSeason } from '../state.js';
 import { validBankStyle } from '../bank-styles.js';
-import { hash } from './util.js';
+import { fireLight, hash, litCanvas } from './util.js';
 import { fallingLeafSprite, floatLanternSprite, moundSprite, padSprite, rockSprite, seasonSprite, setSpriteRes, warmWaterSprites } from './water-sprites.js';
 import { WaterLife } from './water-life.js';
 import { drawFlowMarks, drawLightStreak, drawReflection, drawSubmerged, iceSheet, steerAround } from './water-fx.js';
@@ -301,26 +301,27 @@ export const Water = {
         }
         ctx.restore();
 
-        // 6. Bờ đất: bóng của bờ in ngay dưới chân bờ, rồi tới bờ (pháo rọi màu lên bờ)
+        // 6. Bờ đất: bóng của bờ in ngay dưới chân bờ, rồi tới bờ. Pháo rọi lên bờ và bóng bờ như lên cầu, nhà, cây ở lớp
+        //    bầu trời (cùng một độ sáng, theo màu của vật)
         const bank = bankSprite(W, bankPx, k, bankStyle, sceneSeason());
-        ctx.globalCompositeOperation = 'source-over';
+        const light = fireLight(sky);
+        const bankLayer = (src, mode) => {
+            ctx.globalCompositeOperation = mode;
+            ctx.save();
+            ctx.globalAlpha = 0.4;
+            ctx.translate(0, surf);
+            ctx.scale(1, -1);
+            ctx.drawImage(src, 0, 0, W, bankPx, 0, -bankPx, W, bankPx);
+            ctx.restore();
+            ctx.globalAlpha = 1;
+            ctx.drawImage(src, 0, 0, W, bankPx, 0, top, W, bankPx);
+        };
         // Cầu đá: trong khoảng cầu là chân cầu, không vẽ bờ
         if (gapX) clipGap();
-        ctx.save();
-        ctx.globalAlpha = 0.4;
-        ctx.translate(0, surf);
-        ctx.scale(1, -1);
-        ctx.drawImage(bank.canvas, 0, 0, W, bankPx, 0, -bankPx, W, bankPx);
-        ctx.restore();
+        bankLayer(bank.canvas, 'source-over');
+        if (light) bankLayer(litCanvas(bank.canvas, light), 'lighter');
+        ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
-        ctx.drawImage(bank.canvas, 0, top);
-        if (sky.r + sky.g + sky.b > 6) {
-            ctx.globalCompositeOperation = 'lighter';
-            ctx.globalAlpha = 0.5;
-            ctx.fillStyle = `rgb(${sky.r * 0.22 | 0}, ${sky.g * 0.22 | 0}, ${sky.b * 0.22 | 0})`;
-            ctx.fillRect(0, top, W, bankPx);
-            ctx.globalCompositeOperation = 'source-over';
-        }
         if (gapX) ctx.restore();
         // Cầu đá: chân cầu (lớp bầu trời vẽ, ánh pháo rọi lên như phần trên cầu; ở đây khoét mặt nước cho lộ ra), bóng chân
         // cầu ngay dưới mép nước như bóng kè; trong lòng vòm thấy mặt nước phía xa sau cầu, sáng như trời sát chân trời
@@ -330,11 +331,11 @@ export const Water = {
             const fy = footLayer.up * fk;
             const fh = Math.min(footLayer.canvas.height - fy, bankPx / k * fk);
             const dw = fw / fk * k;
-            const flipped = () => {
+            const flipped = (src = footLayer.canvas, sy = fy) => {
                 ctx.save();
                 ctx.translate(0, surf);
                 ctx.scale(1, -1);
-                ctx.drawImage(footLayer.canvas, 0, fy, fw, fh, 0, -bankPx, dw, bankPx);
+                ctx.drawImage(src, 0, sy, fw, fh, 0, -bankPx, dw, bankPx);
                 ctx.restore();
             };
             ctx.save();
@@ -362,6 +363,12 @@ export const Water = {
             ctx.globalCompositeOperation = 'source-over';
             ctx.globalAlpha = 0.4;
             flipped();
+            // Bóng chân cầu sáng theo ánh pháo như bóng kè hai bên
+            if (light) {
+                ctx.globalCompositeOperation = 'lighter';
+                flipped(litCanvas(footLayer.canvas, light, 0, fy, fw, fh), 0);
+                ctx.globalCompositeOperation = 'source-over';
+            }
             ctx.restore();
         }
         if (bankStyle === 'sand') drawBeachFoam(ctx, W, surf, k, time, calm);

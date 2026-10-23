@@ -8,7 +8,7 @@
 
 import { IS_MOBILE } from '../env.js';
 import { season as sceneSeason } from '../state.js';
-import { fireflyGlow, hash } from './util.js';
+import { fireLight, fireLit, fireflyGlow, hash } from './util.js';
 import { BANK_SEASONS, bankDip, bankStyle } from './bank.js';
 import { drawStyledSkyline } from './skylines.js';
 import { makeCanvas, seededRandom } from '../utils.js';
@@ -239,21 +239,29 @@ export function drawBankSkyline(ctx, cssW, ground, clock, calm, glow, drop) {
     const k = ctx.getTransform().a || 1;
     const still = bankStill(life, cssW, k);
     const atlas = tuftAtlas(life, k);
-    ctx.save();
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.globalAlpha = 1;
-    // Đúng lưới điểm ảnh thật (chân trời thường lẻ nửa điểm ảnh): lệch thì cỏ, bụi cây vẽ sẵn bị nhòe
-    ctx.drawImage(still, 0, Math.round((ground - BANK_STILL_UP) * k) / k, still.width / k, still.height / k);
     const cellW = TUFT_W * k;
     const cellH = TUFT_H * k;
-    life.tufts.forEach(tuft => {
+    const steps = life.tufts.map(tuft => {
         const gust = Math.pow(0.5 + 0.5 * Math.sin(tuft.x * 0.006 - clock * 0.0007), 3);
         const sway = calm ? 0.15 : Math.sin(clock * 0.0017 + tuft.x * 0.03 + tuft.phase) * 0.3 + gust * 1.1
             + Math.sin(clock * 0.0041 + tuft.phase * 3) * 0.1;
-        const step = Math.round(Math.min(1, Math.max(0, (sway - TUFT_SWAY[0]) / (TUFT_SWAY[1] - TUFT_SWAY[0]))) * (TUFT_STEPS - 1));
-        ctx.drawImage(atlas, step * cellW, tuft.template * cellH, cellW, cellH,
-            tuft.x - TUFT_W / 2, ground + tuft.base - (TUFT_H - TUFT_FOOT), TUFT_W, TUFT_H);
+        return Math.round(Math.min(1, Math.max(0, (sway - TUFT_SWAY[0]) / (TUFT_SWAY[1] - TUFT_SWAY[0]))) * (TUFT_STEPS - 1));
     });
+    const plants = g => {
+        // Đúng lưới điểm ảnh thật (chân trời thường lẻ nửa điểm ảnh): lệch thì cỏ, bụi cây vẽ sẵn bị nhòe
+        g.drawImage(still, 0, Math.round((ground - BANK_STILL_UP) * k) / k, still.width / k, still.height / k);
+        life.tufts.forEach((tuft, i) => {
+            g.drawImage(atlas, steps[i] * cellW, tuft.template * cellH, cellW, cellH,
+                tuft.x - TUFT_W / 2, ground + tuft.base - (TUFT_H - TUFT_FOOT), TUFT_W, TUFT_H);
+        });
+    };
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    plants(ctx);
+    // Ánh pháo rọi lên cỏ, lau, bụi cây như lên vách đất ở lớp mặt nước
+    const light = fireLight(glow);
+    if (light) fireLit(ctx, light, ground - TUFT_H, TUFT_H + 8, plants);
     const flyGlow = fireflyGlow();
     ctx.globalCompositeOperation = 'lighter';
     life.flies.forEach(fly => {

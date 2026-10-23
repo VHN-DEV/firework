@@ -8,7 +8,7 @@
 // mỗi khung kèm cây, đèn.
 
 import { season as sceneSeason } from '../state.js';
-import { radialGlow, snowCap, tintCanvas } from './util.js';
+import { fireLight, fireLit, radialGlow, snowCap } from './util.js';
 import { bankStyle } from './bank.js';
 import { drawSwayingTrees, treeAtlas } from './trees.js';
 import { LANTERN_COLORS, archGeometry, archRing, drawLampPost, drawRailing, drawShophouse, lanternSprites, stoneFacing } from './skyline-parts.js';
@@ -17,8 +17,8 @@ import { makeCanvas, seededRandom } from '../utils.js';
 
 // Phần nhô lên trời của từng kiểu bờ. build: vẽ phần đứng yên (g) và ánh đèn đứng yên (gl, cộng sáng), trả dữ liệu cho
 // phần chuyển động; before: vẽ mỗi khung trước phần đứng yên (cây đung đưa phía sau lan can, cầu); frame: vẽ mỗi khung
-// sau phần đứng yên; lights: vẽ mỗi khung, cộng sáng (đèn đổi màu); up(ground, sz): cao bao nhiêu trên chân trời (mặc
-// định 120 * sz)
+// sau phần đứng yên (selfLit: frame vẽ đèn tự sáng, ánh pháo không rọi lên); lights: vẽ mỗi khung, cộng sáng (đèn đổi
+// màu); up(ground, sz): cao bao nhiêu trên chân trời (mặc định 120 * sz)
 const BANK_SKYLINES = {
     brick: {
         build(g, gl, { cssW, sz, rnd }) {
@@ -111,6 +111,7 @@ const BANK_SKYLINES = {
             }
             return { lanterns };
         },
+        selfLit: true,
         frame(ctx, layer, { ground, clock, calm, k }) {
             const list = lanternSprites(layer.sz, k);
             const sz = layer.sz;
@@ -352,17 +353,6 @@ function skylineLayer(style, cssW, ground, k, drop) {
     return skylineCache;
 }
 
-// Ánh pháo rọi lên cầu, nhà, cây: lúc trời sáng lên theo màu pháo thì cộng thêm màu đó lên phần đứng yên
-function litByFireworks(ctx, sprite, x, y, w, h, glow) {
-    if (!glow || glow.r + glow.g + glow.b < 4) return;
-    const tmp = tintCanvas(sprite, `rgb(${Math.min(255, glow.r * 2.2) | 0}, ${Math.min(255, glow.g * 2.2) | 0}, ${Math.min(255, glow.b * 2.2) | 0})`);
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.9;
-    ctx.drawImage(tmp, 0, 0, sprite.width, sprite.height, x, y, w, h);
-    ctx.restore();
-}
-
 // Vẽ phần nhô lên trời của kiểu bờ khác ở lớp bầu trời (ground: chân trời, điểm ảnh CSS)
 export function drawStyledSkyline(ctx, cssW, ground, clock, calm, glow, drop) {
     const style = BANK_SKYLINES[bankStyle];
@@ -375,13 +365,19 @@ export function drawStyledSkyline(ctx, cssW, ground, clock, calm, glow, drop) {
     // ảnh (mạch đá, lan can, mái nhà) tách thành hai hàng mờ
     const y0 = Math.round((ground - layer.up) * k) / k;
     const opts = { ground, clock, calm, cssW, k };
+    const props = g => {
+        if (style.before) style.before(g, layer, opts);
+        g.drawImage(layer.canvas, 0, y0, w, h);
+        if (style.frame && !style.selfLit) style.frame(g, layer, opts);
+    };
     ctx.save();
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
-    if (style.before) style.before(ctx, layer, opts);
-    ctx.drawImage(layer.canvas, 0, y0, w, h);
-    litByFireworks(ctx, layer.canvas, 0, y0, w, h, glow);
-    if (style.frame) style.frame(ctx, layer, opts);
+    props(ctx);
+    // Ánh pháo rọi lên cầu, nhà, cây như lên kè, bờ đất ở lớp mặt nước (đèn lồng tự sáng vẽ sau, không rọi)
+    const light = fireLight(glow);
+    if (light) fireLit(ctx, light, y0, h, props);
+    if (style.frame && style.selfLit) style.frame(ctx, layer, opts);
     ctx.globalCompositeOperation = 'lighter';
     ctx.drawImage(layer.glow, 0, y0, w, h);
     if (style.lights) style.lights(ctx, layer, opts);

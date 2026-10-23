@@ -134,6 +134,73 @@ export function tintCanvas(src, color) {
     return tintCache;
 }
 
+// Ánh pháo rọi lên cảnh vật bên kia mặt nước (cầu, nhà, kè, bờ đất, cây, cỏ và bóng của chúng dưới nước): vật sáng thêm
+// theo chính màu của nó nhân màu ánh pháo như ngoài đời (mặt đá sáng nhiều; mạch vữa, khe tối, lá cây sẫm sáng ít), mọi
+// vật cùng tầm xa sáng lên như nhau. sky: màu trời đang ửng theo pháo; trả màu ánh pháo, null khi trời chưa sáng tới mức
+// thấy được
+const FIRE_LIGHT = 5.5;
+
+export function fireLight(sky) {
+    if (!sky || sky.r + sky.g + sky.b < 4) return null;
+    return `rgb(${Math.min(255, sky.r * FIRE_LIGHT) | 0}, ${Math.min(255, sky.g * FIRE_LIGHT) | 0}, ${Math.min(255, sky.b * FIRE_LIGHT) | 0})`;
+}
+
+// Phần ánh pháo hắt lên ảnh src (vùng sx, sy, sw, sh, điểm ảnh thật) vào canvas tạm dùng chung, để cộng sáng ngay lên chỗ
+// đã vẽ ảnh. Lót đen trước khi nhân màu: mép mờ của vật (lá cây, ngọn cỏ) không hóa viền sáng màu pháo
+let litCache = null;
+
+export function litCanvas(src, light, sx = 0, sy = 0, sw = src.width, sh = src.height) {
+    if (!litCache) litCache = document.createElement('canvas');
+    if (litCache.width < sw || litCache.height < sh) {
+        litCache.width = Math.max(litCache.width, sw);
+        litCache.height = Math.max(litCache.height, sh);
+    }
+    const g = litCache.getContext('2d');
+    g.globalCompositeOperation = 'copy';
+    g.fillStyle = '#000';
+    g.fillRect(0, 0, sw, sh);
+    g.globalCompositeOperation = 'source-over';
+    g.drawImage(src, sx, sy, sw, sh, 0, 0, sw, sh);
+    g.globalCompositeOperation = 'multiply';
+    g.fillStyle = light;
+    g.fillRect(0, 0, sw, sh);
+    g.globalCompositeOperation = 'destination-in';
+    g.drawImage(src, sx, sy, sw, sh, 0, 0, sw, sh);
+    g.globalCompositeOperation = 'source-over';
+    return litCache;
+}
+
+// Rọi ánh pháo lên các vật paint(g) vẽ (cây, cầu, nhà, cỏ đung đưa) trong dải từ top, cao height (điểm ảnh CSS) của ctx:
+// vẽ lại vào canvas tạm cùng hệ tọa độ rồi cộng phần ánh pháo hắt lên
+let paintCache = null;
+
+export function fireLit(ctx, light, top, height, paint) {
+    const k = ctx.getTransform().a || 1;
+    const W = ctx.canvas.width;
+    const y = Math.round(top * k);
+    const H = Math.ceil(height * k);
+    if (!W || H <= 0) return;
+    if (!paintCache) paintCache = document.createElement('canvas');
+    if (paintCache.width < W || paintCache.height < H) {
+        paintCache.width = Math.max(paintCache.width, W);
+        paintCache.height = Math.max(paintCache.height, H);
+    }
+    const g = paintCache.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalCompositeOperation = 'source-over';
+    g.globalAlpha = 1;
+    g.clearRect(0, 0, W, H);
+    g.setTransform(k, 0, 0, k, 0, -y);
+    paint(g);
+    const lit = litCanvas(paintCache, light, 0, 0, W, H);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 1;
+    ctx.drawImage(lit, 0, 0, W, H, 0, y, W, H);
+    ctx.restore();
+}
+
 // Ảnh vẽ từng điểm ảnh (khúc gỗ, đá, gò đất) tốn vài chục mili giây mỗi ảnh nên dựng thành từng đoạn: cần ngay thì
 // dựng một mạch, còn lại dựng dần lúc máy rảnh (warmWaterSprites) để vật mới trôi vào không làm khựng khung hình
 export function built(key, make) {
