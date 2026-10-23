@@ -89,7 +89,7 @@ export const People = {
     // Tải sẵn phần dựng hình và nhân vật (dựng video chờ xong mới bắt đầu ghi)
     prepare(kind) {
         if (!kind || this.failed) return Promise.resolve();
-        return this.load().then(mod => mod && Promise.all(this.castOf(kind).map(mod.loadCastFor))).catch(() => {});
+        return this.load().then(mod => mod && this.stage.prepare(this.castOf(kind))).catch(() => {});
     },
 
     castOf(kind) {
@@ -139,8 +139,7 @@ export const People = {
         this.load().then(mod => {
             if (!mod || this.token !== token) return null;
             return this.stage.cast(this.castOf(kind)).then(actors => {
-                if (this.token !== token) return;
-                const halfW = this.layout.halfW;
+                if (this.token !== token) return null;
                 if (umbrella) {
                     actors.forEach(a => {
                         this.stage.umbrellaFor(a, a.sex);
@@ -148,6 +147,11 @@ export const People = {
                         a.umbrellaGrip = 0;
                     });
                 }
+                // Dịch sẵn shader rồi mới cho người bước vào
+                return this.stage.warm().then(() => actors);
+            }).then(actors => {
+                if (!actors || this.token !== token || !this.layout) return;
+                const halfW = this.layout.halfW;
                 this.actors = actors;
                 this.time = 0;
                 // Bờ bên kia: đi vào từ hai đầu cầu (hoặc cách giữa bờ ít bước), hiện dần, hai người cùng xuất phát

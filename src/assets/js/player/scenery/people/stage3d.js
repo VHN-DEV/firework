@@ -98,7 +98,23 @@ function loadCast(sex) {
             VRMUtils.combineSkeletons(gltf.scene);
             mergePrimitives(vrm);
             vrm.scene.traverse(o => {
-                if (o.isMesh) o.frustumCulled = false;
+                if (!o.isMesh) return;
+                o.frustumCulled = false;
+                // Khung bao của lưới có xương: three.js tự tính một lần (đưa từng đỉnh qua xương, ~20 ms mỗi nhân vật, khựng
+                // lúc vẽ lần đầu) rồi giữ nguyên dù người cử động; lấy luôn khung bao tư thế gốc của hình học, rẻ hơn nhiều
+                if (o.isSkinnedMesh) {
+                    // Chỉ số xương kiểu số nguyên (glTF JOINTS_0, Uint16): WebGL trên Direct3D (ANGLE, Windows) phải dịch
+                    // thêm biến thể shader ngay lần vẽ đầu, trên luồng GPU (~0,4 giây khựng lúc người bước vào); số thực
+                    // thì dùng luôn bản đã dịch sẵn
+                    const joints = o.geometry.getAttribute('skinIndex');
+                    if (joints && !(joints.array instanceof Float32Array)) {
+                        o.geometry.setAttribute('skinIndex', new THREE.BufferAttribute(Float32Array.from(joints.array), joints.itemSize));
+                    }
+                    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+                    if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+                    o.boundingBox = o.geometry.boundingBox.clone();
+                    o.boundingSphere = o.geometry.boundingSphere.clone();
+                }
             });
             return { vrm, clips: buildClips(vrm, moves) };
         });
@@ -106,9 +122,6 @@ function loadCast(sex) {
     }
     return loaded[sex];
 }
-
-// Tải sẵn một nhân vật ('m' | 'f')
-export const loadCastFor = sex => loadCast(sex);
 
 export class Stage3D {
     constructor() {
@@ -128,6 +141,9 @@ export class Stage3D {
             this.canvas = document.createElement('canvas');
             this.renderer = make(this.canvas);
         }
+        // Không đọc nhật ký dịch shader lúc dùng lần đầu (mỗi lần đọc chờ một vòng tiến trình GPU ~50 ms, khựng lúc người
+        // bước vào); shader cố định đã chạy đúng, three.js khuyên tắt ở bản chạy thật
+        this.renderer.debug.checkShaderErrors = false;
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.setClearColor(0x000000, 0);
         this.scene = new THREE.Scene();
@@ -217,19 +233,44 @@ export class Stage3D {
         });
     }
 
+    // Dịch sẵn shader của mọi vật trong cảnh, song song (trình duyệt có KHR_parallel_shader_compile thì không chặn khung
+    // hình): để three.js dịch lúc vẽ lần đầu thì cả trang khựng hơn một giây (MToon nhiều biến thể, viền nét) đúng lúc
+    // người bước vào
+    warm() {
+        return this.renderer.compileAsync(this.scene, this.camera).catch(() => {});
+    }
+
+    // Tải sẵn các nhân vật ('m', 'f') và dịch sẵn shader của họ theo đúng cảnh (đèn) sẽ đứng vào, trong lúc người xem còn
+    // ở màn mở quà: lúc màn pháo bắt đầu không còn phải dịch. Cấp sẵn cả lớp dựng hình cỡ thường gặp (rộng bằng màn hình,
+    // cao nửa màn hình): cấp phát lúc người bước vào chờ tiến trình GPU ~0,1 giây
+    prepare(list) {
+        if (!this.allocated) {
+            const dpr = window.devicePixelRatio || 1;
+            this.allocated = true;
+            this.renderer.setPixelRatio(1);
+            this.renderer.setSize(Math.ceil(window.innerWidth * dpr), Math.ceil(window.innerHeight * dpr * 0.5 / 128) * 128, false);
+        }
+        return Promise.all(list.map(loadCast))
+            .then(cast => Promise.all(cast.map(({ vrm }) => this.renderer.compileAsync(vrm.scene, this.camera, this.scene))))
+            .catch(() => {});
+    }
+
     // Chỉ dựng vùng quanh nhân vật (x, y, w, h: điểm ảnh thật của khung, số nguyên), đặt ở góc trên trái lớp dựng hình:
     // dựng cả khung (vd 1920×1080, khử răng cưa 4 lần) tốn công card đồ họa, bộ nhớ gấp nhiều lần mà chỉ dùng một góc
-    // nhỏ. Lớp dựng hình chỉ nới theo bậc 128 điểm ảnh, thu lại khi rộng quá xa, không cấp phát lại mỗi khung
+    // nhỏ. Mỗi lần đổi cỡ lớp dựng hình phải cấp phát lại bộ đệm khử răng cưa (khựng vài chục mili giây) nên cấp một lần
+    // cho đủ: rộng bằng khung (người đi vào từ hai mép), cao dư 1,5 lần vùng cần; không thu lại
     render(x, y, w, h) {
         const c = this.canvas;
-        if (c.width < w || c.height < h || c.width * c.height > 4 * Math.max(w * h, 128 * 128)) {
+        const { cssW, cssH } = this.view;
+        const k = this.size.k;
+        const fullW = Math.ceil(cssW * k);
+        if (!this.allocated || c.width < Math.max(w, fullW) || c.height < h) {
+            this.allocated = true;
             this.renderer.setPixelRatio(1);
-            this.renderer.setSize(Math.ceil(w / 128) * 128, Math.ceil(h / 128) * 128, false);
+            this.renderer.setSize(Math.max(c.width, fullW), Math.min(Math.ceil(cssH * k), Math.max(c.height, Math.ceil(h * 1.5 / 128) * 128)), false);
         }
         // Khung nhìn WebGL tính từ đáy lên
         this.renderer.setViewport(0, c.height - h, w, h);
-        const { cssW, cssH } = this.view;
-        const k = this.size.k;
         this.camera.setViewOffset(cssW * k, cssH * k, x, y, w, h);
         this.renderer.render(this.scene, this.camera);
         this.camera.clearViewOffset();
