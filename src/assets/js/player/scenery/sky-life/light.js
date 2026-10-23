@@ -8,13 +8,13 @@
 // theo màu, nhạt dần ra ngoài; vẽ cộng sáng (lighter) như ánh sáng thật chồng lên nhau.
 
 import { makeCanvas } from '../../utils.js';
-import { sprites } from '../util.js';
+import { SPRITE_OPTS, sprites } from '../util.js';
 
 export function glowSprite(rgb) {
     const key = 'glow:' + rgb;
     if (sprites[key]) return sprites[key];
     const size = 64;
-    const [c, g] = makeCanvas(size, size);
+    const [c, g] = makeCanvas(size, size, SPRITE_OPTS);
     const [r0, g0, b0] = rgb.split(',').map(Number);
     const core = `${Math.round(r0 + (255 - r0) * 0.75)}, ${Math.round(g0 + (255 - g0) * 0.75)}, ${Math.round(b0 + (255 - b0) * 0.75)}`;
     const grad = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);

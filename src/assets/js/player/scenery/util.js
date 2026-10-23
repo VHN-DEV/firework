@@ -19,8 +19,13 @@ export const hash = n => {
 // và mức vẽ dư, vẽ ra không bị phóng to (nhòe)
 const SPRITE_HD = 4;
 
+// Ảnh vẽ sẵn nằm ở bộ nhớ thường (không phải card đồ họa): vẽ thu nhỏ mịn (imageSmoothingQuality 'medium', cần mipmap) từ
+// canvas trên card đồ họa thì mỗi lần vẽ Chrome phải chép cả ảnh ra một bản có mipmap (vài chục lần mỗi khung với đèn trời,
+// khinh khí cầu, ~1 ms mỗi lần trên card tích hợp); ảnh ở bộ nhớ thường được tải lên một lần, dựng mipmap một lần rồi dùng lại
+export const SPRITE_OPTS = { willReadFrequently: true };
+
 export const hdSprite = (w, h) => {
-    const [c, g] = makeCanvas(w * SPRITE_HD, h * SPRITE_HD);
+    const [c, g] = makeCanvas(w * SPRITE_HD, h * SPRITE_HD, SPRITE_OPTS);
     g.scale(SPRITE_HD, SPRITE_HD);
     return [c, g];
 };

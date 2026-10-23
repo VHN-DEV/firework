@@ -12,7 +12,7 @@
 // thỉnh thoảng một vệ tinh lặng lẽ trôi qua. Tọa độ điểm ảnh CSS, gốc ở đỉnh khung.
 
 import { makeCanvas } from '../utils.js';
-import { fbm, makeNoise, rand, smooth01 } from './util.js';
+import { SPRITE_OPTS, fbm, makeNoise, rand, smooth01 } from './util.js';
 
 // Màu sao theo nhiệt độ: [r, g, b, tỉ lệ gặp]
 const STAR_TINTS = [
@@ -71,7 +71,7 @@ function starSprite(rgb, k) {
     let sprite = starSprites.get(key);
     if (sprite) return sprite;
     const size = Math.max(8, Math.ceil(SPRITE_CSS * k));
-    const [c, g] = makeCanvas(size, size);
+    const [c, g] = makeCanvas(size, size, SPRITE_OPTS);
     const r = size / 2;
     const [cr, cg, cb] = rgb.split(',').map(Number);
     const core = `${Math.round(cr + (255 - cr) * 0.7)}, ${Math.round(cg + (255 - cg) * 0.7)}, ${Math.round(cb + (255 - cb) * 0.7)}`;
