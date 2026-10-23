@@ -226,7 +226,18 @@ let trailFadeAmount = 0;
 const GLOW_TAIL = 40;
 let glowTail = 0;
 
+// Đã vẽ khung đầu tiên (các module, lớp vẽ đã sẵn sàng)
+let rendered = false;
+
+// Đang tạm dừng (mở menu Cài đặt, bấm tạm dừng) mà các lớp vừa bị đặt lại cỡ, tức bị xóa trắng (đổi chất lượng, đổi cỡ cửa
+// sổ): vẽ lại một khung tại chỗ, thời gian không chạy tiếp. Không thì cảnh sau lớp menu đen cho tới khi chạy lại
+export function repaintPaused() {
+    if (!rendered || isRunning() || recording.active) return;
+    render(0);
+}
+
 function render(speed) {
+    rendered = true;
     const { dpr } = mainStage;
     const width = stageW;
     const height = stageH;

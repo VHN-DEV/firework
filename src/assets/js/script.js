@@ -32,7 +32,7 @@ import { getProcessedImage, imageParticleCache } from './player/image-burst.js';
 import { imageCacheKey } from './player/image-frame.js';
 import { Shell } from './player/shell.js';
 import { SMOKE_RESOLUTION } from './player/smoke.js';
-import { People, WATER_RESOLUTION, setSceneSoundListener } from './player/scenery/index.js';
+import { Decor, People, Water, WATER_RESOLUTION, setSceneSoundListener } from './player/scenery/index.js';
 import { NatureSound } from './player/nature/index.js';
 import { resolveSeason, validWeather } from './player/seasons.js';
 import { MOON_PHASES, moonFraction } from './player/moon.js';
@@ -50,7 +50,7 @@ import { buildEventShot, buildSyncTimeline, estimateFlightTime, isMusicSynced, i
 import { handleKeydown, handlePointerEnd, handlePointerMove, handlePointerStart, isUpdatingSpeed, menuOpenedByCornerAt } from './player/app/input.js';
 import { AUTO_QUALITY_START, applyQualityLimits, autoQuality, renderQualityLabel, superSampler } from './player/app/quality-tuning.js';
 import { applyViewerDefaults } from './player/app/viewer-defaults.js';
-import { update } from './player/app/render-loop.js';
+import { repaintPaused, update } from './player/app/render-loop.js';
 import { currentNatureScene, natureSceneOf } from './player/app/nature-scene.js';
 
 // Assign to window for global access (needed by HTML and other scripts)
@@ -1560,13 +1560,21 @@ export function handleResize() {
     waterCanvas.height = Math.round(containerH * waterScale);
     waterCanvas.style.width = containerW + 'px';
     waterCanvas.style.height = containerH + 'px';
-    frontCanvas.width = Math.round(containerW * waterScale);
-    frontCanvas.height = Math.round(containerH * waterScale);
+    // Người ngắm pháo (và bờ bên này) luôn nét như trăng, sao, kể cả khi 480p trở xuống vẽ mặt nước thưa: mắt người xem dừng
+    // ở hai nhân vật, kéo giãn lớp nửa độ phân giải thì nhòe hẳn; chỉ dựng vùng quanh người nên không nặng thêm bao nhiêu
+    frontCanvas.width = Math.round(containerW * decoScale);
+    frontCanvas.height = Math.round(containerH * decoScale);
     frontCanvas.style.width = containerW + 'px';
     frontCanvas.style.height = containerH + 'px';
+    // Các lớp vừa đặt lại cỡ là lớp trống: khung tới phải vẽ lại ngay. Ở 480p trở xuống chúng vẽ cách một khung, bỏ đúng
+    // khung tới thì cả nửa dưới màn hình (bờ, mặt nước, người) nháy đen lúc "Tự động" đổi mức chất lượng
+    Decor.drawn = false;
+    Water.drawn = false;
+    People.drawn = false;
     // Tính đến quy mô
     const scaleFactor = scaleFactorSelector();
     setStageSize(containerW / scaleFactor, containerH / scaleFactor);
+    repaintPaused();
 }
 
 // Tính kích thước ban đầu
