@@ -11,7 +11,7 @@ import { now } from '../clock.js';
 import { normalizeAssetPath } from '../utils.js';
 import { soundManager } from '../audio.js';
 import { frameText } from '../start-frames.js';
-import { appNodes, burstConfig, decoCanvas, frontCanvas, mainStage, smokeCanvas, trailsStage, waterCanvas } from '../../script.js';
+import { appNodes, burstConfig, decoCanvas, frontCanvas, mainStage, skyCanvas, smokeCanvas, trailsStage, waterCanvas } from '../../script.js';
 
 // Chờ trước phát pháo đầu tiên, và thời gian thiệp lời chúc ở cuối video (ms)
 export const RECORD_LEAD = 800;
@@ -90,7 +90,7 @@ export function frameSources() {
     return {
         container: appNodes.stageContainer,
         background: appNodes.backgroundImage,
-        layers: [decoCanvas, smokeCanvas, trailsStage.canvas, mainStage.canvas, waterCanvas],
+        layers: [skyCanvas, decoCanvas, smokeCanvas, trailsStage.canvas, mainStage.canvas, waterCanvas],
         front: [frontCanvas],
         texts: () => [...document.querySelectorAll('.config-overlay h1, .config-overlay h2, .config-overlay p, .caption-layer .caption')]
     };

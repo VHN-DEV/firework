@@ -4,12 +4,27 @@
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
 
-// Màu trời sáng lên theo pháo đang nổ.
+// Màu trời sáng lên theo pháo đang nổ: một phần sáng đều cả trời (ánh sáng tán trong không khí, màu nền khung), phần còn
+// lại là vầng sáng quanh chỗ nổ (sky-light.js). currentSkyColor: độ sáng chung của cả trời, cho khói, người ngắm pháo,
+// mưa tuyết.
 
-import { INVISIBLE } from '../env.js';
+import { INVISIBLE, QUALITY_HIGH } from '../env.js';
+import { isLowQuality, quality } from '../state.js';
 import { COLOR_TUPLES } from '../colors.js';
-import { BurstFlash, Star } from '../particles.js';
-import { appNodes, skyLightingSelector } from '../../script.js';
+import { BurstFlash, Spark, Star } from '../particles.js';
+import { SkyLight } from '../sky-light.js';
+import { appNodes, skyCanvas, skyLightingSelector } from '../../script.js';
+
+// Phần sáng đều cả trời, so với độ sáng chung
+const AMBIENT = 0.4;
+// Một tia lửa sáng chừng ấy phần một hạt pháo (kim tuyến, tia lửa nhỏ, mờ hơn hạt pháo nhiều nhưng rất đông: pháo "Lá
+// rơi" toàn kim tuyến vàng cũng làm trời ửng vàng). Chất lượng thấp giãn tia lửa thưa hơn nên mỗi tia tính sáng hơn
+const SPARK_LIGHT = 0.025;
+// Hạt pháo đang tàn, tia lửa đang nguội sáng yếu dần (theo các mức tàn trong render-loop.js)
+const STAR_FADE_LIGHT = [1, 0.75, 0.5, 0.28];
+const SPARK_FADE_LIGHT = [1, 0.75, 0.45];
+const ambient = { r: 0, g: 0, b: 0 };
+const flashes = [];
 
 // Vẽ lớp phủ màu dựa trên độ sáng kết hợp của các ngôi sao (thắp sáng bầu trời!)
 // Lưu ý: điều này được áp dụng cho màu nền của vùng chứa canvas, vì vậy nó nằm phía sau các hạt
@@ -39,7 +54,11 @@ function colorTuple(color) {
     return tuple;
 }
 
-export function colorSky(speed) {
+// speed: số khung 60Hz đã trôi; width, height: cỡ sân khấu; horizon: mép nước (0-1, 1: không có mặt nước)
+export function colorSky(speed, width, height, horizon) {
+    // Hạt pháo, tia lửa dưới mép nước (đã bị bờ che) không rọi sáng trời
+    const waterline = height * horizon;
+    SkyLight.begin(width, height, horizon);
     // Giá trị r, g hoặc b tối đa sẽ được sử dụng (255 sẽ không biểu thị mức tối đa)
     const maxSkySaturation = skyLightingSelector() * 15;
     // Tổng cộng cần bao nhiêu ngôi sao để đạt được độ sáng bầu trời tối đa
@@ -51,15 +70,40 @@ export function colorSky(speed) {
     targetSkyColor.b = 0;
     // Thêm từng màu đã biết vào bầu trời, nhân với số lượng hạt của màu đó. Điều này sẽ khiến các giá trị RGB vượt quá giới hạn nhưng chúng tôi sẽ điều chỉnh lại chúng sau.
     // Đồng thời cộng tổng số sao.
+    // Mỗi hạt đang sáng (không nhấp nháy tắt) cũng là một nguồn sáng tại chỗ của nó
     Object.keys(Star.active).forEach(color => {
         if (color === INVISIBLE || color === '_pool') return;
-        const count = Star.active[color].length;
+        const stars = Star.active[color];
+        const count = stars.length;
         if (!count) return;
         const tuple = colorTuple(color);
         totalStarCount += count;
         targetSkyColor.r += tuple.r * count;
         targetSkyColor.g += tuple.g * count;
         targetSkyColor.b += tuple.b * count;
+        for (let i = 0; i < count; i++) {
+            const star = stars[i];
+            if (star.visible && star.y <= waterline) SkyLight.add(star.x, star.y, tuple.r, tuple.g, tuple.b, STAR_FADE_LIGHT[star.fade] ?? 1);
+        }
+    });
+    // Tia lửa, kim tuyến
+    const sparkLight = SPARK_LIGHT * QUALITY_HIGH / quality;
+    Object.keys(Spark.active).forEach(color => {
+        if (color === INVISIBLE || color === '_pool') return;
+        const sparks = Spark.active[color];
+        if (!sparks.length) return;
+        const tuple = colorTuple(color);
+        let sum = 0;
+        for (let i = 0; i < sparks.length; i++) {
+            const spark = sparks[i];
+            const w = sparkLight * (SPARK_FADE_LIGHT[spark.fade] ?? 1);
+            sum += w;
+            if (spark.y <= waterline) SkyLight.add(spark.x, spark.y, tuple.r, tuple.g, tuple.b, w);
+        }
+        totalStarCount += sum;
+        targetSkyColor.r += tuple.r * sum;
+        targetSkyColor.g += tuple.g * sum;
+        targetSkyColor.b += tuple.b * sum;
     });
 
     // Cường độ kẹp ở mức 1,0 và ánh xạ tới đường cong phi tuyến tính tùy chỉnh. Điều này cho phép một số ngôi sao sáng lên bầu trời một cách rõ ràng, trong khi nhiều ngôi sao hơn tiếp tục tăng độ sáng nhưng với tốc độ thấp hơn. Điều này phù hợp hơn với nhận thức độ sáng phi tuyến tính của con người.
@@ -82,10 +126,14 @@ export function colorSky(speed) {
     // nổ cùng lúc thì sáng hơn nhưng có giới hạn. Chớp nhỏ (hạt nổ lách tách, hoa con) tính theo diện tích: vài chục chớp li
     // ti cùng khung không làm cả trời lóe như một quả nổ lớn. Không gọi tới đây khi giảm chớp sáng
     let flash = 0;
-    for (let i = 0; i < BurstFlash.active.length; i++) {
-        const r = BurstFlash.active[i].radius;
-        flash += r * Math.min(1, r / 60);
-    }
+    flashes.length = 0;
+    BurstFlash.active.forEach(bf => {
+        if (!Number.isFinite(bf.x) || !Number.isFinite(bf.y) || !(bf.radius > 0)) return;
+        const r = bf.radius * Math.min(1, bf.radius / 60);
+        flash += r;
+        // Chớp lóe sáng nhất quanh chỗ nổ (sky-light.js)
+        flashes.push({ x: bf.x, y: bf.y, lift: (1 - Math.exp(-r / 120)) * maxSkySaturation });
+    });
     if (flash > 0) {
         const lift = (1 - Math.exp(-flash / 120)) * maxSkySaturation;
         const cap = maxSkySaturation * 1.6;
@@ -94,5 +142,15 @@ export function colorSky(speed) {
         currentSkyColor.b = Math.min(cap, Math.max(currentSkyColor.b, targetSkyColor.b) + lift * 0.66);
     }
 
-    appNodes.stageContainer.style.backgroundColor = `rgb(${currentSkyColor.r | 0}, ${currentSkyColor.g | 0}, ${currentSkyColor.b | 0})`;
+    // Phần sáng đều cả trời làm màu nền khung; vầng sáng quanh chỗ nổ vẽ lên canvas trời (nằm trên nền, ghép "lighten")
+    ambient.r = currentSkyColor.r * AMBIENT;
+    ambient.g = currentSkyColor.g * AMBIENT;
+    ambient.b = currentSkyColor.b * AMBIENT;
+    appNodes.stageContainer.style.backgroundColor = `rgb(${ambient.r | 0}, ${ambient.g | 0}, ${ambient.b | 0})`;
+    SkyLight.finish(speed, maxSkySaturation, flashes, ambient, skyCanvas, isLowQuality);
+}
+
+// Trời thôi sáng theo pháo (tắt "Ánh sáng bầu trời", giảm chớp sáng): xóa cả vầng sáng
+export function clearSkyLight() {
+    SkyLight.clear(skyCanvas);
 }

@@ -16,11 +16,11 @@ import { Smoke } from '../smoke.js';
 import { Decor, People, Water, Weather } from '../scenery/index.js';
 import { recording } from './recording.js';
 import { autoTuner, superSampler } from './quality-tuning.js';
-import { colorSky, currentSkyColor } from './sky-color.js';
+import { clearSkyLight, colorSky, currentSkyColor } from './sky-color.js';
 import { currentNatureScene } from './nature-scene.js';
 import { NatureSound } from '../nature/index.js';
 import { validPeople } from '../people-options.js';
-import { SMOKE_LEVELS, appNodes, burstConfig, currentFrame, decoCanvas, decoCtx, frameH, frameW, frontCtx, horizonSelector, isRunning, mainStage, reduceFlashingSelector, scaleFactorSelector, sceneSelector, skyLightingSelector, smokeCanvas, smokeCtx, speedBarOpacity, store, syncShow, trailsStage, updateGlobals, waterCtx, waterLifeFlags } from '../../script.js';
+import { SMOKE_LEVELS, appNodes, burstConfig, currentFrame, decoCanvas, decoCtx, frameH, frameW, frontCtx, horizonSelector, isRunning, mainStage, reduceFlashingSelector, scaleFactorSelector, sceneSelector, skyCanvas, skyLightingSelector, smokeCanvas, smokeCtx, speedBarOpacity, store, syncShow, trailsStage, updateGlobals, waterCtx, waterLifeFlags } from '../../script.js';
 
 // Bỏ phần tử thứ i: đưa phần tử cuối vào chỗ của nó thay vì splice (splice dồn cả mảng, hàng nghìn tia lửa tắt mỗi
 // khung thành hàng triệu thao tác). Vòng cập nhật chạy ngược nên phần tử cuối đã được cập nhật trong khung này.
@@ -239,11 +239,13 @@ function render(speed) {
             currentSkyColor.r = currentSkyColor.g = currentSkyColor.b = 0;
             appNodes.stageContainer.style.backgroundColor = '#000';
         }
+        clearSkyLight();
     } else if (skyLightingSelector() !== SKY_LIGHT_NONE) {
-        colorSky(speed);
-    } else if (currentSkyColor.r || currentSkyColor.g || currentSkyColor.b) {
+        colorSky(speed, width, height, horizonSelector());
+    } else {
         // Vừa tắt ánh sáng bầu trời: mặt nước, khói đang đọc màu trời này
-        currentSkyColor.r = currentSkyColor.g = currentSkyColor.b = 0;
+        if (currentSkyColor.r || currentSkyColor.g || currentSkyColor.b) currentSkyColor.r = currentSkyColor.g = currentSkyColor.b = 0;
+        clearSkyLight();
     }
 
     // Tính đến màn hình có độ phân giải cao và hệ số tỷ lệ tùy chỉnh.
@@ -416,10 +418,9 @@ function render(speed) {
 
     // Mặt nước phản chiếu mọi thứ phía trên (vẽ sau cùng để bắt kịp khung hình này)
     const waterState = Water.render(waterCtx, {
-        // Lớp đang trống (không trang trí, không khói) thì bỏ qua cho nhẹ máy
-        sources: [Decor.active() && decoCanvas, Smoke.count() && smokeCanvas, trailsStage.canvas, mainStage.canvas],
+        // Lớp đang trống (không trang trí, không khói) thì bỏ qua cho nhẹ máy. Vầng sáng quanh chỗ nổ cũng soi xuống nước
+        sources: [skyCanvas, Decor.active() && decoCanvas, Smoke.count() && smokeCanvas, trailsStage.canvas, mainStage.canvas],
         background: store.state.config.showBackground ? appNodes.backgroundImage : null,
-        sky: currentSkyColor,
         cssW: frameW,
         cssH: frameH,
         time: now(),

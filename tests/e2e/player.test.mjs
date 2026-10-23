@@ -399,6 +399,49 @@ export async function run(browser, base, { check }) {
             await page.close();
         }
 
+        // Ánh pháo trên trời theo chỗ nổ: quả nổ bên trái thì trời bên trái sáng hơn hẳn bên phải, kè bên trái (ngay dưới
+        // quả nổ) sáng hơn kè bên phải; pháo toàn kim tuyến ("Lá rơi") cũng làm trời sáng lên
+        page = await openPage(browser, { width: 1280, height: 720 });
+        await page.goto(base + '/index.html?preview=1', { waitUntil: 'networkidle0' });
+        const glowShow = shell => page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
+            { loop: false, events: [{ burst: 1, shell, x: 15, y: 55 }], water: 'half', bank: 'stone', waterBirds: false, waterDucks: false });
+        // Độ sáng trung bình của trời (sky-canvas, nửa trên) và của kè (lớp mặt nước, ngay dưới chân trời) theo ba phần ngang
+        const glowSides = () => page.evaluate(() => {
+            const avg = (c, y0, y1) => {
+                const d = c.getContext('2d').getImageData(0, Math.round(y0 * c.height), c.width, Math.max(1, Math.round((y1 - y0) * c.height))).data;
+                const sum = [0, 0, 0];
+                const n = [0, 0, 0];
+                for (let i = 0; i < d.length; i += 4) {
+                    const part = Math.min(2, Math.floor((i / 4 % c.width) / c.width * 3));
+                    sum[part] += d[i] + d[i + 1] + d[i + 2];
+                    n[part]++;
+                }
+                return sum.map((s, i) => Math.round(s / Math.max(1, n[i])));
+            };
+            const water = document.getElementById('water-canvas');
+            const k = water.width / water.clientWidth;
+            return { sky: avg(document.getElementById('sky-canvas'), 0, 0.45), bank: avg(water, 0.5 + 4 * k / water.height, 0.5 + 8 * k / water.height) };
+        });
+        let sides = null;
+        await glowShow('Hoa cúc');
+        for (let i = 0; i < 40 && !(sides && sides.sky[0] > 20); i++) {
+            await sleep(100);
+            sides = await glowSides();
+        }
+        check('ánh pháo theo chỗ nổ: trời và kè phía quả nổ sáng hơn hẳn phía xa',
+            sides.sky[0] > 20 && sides.sky[0] > sides.sky[2] * 1.6 && sides.bank[0] > sides.bank[2] + 6, JSON.stringify(sides));
+        // Chờ trời tối lại rồi mới bắn "Lá rơi" (không lẫn ánh của quả trước)
+        for (let i = 0; i < 60 && Math.max(...(await glowSides()).sky) > 4; i++) await sleep(100);
+        await glowShow('Lá rơi');
+        let glitter = 0;
+        for (let i = 0; i < 50 && glitter <= 12; i++) {
+            await sleep(100);
+            glitter = Math.max(...(await glowSides()).sky);
+        }
+        check('pháo toàn kim tuyến ("Lá rơi") cũng làm trời sáng lên', glitter > 12, String(glitter));
+        check('ánh pháo theo chỗ nổ không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
+        await page.close();
+
         // Chọn 2160p trên máy tính, cửa sổ không toàn màn hình: vẽ dư đúng gấp đôi hoặc vẽ bằng màn hình, không tỉ lệ lẻ
         // (màn 2K ra 1,66 lần, màn 4K ra 1,08 lần: trình duyệt co lớp vẽ bằng nội suy, tia pháo nhòe). Màn 4K không đủ chỗ
         // vẽ gấp đôi nên vẽ bằng màn hình

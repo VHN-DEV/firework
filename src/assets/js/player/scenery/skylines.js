@@ -8,7 +8,7 @@
 // mỗi khung kèm cây, đèn.
 
 import { season as sceneSeason } from '../state.js';
-import { fireLight, fireLit, radialGlow, snowCap } from './util.js';
+import { fireLit, radialGlow, snowCap } from './util.js';
 import { bankStyle } from './bank.js';
 import { drawSwayingTrees, treeAtlas } from './trees.js';
 import { LANTERN_COLORS, archGeometry, archRing, drawLampPost, drawRailing, drawShophouse, lanternSprites, stoneFacing } from './skyline-parts.js';
@@ -354,7 +354,8 @@ function skylineLayer(style, cssW, ground, k, drop) {
 }
 
 // Vẽ phần nhô lên trời của kiểu bờ khác ở lớp bầu trời (ground: chân trời, điểm ảnh CSS)
-export function drawStyledSkyline(ctx, cssW, ground, clock, calm, glow, drop) {
+// light: ánh pháo rọi lên cầu, nhà, cây (fireLight, đậm nhạt theo chỗ nổ)
+export function drawStyledSkyline(ctx, cssW, ground, clock, calm, light, drop) {
     const style = BANK_SKYLINES[bankStyle];
     if (!style) return;
     const k = ctx.getTransform().a || 1;
@@ -374,7 +375,7 @@ export function drawStyledSkyline(ctx, cssW, ground, clock, calm, glow, drop) {
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
     // Ánh pháo rọi lên cầu, nhà, cây như lên kè, bờ đất ở lớp mặt nước (đèn lồng tự sáng vẽ sau, không rọi)
-    fireLit(ctx, fireLight(glow), y0, h, props);
+    fireLit(ctx, light, y0, h, props);
     if (style.frame && style.selfLit) style.frame(ctx, layer, opts);
     ctx.globalCompositeOperation = 'lighter';
     ctx.drawImage(layer.glow, 0, y0, w, h);

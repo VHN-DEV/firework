@@ -136,17 +136,38 @@ export function tintCanvas(src, color) {
 
 // Ánh pháo rọi lên cảnh vật bên kia mặt nước (cầu, nhà, kè, bờ đất, cây, cỏ và bóng của chúng dưới nước): vật sáng thêm
 // theo chính màu của nó nhân màu ánh pháo như ngoài đời (mặt đá sáng nhiều; mạch vữa, khe tối, lá cây sẫm sáng ít), mọi
-// vật cùng tầm xa sáng lên như nhau. sky: màu trời đang ửng theo pháo; trả màu ánh pháo, null khi trời chưa sáng tới mức
-// thấy được
+// vật cùng chỗ sáng lên như nhau. sky: màu trời đang ửng theo pháo ({ r, g, b }), hoặc hàm (u, out) cho màu trời trên mép
+// nước tại u (0: mép trái, 1: mép phải khung; sky-light.js horizonLight) để chỗ ngay dưới quả nổ sáng hơn chỗ xa; trả màu
+// ánh pháo (chuỗi màu, hoặc các mốc màu [u, màu] theo bề ngang), null khi trời chưa sáng tới mức thấy được
 const FIRE_LIGHT = 5.5;
+const LIGHT_STOPS = 16;
+
+const lightColor = sky => `rgb(${Math.min(255, sky.r * FIRE_LIGHT) | 0}, ${Math.min(255, sky.g * FIRE_LIGHT) | 0}, ${Math.min(255, sky.b * FIRE_LIGHT) | 0})`;
 
 export function fireLight(sky) {
-    if (!sky || sky.r + sky.g + sky.b < 4) return null;
-    return `rgb(${Math.min(255, sky.r * FIRE_LIGHT) | 0}, ${Math.min(255, sky.g * FIRE_LIGHT) | 0}, ${Math.min(255, sky.b * FIRE_LIGHT) | 0})`;
+    if (!sky) return null;
+    if (typeof sky !== 'function') return sky.r + sky.g + sky.b < 4 ? null : lightColor(sky);
+    const stops = [];
+    const at = { r: 0, g: 0, b: 0 };
+    let lit = false;
+    for (let i = 0; i <= LIGHT_STOPS; i++) {
+        sky(i / LIGHT_STOPS, at);
+        if (at.r + at.g + at.b >= 4) lit = true;
+        stops.push([i / LIGHT_STOPS, lightColor(at)]);
+    }
+    return lit ? stops : null;
 }
 
-// Phần ánh pháo hắt lên ảnh src (vùng sx, sy, sw, sh, điểm ảnh thật) vào canvas tạm dùng chung, để cộng sáng ngay lên chỗ
-// đã vẽ ảnh. Lót đen trước khi nhân màu: mép mờ của vật (lá cây, ngọn cỏ) không hóa viền sáng màu pháo
+// Màu tô ánh pháo trên canvas g rộng w điểm ảnh (ảnh trải hết bề ngang khung): một màu, hoặc dải màu ngang
+function lightFill(g, light, w) {
+    if (typeof light === 'string') return light;
+    const gradient = g.createLinearGradient(0, 0, w, 0);
+    light.forEach(([u, color]) => gradient.addColorStop(u, color));
+    return gradient;
+}
+
+// Phần ánh pháo light (fireLight) hắt lên ảnh src (vùng sx, sy, sw, sh, điểm ảnh thật; vùng trải hết bề ngang khung) vào
+// canvas tạm dùng chung, để cộng sáng ngay lên chỗ đã vẽ ảnh. Lót đen trước khi nhân màu: mép mờ của vật (lá cây, ngọn cỏ) không hóa viền sáng màu pháo
 let litCache = null;
 
 export function litCanvas(src, light, sx = 0, sy = 0, sw = src.width, sh = src.height) {
@@ -162,7 +183,7 @@ export function litCanvas(src, light, sx = 0, sy = 0, sw = src.width, sh = src.h
     g.globalCompositeOperation = 'source-over';
     g.drawImage(src, sx, sy, sw, sh, 0, 0, sw, sh);
     g.globalCompositeOperation = 'multiply';
-    g.fillStyle = light;
+    g.fillStyle = lightFill(g, light, sw);
     g.fillRect(0, 0, sw, sh);
     g.globalCompositeOperation = 'destination-in';
     g.drawImage(src, sx, sy, sw, sh, 0, 0, sw, sh);

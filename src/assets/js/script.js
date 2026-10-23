@@ -88,6 +88,9 @@ export const trailsStage = new Stage('trails-canvas');
 
 export const mainStage = new Stage('main-canvas');
 
+// Ánh pháo trên trời quanh chỗ nổ (player/sky-light.js tự đặt cỡ, độ phân giải thấp, phóng lên cả khung)
+export const skyCanvas = document.getElementById('sky-canvas');
+
 // Lớp khói tự quản lý kích thước (độ phân giải thấp), không qua Stage
 export const smokeCanvas = document.getElementById('smoke-canvas');
 
@@ -1537,6 +1540,8 @@ export function handleResize() {
     smokeCanvas.height = Math.round(containerH * SMOKE_RESOLUTION);
     smokeCanvas.style.width = containerW + 'px';
     smokeCanvas.style.height = containerH + 'px';
+    skyCanvas.style.width = containerW + 'px';
+    skyCanvas.style.height = containerH + 'px';
     frameW = containerW;
     frameH = containerH;
     // Nét theo mật độ điểm ảnh của màn hình (cả màn nét gấp 3 của điện thoại) để trăng, sao, cây, mặt nước không nhòe; chất

@@ -27,7 +27,7 @@ export const helpContent = {
     },
     skyLighting: {
         header: 'Ánh sáng bầu trời',
-        body: 'Bầu trời sáng lên theo màu pháo khi pháo nổ. Nếu nền trông quá sáng trên màn hình của bạn, hãy chọn "Mờ" hoặc "Tắt".'
+        body: 'Bầu trời sáng lên theo màu pháo khi pháo nổ, sáng nhất quanh chỗ nổ rồi nhạt dần ra xa. Nếu nền trông quá sáng trên màn hình của bạn, hãy chọn "Mờ" hoặc "Tắt".'
     },
     scaleFactor: {
         header: 'Thu phóng',

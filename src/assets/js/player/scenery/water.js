@@ -11,6 +11,7 @@ import { IS_MOBILE } from '../env.js';
 import { horizon, isLowQuality, season as sceneSeason } from '../state.js';
 import { validBankStyle } from '../bank-styles.js';
 import { fireLight, hash, litCanvas } from './util.js';
+import { horizonLight, skyAmbient } from '../sky-light.js';
 import { fallingLeafSprite, floatLanternSprite, moundSprite, padSprite, rockSprite, seasonSprite, setSpriteRes, warmWaterSprites } from './water-sprites.js';
 import { WaterLife } from './water-life.js';
 import { drawFlowMarks, drawLightStreak, drawReflection, drawSubmerged, iceSheet, steerAround } from './water-fx.js';
@@ -85,7 +86,7 @@ export const Water = {
     // life: { birds: cò, ducks: vịt trời, fish: cá nhảy, logs: khúc gỗ trôi, boats: thuyền } (false: tắt hết); plants: lá bèo;
     // rocks: đá, gò đất giữa dòng
     // bank: kiểu bờ bên kia (bank-styles.js)
-    render(ctx, { sources, background, sky, cssW, cssH, time, style, floating, calm, life: lifeFlags, plants, rocks: rocksOn, bank: bankKind }) {
+    render(ctx, { sources, background, cssW, cssH, time, style, floating, calm, life: lifeFlags, plants, rocks: rocksOn, bank: bankKind }) {
         // Mùa: đông mặt nước đóng băng (không sóng, không cá, vịt, cò, khúc gỗ, lá bèo, vật trôi); biển thì không đóng băng
         const season = sceneSeason();
         this.season = season;
@@ -164,7 +165,8 @@ export const Water = {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.globalAlpha = 1;
         ctx.clearRect(0, 0, W, H);
-        const tint = `${16 + sky.r * 0.5 | 0}, ${26 + sky.g * 0.5 | 0}, ${46 + sky.b * 0.5 | 0}`;
+        // (phần sáng đều cả trời; vầng sáng quanh chỗ nổ đã soi bóng cùng các lớp ở trên)
+        const tint = `${16 + skyAmbient.r * 0.5 | 0}, ${26 + skyAmbient.g * 0.5 | 0}, ${46 + skyAmbient.b * 0.5 | 0}`;
         const base = ctx.createLinearGradient(0, top, 0, H);
         base.addColorStop(0, `rgb(${tint})`);
         // Mặt băng: xanh xám nhạt hơn nước, sáng đều hơn
@@ -304,7 +306,7 @@ export const Water = {
         // 6. Bờ đất: bóng của bờ in ngay dưới chân bờ, rồi tới bờ. Pháo rọi lên bờ và bóng bờ như lên cầu, nhà, cây ở lớp
         //    bầu trời (cùng một độ sáng, theo màu của vật)
         const bank = bankSprite(W, bankPx, k, bankStyle, sceneSeason());
-        const light = fireLight(sky);
+        const light = fireLight(horizonLight);
         const bankLayer = (src, mode) => {
             ctx.globalCompositeOperation = mode;
             ctx.save();

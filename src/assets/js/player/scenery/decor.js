@@ -10,7 +10,8 @@ import MyMath from '../../MyMath.js';
 import { IS_MOBILE } from '../env.js';
 import { horizon, isLowQuality, reduceFlashing, season as sceneSeason } from '../state.js';
 import { moonIllumination } from '../moon.js';
-import { sprites } from './util.js';
+import { fireLight, sprites } from './util.js';
+import { horizonLight, skyLightAt } from '../sky-light.js';
 import { bankBandCss } from './bank.js';
 import { drawBankSkyline, drawButterflies } from './bank-life.js';
 import { SKY_LIFE } from './sky-life/index.js';
@@ -316,7 +317,11 @@ export const Decor = {
         // Mây: che sao, trăng phía sau; thân mây sáng theo ánh trăng; viền trên ánh bạc khi trăng tỏ (gần trăng càng sáng);
         // pháo nổ rọi sáng mây
         const flash = glow ? Math.min(1, (glow.r + glow.g + glow.b) / 300) : 0;
+        const shine = { r: 0, g: 0, b: 0 };
         this.clouds.forEach(cloud => {
+            // Mây gần chỗ nổ sáng hơn mây ở xa (sky-light.js)
+            skyLightAt(cloud.x / this.width, cloud.y / this.height, shine);
+            const cloudFlash = Math.min(1, (shine.r + shine.g + shine.b) / 300);
             // Mây chưa có ảnh (máy chậm, đang chờ ngoài mép khung) thì chưa vẽ
             if (!cloud.sprites) return;
             const { maps } = cloud.sprites;
@@ -332,7 +337,7 @@ export const Decor = {
                 const dy = cloud.y - (this.moon.y + drift.y);
                 near = Math.max(0, 1 - Math.sqrt(dx * dx + dy * dy) / (this.width * 0.5));
             }
-            const rim = light * (0.25 + 0.75 * near) + flash * 0.5;
+            const rim = light * (0.25 + 0.75 * near) + cloudFlash * 0.5;
             parts.forEach(([map, weight]) => {
                 if (weight < 0.01) return;
                 ctx.globalCompositeOperation = 'source-over';
@@ -343,8 +348,8 @@ export const Decor = {
                     ctx.globalAlpha = Math.min(1, rim) * weight * fade;
                     ctx.drawImage(map.rim, x, y, cloud.w, cloud.h);
                 }
-                if (flash > 0.02) {
-                    ctx.globalAlpha = flash * 0.35 * cloud.density * weight * fade;
+                if (cloudFlash > 0.02) {
+                    ctx.globalAlpha = cloudFlash * 0.35 * cloud.density * weight * fade;
                     ctx.drawImage(map.body, x, y, cloud.w, cloud.h);
                 }
             });
@@ -369,7 +374,7 @@ export const Decor = {
         const view = { ...this.lifeEnv(), k, calm, flash, time: this.clock };
         this.items.sort((a, b) => a.z - b.z).forEach(item => item.kind.draw(ctx, item, view));
         // Có mặt nước: cỏ, lau sậy, bụi cây trên bờ đất nhô lên nền trời, đom đóm
-        if (horizon() < 1) drawBankSkyline(ctx, this.width, ground, this.clock, calm, glow, bankBandCss(this.height));
+        if (horizon() < 1) drawBankSkyline(ctx, this.width, ground, this.clock, calm, fireLight(horizonLight), bankBandCss(this.height));
         if (horizon() < 1 && sceneSeason() === 'spring') drawButterflies(ctx, this.width, ground, this.clock, calm);
         ctx.globalAlpha = 1;
         ctx.setTransform(1, 0, 0, 1, 0, 0);

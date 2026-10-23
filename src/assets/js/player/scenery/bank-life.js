@@ -8,7 +8,7 @@
 
 import { IS_MOBILE } from '../env.js';
 import { season as sceneSeason } from '../state.js';
-import { fireLight, fireLit, fireflyGlow, hash } from './util.js';
+import { fireLit, fireflyGlow, hash } from './util.js';
 import { BANK_SEASONS, bankDip, bankStyle } from './bank.js';
 import { drawStyledSkyline } from './skylines.js';
 import { makeCanvas, seededRandom } from '../utils.js';
@@ -228,11 +228,11 @@ function tuftAtlas(life, k) {
 // Vẽ phần nhô lên của bờ ở lớp bầu trời (ground: chân trời, điểm ảnh CSS; clock: đồng hồ của bầu trời). Gió thổi từng
 // đợt lướt dọc bờ: tới đâu cả dải cỏ, lau ngả theo tới đó rồi đứng lên; đom đóm lượn quanh bờ cỏ, chớp sáng rồi tắt.
 // Mặt nước soi lại lớp bầu trời nên bóng cỏ, đom đóm cũng in xuống nước.
-// drop: chiều cao mặt bờ dưới chân trời
-export function drawBankSkyline(ctx, cssW, ground, clock, calm, glow, drop) {
+// drop: chiều cao mặt bờ dưới chân trời; light: ánh pháo rọi lên cảnh vật (fireLight, đậm nhạt theo chỗ nổ)
+export function drawBankSkyline(ctx, cssW, ground, clock, calm, light, drop) {
     // Kiểu bờ khác (kè gạch, phố cổ, cầu...)
     if (bankStyle) {
-        drawStyledSkyline(ctx, cssW, ground, clock, calm, glow, drop);
+        drawStyledSkyline(ctx, cssW, ground, clock, calm, light, drop);
         return;
     }
     const life = bankLife(cssW, sceneSeason());
@@ -259,7 +259,7 @@ export function drawBankSkyline(ctx, cssW, ground, clock, calm, glow, drop) {
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
     // Ánh pháo rọi lên cỏ, lau, bụi cây như lên vách đất ở lớp mặt nước
-    fireLit(ctx, fireLight(glow), ground - TUFT_H, TUFT_H + 8, plants);
+    fireLit(ctx, light, ground - TUFT_H, TUFT_H + 8, plants);
     const flyGlow = fireflyGlow();
     ctx.globalCompositeOperation = 'lighter';
     life.flies.forEach(fly => {
