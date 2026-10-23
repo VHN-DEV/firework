@@ -53,6 +53,8 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         demo: resolve(__dirname, 'demo.html'),
         builder: resolve(__dirname, 'builder.html'),
+        // Trang 404 có thương hiệu (GitHub Pages tự dùng 404.html cho đường dẫn không có)
+        notFound: resolve(__dirname, '404.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         terms: resolve(__dirname, 'terms.html'),
         // Trang theo dõi mở quà của người gửi (theo-doi?id=...&key=...)

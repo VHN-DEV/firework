@@ -156,4 +156,21 @@ export async function run(browser, base, { check }) {
         if (/Trình diễn Pháo hoa/.test(title) || /Firework Builder/.test(page)) noBrand.push(`/${route}: còn tên cũ`);
     }
     check('tên thương hiệu Hanabi ở mọi trang, không còn tên cũ', !noBrand.length, noBrand.join(' | '));
+
+    // Trang 404 (GitHub Pages trả ở đúng đường dẫn bị gõ sai): tự chứa kiểu chữ, logo; link về trang chủ, demo tính theo
+    // gốc web chứ không theo đường dẫn tương đối
+    const notFound = await openPage(browser, { width: 800, height: 600 });
+    try {
+        await notFound.goto(`${base}/404.html`, { waitUntil: 'networkidle0' });
+        const info = await notFound.evaluate(() => ({
+            title: document.title,
+            links: [...document.querySelectorAll('.actions a')].map(a => a.getAttribute('href')),
+            external: [...document.querySelectorAll('link[rel="stylesheet"], script[src], img[src]')].length,
+            logo: !!document.querySelector('svg.logo')
+        }));
+        check('trang 404 có logo, tự chứa, link về trang chủ và demo theo gốc web',
+            /Hanabi/.test(info.title) && info.logo && info.external === 0 && info.links.join() === '/,/demo', JSON.stringify(info));
+    } finally {
+        await notFound.close();
+    }
 }

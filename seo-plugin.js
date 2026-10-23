@@ -69,17 +69,23 @@ export function renderSharePage({ id, title, description, shareUrl, imageUrl }) 
     <meta name="twitter:title" content="${t}">
     <meta name="twitter:description" content="${d}">
     <meta name="twitter:image" content="${escapeHtml(imageUrl)}">
-    <meta name="theme-color" content="#000000">
+    <meta name="theme-color" content="#06070d">
     <link rel="icon" href="../favicon.svg" type="image/svg+xml">
     <meta http-equiv="refresh" content="0; url=${escapeHtml(showPath)}">
     <script>location.replace(${JSON.stringify(showPath)} + location.hash);</script>
     <style>
-        body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #000; color: #ccc; font-family: system-ui, sans-serif; text-align: center; }
-        a { color: #ffbf36; }
+        body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; background: #06070d radial-gradient(600px 400px at 50% 40%, rgba(139, 123, 255, 0.18), transparent 70%); color: #c7cce0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; text-align: center; }
+        .logo { width: 64px; height: 64px; border-radius: 16px; box-shadow: 0 10px 30px -8px rgba(255, 95, 162, 0.6); }
+        .spin { width: 26px; height: 26px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.12); border-top-color: #ff6aa8; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        p { margin: 0; font-size: 15px; line-height: 1.6; }
+        a { color: #ffc65c; font-weight: 600; text-decoration: none; }
     </style>
 </head>
 <body>
-    <p>Đang mở màn trình diễn <a href="${escapeHtml(showPath)}">${t}</a>...</p>
+    <img class="logo" src="../favicon.svg" alt="Hanabi" width="64" height="64">
+    <div class="spin" aria-hidden="true"></div>
+    <p>Đang mở màn pháo hoa<br><a href="${escapeHtml(showPath)}">${t}</a></p>
 </body>
 </html>
 `;
