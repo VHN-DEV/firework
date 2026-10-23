@@ -197,6 +197,8 @@ export function closeVideoModal() {
     const player = document.getElementById('video-output');
     player.pause();
     player.removeAttribute('src');
+    // Gỡ src chưa đủ: thẻ video vẫn đọc tiếp file cũ, thu hồi URL thì báo ERR_FILE_NOT_FOUND; load() bỏ hẳn file
+    player.load();
     if (video.url) URL.revokeObjectURL(video.url);
     video.url = '';
     video.blob = null;
