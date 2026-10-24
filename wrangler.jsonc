@@ -14,5 +14,7 @@
     "run_worker_first": ["/api/*", "/s/*"]
   },
   "d1_databases": [{ "binding": "DB" }],
-  "kv_namespaces": [{ "binding": "MEDIA_KV" }]
+  "kv_namespaces": [{ "binding": "MEDIA_KV" }],
+  // Dọn dữ liệu mỗi ngày lúc 7h05 sáng giờ Việt Nam (0h05 giờ quốc tế), ngay sau khi Cloudflare đặt lại hạn mức ngày
+  "triggers": { "crons": ["5 0 * * *"] }
 }

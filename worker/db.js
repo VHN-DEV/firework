@@ -93,6 +93,18 @@ export async function deleteConfig(env, id) {
     await db.batch(['configs', 'owners', 'opens'].map(table => db.prepare(`DELETE FROM ${table} WHERE id = ?`).bind(id)));
 }
 
+// Trong các file keys (uploads/...), những file không còn kịch bản nào (kể cả bản Xem thử) nhắc tới
+export async function unusedMedia(env, keys) {
+    if (!keys.length) return [];
+    const db = await database(env);
+    const chunks = [];
+    for (let i = 0; i < keys.length; i += 50) chunks.push(keys.slice(i, i + 50));
+    const results = await db.batch(chunks.map(chunk => db.prepare(
+        'SELECT value FROM json_each(?) WHERE NOT EXISTS (SELECT 1 FROM configs WHERE instr(data, value) > 0)'
+    ).bind(JSON.stringify(chunk))));
+    return results.flatMap(r => r.results.map(row => row.value));
+}
+
 // Bản tạm của nút Xem thử cũ hơn 1 ngày
 export async function deleteOldPreviews(env) {
     await (await database(env)).prepare("DELETE FROM configs WHERE id LIKE 'preview_temp%' AND updated < ?").bind(now() - 86400).run();

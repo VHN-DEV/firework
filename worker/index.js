@@ -11,16 +11,17 @@
 //   upload_audio.php, share.php
 // - s/<tên>: trang chia sẻ có ảnh, tiêu đề xem trước (share-page.js), cả kịch bản mẫu lẫn kịch bản lưu
 // - configs/<tên>.json, configs/<tên>.jpg, uploads/...: kịch bản, ảnh, nhạc đã lưu (D1, KV/R2)
+// - mỗi ngày lúc 7h05 sáng (wrangler.jsonc: triggers): xóa bản Xem thử cũ, bộ đếm giới hạn đã hết hạn, ảnh, nhạc không kịch bản nào dùng
 // Kịch bản mẫu (dist/configs, có trong configs_index.json) không ghi đè, không xóa được (như bản PHP: "riêng tư").
 // Mỗi máy chỉ được lưu, tải lên, báo mở quà một số lần (LIMITS) để một người phá không làm hết hạn mức miễn phí của cả
 // trang.
 
 import { renderSharePage, shareMetaFromConfig } from '../share-page.js';
 import {
-    TRACK_DEVICES, TRACK_EVENTS, canModify, checkKey, createKey, deleteConfig, deleteOldPreviews, getConfig, hasKey,
-    listConfigs, loadOpens, putConfig, randomHex, recordOpen, sha256, useQuota, validTrackId
+    TRACK_DEVICES, TRACK_EVENTS, canModify, checkKey, createKey, deleteConfig, deleteOldPreviews, deleteOldQuota, getConfig,
+    hasKey, listConfigs, loadOpens, now, putConfig, randomHex, recordOpen, sha256, unusedMedia, useQuota, validTrackId
 } from './db.js';
-import { deleteMedia, hasMedia, putMedia, serveMedia } from './media.js';
+import { deleteMedia, hasMedia, listMedia, putMedia, serveMedia } from './media.js';
 
 const json = (data, init = {}) => new Response(JSON.stringify(data), {
     ...init,
@@ -82,6 +83,41 @@ const limited = message => fail(message, { code: 'rate_limited' });
 // Hết hạn mức ghi KV của cả trang trong ngày (Cloudflare báo "... limit exceeded ...")
 const isDailyLimit = e => /limit/i.test(e && e.message);
 const MEDIA_FULL = 'Hôm nay trang đã dùng hết lượt lưu ảnh, nhạc của gói miễn phí, hãy thử lại sau 7 giờ sáng (giờ Việt Nam).';
+
+// ---------------------------------------------------------------------------
+// Dọn ảnh, nhạc
+// ---------------------------------------------------------------------------
+
+// Ảnh, nhạc tải lên (xem upload): uploads/<tên>/img_<16 số hex>.<đuôi>, uploads/music/<tên>/music_<16 số hex>.<đuôi>
+const UPLOAD_PATH = /uploads\/(?:music\/)?[a-z0-9_-]+\/(?:img|music)_[a-f0-9]{16}\.[a-z0-9]+/g;
+// File chưa kịch bản nào dùng mà còn mới thì giữ: có thể nằm trong bản nháp builder chưa lưu (bản nháp giữ mãi)
+const ORPHAN_DAYS = 30;
+
+// Xóa kịch bản: xóa luôn ảnh, nhạc tải lên dưới tên kịch bản và file kịch bản có dùng, trừ file kịch bản khác còn dùng
+// (vd đã lưu thành bản mới từ kịch bản này). text: kịch bản vừa xóa dạng JSON
+async function deleteMediaOf(env, name, text) {
+    const prefixes = [`uploads/${name}/img_`, `uploads/music/${name}/music_`];
+    const own = (await Promise.all(prefixes.map(async prefix => (await listMedia(env, prefix)).map(f => f.key)
+        // Tên kịch bản là tiền tố của tên khác (vd "music"): chỉ lấy đúng file của kịch bản này
+        .filter(key => /^[a-f0-9]{16}\.[a-z0-9]+$/.test(key.slice(prefix.length)))))).flat();
+    const keys = [...new Set([...own, ...(text.match(UPLOAD_PATH) || [])])];
+    for (const key of await unusedMedia(env, keys)) await deleteMedia(env, key);
+}
+
+// Hằng ngày: ảnh, nhạc tải lên quá ORPHAN_DAYS ngày mà không kịch bản nào dùng (tải lên rồi bỏ, đổi ảnh khác, kịch bản xóa
+// từ trước, spam), tối đa 500 file mỗi lần (KV miễn phí có 1.000 lần xóa mỗi ngày)
+async function deleteOrphanMedia(env) {
+    // Kiểm thử (tests/worker/run.mjs) đặt ORPHAN_DAYS = 0 qua biến môi trường
+    const old = now() - Number(env.ORPHAN_DAYS ?? ORPHAN_DAYS) * 86400;
+    const keys = (await listMedia(env, 'uploads/', 5)).filter(f => f.time < old).map(f => f.key).slice(0, 2000);
+    for (const key of (await unusedMedia(env, keys)).slice(0, 500)) await deleteMedia(env, key);
+}
+
+async function daily(env) {
+    await deleteOldPreviews(env);
+    await deleteOldQuota(env);
+    if (hasMedia(env)) await deleteOrphanMedia(env);
+}
 
 // ---------------------------------------------------------------------------
 // API
@@ -171,10 +207,15 @@ async function manageConfigs(request, env, url) {
         if (!filename) return fail('Thiếu tên file.');
         if (!/^[a-z0-9_-]{1,80}$/.test(filename)) return fail('Tên file không hợp lệ.');
         if (await isTemplate(env, url, filename)) return fail('Kịch bản này là riêng tư và không thể xóa.');
-        if (!(await getConfig(env, filename))) return fail('File không tồn tại.');
+        const saved = await getConfig(env, filename);
+        if (!saved) return fail('File không tồn tại.');
         if (!(await canModify(env, filename, key))) return fail('Chỉ máy đã tạo kịch bản này mới xóa được.', { code: 'not_owner' });
         await deleteConfig(env, filename);
-        if (hasMedia(env)) await deleteMedia(env, `configs/${filename}.jpg`);
+        if (hasMedia(env)) {
+            await deleteMedia(env, `configs/${filename}.jpg`);
+            // Lỗi khi dọn thì vẫn báo đã xóa: lần dọn hằng ngày xóa nốt
+            await deleteMediaOf(env, filename, JSON.stringify(saved.data)).catch(e => console.error(e));
+        }
         return json({ success: true, message: 'Đã xóa kịch bản thành công!' });
     }
     return fail('Hành động không hợp lệ.');
@@ -327,5 +368,8 @@ export default {
             if (url.pathname.startsWith('/api/')) return json({ success: false, message: `Lỗi máy chủ: ${e.message}` }, { status: 500 });
             return new Response('Lỗi máy chủ', { status: 500 });
         }
+    },
+    async scheduled(controller, env, ctx) {
+        ctx.waitUntil(daily(env));
     }
 };

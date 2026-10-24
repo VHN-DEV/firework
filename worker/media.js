@@ -8,17 +8,43 @@
 // không thì KV (binding MEDIA_KV: không cần thẻ thanh toán, mỗi file tối đa 25 MiB, 1.000 lần ghi mỗi ngày). Trả về hỗ trợ
 // tải từng đoạn (Range) để thẻ <audio> tua được nhạc, Safari phát được.
 
+const now = () => Math.floor(Date.now() / 1000);
+
 export const hasMedia = env => !!(env.MEDIA || env.MEDIA_KV);
 
 export async function putMedia(env, key, bytes, type) {
     if (env.MEDIA) await env.MEDIA.put(key, bytes, { httpMetadata: { contentType: type } });
-    else if (env.MEDIA_KV) await env.MEDIA_KV.put(key, bytes, { metadata: { type } });
+    // t: lúc tải lên (giây), để lần dọn hằng ngày biết file đã cũ chưa (R2 tự ghi)
+    else if (env.MEDIA_KV) await env.MEDIA_KV.put(key, bytes, { metadata: { type, t: now() } });
     else throw new Error('Chưa gắn nơi lưu ảnh, nhạc (binding MEDIA_KV hoặc MEDIA trong wrangler.jsonc)');
 }
 
 export async function deleteMedia(env, key) {
     if (env.MEDIA) await env.MEDIA.delete(key);
     else if (env.MEDIA_KV) await env.MEDIA_KV.delete(key);
+}
+
+// File có tên bắt đầu bằng prefix: [{ key, time: lúc tải lên (giây, 0 nếu không rõ) }], đọc tối đa pages trang danh
+// sách (mỗi trang 1.000 file; KV miễn phí có 1.000 lần đọc danh sách mỗi ngày)
+export async function listMedia(env, prefix, pages = 1) {
+    const items = [];
+    let cursor;
+    for (let i = 0; i < pages; i++) {
+        if (env.MEDIA) {
+            const page = await env.MEDIA.list({ prefix, cursor });
+            items.push(...page.objects.map(o => ({ key: o.key, time: Math.floor(o.uploaded.getTime() / 1000) })));
+            if (!page.truncated) break;
+            cursor = page.cursor;
+        } else if (env.MEDIA_KV) {
+            const page = await env.MEDIA_KV.list({ prefix, cursor });
+            items.push(...page.keys.map(k => ({ key: k.name, time: (k.metadata && k.metadata.t) || 0 })));
+            if (page.list_complete) break;
+            cursor = page.cursor;
+        } else {
+            break;
+        }
+    }
+    return items;
 }
 
 // Đoạn được yêu cầu trong header Range (bytes=a-b, bytes=a-, bytes=-n) của file size byte: { start, end } hoặc null

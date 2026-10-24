@@ -7,7 +7,8 @@
 // Phần máy chủ trên Cloudflare Workers (worker/, wrangler.jsonc), chạy tại máy bằng "wrangler dev" (D1, KV giả lập trong
 // .wrangler/): builder lưu kịch bản kèm ảnh thiệp, link s/<tên> có ảnh, tiêu đề xem trước, mở ở trình duyệt khác đúng
 // kịch bản, tải ảnh, nhạc lên rồi đọc lại (nhạc tải từng đoạn), file giả dạng ảnh bị từ chối, mã chủ khi lưu đè, xóa, báo
-// mở quà, Xem thử, giới hạn số lần tải lên của mỗi máy. Mỗi lần chạy dùng dữ liệu mới (thư mục tạm). Cần bản build (npm run build) và mạng để npx tải wrangler lần đầu. Chạy: npm run test:worker
+// mở quà, Xem thử, giới hạn số lần tải lên của mỗi máy, xóa kịch bản thì xóa ảnh, nhạc chỉ nó dùng, lần dọn hằng ngày
+// xóa ảnh không kịch bản nào dùng. Mỗi lần chạy dùng dữ liệu mới (thư mục tạm). Cần bản build (npm run build) và mạng để npx tải wrangler lần đầu. Chạy: npm run test:worker
 import { spawn, spawnSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
@@ -22,8 +23,9 @@ if (!fs.existsSync(path.join(DIST, 'index.html'))) {
 const PORT = Number(process.env.WORKER_PORT) || 8798;
 const BASE = `http://127.0.0.1:${PORT}`;
 const STATE = fs.mkdtempSync(path.join(os.tmpdir(), 'hanabi-worker-'));
+// --test-scheduled: gọi lần dọn hằng ngày qua /__scheduled; ORPHAN_DAYS=0: dọn cả ảnh vừa tải lên
 const wrangler = spawn('npx', ['--yes', 'wrangler@4', 'dev', '--port', String(PORT), '--ip', '127.0.0.1', '--persist-to', `"${STATE}"`,
-    '--show-interactive-dev-session=false'],
+    '--test-scheduled', '--var', 'ORPHAN_DAYS:0', '--show-interactive-dev-session=false'],
     { cwd: ROOT, shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
 let log = '';
 wrangler.stdout.on('data', d => { log += d; });
@@ -143,14 +145,15 @@ try {
     const previewUrl = await Promise.race([opened, sleep(15000).then(() => '')]);
     check('Xem thử mở kịch bản tạm lưu trên máy chủ', /demo\?config=preview_temp_[a-f0-9]{16}$/.test(previewUrl), previewUrl);
 
-    // Tải lên liên tục: tới giới hạn của máy thì bị chặn, có câu báo thử lại sau bao lâu
+    // Tải lên liên tục (ảnh đầu tiên dưới tên khác, không kịch bản nào dùng): tới giới hạn của máy thì bị chặn, có câu
+    // báo thử lại sau bao lâu
     const flood = await a.evaluate(async id => {
         const png = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='), c => c.charCodeAt(0));
         const out = [];
         for (let i = 0; i < 25; i++) {
             const form = new FormData();
             form.append('image', new File([png], 'anh.png'));
-            form.append('filename', id);
+            form.append('filename', i ? id : 'zz_orphan');
             const r = await (await fetch('api/upload_image.php', { method: 'POST', body: form })).json();
             out.push(r);
             if (!r.success) break;
@@ -161,9 +164,24 @@ try {
     check('tải lên quá nhiều lần thì bị chặn, báo thử lại sau', flood.length > 10 && blocked.code === 'rate_limited' && /thử lại sau \d+ phút/.test(blocked.message),
         JSON.stringify(blocked) + ` sau ${flood.length - 1} lần`);
 
+    // Kịch bản khác dùng lại một ảnh của kịch bản này (như lưu thành bản mới)
+    const copy = await api('save_config.php', { filename: `${ID}_ban`, config: { title: 'Bản sao', events: [{ burst: 1, imageUrl: up.image.url }] } });
+    const status404 = async rel => (await fetch(new URL(rel, `${BASE}/builder`))).status;
     const removed = await api('manage_configs.php?action=delete', { filename: ID, key });
     const gone = await Promise.all([fetch(`${BASE}/configs/${ID}.json`), fetch(`${BASE}/configs/${ID}.jpg`)]);
     check('xóa kịch bản bằng mã của máy đã tạo: hết kịch bản, ảnh thiệp', removed.success && gone.every(r => r.status === 404));
+    const after = { audio: await status404(up.audio.url), image: await status404(flood[1].url), shared: await status404(up.image.url), orphan: await status404(flood[0].url) };
+    check('xóa kịch bản thì xóa ảnh, nhạc chỉ nó dùng, giữ ảnh kịch bản khác còn dùng', copy.success && after.audio === 404 && after.image === 404
+        && after.shared === 200 && after.orphan === 200, JSON.stringify(after));
+
+    // Lần dọn hằng ngày: ảnh không kịch bản nào dùng bị xóa, ảnh còn dùng giữ lại
+    await sleep(1100);
+    const cron = await fetch(`${BASE}/__scheduled?cron=5+0+*+*+*`);
+    await sleep(500);
+    const swept = { orphan: await status404(flood[0].url), shared: await status404(up.image.url) };
+    check('lần dọn hằng ngày xóa ảnh không kịch bản nào dùng', cron.ok && swept.orphan === 404 && swept.shared === 200, `${cron.status} ${JSON.stringify(swept)}`);
+    const removedCopy = await api('manage_configs.php?action=delete', { filename: `${ID}_ban`, key: copy.trackKey });
+    check('xóa nốt kịch bản dùng lại ảnh thì ảnh mất theo', removedCopy.success && await status404(up.image.url) === 404);
     check('builder không lỗi JS', !a.errors.length, a.errors.join(' | '));
     await context.close();
 } catch (e) {
