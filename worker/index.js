@@ -12,11 +12,13 @@
 // - s/<tên>: trang chia sẻ có ảnh, tiêu đề xem trước (share-page.js), cả kịch bản mẫu lẫn kịch bản lưu
 // - configs/<tên>.json, configs/<tên>.jpg, uploads/...: kịch bản, ảnh, nhạc đã lưu (D1, KV/R2)
 // Kịch bản mẫu (dist/configs, có trong configs_index.json) không ghi đè, không xóa được (như bản PHP: "riêng tư").
+// Mỗi máy chỉ được lưu, tải lên, báo mở quà một số lần (LIMITS) để một người phá không làm hết hạn mức miễn phí của cả
+// trang.
 
 import { renderSharePage, shareMetaFromConfig } from '../share-page.js';
 import {
     TRACK_DEVICES, TRACK_EVENTS, canModify, checkKey, createKey, deleteConfig, deleteOldPreviews, getConfig, hasKey,
-    listConfigs, loadOpens, putConfig, randomHex, recordOpen, validTrackId
+    listConfigs, loadOpens, putConfig, randomHex, recordOpen, sha256, useQuota, validTrackId
 } from './db.js';
 import { deleteMedia, hasMedia, putMedia, serveMedia } from './media.js';
 
@@ -37,6 +39,49 @@ async function asset(env, url, path, method = 'GET') {
 }
 
 const isTemplate = async (env, url, id) => !!(await asset(env, url, `/configs/${id}.json`, 'HEAD'));
+
+// ---------------------------------------------------------------------------
+// Giới hạn mỗi máy
+// ---------------------------------------------------------------------------
+
+const DAY = 86400;
+// [tối đa, trong bao nhiêu giây] cho mỗi máy. Hạn mức miễn phí của cả trang mỗi ngày: KV (ảnh, nhạc, ảnh thiệp) 1.000
+// lần ghi, 1 GB; D1 (kịch bản) 100.000 dòng ghi, 500 MB. Người tạo thiệp bình thường chỉ dùng một phần nhỏ.
+const LIMITS = {
+    save: [[30, 600], [300, DAY]], // Lưu, Xem thử
+    saveKB: [[50 * 1024, DAY]], // tổng dung lượng kịch bản đã gửi
+    upload: [[20, 600], [60, DAY]], // tải ảnh, nhạc lên
+    uploadKB: [[150 * 1024, DAY]],
+    open: [[60, 600]] // báo mở quà (mỗi lần xem quà gửi tối đa 3 lần)
+};
+
+// Máy gửi: địa chỉ IP Cloudflare ghi vào CF-Connecting-IP, IPv6 tính theo khối /64 (nhà mạng thường cấp cả khối cho
+// một thuê bao). Trả về bản băm, không lưu địa chỉ thật.
+function clientId(request) {
+    let ip = request.headers.get('cf-connecting-ip') || 'unknown';
+    if (ip.includes(':') && !ip.includes('.')) {
+        const [head, tail] = ip.split('::');
+        const a = head ? head.split(':') : [];
+        const b = tail ? tail.split(':') : [];
+        const groups = tail === undefined ? a : [...a, ...Array(Math.max(0, 8 - a.length - b.length)).fill('0'), ...b];
+        ip = `${groups.slice(0, 4).map(g => (parseInt(g, 16) || 0).toString(16)).join(':')}::/64`;
+    }
+    return sha256(`hanabi:${ip}`).then(hash => hash.slice(0, 24));
+}
+
+// Dùng hạn mức của máy gửi request; vượt thì trả về câu báo (đọc sau "Lỗi: " trong builder), không thì null
+async function overQuota(request, env, items, what) {
+    const over = await useQuota(env, await clientId(request), items, LIMITS);
+    if (!over) return null;
+    const minutes = Math.max(1, Math.ceil((over.end - Date.now() / 1000) / 60));
+    return `Máy này đã ${what} quá nhiều lần, hãy thử lại ${over.per >= DAY ? 'sau 7 giờ sáng (giờ Việt Nam)' : `sau ${minutes} phút`}.`;
+}
+
+const limited = message => fail(message, { code: 'rate_limited' });
+
+// Hết hạn mức ghi KV của cả trang trong ngày (Cloudflare báo "... limit exceeded ...")
+const isDailyLimit = e => /limit/i.test(e && e.message);
+const MEDIA_FULL = 'Hôm nay trang đã dùng hết lượt lưu ảnh, nhạc của gói miễn phí, hãy thử lại sau 7 giờ sáng (giờ Việt Nam).';
 
 // ---------------------------------------------------------------------------
 // API
@@ -64,6 +109,8 @@ async function saveConfig(request, env, url) {
     }
     const text = JSON.stringify(config);
     if (text.length > 1900000) return fail('Kịch bản quá lớn để lưu (tối đa ~1,9 MB).');
+    const quota = await overQuota(request, env, [['save', 1], ['saveKB', Math.ceil(text.length / 1024)]], 'lưu');
+    if (quota) return limited(quota);
 
     if (isPreview) await deleteOldPreviews(env);
     const existing = await getConfig(env, filename);
@@ -72,17 +119,26 @@ async function saveConfig(request, env, url) {
         return fail('Kịch bản này do máy khác tạo, chỉ máy đó mới lưu đè được. Hãy lưu với tên khác.', { code: 'not_owner' });
     }
 
-    // Ảnh xem trước khi chia sẻ link (builder vẽ sẵn, dạng data:image/jpeg;base64,...): configs/<tên>.jpg
+    // Ảnh xem trước khi chia sẻ link (builder vẽ sẵn, dạng data:image/jpeg;base64,...): configs/<tên>.jpg. Ảnh giống
+    // lần lưu trước thì không ghi lại (mỗi lần ghi tốn một lượt trong 1.000 lượt ghi KV mỗi ngày); hết lượt ghi thì vẫn
+    // lưu kịch bản, giữ ảnh cũ.
     let image = existing ? existing.image : false;
+    let thumb = existing ? existing.thumb : null;
     const m = !isPreview && typeof data.shareImage === 'string' ? /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/.exec(data.shareImage) : null;
-    if (m && hasMedia(env)) {
+    const hash = m && hasMedia(env) ? await sha256(m[1]) : null;
+    if (hash && !(image && thumb === hash)) {
         const bytes = Uint8Array.from(atob(m[1]), c => c.charCodeAt(0));
         if (bytes.length <= 2 * 1024 * 1024 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
-            await putMedia(env, `configs/${filename}.jpg`, bytes, 'image/jpeg');
-            image = true;
+            try {
+                await putMedia(env, `configs/${filename}.jpg`, bytes, 'image/jpeg');
+                image = true;
+                thumb = hash;
+            } catch (e) {
+                if (!isDailyLimit(e)) throw e;
+            }
         }
     }
-    await putConfig(env, filename, config, image);
+    await putConfig(env, filename, config, text, image, thumb);
     const response = { success: true, message: 'Đã lưu kịch bản thành công!', filename };
     // Kịch bản mới: tạo mã theo dõi mở quà, chỉ trả về lần này (trình soạn của người gửi giữ lại)
     const trackKey = !existing && !isPreview ? await createKey(env, filename) : null;
@@ -134,6 +190,7 @@ async function opens(request, env, url) {
         // Chỉ ghi cho kịch bản có thật, có mã theo dõi và người gửi đã bật "Báo cho tôi khi người nhận mở quà"
         const saved = await getConfig(env, id);
         if (!saved || !saved.data.notifyOpen || !(await hasKey(env, id))) return json({ success: false });
+        if (await overQuota(request, env, [['open', 1]], 'báo mở quà')) return json({ success: false, code: 'rate_limited' });
         return json({ success: await recordOpen(env, id, body.event, device) });
     }
     if (action === 'status') {
@@ -190,8 +247,15 @@ async function upload(request, env, kind) {
     if (!type) {
         return fail(audio ? 'Định dạng không được hỗ trợ. Hãy dùng file MP3, M4A, OGG hoặc WAV.' : 'Loại file không được hỗ trợ. Chỉ cho phép JPG, PNG, WEBP, GIF.');
     }
+    const quota = await overQuota(request, env, [['upload', 1], ['uploadKB', Math.ceil(bytes.length / 1024)]], 'tải ảnh, nhạc lên');
+    if (quota) return limited(quota);
     const key = audio ? `uploads/music/${name}/music_${randomHex(8)}.${type[0]}` : `uploads/${name}/img_${randomHex(8)}.${type[0]}`;
-    await putMedia(env, key, bytes, type[1]);
+    try {
+        await putMedia(env, key, bytes, type[1]);
+    } catch (e) {
+        if (isDailyLimit(e)) return fail(MEDIA_FULL);
+        throw e;
+    }
     if (!audio) return json({ success: true, message: 'Tải ảnh lên thành công!', url: `./${key}` });
     // Tên bài để hiển thị trong builder: bỏ ký tự điều khiển, tối đa 120 ký tự
     const display = [...String(file.name || '').replace(/[\x00-\x1F\x7F]/g, '')].slice(0, 120).join('');

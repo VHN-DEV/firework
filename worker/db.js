@@ -6,13 +6,17 @@
 
 // Cơ sở dữ liệu D1 (binding DB) thay cho file JSON của bản PHP: kịch bản lưu từ builder (configs), mã chủ của máy đã tạo
 // kịch bản (owners, chỉ lưu bản băm: cũng là mã theo dõi mở quà), lịch sử mở quà (opens, xem api/tracking.inc.php). Bảng
-// tạo khi cần (lần đầu mỗi isolate), không phải chạy lệnh tạo bảng.
+// tạo khi cần (lần đầu mỗi isolate), không phải chạy lệnh tạo bảng. Bảng quota đếm số lần lưu, tải lên của mỗi máy (xem
+// useQuota).
 
 const SCHEMA = [
     'CREATE TABLE IF NOT EXISTS configs (id TEXT PRIMARY KEY, data TEXT NOT NULL, title TEXT, author TEXT, events INTEGER NOT NULL DEFAULT 0, updated INTEGER NOT NULL, image INTEGER NOT NULL DEFAULT 0)',
     'CREATE TABLE IF NOT EXISTS owners (id TEXT PRIMARY KEY, hash TEXT NOT NULL, created TEXT NOT NULL)',
-    'CREATE TABLE IF NOT EXISTS opens (id TEXT PRIMARY KEY, data TEXT NOT NULL)'
+    'CREATE TABLE IF NOT EXISTS opens (id TEXT PRIMARY KEY, data TEXT NOT NULL)',
+    'CREATE TABLE IF NOT EXISTS quota (key TEXT PRIMARY KEY, used INTEGER NOT NULL, expires INTEGER NOT NULL)'
 ];
+// Cột thêm sau khi đã có bảng: thumb (bản băm ảnh thiệp đang lưu, để không ghi lại ảnh không đổi)
+const COLUMNS = ['ALTER TABLE configs ADD COLUMN thumb TEXT'];
 
 export const TRACK_EVENTS = ['view', 'open', 'finish'];
 export const TRACK_DEVICES = ['mobile', 'tablet', 'desktop'];
@@ -26,10 +30,13 @@ let ready = null;
 async function database(env) {
     if (!env.DB) throw new Error('Chưa gắn cơ sở dữ liệu D1 (binding DB trong wrangler.jsonc)');
     if (!ready) {
-        ready = env.DB.batch(SCHEMA.map(sql => env.DB.prepare(sql))).catch(e => {
-            ready = null;
-            throw e;
-        });
+        ready = env.DB.batch(SCHEMA.map(sql => env.DB.prepare(sql)))
+            // Cột đã có thì lệnh báo lỗi trùng cột: bỏ qua
+            .then(() => Promise.all(COLUMNS.map(sql => env.DB.prepare(sql).run().catch(() => {}))))
+            .catch(e => {
+                ready = null;
+                throw e;
+            });
     }
     await ready;
     return env.DB;
@@ -41,16 +48,16 @@ export function randomHex(bytes) {
     return [...crypto.getRandomValues(new Uint8Array(bytes))].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function sha256(text) {
+export async function sha256(text) {
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
     return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 // ---- Kịch bản ----
 
-// { data: kịch bản, updated: giây, image: có ảnh xem trước configs/<tên>.jpg } hoặc null
+// { data: kịch bản, updated: giây, image: có ảnh xem trước configs/<tên>.jpg, thumb: bản băm ảnh đó } hoặc null
 export async function getConfig(env, id) {
-    const row = await (await database(env)).prepare('SELECT data, updated, image FROM configs WHERE id = ?').bind(id).first();
+    const row = await (await database(env)).prepare('SELECT data, updated, image, thumb FROM configs WHERE id = ?').bind(id).first();
     if (!row) return null;
     let data = null;
     try {
@@ -58,16 +65,17 @@ export async function getConfig(env, id) {
     } catch (e) {
         // Dữ liệu hỏng: coi như không có
     }
-    return data ? { data, updated: row.updated, image: !!row.image } : null;
+    return data ? { data, updated: row.updated, image: !!row.image, thumb: row.thumb || null } : null;
 }
 
-export async function putConfig(env, id, config, image) {
+// text: kịch bản dạng JSON (đã có sẵn khi kiểm tra dung lượng)
+export async function putConfig(env, id, config, text, image, thumb) {
     const db = await database(env);
-    const text = (v, fallback) => (typeof v === 'string' ? v : fallback);
-    await db.prepare('INSERT INTO configs (id, data, title, author, events, updated, image) VALUES (?, ?, ?, ?, ?, ?, ?) '
+    const field = (v, fallback) => (typeof v === 'string' ? v : fallback);
+    await db.prepare('INSERT INTO configs (id, data, title, author, events, updated, image, thumb) VALUES (?, ?, ?, ?, ?, ?, ?, ?) '
         + 'ON CONFLICT(id) DO UPDATE SET data = excluded.data, title = excluded.title, author = excluded.author, '
-        + 'events = excluded.events, updated = excluded.updated, image = excluded.image')
-        .bind(id, JSON.stringify(config), text(config.title, id), text(config.author, 'Unknown'), config.events.length, now(), image ? 1 : 0)
+        + 'events = excluded.events, updated = excluded.updated, image = excluded.image, thumb = excluded.thumb')
+        .bind(id, text, field(config.title, id), field(config.author, 'Unknown'), config.events.length, now(), image ? 1 : 0, thumb || null)
         .run();
 }
 
@@ -147,4 +155,25 @@ export async function recordOpen(env, id, event, device) {
     await (await database(env)).prepare('INSERT INTO opens (id, data) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data')
         .bind(id, JSON.stringify(data)).run();
     return true;
+}
+
+// ---- Giới hạn mỗi máy (chống spam) ----
+
+// Cộng số lần (hoặc dung lượng) của từng mục [tên, lượng] vào khung giờ hiện tại của mỗi luật [tối đa, số giây] trong
+// limits[tên]. Khung tính tròn theo giờ quốc tế (khung một ngày bắt đầu lúc 7h sáng giờ Việt Nam, cùng lúc Cloudflare đặt
+// lại hạn mức). who: bản băm địa chỉ máy (không lưu địa chỉ thật). Còn trong hạn mức trả về null, vượt thì trả về
+// { end: lúc hết khung đang vượt (giây), per: độ dài khung đó }. Lần bị chặn vẫn được cộng.
+export async function useQuota(env, who, items, limits) {
+    const db = await database(env);
+    const t = now();
+    const rules = items.flatMap(([name, amount]) => limits[name].map(([max, per]) => ({ name, amount, max, per, end: (Math.floor(t / per) + 1) * per })));
+    const results = await db.batch(rules.map(r => db.prepare(
+        'INSERT INTO quota (key, used, expires) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET used = used + excluded.used RETURNING used'
+    ).bind(`${r.name}:${r.per}:${r.end}:${who}`, r.amount, r.end)));
+    const over = rules.filter((r, i) => results[i].results[0].used > r.max).sort((a, b) => b.end - a.end)[0];
+    return over ? { end: over.end, per: over.per } : null;
+}
+
+export async function deleteOldQuota(env) {
+    await (await database(env)).prepare('DELETE FROM quota WHERE expires < ?').bind(now()).run();
 }

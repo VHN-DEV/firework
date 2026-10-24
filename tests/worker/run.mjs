@@ -7,9 +7,10 @@
 // Phần máy chủ trên Cloudflare Workers (worker/, wrangler.jsonc), chạy tại máy bằng "wrangler dev" (D1, KV giả lập trong
 // .wrangler/): builder lưu kịch bản kèm ảnh thiệp, link s/<tên> có ảnh, tiêu đề xem trước, mở ở trình duyệt khác đúng
 // kịch bản, tải ảnh, nhạc lên rồi đọc lại (nhạc tải từng đoạn), file giả dạng ảnh bị từ chối, mã chủ khi lưu đè, xóa, báo
-// mở quà, Xem thử. Cần bản build (npm run build) và mạng để npx tải wrangler lần đầu. Chạy: npm run test:worker
+// mở quà, Xem thử, giới hạn số lần tải lên của mỗi máy. Mỗi lần chạy dùng dữ liệu mới (thư mục tạm). Cần bản build (npm run build) và mạng để npx tải wrangler lần đầu. Chạy: npm run test:worker
 import { spawn, spawnSync } from 'child_process';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { DIST, ROOT, launchBrowser, sleep } from '../e2e/helpers.mjs';
 
@@ -20,7 +21,9 @@ if (!fs.existsSync(path.join(DIST, 'index.html'))) {
 
 const PORT = Number(process.env.WORKER_PORT) || 8798;
 const BASE = `http://127.0.0.1:${PORT}`;
-const wrangler = spawn('npx', ['--yes', 'wrangler@4', 'dev', '--port', String(PORT), '--ip', '127.0.0.1', '--show-interactive-dev-session=false'],
+const STATE = fs.mkdtempSync(path.join(os.tmpdir(), 'hanabi-worker-'));
+const wrangler = spawn('npx', ['--yes', 'wrangler@4', 'dev', '--port', String(PORT), '--ip', '127.0.0.1', '--persist-to', `"${STATE}"`,
+    '--show-interactive-dev-session=false'],
     { cwd: ROOT, shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
 let log = '';
 wrangler.stdout.on('data', d => { log += d; });
@@ -31,6 +34,11 @@ const stop = () => {
     if (process.platform === 'win32') spawnSync('taskkill', ['/pid', String(wrangler.pid), '/T', '/F'], { stdio: 'ignore' });
     else spawnSync('pkill', ['-P', String(wrangler.pid)], { stdio: 'ignore' });
     wrangler.kill();
+    try {
+        fs.rmSync(STATE, { recursive: true, force: true });
+    } catch (e) {
+        // workerd chưa nhả file: để thư mục tạm của hệ điều hành tự dọn
+    }
 };
 
 const results = [];
@@ -134,6 +142,24 @@ try {
     await a.evaluate(() => previewConfig());
     const previewUrl = await Promise.race([opened, sleep(15000).then(() => '')]);
     check('Xem thử mở kịch bản tạm lưu trên máy chủ', /demo\?config=preview_temp_[a-f0-9]{16}$/.test(previewUrl), previewUrl);
+
+    // Tải lên liên tục: tới giới hạn của máy thì bị chặn, có câu báo thử lại sau bao lâu
+    const flood = await a.evaluate(async id => {
+        const png = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='), c => c.charCodeAt(0));
+        const out = [];
+        for (let i = 0; i < 25; i++) {
+            const form = new FormData();
+            form.append('image', new File([png], 'anh.png'));
+            form.append('filename', id);
+            const r = await (await fetch('api/upload_image.php', { method: 'POST', body: form })).json();
+            out.push(r);
+            if (!r.success) break;
+        }
+        return out;
+    }, ID);
+    const blocked = flood[flood.length - 1];
+    check('tải lên quá nhiều lần thì bị chặn, báo thử lại sau', flood.length > 10 && blocked.code === 'rate_limited' && /thử lại sau \d+ phút/.test(blocked.message),
+        JSON.stringify(blocked) + ` sau ${flood.length - 1} lần`);
 
     const removed = await api('manage_configs.php?action=delete', { filename: ID, key });
     const gone = await Promise.all([fetch(`${BASE}/configs/${ID}.json`), fetch(`${BASE}/configs/${ID}.jpg`)]);

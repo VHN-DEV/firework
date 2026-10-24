@@ -49,7 +49,9 @@
   "MEDIA" }]`); file tĩnh trong `dist` (`src/static/.assetsignore` bỏ thư mục `api/` PHP). Triển khai: trên Cloudflare,
   Workers & Pages, nối repo GitHub; lệnh build `npm run build`, lệnh triển khai `npx wrangler@4 deploy` (dự án không ghi wrangler trong package.json); biến môi trường
   lúc build `SITE_URL=https://<tên>.<tài khoản>.workers.dev/` (ảnh, link xem trước của trang chủ, sitemap). Lần triển
-  khai đầu Cloudflare tự tạo D1, KV (wrangler 4.45 trở lên), bảng do Worker tự tạo. Chạy thử tại máy: `npm run build` rồi
+  khai đầu Cloudflare tự tạo D1, KV (wrangler 4.45 trở lên), bảng do Worker tự tạo. Chống spam: mỗi máy (IP, lưu bản
+  băm) chỉ được lưu, tải ảnh nhạc, báo mở quà một số lần (`LIMITS` trong `worker/index.js`); ảnh thiệp giống lần lưu
+  trước thì không ghi lại (KV chỉ có 1.000 lần ghi mỗi ngày). Chạy thử tại máy: `npm run build` rồi
   `npx wrangler dev` (D1, KV giả lập trong `.wrangler/`); kiểm thử `npm run test:worker` (cần mạng để tải wrangler).
 - **Đường dẫn (route)**: mọi link dùng đường dẫn không đuôi `.html`: `/` (trang chủ), `/demo` (trình phát, link tặng
   `/demo?config=<tên>`), `/builder`, `/terms`, `/privacy`, `/theo-doi?id=...&key=...`, `/s/<tên>` (trang chia sẻ). Mỗi
