@@ -14,6 +14,7 @@ import { QUALITY_AUTO, validQuality } from '../player/quality.js';
 import { state } from './state.js';
 import { refreshMiniPreview } from './preview.js';
 import { scheduleSettingsSummaries } from './settings.js';
+import { renderNatureSound } from './nature-ui.js';
 
 // Khói pháo (Tắt / Nhẹ / Dày) trong Cấu hình chung
 export function setSmoke(level) {
@@ -163,6 +164,8 @@ export function renderSky() {
         document.getElementById('out-moon-x').textContent = moon.x;
         document.getElementById('out-moon-y').textContent = moon.y;
     }
+    // Mùa, thời tiết đổi thứ trên mặt nước và tiếng thiên nhiên nghe được
+    renderWaterThings();
     scheduleSettingsSummaries();
 }
 
@@ -369,14 +372,7 @@ export function renderScene() {
                 : ['bridge', 'arch'].includes(state.bank) ? 'Người đi lên giữa cầu bên kia, lan can che một phần người'
                     : 'Người đứng nhỏ xa xa ở bờ bên kia';
     }
-    // Chỉ hiện thứ có trên mặt nước của kiểu bờ đang chọn: giữa biển chỉ có cá, đá (sóng đánh vào); sông thành phố có
-    // thuyền, không có đá, gò đất; các kiểu bờ khác không có thuyền
-    const things = state.bank === 'none' ? ['waterFish', 'waterRocks']
-        : WATER_THINGS.filter(key => (state.bank === 'city' ? key !== 'waterRocks' : key !== 'waterBoats'));
-    document.querySelectorAll('[data-water-thing]').forEach(input => {
-        input.checked = state[input.dataset.waterThing];
-        input.closest('.toggle-chip').classList.toggle('hide', !things.includes(input.dataset.waterThing));
-    });
+    renderWaterThings();
     // Thước dọc của khung xem nhanh: độ cao 0 là mặt nước
     const level = { third: 2 / 3, half: 0.5 }[state.water] || 1;
     const rulerY = document.getElementById('mini-ruler-y');
@@ -384,8 +380,32 @@ export function renderScene() {
     scheduleSettingsSummaries();
 }
 
+// Mục "Trên mặt nước" (đổi theo kiểu bờ, kiểu mặt nước, mùa) và tiếng thiên nhiên nghe được trong cảnh
+function renderWaterThings() {
+    // Chỉ hiện thứ có trên mặt nước của kiểu bờ, kiểu mặt nước đang chọn: giữa biển chỉ có cá, đá (sóng đánh vào); sông
+    // thành phố có thuyền, không có đá, gò đất; các kiểu bờ khác không có thuyền; khúc gỗ chỉ trôi trên sông chảy
+    const things = (state.bank === 'none' ? ['waterFish', 'waterRocks']
+        : WATER_THINGS.filter(key => (state.bank === 'city' ? key !== 'waterRocks' : key !== 'waterBoats')))
+        .filter(key => key !== 'waterLogs' || state.waterStyle === 'river');
+    // Mùa đông mặt nước đóng băng (biển thì không): con vật, khúc gỗ, lá bèo, thuyền, vật trôi không có nên mờ đi, vẫn
+    // bật/tắt được cho người mở vào mùa khác
+    const frozen = state.season === 'winter' && state.bank !== 'none';
+    document.querySelectorAll('[data-water-thing]').forEach(input => {
+        const chip = input.closest('.toggle-chip');
+        const idle = frozen && input.dataset.waterThing !== 'waterRocks';
+        input.checked = state[input.dataset.waterThing];
+        chip.classList.toggle('hide', !things.includes(input.dataset.waterThing));
+        chip.classList.toggle('is-idle', idle);
+        chip.title = idle ? 'Mùa đông mặt nước đóng băng nên không có' : '';
+    });
+    const floating = document.querySelector('.water-floating');
+    floating?.classList.toggle('is-idle', frozen);
+    if (floating) floating.title = frozen ? 'Mùa đông mặt nước đóng băng nên không có vật trôi' : '';
+    renderNatureSound();
+}
+
 // Trên mặt nước (mục "Trên mặt nước"); kịch bản cũ chỉ có một công tắc waterLife cho cò, vịt, cá, gỗ
-export const WATER_THINGS = ['waterBirds', 'waterDucks', 'waterFish', 'waterFrogs', 'waterLogs', 'waterPlants', 'waterRocks', 'waterBoats'];
+export const WATER_THINGS =['waterBirds', 'waterDucks', 'waterFish', 'waterFrogs', 'waterLogs', 'waterPlants', 'waterRocks', 'waterBoats'];
 
 export const WATER_LIFE_THINGS = ['waterBirds', 'waterDucks', 'waterFish', 'waterFrogs', 'waterLogs', 'waterBoats'];
 

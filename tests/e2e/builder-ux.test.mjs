@@ -130,6 +130,29 @@ export async function run(browser, base, { check }) {
         await page.click('label[for="loop"] .switch');
         check('ô Lời chúc ở màn kết chỉ hiện khi tắt Tự động lặp lại', loopOn && !whileLoop && afterOff, JSON.stringify({ loopOn, whileLoop, afterOff }));
 
+        // Tiếng thiên nhiên không có trong cảnh thì mờ đi (vẫn bật/tắt được); thứ trên mặt nước theo kiểu mặt nước, mùa
+        const idleSounds = () => page.$$eval('#nature-things .toggle-chip.is-idle input', list => list.map(i => i.dataset.natureGroup).sort().join());
+        const waterChips = () => page.$$eval('[data-water-thing]', list => list.map(i => {
+            const chip = i.closest('.toggle-chip');
+            return i.dataset.waterThing + (chip.classList.contains('hide') ? ':hide' : chip.classList.contains('is-idle') ? ':idle' : '');
+        }).join());
+        const dry = await idleSounds();
+        await page.evaluate(() => { setWater('half'); setWaterStyle('lake'); setBank(''); });
+        const lake = await idleSounds();
+        const lakeThings = await waterChips();
+        await page.evaluate(() => { setWeather('rain'); setBank('none'); });
+        const seaRain = await idleSounds();
+        await page.evaluate(() => { setBank(''); setWaterStyle('river'); setSeason('winter'); setWeather(''); });
+        const riverThings = await waterChips();
+        await page.evaluate(() => { setSeason('auto'); setWater(''); });
+        check('tiếng thiên nhiên không có trong cảnh thì mờ đi: chưa có mặt nước mờ hết, có mặt nước chỉ còn mưa mờ, biển không có ếch, cò, vịt',
+            dry === 'birds,ducks,fish,frogs,insects,rain,trees,water' && lake === 'rain' && seaRain === 'birds,ducks,frogs,insects',
+            JSON.stringify({ dry, lake, seaRain }));
+        check('Trên mặt nước: hồ không có khúc gỗ trôi, sông thì có; mùa đông mặt nước đóng băng nên con vật mờ đi, đá vẫn rõ',
+            lakeThings.includes('waterLogs:hide') && riverThings.includes('waterLogs:idle') && riverThings.includes('waterBirds:idle')
+                && /waterRocks(,|$)/.test(riverThings),
+            JSON.stringify({ lakeThings, riverThings }));
+
         check('builder (tinh chỉnh thao tác) không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
         await page.close();

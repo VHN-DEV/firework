@@ -7,10 +7,37 @@
 // Âm thanh thiên nhiên của kịch bản: bật/tắt, âm lượng, bật/tắt từng nhóm tiếng (danh sách nhóm dùng chung với trình
 // phát: player/nature/scene.js).
 
-import { NATURE_GROUPS, NATURE_VOLUME, validNatureOff, validNatureVolume } from '../player/nature/scene.js';
+import { NATURE_GROUPS, NATURE_VOLUME, ambienceLayers, eventSounds, natureScene, validNatureOff, validNatureVolume } from '../player/nature/scene.js';
+import { resolveSeason } from '../player/seasons.js';
 import { state } from './state.js';
 import { refreshMiniPreview } from './preview.js';
 import { scheduleSettingsSummaries } from './settings.js';
+
+// Tiếng nền, tiếng sự việc của trình phát -> nhóm tiếng (tiếng nước bắn do nhiều thứ gây ra nên không tính)
+const LAYER_GROUPS = { water: 'water', leaves: 'trees', crickets: 'insects', frogChorus: 'frogs', rain: 'rain' };
+const EVENT_GROUPS = { bubble: 'water', shore: 'water', crash: 'water', plip: 'fish', frog: 'frogs', quack: 'ducks', wings: 'ducks', egret: 'birds', egretWings: 'birds' };
+
+// Nhóm tiếng nghe được trong cảnh đang soạn, tính bằng chính cách trình phát chọn tiếng (mùa theo ngày xem: mùa nào có
+// cũng tính). Biển khơi không có cò, vịt, ếch như mặt nước của trình phát.
+function audibleGroups() {
+    const sea = state.bank === 'none';
+    const life = { birds: !sea && state.waterBirds, ducks: !sea && state.waterDucks, fish: state.waterFish, frogs: !sea && state.waterFrogs, bubbles: true };
+    const seasons = state.season === 'auto' ? ['spring', 'summer', 'autumn', 'winter'] : [resolveSeason(state.season)];
+    const groups = new Set();
+    seasons.forEach(season => {
+        const scene = natureScene({ water: !!state.water, style: state.waterStyle, bank: state.bank, season, weather: state.weather, life, rocks: state.waterRocks });
+        ambienceLayers(scene).forEach(layer => groups.add(LAYER_GROUPS[layer.id]));
+        eventSounds(scene).forEach(sound => groups.add(EVENT_GROUPS[sound.id]));
+    });
+    return groups;
+}
+
+// Vì sao chưa nghe tiếng này (nút mờ đi, vẫn bật/tắt được)
+function silentReason(key) {
+    if (key === 'rain') return 'Chọn Mưa ở mục Thời tiết để có tiếng mưa';
+    if (!state.water) return 'Bật Mặt nước để có tiếng này';
+    return 'Cảnh đang chọn không có tiếng này (theo kiểu bờ, mùa, thời tiết, mục Trên mặt nước)';
+}
 
 export function renderNatureSound() {
     const toggle = document.getElementById('nature-sound');
@@ -25,8 +52,13 @@ export function renderNatureSound() {
         chips.innerHTML = NATURE_GROUPS.map(group => `
             <label class="toggle-chip"><input type="checkbox" data-nature-group="${group.key}"><span>${group.icon} ${group.name}</span></label>`).join('');
     }
+    const audible = audibleGroups();
     chips.querySelectorAll('[data-nature-group]').forEach(input => {
-        input.checked = !state.natureOff.includes(input.dataset.natureGroup);
+        const key = input.dataset.natureGroup;
+        input.checked = !state.natureOff.includes(key);
+        const chip = input.closest('.toggle-chip');
+        chip.classList.toggle('is-idle', !audible.has(key));
+        chip.title = audible.has(key) ? '' : silentReason(key);
     });
     scheduleSettingsSummaries();
 }

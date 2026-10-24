@@ -28,7 +28,7 @@ import { chooseLibraryItem, closeLibrary, getMusicAudio, handleMusicUpload, open
 import { playMiniPreviewOnce, previewAsRecipient, previewConfig, refreshMiniPreview, resizeMiniStages, restartMiniPreview, setPreviewDevice, toggleFullscreenMiniPreview, toggleMiniPreview, togglePreviewDevice, togglePreviewSound } from './builder/preview.js';
 import { saveConfig } from './builder/config.js';
 import { initEditHistory, redo, undo } from './builder/history.js';
-import { setupNatureSound } from './builder/nature-ui.js';
+import { renderNatureSound, setupNatureSound } from './builder/nature-ui.js';
 import { initScreenThemeControls, initSettingsGroups, previewScreen, renderSchedule, renderStartFrames, resetScreenTheme, setOpenMode, setScreenThemeField, setScreenThemePreset, setStartFrame } from './builder/settings.js';
 import { renderScene, renderSky, renderSmoke, renderViewer, setBank, setNearBank, setPeople, setPeopleFirst, setPeopleStart, setPeopleWait, setClouds, setFloating, setMeteors, setMilkyWay, setMoonMode, setMoonPhase, setSeason, setSmoke, setStars, setViewerOption, setWater, setWaterStyle, setWeather, toggleDecor, toggleOption, togglePerson, toggleSeason } from './builder/scene.js';
 import { createFromTemplate, openTemplatesModal, renderTemplateChips, selectOccasion, startBlankScript, updateTemplateStrip } from './builder/templates-ui.js';
@@ -120,6 +120,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.querySelectorAll('[data-water-thing]').forEach(input => input.addEventListener('change', () => {
         state[input.dataset.waterThing] = input.checked;
+        // Tắt ếch, cò... thì tiếng của chúng cũng không còn
+        renderNatureSound();
         refreshMiniPreview();
     }));
     // Vị trí trăng: kéo thanh trượt thì xem nhanh cập nhật

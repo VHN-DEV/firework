@@ -211,6 +211,16 @@
         opacity: 0.6;
         cursor: default;
     }
+
+    // Không có trong cảnh đang chọn (tiếng thiên nhiên, thứ trên mặt nước mùa đông): mờ đi, vẫn bật/tắt được
+    &.is-idle span {
+        opacity: 0.45;
+        filter: grayscale(0.8);
+    }
+}
+
+.segmented.is-idle button {
+    opacity: 0.5;
 }
 
 .color-field {
