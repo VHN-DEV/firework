@@ -170,14 +170,20 @@ export class Duo {
         this.t = 0;
         this.g = null;
         this.last = '';
-        // Đứng sát vai nhau (cô tựa đầu được vào vai anh); che ô thì đứng cách ra cho hai tán ô
-        this.stopM = umbrella ? -0.5 : -0.19;
-        this.stopW = umbrella ? 0.56 : 0.19;
         const edge = halfW + 0.9;
+        const fm = from.m || { x: -edge, edge: true };
+        const ff = from.f || { x: edge, edge: true };
+        // Ngắm pháo thì đứng sát vai nhau (cô tựa đầu được vào vai anh); che ô thì đứng cách ra cho hai tán ô. Đi tới gặp
+        // nhau thì dừng cách nhau chừng một sải tay để chào (đứng sát mặt nhau không tự nhiên), quay ra mặt nước mới bước sát
+        // lại; đi cùng nhau (cùng một phía) hay cả hai đứng sẵn thì đứng sát vai luôn
+        const along = !first && !fm.stand && !ff.stand && Math.sign(-0.19 - fm.x) === Math.sign(0.19 - ff.x) && Math.abs(fm.x - ff.x) < 0.5;
+        this.greeting = !umbrella && !along && !(fm.stand && ff.stand);
+        this.stopM = umbrella ? -0.5 : this.greeting ? -0.36 : -0.19;
+        this.stopW = umbrella ? 0.56 : this.greeting ? 0.36 : 0.19;
         // Mỗi người: chỗ gặp (x, z), chỗ bắt đầu, xuất phát lúc nào (dep), đi mất bao lâu (walk), đã tới chưa
         const plan = (a, f, x, z) => ({ a, x, z, from: f.stand ? x : f.x, edge: !!f.edge && !f.stand, arrived: !!f.stand, lane: null });
-        const rm = this.rm = plan(man, from.m || { x: -edge, edge: true }, this.stopM, 0);
-        const rw = this.rw = plan(woman, from.f || { x: edge, edge: true }, this.stopW, 0.05);
+        const rm = this.rm = plan(man, fm, this.stopM, 0);
+        const rw = this.rw = plan(woman, ff, this.stopW, 0.05);
         rm.other = rw;
         rw.other = rm;
         [rm, rw].forEach(r => {
@@ -290,24 +296,35 @@ export class Duo {
                     a.goalYaw = 0;
                     this.glance(a, dt, env);
                 } else if (!r.arrived) {
-                    // Vừa đi vừa ngước nhìn pháo; người kia đã đứng đợi ở gần thì nhìn người đó
-                    if (o.arrived && Math.abs(o.a.x - a.x) < 2.5) lookAtActor(a, o.a, 0);
+                    // Vừa đi vừa ngước nhìn pháo; người kia đã đứng đợi ở gần (hay vẫy tay gọi) thì nhìn người đó
+                    if (o.arrived && (Math.abs(o.a.x - a.x) < 3.5 || o.waved)) lookAtActor(a, o.a, a === m ? -0.05 : 0.08);
                     else this.glance(a, dt, env);
-                } else if (!o.arrived && this.eta(o) > (r.waits ? 3 : 6)) {
+                } else if (!o.arrived && this.eta(o) > (r.waits ? 4.5 : 6.5)) {
                     // Đứng đợi (người kia còn xa: vừa tới mà người kia đã gần thì đứng luôn hướng về phía đó, không quay
                     // ra mặt nước rồi lại quay vào)
                     r.waits = true;
                     this.waiting(r, dt, env);
                 } else {
-                    // Người kia sắp tới (hoặc đang dừng bước): quay sang phía người đó, nhìn người đó
-                    if (a.clipName !== 'idle' && a.clipName !== 'stop') a.play('idle', { fade: 0.5 });
-                    a.turnTo(r === rm ? Math.PI / 2 : -Math.PI / 2);
+                    // Người kia sắp tới (hoặc đang dừng bước): quay sang phía người đó (đi cùng nhau thì không), nhìn người đó;
+                    // người đó còn cách vài bước thì vẫy tay gọi (một lần)
+                    if (this.greeting || this.umbrella) a.turnTo(r === rm ? Math.PI / 2 : -Math.PI / 2);
                     if (o.a.root.visible) lookAtActor(a, o.a, a === m ? -0.05 : 0.08);
+                    const away = Math.abs(o.a.x - a.x);
+                    if (!r.waved && !o.arrived && o.a.root.visible && away > 1.8 && away < 6 && !a.turning && a.clips.wave1 && !this.umbrella) {
+                        r.waved = true;
+                        a.play('wave1', { loop: false, fade: 0.4 });
+                    }
+                    // Vẫy xong (động tác vẫy của cô gái còn đứng lặng một lúc sau khi hạ tay) thì đứng thở
+                    const waving = a.clipName === 'wave1' && a.remaining > 0.6 && a.current.time < 3.2;
+                    if (!waving && a.clipName !== 'idle' && a.clipName !== 'stop') a.play('idle', { fade: 0.6 });
                 }
             });
             this.handInHand();
             // Hai người đã tới: quay hẳn vào nhau rồi mới chào
-            if (rm.arrived && rw.arrived) {
+            if (rm.arrived && rw.arrived && !this.greeting && !this.umbrella) {
+                // Đi cùng nhau tới nơi thì không chào nhau nữa, quay ra mặt nước luôn
+                this.go('turn');
+            } else if (rm.arrived && rw.arrived) {
                 m.turnTo(Math.PI / 2);
                 w.turnTo(-Math.PI / 2);
                 if (Math.abs(m.yaw - m.goalYaw) < 0.3 && Math.abs(w.yaw - w.goalYaw) < 0.3) this.go('meet');
@@ -317,7 +334,7 @@ export class Duo {
             lookAtActor(w, m, 0.16);
             if (this.umbrella) this.foldUmbrella();
             else this.greet();
-            if (t > (this.umbrella ? 4.6 : 2.4)) this.go('turn');
+            if (t > (this.umbrella ? 4.6 : 4.5)) this.go('turn');
         } else if (this.phase === 'turn') {
             // Cùng quay ra mặt nước bằng bước chân, cô theo anh chậm một nhịp
             m.turnTo(0.32);
@@ -330,7 +347,15 @@ export class Duo {
                 lookSky(w, env);
             }
             this.hands(env);
-            if (t > 1 && !m.turning && !w.turning) this.go('watch');
+            // Vừa quay vừa bước sát lại thành vai kề vai (bước chân của động tác quay che chỗ dời)
+            let gap = 0;
+            if (this.greeting) {
+                [[m, -0.19], [w, 0.19]].forEach(([a, x]) => {
+                    if (a.turning || t > 0.5) a.x += clamp(x - a.x, -0.2 * dt, 0.2 * dt);
+                    gap += Math.abs(x - a.x);
+                });
+            }
+            if (t > 1 && !m.turning && !w.turning && gap < 0.02) this.go('watch');
         } else {
             this.watch(dt, env);
         }
@@ -418,21 +443,28 @@ export class Duo {
         w.umbrellaDir = bodyDir(w, 0.04, 1, -0.26).add(V(-env.wind * 0.06, 0, 0));
     }
 
-    // Gặp nhau (trời quang): cô vén tóc, anh đưa tay, cô nắm lấy
+    // Gặp nhau (trời quang): anh gật đầu chào, cô gật nhẹ đáp lại rồi vén tóc ra sau tai; tay cô vừa hạ thì anh đưa tay,
+    // cô nắm lấy
     greet() {
         const { m, w } = this;
         const t = this.t;
-        if (t > 0.15 && !this.haired) {
+        const nod = (a, from, len, depth) => {
+            const k = (t - from) / len;
+            if (k > 0 && k < 1) a.lookGoal.pitch -= depth * Math.sin(Math.PI * k);
+        };
+        nod(m, 0.05, 0.7, 0.3);
+        nod(w, 0.35, 0.6, 0.18);
+        if (t > 0.6 && !this.haired) {
             this.haired = true;
             w.play('hair', { loop: false, fade: 0.4 });
         }
-        if (this.haired && w.clipName === 'hair' && w.remaining < 0.5) w.play('idle', { fade: 0.5 });
-        if (t > 0.9) {
+        if (this.haired && w.clipName === 'hair' && w.remaining < 0.9) w.play('idle', { fade: 0.7 });
+        if (t > 3.4) {
             const p = holdPoint(m, w, 0.9);
             m.ik[1] = { target: p, pole: bodyDir(m, 0.3, -1, -0.4), tau: 0.35 };
             m.curlGoal[1] = 0.75;
         }
-        if (t > 1.5) {
+        if (t > 3.9) {
             const p = holdPoint(m, w, 0.9);
             w.ik[0] = { target: p, pole: bodyDir(w, -0.3, -1, -0.4), tau: 0.3 };
             w.curlGoal[0] = 0.75;

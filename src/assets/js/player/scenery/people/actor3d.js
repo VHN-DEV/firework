@@ -40,7 +40,8 @@ const b64buf = s => {
 // quaternion cục bộ của từng xương chuẩn hóa (Int16), vị trí hông (Float32) theo từng khung
 export function buildClips(vrm, data) {
     const clips = {};
-    const hipsName = vrm.humanoid.getNormalizedBoneNode('hips').name;
+    const hips = vrm.humanoid.getNormalizedBoneNode('hips');
+    const hipsName = hips.name;
     const nb = data.bones.length;
     const hipsIndex = data.bones.indexOf('hips');
     Object.entries(data.clips).forEach(([name, c]) => {
@@ -54,8 +55,17 @@ export function buildClips(vrm, data) {
             }
             return v;
         });
-        const userData = { forward: Float32Array.from({ length: c.frames }, (_, f) => -p[f * 3 + 2]), fps: c.fps, frames: c.frames };
-        if (/^turn/.test(name)) userData.turn = extractTurn(quats[hipsIndex], p, c.frames, c.fps, userData);
+        const userData = { forward: new Float32Array(c.frames), fps: c.fps, frames: c.frames };
+        if (/^(walk|stop|start)/.test(name)) {
+            // Đi, dừng bước: quãng tiến của hông (theo -Z của mô hình) thành bước đi của cả người, hông giữ tại chỗ theo chiều
+            // tiến (giữ lắc ngang, nhún lên xuống). Động tác đứng tại chỗ giữ nguyên hông lắc lư trong tư thế: đẩy cả người
+            // theo thì bàn chân trượt
+            for (let f = 0; f < c.frames; f++) {
+                userData.forward[f] = -p[f * 3 + 2];
+                p[f * 3 + 2] = hips.position.z;
+            }
+        }
+        if (/^turn/.test(name)) userData.turn = extractTurn(quats[hipsIndex], p, c.frames, c.fps);
         const tracks = [];
         data.bones.forEach((bone, i) => {
             const node = vrm.humanoid.getNormalizedBoneNode(bone);
@@ -75,7 +85,7 @@ export function buildClips(vrm, data) {
 // tại chỗ hq, p). Trả { yaw: góc đã quay (rad, dương là quay trái) theo từng khung, x, z: chỗ đứng dời đi (mét, hệ của
 // hướng ban đầu, -z là phía trước), total: góc cả động tác, start: lúc bắt đầu xoay thật (giây) }. Chỗ đứng lúc xong kéo
 // về chỗ cũ (dồn đều vào cả động tác, chân trượt chưa tới 1 cm mỗi khung): quay xong vẫn đứng đúng chỗ hẹn
-function extractTurn(hq, p, frames, fps, userData) {
+function extractTurn(hq, p, frames, fps) {
     const yaw = new Float32Array(frames);
     const x = new Float32Array(frames);
     const z = new Float32Array(frames);
@@ -114,7 +124,6 @@ function extractTurn(hq, p, frames, fps, userData) {
         p[f * 3] = c * rx + sn * rz;
         p[f * 3 + 2] = -sn * rx + c * rz;
     }
-    userData.forward.fill(0);
     const total = yaw[frames - 1];
     let i = 0;
     while (i < frames - 1 && Math.abs(yaw[i]) < Math.abs(total) * 0.03) i++;
@@ -238,8 +247,6 @@ export class Actor3D {
         // Đang quay người bằng bước chân (turnTo): { action, from, angle, then, ending }
         this.turning = null;
         this.fresh = true;
-        const hips = this.bone('hips');
-        this.hipsRest = hips.position.clone();
         this.root.traverse(o => {
             if (o.isMesh) o.frustumCulled = false;
         });
@@ -410,9 +417,6 @@ export class Actor3D {
         this.x += fx * advance;
         this.z += fz * advance;
         this.moved += Math.abs(advance);
-        // Giữ hông tại chỗ theo chiều tiến (đã chuyển thành bước đi của cả người), giữ lắc ngang, nhún lên xuống
-        const hips = this.bone('hips');
-        hips.position.z = this.hipsRest.z;
         this.root.position.set(this.x, this.y, -this.z);
         this.root.rotation.set(0, -this.yaw, 0);
         // Không cập nhật ma trận cả mô hình ở đây (lúc vẽ three.js làm lại): lớp cử động thêm đọc vị trí, hướng xương
