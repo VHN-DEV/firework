@@ -894,6 +894,16 @@ export function reportGiftEvent(type, config) {
     }
 }
 
+// Xem hết = xem trọn một lượt. Kịch bản lặp (builder để Lặp lại bật sẵn) không bao giờ tới màn kết, nên báo ngay khi lượt
+// đầu chạy xong đợt cuối, trước khi quay lại từ đầu; mỗi lần mở trang chỉ báo một lần
+let finishReported = false;
+
+function reportShowFinished() {
+    if (finishReported) return;
+    finishReported = true;
+    reportGiftEvent('finish', burstConfig);
+}
+
 function showOpenNotice() {
     const legal = appNodes.startScreen.querySelector('.start-screen__legal');
     if (!legal || legal.querySelector('.start-screen__notice')) return;
@@ -921,7 +931,7 @@ function showEndScreen(force = false) {
         return;
     }
     if (IS_HEADER || !burstConfig || (burstConfig.loop && !force)) return;
-    if (!force) reportGiftEvent('finish', burstConfig);
+    if (!force) reportShowFinished();
     const screen = appNodes.endScreen;
     const title = screen.querySelector('.end-screen__title');
     title.dataset.raw = burstConfig.title || 'Cảm ơn bạn đã xem!';
@@ -1390,6 +1400,7 @@ export const syncShow = {
     },
 
     finish() {
+        reportShowFinished();
         if (burstConfig.loop) {
             // Lặp lại: nhạc cũng phát lại từ đầu để vẫn khớp nhịp
             this.state = 'idle';
@@ -1428,6 +1439,7 @@ function startSequence() {
 
         // Nếu vượt quá đợt cuối
         if (burstCounter > maxBurst) {
+            if (burstCounter === maxBurst + 1) reportShowFinished();
             if (burstConfig.loop) {
                 burstCounter = 0; // Reset về 0
                 return 2000; // Nghỉ 2 giây trước khi lặp lại

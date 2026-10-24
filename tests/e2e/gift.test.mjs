@@ -6,19 +6,21 @@
 
 // Báo mở quà: người gửi lưu kịch bản (nhận mã theo dõi), người nhận mở link và mở quà ở trình duyệt khác,
 // người gửi tự xem thử thì không tính, builder báo đã mở, người nhận gửi lời cảm ơn (người gửi đọc trong hộp Chia sẻ, trang
-// theo dõi), dữ liệu không tải trực tiếp được.
+// theo dõi), kịch bản lặp xem trọn một lượt thì tính là xem hết, dữ liệu không tải trực tiếp được.
 import fs from 'fs';
 import path from 'path';
 import { DIST, sleep, openPage, removeConfig } from './helpers.mjs';
 
 const ID = 'zz_e2e_gift';
+const LOOP_ID = 'zz_e2e_gift_loop';
 
 export async function run(browser, base, { check }) {
-    const status = async key => {
-        const res = await fetch(`${base}/api/opens.php?action=status`, { method: 'POST', body: JSON.stringify({ items: [{ id: ID, key }] }) });
+    const status = async (key, id = ID) => {
+        const res = await fetch(`${base}/api/opens.php?action=status`, { method: 'POST', body: JSON.stringify({ items: [{ id, key }] }) });
         return (await res.json()).items[0];
     };
     removeConfig(ID);
+    removeConfig(LOOP_ID);
     let recipientCtx = null;
     const sender = await openPage(browser, { width: 1440, height: 900 });
     try {
@@ -104,10 +106,33 @@ export async function run(browser, base, { check }) {
         await tracker.goto(link, { waitUntil: 'networkidle0' });
         await tracker.waitForSelector('#gift-status:not(.hide)', { timeout: 10000 }).catch(() => {});
         const done = await tracker.$$eval('.track-steps li.done', els => els.map(li => li.dataset.step).join());
-        check('trang theo dõi hiện đã mở link, đã mở quà', done === 'view,open', done);
+        // Màn trình diễn của người nhận vẫn đang chạy: chạy hết lượt đầu thì có thêm Xem hết
+        check('trang theo dõi hiện đã mở link, đã mở quà', /^view,open(,finish)?$/.test(done), done);
         const trackedReply = await tracker.$eval('#gift-replies', e => e.textContent).catch(() => '');
         check('trang theo dõi hiện lời cảm ơn', trackedReply.includes('Cảm ơn con, mẹ vui lắm!'), trackedReply.trim());
         await tracker.close();
+
+        // Kịch bản lặp (builder để Lặp lại bật sẵn) không bao giờ tới màn kết: xem trọn một lượt vẫn tính là xem hết, một lần
+        const looped = await (await fetch(`${base}/api/save_config.php`, {
+            method: 'POST',
+            body: JSON.stringify({ filename: LOOP_ID, config: { title: 'Lặp', loop: true, notifyOpen: true, events: [{ burst: 1, shell: 'Liễu', x: 50, y: 60, delay: 0, color: 'Gold' }] } })
+        })).json();
+        const looper = await recipientCtx.newPage();
+        await looper.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+        await looper.goto(`${base}/demo?config=${LOOP_ID}`, { waitUntil: 'networkidle0' });
+        await looper.waitForSelector('.start-screen.is-ready');
+        await looper.tap('.btn-start');
+        let loopCounts = {};
+        for (let i = 0; i < 30 && !loopCounts.finish; i++) {
+            await sleep(1000);
+            loopCounts = ((await status(looped.trackKey, LOOP_ID)) || {}).counts || {};
+        }
+        await sleep(6000);
+        const loopAgain = ((await status(looped.trackKey, LOOP_ID)) || {}).counts || {};
+        await looper.close();
+        check('kịch bản lặp: xem trọn một lượt thì tính là xem hết, lặp lại không tính thêm', loopCounts.finish === 1 && loopAgain.finish === 1,
+            JSON.stringify({ loopCounts, loopAgain }));
+        await fetch(`${base}/api/manage_configs.php?action=delete`, { method: 'POST', body: JSON.stringify({ filename: LOOP_ID, key: looped.trackKey }) });
 
         // Xóa kịch bản thì xóa luôn dữ liệu theo dõi
         await fetch(`${base}/api/manage_configs.php?action=delete`, { method: 'POST', body: JSON.stringify({ filename: ID, key }) });
@@ -117,7 +142,9 @@ export async function run(browser, base, { check }) {
     } finally {
         await sender.close();
         if (recipientCtx) await recipientCtx.close();
-        removeConfig(ID);
-        for (const kind of ['owners', 'opens', 'replies']) fs.rmSync(path.join(DIST, 'api/data', kind, `${ID}.json`), { force: true });
+        for (const id of [ID, LOOP_ID]) {
+            removeConfig(id);
+            for (const kind of ['owners', 'opens', 'replies']) fs.rmSync(path.join(DIST, 'api/data', kind, `${id}.json`), { force: true });
+        }
     }
 }
