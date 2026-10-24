@@ -313,9 +313,13 @@ const QR_WEB = {
     linkedin: 'https://www.linkedin.com/feed/'
 };
 
+// Sao chép ảnh; trình duyệt không hỗ trợ, bị chặn, hay chờ quá 2 giây (đang hỏi quyền) thì coi như không được
 async function copyImage(blob) {
     try {
-        await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+        await Promise.race([
+            navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]),
+            new Promise((resolve, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
+        ]);
         return true;
     } catch (e) {
         return false;
