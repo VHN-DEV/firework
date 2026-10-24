@@ -161,7 +161,8 @@ export async function run(browser, base, { check }) {
         await page.keyboard.press('c');
         await sleep(500);
         const locked = await page.evaluate(() => ({
-            bar: !!document.querySelector('.moment-bar').closest('.remove'),
+            // Thanh góc dưới chỉ còn nút ♥ gửi lời cảm ơn (không thuộc phần chia sẻ)
+            bar: ['.moment-bar__snap', '.moment-bar__share'].every(s => document.querySelector(s).classList.contains('remove')),
             end: document.querySelector('.end-screen__share').classList.contains('remove')
                 && document.querySelector('.end-screen__video').classList.contains('remove'),
             endShown: !document.querySelector('.end-screen').classList.contains('hide'),

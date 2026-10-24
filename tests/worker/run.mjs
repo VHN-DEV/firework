@@ -223,6 +223,18 @@ try {
     const status = await api('opens.php?action=status', { items: [{ id: ID, key }, { id: ID, key: '0'.repeat(32) }] });
     check('báo mở quà: ghi lần mở, chỉ mã đúng mới xem được', notify.success && recorded.success && status.items[0].ok && status.items[0].counts.open === 1 && !status.items[1].ok,
         JSON.stringify(status));
+    const replies = {
+        sent: await api('opens.php?action=reply', { id: ID, name: 'Mẹ', message: '  Cảm ơn con!\nMẹ vui lắm.  ' }),
+        empty: await api('opens.php?action=reply', { id: ID, message: '   ' }),
+        long: await api('opens.php?action=reply', { id: ID, message: 'x'.repeat(501) })
+    };
+    const withReply = (await api('opens.php?action=status', { items: [{ id: ID, key }] })).items[0];
+    const closed = await api('save_config.php', { filename: `${ID}_kin`, config: { title: 'Kín', events: [], allowReply: false } });
+    const refused = await api('opens.php?action=reply', { id: `${ID}_kin`, message: 'Cảm ơn' });
+    check('lời cảm ơn: gửi được, người tặng đọc trong trạng thái; lời trống, quá dài, kịch bản tắt nhận lời cảm ơn bị từ chối',
+        replies.sent.success && withReply.replies.length === 1 && withReply.replies[0].message === 'Cảm ơn con!\nMẹ vui lắm.'
+        && withReply.replies[0].name === 'Mẹ' && !replies.empty.success && !replies.long.success && closed.success && !refused.success,
+        JSON.stringify({ replies, got: withReply.replies, refused }));
     const changed = await fetch(`${BASE}/configs/${ID}.json`, { headers: { 'if-none-match': configTag || 'x' } });
     const newTag = changed.headers.get('etag');
     const same = await fetch(`${BASE}/configs/${ID}.json`, { headers: { 'if-none-match': newTag || 'x' } });

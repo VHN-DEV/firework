@@ -114,6 +114,9 @@
             <symbol id="icon-video" viewBox="0 0 24 24">
                 <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
             </symbol>
+            <symbol id="icon-heart" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            </symbol>
             <symbol id="icon-arrow" viewBox="0 0 24 24">
                 <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" />
             </symbol>
@@ -182,11 +185,16 @@
                 <h2 class="end-screen__title"></h2>
                 <p class="end-screen__message"></p>
                 <p class="end-screen__from"></p>
-                <!-- Ba thao tác cùng một kiểu; Chia sẻ, Tạo video ẩn khi người tạo tắt (receiverShare: false) -->
+                <!-- Các thao tác cùng một kiểu; Chia sẻ, Tạo video ẩn khi người tạo tắt (receiverShare: false), Cảm ơn khi tắt
+                     allowReply hoặc kịch bản không lưu trên máy chủ (gift-reply.js) -->
                 <div class="end-screen__actions">
                     <button type="button" class="end-screen__action end-screen__replay">
                         <span class="end-screen__action-icon"><svg width="24" height="24" aria-hidden="true"><use href="#icon-replay" xlink:href="#icon-replay"></use></svg></span>
                         <span>Xem lại</span>
+                    </button>
+                    <button type="button" class="end-screen__action end-screen__reply remove">
+                        <span class="end-screen__action-icon"><svg width="24" height="24" aria-hidden="true"><use href="#icon-heart" xlink:href="#icon-heart"></use></svg></span>
+                        <span>Cảm ơn</span>
                     </button>
                     <button type="button" class="end-screen__action end-screen__share">
                         <span class="end-screen__action-icon"><svg width="24" height="24" aria-hidden="true"><use href="#icon-share" xlink:href="#icon-share"></use></svg></span>
@@ -244,6 +252,35 @@
                 </div>
                 <p class="sheet__hint">Bấm 📷 ở góc dưới (hoặc phím C) để chụp lại những khoảnh khắc bạn thích. Ảnh và video
                     làm ngay trên máy bạn, không tải lên đâu cả.</p>
+            </div>
+        </div>
+        <!-- Người nhận gửi lời cảm ơn cho người tặng (gift-reply.js) -->
+        <div class="sheet reply-sheet hide" role="dialog" aria-modal="true" aria-labelledby="reply-sheet-title">
+            <div class="sheet__panel">
+                <div class="sheet__top">
+                    <h2 id="reply-sheet-title" class="sheet__title">Gửi lời cảm ơn</h2>
+                    <button type="button" class="sheet__close" aria-label="Đóng">
+                        <svg fill="white" width="22" height="22"><use href="#icon-close" xlink:href="#icon-close"></use></svg>
+                    </button>
+                </div>
+                <form class="reply-form" novalidate>
+                    <p class="sheet__hint reply-to"></p>
+                    <textarea class="reply-message" rows="4" maxlength="500" aria-label="Lời nhắn"
+                        placeholder="Cảm ơn bạn nhiều lắm, món quà thật bất ngờ!"></textarea>
+                    <input type="text" class="reply-name" maxlength="60" aria-label="Tên của bạn" placeholder="Tên của bạn (không bắt buộc)">
+                    <p class="reply-status" role="status" aria-live="polite"></p>
+                    <div class="sheet__actions">
+                        <button type="submit" class="sheet__btn sheet__btn--primary reply-send">Gửi lời cảm ơn</button>
+                    </div>
+                </form>
+                <div class="reply-done">
+                    <div class="reply-done__icon" aria-hidden="true">💌</div>
+                    <p><strong>Đã gửi!</strong> Người tặng sẽ đọc được lời nhắn của bạn.</p>
+                    <div class="sheet__actions">
+                        <button type="button" class="sheet__btn reply-again">Viết thêm</button>
+                        <button type="button" class="sheet__btn sheet__btn--primary reply-close">Xem tiếp</button>
+                    </div>
+                </div>
             </div>
         </div>
         <!-- Tạo video (như builder > Tạo video): chọn khổ, dựng thành file MP4, xem lại rồi tải về hoặc chia sẻ -->
@@ -325,6 +362,11 @@
                 <button type="button" class="moment-bar__btn moment-bar__share" title="Chia sẻ, tạo video" aria-label="Chia sẻ, tạo video">
                     <svg fill="white" width="22" height="22" aria-hidden="true">
                         <use href="#icon-share" xlink:href="#icon-share"></use>
+                    </svg>
+                </button>
+                <button type="button" class="moment-bar__btn moment-bar__reply remove" title="Gửi lời cảm ơn tới người tặng" aria-label="Gửi lời cảm ơn tới người tặng">
+                    <svg fill="white" width="22" height="22" aria-hidden="true">
+                        <use href="#icon-heart" xlink:href="#icon-heart"></use>
                     </svg>
                 </button>
             </div>

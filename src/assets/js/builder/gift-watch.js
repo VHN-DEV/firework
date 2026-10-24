@@ -7,12 +7,14 @@
 // Báo khi người nhận mở quà: trạng thái, bật thông báo, kiểm tra định kỳ.
 
 import { copyText } from '../share-targets.js';
-import { describeOpenStatus, fetchOpenStatus, formatWhen, getOwnerKeys, lastEvent, trackingUrl } from '../gift-tracking.js';
+import { describeOpenStatus, fetchOpenStatus, formatWhen, getOwnerKeys, lastEvent, replyAuthor, trackingUrl } from '../gift-tracking.js';
 import { isStaticEnv, state } from './state.js';
 import { escapeHtml, notify } from './util.js';
 import { share } from './share.js';
 
 const OPEN_SEEN_KEY = 'firework_open_seen';
+// Lời cảm ơn đã báo: tên kịch bản -> thời điểm lời mới nhất đã báo
+const REPLY_SEEN_KEY = 'firework_reply_seen';
 
 // Trạng thái gần nhất của các món quà của mình: tên kịch bản -> trạng thái
 const giftStatuses = new Map();
@@ -32,6 +34,26 @@ export function renderNotifyOpen() {
         : state.notifyOpen ? 'Xem trong hộp Chia sẻ sau khi lưu' : 'Đang tắt: người nhận mở quà sẽ không được ghi lại';
 }
 
+export function renderAllowReply() {
+    const toggle = document.getElementById('allow-reply');
+    if (!toggle) return;
+    toggle.checked = state.allowReply;
+    toggle.disabled = isStaticEnv;
+    document.getElementById('allow-reply-hint').textContent = isStaticEnv
+        ? 'Cần bản có máy chủ (bản tĩnh như GitHub Pages không nhận được)'
+        : state.allowReply ? 'Người nhận bấm ♥ để gửi, bạn đọc trong hộp Chia sẻ' : 'Đang tắt: người nhận không thấy nút gửi lời cảm ơn';
+}
+
+// Lời cảm ơn của người nhận, mới nhất trước
+function renderReplies(status) {
+    const box = document.getElementById('share-track-replies');
+    const replies = (status && status.ok && status.replies) || [];
+    box.classList.toggle('hide', !replies.length);
+    box.querySelector('strong').textContent = `💌 Lời cảm ơn (${replies.length})`;
+    box.querySelector('ul').innerHTML = [...replies].reverse().map(reply => `<li><p>${escapeHtml(reply.message)}</p>`
+        + `<small>${escapeHtml(replyAuthor(reply))} · ${escapeHtml(formatWhen(reply.t))}</small></li>`).join('');
+}
+
 function ownedItems(ids) {
     const keys = getOwnerKeys();
     return (ids || Object.keys(keys)).filter(id => keys[id]).slice(0, 100).map(id => ({ id, key: keys[id] }));
@@ -40,8 +62,9 @@ function ownedItems(ids) {
 export async function renderShareTracking() {
     const box = document.getElementById('share-track');
     const key = getOwnerKeys()[share.id];
-    const show = !isStaticEnv && state.notifyOpen;
+    const show = !isStaticEnv && (state.notifyOpen || state.allowReply);
     box.classList.toggle('hide', !show);
+    renderReplies(null);
     if (!show) return;
     const status = document.getElementById('share-track-status');
     document.getElementById('share-track-link').classList.toggle('hide', !key);
@@ -57,7 +80,8 @@ export async function renderShareTracking() {
         const [item] = await fetchOpenStatus([{ id: share.id, key }]);
         if (item && item.ok) giftStatuses.set(item.id, item);
         const { opened, text } = describeOpenStatus(item);
-        status.textContent = text;
+        status.textContent = state.notifyOpen || !item || !item.ok ? text : 'Không theo dõi lúc người nhận mở quà (đang tắt).';
+        renderReplies(item);
         document.getElementById('share-track-icon').textContent = opened ? '🎉' : '🔔';
         box.classList.toggle('is-opened', opened);
     } catch (e) {
@@ -95,6 +119,9 @@ export async function showGiftBadges() {
             const { opened, text } = describeOpenStatus(item);
             el.insertAdjacentHTML('beforeend', `<span class="gift-badge${opened ? ' is-opened' : ''}" title="${escapeHtml(text)}">`
                 + `${opened ? '🎉 Đã mở' : item.counts.view ? '🔗 Đã xem link' : 'Chưa mở'}</span>`);
+            if (item.replies && item.replies.length) {
+                el.insertAdjacentHTML('beforeend', `<span class="gift-badge is-opened" title="Lời cảm ơn của người nhận">💌 ${item.replies.length}</span>`);
+            }
         });
     } catch (e) {
         // Không có máy chủ: bỏ qua nhãn
@@ -118,23 +145,43 @@ async function runGiftCheck() {
     } catch (e) {
         return;
     }
-    let seen = {};
-    try {
-        seen = JSON.parse(localStorage.getItem(OPEN_SEEN_KEY) || '{}');
-    } catch (e) {
-        // Chưa có
-    }
+    const load = key => {
+        try {
+            return JSON.parse(localStorage.getItem(key) || '{}') || {};
+        } catch (e) {
+            return {};
+        }
+    };
+    const seen = load(OPEN_SEEN_KEY);
+    const seenReplies = load(REPLY_SEEN_KEY);
     for (const status of statuses) {
         if (!status.ok) continue;
         giftStatuses.set(status.id, status);
         const opens = status.counts.open || 0;
         if (opens > (seen[status.id] || 0)) await announceGiftOpen(status);
         seen[status.id] = opens;
+        const replies = (status.replies || []).filter(reply => reply.t > (seenReplies[status.id] || ''));
+        if (replies.length) {
+            announceReplies(replies);
+            seenReplies[status.id] = replies[replies.length - 1].t;
+        }
     }
     try {
         localStorage.setItem(OPEN_SEEN_KEY, JSON.stringify(seen));
+        localStorage.setItem(REPLY_SEEN_KEY, JSON.stringify(seenReplies));
     } catch (e) {
         // Lần sau có thể báo lại
+    }
+}
+
+// Lời cảm ơn mới: báo lời mới nhất (kèm số lời nếu nhiều)
+function announceReplies(replies) {
+    const last = replies[replies.length - 1];
+    const quote = [...last.message].length > 90 ? `${[...last.message].slice(0, 90).join('')}…` : last.message;
+    const text = `${replyAuthor(last)} gửi lời cảm ơn: "${quote}"${replies.length > 1 ? ` (và ${replies.length - 1} lời khác)` : ''}`;
+    notify(`💌 ${text}`, 'success');
+    if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+        new Notification('Bạn có lời cảm ơn 💌', { body: text, icon: document.querySelector('link[rel="icon"]')?.href });
     }
 }
 

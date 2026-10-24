@@ -114,6 +114,30 @@ $muted: #8f98ad;
     font-size: 0.88rem;
 }
 
+// Lời cảm ơn của người nhận, mới nhất trên cùng
+.track-replies {
+    margin: 0 0 1.5rem;
+    padding: 0;
+    list-style: none;
+
+    li {
+        padding: 0.7rem 0;
+        border-bottom: 1px solid $line;
+    }
+
+    p {
+        margin: 0 0 0.25rem;
+        line-height: 1.55;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    span {
+        color: $muted;
+        font-size: 0.85rem;
+    }
+}
+
 .track-history {
     margin: 0;
     padding: 0;

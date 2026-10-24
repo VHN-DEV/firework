@@ -6,6 +6,7 @@
 
 // Kịch bản đang soạn (state) và môi trường chạy.
 
+import { isStaticSite } from '../share-link.js';
 import { resolveScreenTheme } from '../player/screen-themes.js';
 import { NATURE_VOLUME } from '../player/nature/scene.js';
 import { PEOPLE_START, PEOPLE_WAIT } from '../player/people-options.js';
@@ -81,14 +82,12 @@ export const state = {
     openMode: 'lock',
     // Báo cho người gửi khi người nhận mở quà (cần máy chủ PHP)
     notifyOpen: true,
+    // Người nhận gửi được lời cảm ơn (nút ♥ trong màn trình diễn); chỉ lưu false vào kịch bản
+    allowReply: true,
     // Giảm chớp sáng cho cả màn trình diễn
     reduceFlashing: false,
     // Ảnh khi chia sẻ: 'auto' = thiệp pháo hoa tự vẽ, 'custom' = ảnh người dùng chọn
     seo: { mode: 'auto', image: null, imageText: true, imagePosition: 50, axis: 'y' }
 };
 
-export const isStaticEnv = window.location.hostname.includes('github.io') ||
-    window.location.hostname.includes('vercel.app') ||
-    window.location.hostname.includes('netlify.app') ||
-    window.location.hostname.includes('pages.dev') ||
-    window.location.protocol === 'file:';
+export const isStaticEnv = isStaticSite;

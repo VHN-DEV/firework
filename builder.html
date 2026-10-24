@@ -305,6 +305,13 @@
                                 </span>
                                 <input type="checkbox" id="notify-open" class="switch" checked>
                             </label>
+                            <label class="switch-row" for="allow-reply">
+                                <span>
+                                    <strong>Cho người nhận gửi lời cảm ơn<button type="button" class="help-tip" data-help="allowReply" aria-label="Giải thích">?</button></strong>
+                                    <small id="allow-reply-hint">Người nhận bấm ♥ để gửi, bạn đọc trong hộp Chia sẻ</small>
+                                </span>
+                                <input type="checkbox" id="allow-reply" class="switch" checked>
+                            </label>
                         </div>
                     </details>
                     <details class="settings-group" data-group="sound">
@@ -937,6 +944,11 @@
                             <strong>Theo dõi mở quà<button type="button" class="help-tip" data-help="giftTracking" aria-label="Giải thích">?</button></strong>
                             <span id="share-track-status">Đang kiểm tra...</span>
                         </div>
+                    </div>
+                    <!-- Lời cảm ơn người nhận gửi (gift-watch.js dựng) -->
+                    <div id="share-track-replies" class="share-replies hide">
+                        <strong></strong>
+                        <ul></ul>
                     </div>
                     <div id="share-track-link" class="share-link-row">
                         <input type="text" id="share-track-input" readonly aria-label="Link theo dõi riêng"

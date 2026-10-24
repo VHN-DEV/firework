@@ -40,6 +40,35 @@ if ($action === 'record') {
     exit;
 }
 
+if ($action === 'reply') {
+    // Lời cảm ơn người nhận gửi người tặng: kịch bản có thật, có mã theo dõi, người tạo không tắt "Cho người nhận gửi lời
+    // cảm ơn" (allowReply)
+    $id = isset($body['id']) && is_string($body['id']) ? strtolower($body['id']) : '';
+    // Chữ không đúng UTF-8: preg_replace trả null, coi như chưa viết gì
+    $message = isset($body['message']) && is_string($body['message']) ? trim((string) preg_replace('/[\x00-\x08\x0B-\x1F\x7F]/u', '', $body['message'])) : '';
+    $name = isset($body['name']) && is_string($body['name']) ? trim((string) preg_replace('/[\x00-\x1F\x7F]/u', '', $body['name'])) : '';
+    if (!track_valid_id($id) || $message === '') {
+        echo json_encode(['success' => false, 'message' => 'Hãy viết vài lời trước khi gửi.']);
+        exit;
+    }
+    if (mb_strlen($message, 'UTF-8') > 500 || mb_strlen($name, 'UTF-8') > 60) {
+        echo json_encode(['success' => false, 'message' => 'Lời nhắn tối đa 500 ký tự, tên tối đa 60 ký tự.']);
+        exit;
+    }
+    $configFile = __DIR__ . '/../configs/' . $id . '.json';
+    $config = is_file($configFile) ? json_decode(file_get_contents($configFile), true) : null;
+    if (!is_array($config) || (isset($config['allowReply']) && $config['allowReply'] === false) || !track_has_key($id)) {
+        echo json_encode(['success' => false, 'message' => 'Màn pháo hoa này không nhận lời cảm ơn.']);
+        exit;
+    }
+    if (!track_reply($id, $name, $message)) {
+        echo json_encode(['success' => false, 'code' => 'rate_limited', 'message' => 'Đã có nhiều lời cảm ơn vừa gửi, hãy thử lại sau ít phút.']);
+        exit;
+    }
+    echo json_encode(['success' => true, 'message' => 'Đã gửi lời cảm ơn!']);
+    exit;
+}
+
 if ($action === 'status') {
     $items = isset($body['items']) && is_array($body['items']) ? array_slice($body['items'], 0, 100) : [];
     $result = [];
@@ -56,7 +85,8 @@ if ($action === 'status') {
             'ok' => true,
             'counts' => $data['counts'],
             'first' => (object) $data['first'],
-            'events' => array_slice($data['events'], -50)
+            'events' => array_slice($data['events'], -50),
+            'replies' => array_slice(track_replies($id), -REPLY_SHOWN)
         ];
     }
     echo json_encode(['success' => true, 'items' => $result]);

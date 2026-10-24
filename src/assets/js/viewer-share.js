@@ -47,6 +47,12 @@ async function shareFile(file, title) {
  * natureSound(): người xem đang nghe âm thanh thiên nhiên (tắt thì video tạo ra cũng không có);
  * off: không dùng tới (khung dựng video, ảnh đầu trang hồ sơ).
  */
+// Thanh nút góc dưới (chụp, chia sẻ, lời cảm ơn): ẩn hẳn khi người tạo tắt hết các nút
+export function syncMomentBar() {
+    const bar = $('.moment-bar');
+    bar.classList.toggle('remove', !bar.querySelector('.moment-bar__btn:not(.remove)'));
+}
+
 export function setupViewerShare({ composeFrame, describe, pauseShow, configName, link = null, preview, reduceFlashing, natureSound = () => true, off }) {
     const bar = $('.moment-bar');
     const endShare = $('.end-screen__share');
@@ -438,7 +444,7 @@ export function setupViewerShare({ composeFrame, describe, pauseShow, configName
         if (e.key === 'Escape') {
             if (!videoSheet.classList.contains('hide') && video.step !== 'rendering') closeVideo();
             else closeSheet(shareSheet);
-        } else if ((e.key === 'c' || e.key === 'C') && !openSheets.size && !bar.closest('.remove')) {
+        } else if ((e.key === 'c' || e.key === 'C') && !openSheets.size && show.enabled && !off) {
             snap();
         }
     });
@@ -448,7 +454,8 @@ export function setupViewerShare({ composeFrame, describe, pauseShow, configName
         setConfig(config) {
             show.config = config && Array.isArray(config.events) ? JSON.parse(JSON.stringify(config)) : null;
             show.enabled = !off && (!config || config.receiverShare !== false);
-            bar.classList.toggle('remove', !show.enabled);
+            bar.querySelectorAll('.moment-bar__snap, .moment-bar__share').forEach(button => button.classList.toggle('remove', !show.enabled));
+            syncMomentBar();
             endShare.classList.toggle('remove', !show.enabled);
             // Máy không dựng được video (trình duyệt cũ): không hiện nút Tạo video
             endVideo.classList.toggle('remove', !show.enabled || (!preview && !canMakeVideo()));

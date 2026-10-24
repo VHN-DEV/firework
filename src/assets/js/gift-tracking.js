@@ -41,7 +41,8 @@ export function removeOwnerKey(id) {
     }
 }
 
-// items: [{ id, key }] -> [{ id, ok, counts: { view, open, finish }, first: { view?, open?, finish? }, events: [{ t, e, d }] }]
+// items: [{ id, key }] -> [{ id, ok, counts: { view, open, finish }, first: { view?, open?, finish? }, events: [{ t, e, d }],
+//   replies: [{ t, name, message }] (lời cảm ơn của người nhận, cũ trước) }]
 export async function fetchOpenStatus(items) {
     if (!items.length) return [];
     const response = await fetch('api/opens.php?action=status', {
@@ -68,6 +69,9 @@ export function formatWhen(iso) {
     if (diff === 1) return `${time} hôm qua`;
     return `${time} ${date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
 }
+
+// Người viết lời cảm ơn (tên không bắt buộc)
+export const replyAuthor = reply => (reply && reply.name) || 'Người nhận';
 
 // Sự kiện mới nhất loại `type`
 export function lastEvent(status, type) {

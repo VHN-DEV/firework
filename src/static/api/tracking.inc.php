@@ -15,6 +15,11 @@ const TRACK_DEVICES = ['mobile', 'tablet', 'desktop'];
 const TRACK_MAX_EVENTS = 300;
 // Chống gửi dồn: tối đa chừng này sự kiện mỗi phút cho một kịch bản
 const TRACK_MAX_PER_MINUTE = 20;
+// Lời cảm ơn của người nhận: giữ chừng này lời gần nhất, tối đa chừng này lời mỗi 10 phút cho một kịch bản, trạng thái gửi
+// về chừng này lời mới nhất
+const REPLY_MAX = 50;
+const REPLY_MAX_PER_10_MINUTES = 5;
+const REPLY_SHOWN = 20;
 
 function track_dir($kind)
 {
@@ -125,6 +130,47 @@ function track_record($id, $event, $device)
     return $ok;
 }
 
+// Lời cảm ơn của người nhận (api/data/replies/<tên>.json): [{ t, name, message }]
+function track_replies($id)
+{
+    $file = track_dir('replies') . $id . '.json';
+    $data = is_file($file) ? json_decode(file_get_contents($file), true) : null;
+    return is_array($data) ? $data : [];
+}
+
+// Thêm lời cảm ơn (đã kiểm tra độ dài); quá nhiều lời trong 10 phút thì từ chối (trả false)
+function track_reply($id, $name, $message)
+{
+    $fp = @fopen(track_dir('replies') . $id . '.json', 'c+');
+    if (!$fp) {
+        return false;
+    }
+    flock($fp, LOCK_EX);
+    $raw = stream_get_contents($fp);
+    $data = $raw ? json_decode($raw, true) : null;
+    if (!is_array($data)) {
+        $data = [];
+    }
+    $recent = 0;
+    foreach ($data as $item) {
+        if (strtotime($item['t']) > time() - 600) {
+            $recent++;
+        }
+    }
+    $ok = $recent < REPLY_MAX_PER_10_MINUTES;
+    if ($ok) {
+        $data[] = ['t' => gmdate('c'), 'name' => $name, 'message' => $message];
+        $data = array_slice($data, -REPLY_MAX);
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, json_encode($data));
+        fflush($fp);
+    }
+    flock($fp, LOCK_UN);
+    fclose($fp);
+    return $ok;
+}
+
 // Kịch bản đã có mã (tạo từ khi có tính năng này) chỉ máy giữ mã mới lưu đè, xóa được; kịch bản cũ chưa có mã thì ai
 // cũng sửa được như trước
 function track_can_modify($id, $key)
@@ -132,10 +178,10 @@ function track_can_modify($id, $key)
     return !track_has_key($id) || track_check_key($id, $key);
 }
 
-// Xóa kịch bản thì xóa luôn mã theo dõi và lịch sử mở quà
+// Xóa kịch bản thì xóa luôn mã theo dõi, lịch sử mở quà, lời cảm ơn
 function track_delete($id)
 {
-    foreach (['owners', 'opens'] as $kind) {
+    foreach (['owners', 'opens', 'replies'] as $kind) {
         $file = __DIR__ . '/data/' . $kind . '/' . $id . '.json';
         if (is_file($file)) {
             unlink($file);

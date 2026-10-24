@@ -290,6 +290,73 @@
     }
 }
 
+// Lời cảm ơn của người nhận (gift-reply.js): ô lời nhắn, ô tên, rồi lời báo đã gửi
+.reply-sheet {
+    .reply-to {
+        margin: 4px 0 12px;
+    }
+
+    textarea,
+    input {
+        display: block;
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        font-family: inherit;
+        font-size: 1rem;
+        line-height: 1.5;
+
+        &:focus {
+            border-color: rgba(168, 85, 247, 0.8);
+            outline: none;
+        }
+    }
+
+    textarea {
+        min-height: 110px;
+        resize: vertical;
+    }
+
+    input {
+        margin-top: 10px;
+    }
+
+    .reply-status {
+        min-height: 1.2em;
+        margin: 10px 0 0;
+        font-size: 0.85rem;
+        color: #fbbf24;
+    }
+
+    .reply-done {
+        padding: 12px 0 0;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.85);
+
+        p {
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .sheet__actions {
+            justify-content: center;
+        }
+    }
+
+    .reply-done__icon {
+        margin-bottom: 8px;
+        font-size: 2.6rem;
+    }
+
+    &:not(.is-sent) .reply-done,
+    &.is-sent .reply-form {
+        display: none;
+    }
+}
+
 .share-sheet {
     &__link {
         display: flex;

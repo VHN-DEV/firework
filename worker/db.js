@@ -5,7 +5,8 @@
  */
 
 // Cơ sở dữ liệu D1 (binding DB) thay cho file JSON của bản PHP: kịch bản lưu từ builder (configs), mã chủ của máy đã tạo
-// kịch bản (owners, chỉ lưu bản băm: cũng là mã theo dõi mở quà), lịch sử mở quà (opens, xem api/tracking.inc.php). Bảng
+// kịch bản (owners, chỉ lưu bản băm: cũng là mã theo dõi mở quà), lịch sử mở quà (opens), lời cảm ơn của người nhận
+// (replies), xem api/tracking.inc.php. Bảng
 // tạo khi cần (lần đầu mỗi isolate), không phải chạy lệnh tạo bảng. Bảng quota đếm số lần lưu, tải lên của mỗi máy (xem
 // useQuota). Tài khoản (account.js): users (người dùng Google), sessions (phiên đăng nhập, chỉ lưu bản băm của mã phiên),
 // user_keys (mã chủ các kịch bản tài khoản giữ hộ).
@@ -17,7 +18,9 @@ const SCHEMA = [
     'CREATE TABLE IF NOT EXISTS quota (key TEXT PRIMARY KEY, used INTEGER NOT NULL, expires INTEGER NOT NULL)',
     'CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT, name TEXT, picture TEXT, created INTEGER NOT NULL)',
     'CREATE TABLE IF NOT EXISTS sessions (hash TEXT PRIMARY KEY, user TEXT NOT NULL, expires INTEGER NOT NULL)',
-    'CREATE TABLE IF NOT EXISTS user_keys (user TEXT NOT NULL, id TEXT NOT NULL, key TEXT NOT NULL, PRIMARY KEY (user, id))'
+    'CREATE TABLE IF NOT EXISTS user_keys (user TEXT NOT NULL, id TEXT NOT NULL, key TEXT NOT NULL, PRIMARY KEY (user, id))',
+    'CREATE TABLE IF NOT EXISTS replies (n INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL, t TEXT NOT NULL, name TEXT, message TEXT NOT NULL)',
+    'CREATE INDEX IF NOT EXISTS replies_id ON replies (id)'
 ];
 // Cột thêm sau khi đã có bảng: thumb (bản băm ảnh thiệp đang lưu, để không ghi lại ảnh không đổi)
 const COLUMNS = ['ALTER TABLE configs ADD COLUMN thumb TEXT'];
@@ -28,6 +31,9 @@ export const TRACK_DEVICES = ['mobile', 'tablet', 'desktop'];
 const TRACK_MAX_EVENTS = 300;
 // Chống gửi dồn: tối đa chừng này sự kiện mỗi phút cho một kịch bản
 const TRACK_MAX_PER_MINUTE = 20;
+// Lời cảm ơn: giữ chừng này lời gần nhất mỗi kịch bản, trạng thái gửi về chừng này lời mới nhất
+const REPLY_MAX = 50;
+const REPLY_SHOWN = 20;
 
 let ready = null;
 
@@ -106,10 +112,10 @@ export async function listConfigs(env, keys) {
     return list;
 }
 
-// Xóa kịch bản cùng mã chủ, lịch sử mở quà, mã tài khoản giữ hộ
+// Xóa kịch bản cùng mã chủ, lịch sử mở quà, lời cảm ơn, mã tài khoản giữ hộ
 export async function deleteConfig(env, id) {
     const db = await database(env);
-    await db.batch(['configs', 'owners', 'opens', 'user_keys'].map(table => db.prepare(`DELETE FROM ${table} WHERE id = ?`).bind(id)));
+    await db.batch(['configs', 'owners', 'opens', 'replies', 'user_keys'].map(table => db.prepare(`DELETE FROM ${table} WHERE id = ?`).bind(id)));
 }
 
 // Trong các file keys (uploads/...), những file không còn kịch bản nào (kể cả bản Xem thử) nhắc tới
@@ -172,6 +178,46 @@ export async function loadOpens(env, id) {
         // Dữ liệu hỏng: bắt đầu lại
     }
     return emptyOpens();
+}
+
+// Trạng thái nhiều món quà một lượt (ba câu lệnh cho mọi món: D1 miễn phí chỉ cho 50 câu lệnh mỗi lần gọi Worker).
+// items: [{ id, key }] -> [{ id, ok, counts, first, events, replies: [{ t, name, message }] }] (mã sai: { id, ok: false })
+export async function openStatus(env, items) {
+    const db = await database(env);
+    const ids = JSON.stringify([...new Set(items.map(item => item.id).filter(validTrackId))]);
+    const [owners, opens, replies] = await db.batch([
+        db.prepare('SELECT id, hash FROM owners WHERE id IN (SELECT value FROM json_each(?))').bind(ids),
+        db.prepare('SELECT id, data FROM opens WHERE id IN (SELECT value FROM json_each(?))').bind(ids),
+        db.prepare('SELECT id, t, name, message FROM replies WHERE id IN (SELECT value FROM json_each(?)) ORDER BY n').bind(ids)
+    ]);
+    const hashes = Object.fromEntries(owners.results.map(r => [r.id, r.hash]));
+    const result = [];
+    for (const { id, key } of items) {
+        if (!hashes[id] || !/^[a-f0-9]{32}$/.test(key) || hashes[id] !== await sha256(key)) {
+            result.push({ id, ok: false });
+            continue;
+        }
+        let data = emptyOpens();
+        try {
+            const row = opens.results.find(r => r.id === id);
+            const parsed = row ? JSON.parse(row.data) : null;
+            if (parsed && Array.isArray(parsed.events)) data = parsed;
+        } catch (e) {
+            // Dữ liệu hỏng: như chưa có lượt mở
+        }
+        const said = replies.results.filter(r => r.id === id).slice(-REPLY_SHOWN).map(({ t, name, message }) => ({ t, name: name || '', message }));
+        result.push({ id, ok: true, counts: data.counts, first: data.first, events: data.events.slice(-50), replies: said });
+    }
+    return result;
+}
+
+// Lời cảm ơn của người nhận (đã kiểm tra độ dài); chỉ giữ REPLY_MAX lời gần nhất
+export async function addReply(env, id, name, message) {
+    const db = await database(env);
+    await db.batch([
+        db.prepare('INSERT INTO replies (id, t, name, message) VALUES (?, ?, ?, ?)').bind(id, new Date().toISOString(), name, message),
+        db.prepare('DELETE FROM replies WHERE id = ? AND n NOT IN (SELECT n FROM replies WHERE id = ? ORDER BY n DESC LIMIT ?)').bind(id, id, REPLY_MAX)
+    ]);
 }
 
 export async function recordOpen(env, id, event, device) {

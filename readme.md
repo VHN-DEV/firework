@@ -75,6 +75,10 @@
   trong `api/tracking.inc.php` để sau này chuyển sang cơ sở dữ liệu). Thư mục này cần quyền ghi và phải chặn tải trực
   tiếp: Apache dùng sẵn `api/data/.htaccess`; Nginx cần thêm `location ^~ /api/data/ { deny all; }`. Khi triển khai bản
   mới, đừng xóa `api/data/` (và `configs/`, `uploads/`) trên máy chủ.
+- **Lời cảm ơn của người nhận** (cần máy chủ PHP hoặc Cloudflare Workers): nút ♥ trong màn trình diễn và màn kết
+  (`src/assets/js/gift-reply.js`) gửi `api/opens.php?action=reply`; người tặng đọc trong hộp Chia sẻ, trang theo dõi
+  (trạng thái `action=status` kèm `replies`). Bản PHP lưu ở `api/data/replies/`, Cloudflare ở bảng `replies` của D1; giữ
+  50 lời gần nhất mỗi kịch bản. Người tạo tắt bằng "Cho người nhận gửi lời cảm ơn" (kịch bản ghi `allowReply: false`).
 
 ## Hướng dẫn sử dụng
 

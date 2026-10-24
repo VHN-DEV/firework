@@ -11,6 +11,11 @@
 
 const KEY = 'k';
 
+// Trang tĩnh (không có máy chủ lưu kịch bản, ảnh, nhạc, báo mở quà): dùng chung cho builder và trình phát
+const host = window.location.hostname;
+export const isStaticSite = ['github.io', 'vercel.app', 'netlify.app', 'pages.dev'].some(name => host.includes(name))
+    || window.location.protocol === 'file:';
+
 // Trình duyệt nén, giải nén được (Chrome 80+, Firefox 113+, Safari 16.4+)
 export const canPackConfig = typeof CompressionStream === 'function' && typeof DecompressionStream === 'function';
 

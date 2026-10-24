@@ -71,7 +71,7 @@ export function writeConfig(id, config) {
 // Xóa cả mã chủ, lịch sử mở quà (api/data): còn sót thì lần chạy sau lưu lại cùng tên bị coi là kịch bản của máy khác
 export function removeConfig(id) {
     for (const ext of ['json', 'jpg']) fs.rmSync(path.join(DIST, 'configs', `${id}.${ext}`), { force: true });
-    for (const kind of ['owners', 'opens']) fs.rmSync(path.join(DIST, 'api', 'data', kind, `${id}.json`), { force: true });
+    for (const kind of ['owners', 'opens', 'replies']) fs.rmSync(path.join(DIST, 'api', 'data', kind, `${id}.json`), { force: true });
 }
 
 // Kịch bản kiểm thử lưu với tên tự đặt (đuôi ngẫu nhiên <tên>-xxxxx, xem withRandomSuffix trong builder/images.js): xóa

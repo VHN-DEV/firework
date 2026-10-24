@@ -4,10 +4,11 @@
  * Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
  */
 
-// theo-doi?id=<tên kịch bản>&key=<mã theo dõi>: người gửi xem người nhận đã mở link, mở quà, xem hết chưa.
-// Tự cập nhật mỗi 30 giây; có thể bật thông báo của trình duyệt khi người nhận vừa mở quà (trang phải đang mở).
+// theo-doi?id=<tên kịch bản>&key=<mã theo dõi>: người gửi xem người nhận đã mở link, mở quà, xem hết chưa, lời cảm ơn
+// người nhận gửi. Tự cập nhật mỗi 30 giây; có thể bật thông báo của trình duyệt khi người nhận vừa mở quà, gửi lời cảm ơn
+// (trang phải đang mở).
 
-import { saveOwnerKey, fetchOpenStatus, formatWhen, EVENT_NAMES, DEVICE_NAMES, describeOpenStatus } from './gift-tracking.js';
+import { saveOwnerKey, fetchOpenStatus, formatWhen, EVENT_NAMES, DEVICE_NAMES, describeOpenStatus, replyAuthor } from './gift-tracking.js';
 import { printCopyrightNotice } from './copyright.js';
 
 printCopyrightNotice('Hanabi – Theo dõi món quà');
@@ -17,6 +18,7 @@ const id = (params.get('id') || '').toLowerCase();
 const key = params.get('key') || '';
 const $ = selector => document.querySelector(selector);
 let lastOpens = null;
+let lastReplies = null;
 let titleLoaded = false;
 
 function showError(message) {
@@ -54,8 +56,18 @@ function render(status) {
     $('#gift-history').innerHTML = history.length
         ? history.map(item => `<li><span>${formatWhen(item.t)}</span>${EVENT_NAMES[item.e] || item.e} trên ${DEVICE_NAMES[item.d] || 'máy'}</li>`).join('')
         : '<li class="empty">Chưa có lượt mở nào.</li>';
+    const replies = [...(status.replies || [])].reverse();
+    $('#gift-replies-box').classList.toggle('hide', !replies.length);
+    $('#gift-replies').innerHTML = replies.map(reply => `<li><p>${escapeHtml(reply.message)}</p>`
+        + `<span>${escapeHtml(replyAuthor(reply))} · ${formatWhen(reply.t)}</span></li>`).join('');
     $('#gift-status').classList.remove('hide');
     $('#gift-error').classList.add('hide');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
 }
 
 async function loadStatus() {
@@ -86,6 +98,12 @@ async function loadStatus() {
         });
     }
     lastOpens = opens;
+    const replies = (status.replies || []).length;
+    if (lastReplies !== null && replies > lastReplies && 'Notification' in window && Notification.permission === 'granted') {
+        const reply = status.replies[status.replies.length - 1];
+        new Notification('Bạn có lời cảm ơn 💌', { body: `${replyAuthor(reply)}: ${reply.message}`, icon: $('link[rel="icon"]').href });
+    }
+    lastReplies = replies;
 }
 
 // Cập nhật 30 giây một lần và mỗi lần quay lại tab: không chạy chồng, kẻo hai lượt cùng so với số lần mở cũ rồi báo hai lần

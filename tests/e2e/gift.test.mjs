@@ -5,7 +5,8 @@
  */
 
 // Báo mở quà: người gửi lưu kịch bản (nhận mã theo dõi), người nhận mở link và mở quà ở trình duyệt khác,
-// người gửi tự xem thử thì không tính, builder báo đã mở, trang theo dõi, dữ liệu không tải trực tiếp được.
+// người gửi tự xem thử thì không tính, builder báo đã mở, người nhận gửi lời cảm ơn (người gửi đọc trong hộp Chia sẻ, trang
+// theo dõi), dữ liệu không tải trực tiếp được.
 import fs from 'fs';
 import path from 'path';
 import { DIST, sleep, openPage, removeConfig } from './helpers.mjs';
@@ -64,23 +65,50 @@ export async function run(browser, base, { check }) {
         const toast = await sender.evaluate(() => [...document.querySelectorAll('.toast')].map(t => t.textContent).find(t => /đã mở quà/.test(t)) || '');
         check('builder báo người nhận đã mở quà', /Mẹ đã mở quà/.test(toast), toast.trim());
 
+        // Người nhận gửi lời cảm ơn: nút ♥ ở góc dưới, tên điền sẵn tên người nhận
+        const MESSAGE = 'Cảm ơn con, mẹ vui lắm!';
+        await recipient.waitForSelector('.moment-bar__reply:not(.remove)', { visible: true, timeout: 5000 }).catch(() => {});
+        const replyButton = !!(await recipient.$('.moment-bar__reply:not(.remove)'));
+        if (replyButton) await recipient.tap('.moment-bar__reply');
+        await recipient.waitForSelector('.reply-sheet:not(.hide)', { timeout: 5000 }).catch(() => {});
+        const prefilled = await recipient.$eval('.reply-name', i => i.value);
+        await recipient.type('.reply-message', MESSAGE);
+        await recipient.tap('.reply-send');
+        await recipient.waitForSelector('.reply-sheet.is-sent', { timeout: 10000 }).catch(() => {});
+        const sent = await recipient.$eval('.reply-sheet', e => e.classList.contains('is-sent'));
+        s = await status(key);
+        check('người nhận bấm ♥ gửi lời cảm ơn (tên điền sẵn), máy chủ lưu', replyButton && prefilled === 'Mẹ' && sent
+            && s.replies && s.replies.length === 1 && s.replies[0].message === MESSAGE && s.replies[0].name === 'Mẹ',
+            JSON.stringify({ replyButton, prefilled, sent, replies: s.replies }));
+        await sender.evaluate(() => checkGiftOpens());
+        await sleep(1500);
+        const replyToast = await sender.evaluate(() => [...document.querySelectorAll('.toast')].map(t => t.textContent).find(t => /lời cảm ơn/.test(t)) || '');
+        await sender.evaluate(() => openShareModal());
+        await sender.waitForSelector('#share-track-replies:not(.hide) li', { timeout: 10000 }).catch(() => {});
+        const inShare = await sender.$eval('#share-track-replies', e => e.textContent).catch(() => '');
+        await sender.evaluate(() => closeShareModal());
+        check('người gửi được báo có lời cảm ơn, đọc trong hộp Chia sẻ', replyToast.includes(MESSAGE) && inShare.includes(MESSAGE) && inShare.includes('Mẹ'),
+            JSON.stringify({ replyToast: replyToast.trim(), inShare: inShare.trim() }));
+
         // Trang theo dõi riêng
         const tracker = await recipientCtx.newPage();
         await tracker.goto(link, { waitUntil: 'networkidle0' });
         await tracker.waitForSelector('#gift-status:not(.hide)', { timeout: 10000 }).catch(() => {});
         const done = await tracker.$$eval('.track-steps li.done', els => els.map(li => li.dataset.step).join());
         check('trang theo dõi hiện đã mở link, đã mở quà', done === 'view,open', done);
+        const trackedReply = await tracker.$eval('#gift-replies', e => e.textContent).catch(() => '');
+        check('trang theo dõi hiện lời cảm ơn', trackedReply.includes('Cảm ơn con, mẹ vui lắm!'), trackedReply.trim());
         await tracker.close();
 
         // Xóa kịch bản thì xóa luôn dữ liệu theo dõi
         await fetch(`${base}/api/manage_configs.php?action=delete`, { method: 'POST', body: JSON.stringify({ filename: ID, key }) });
-        const left = ['owners', 'opens'].filter(k => fs.existsSync(path.join(DIST, 'api/data', k, `${ID}.json`)));
+        const left = ['owners', 'opens', 'replies'].filter(k => fs.existsSync(path.join(DIST, 'api/data', k, `${ID}.json`)));
         check('xóa kịch bản thì xóa luôn dữ liệu theo dõi', left.length === 0, left.join(', '));
         check('báo mở quà không lỗi JS', sender.errors.length === 0, sender.errors.join(' | '));
     } finally {
         await sender.close();
         if (recipientCtx) await recipientCtx.close();
         removeConfig(ID);
-        for (const kind of ['owners', 'opens']) fs.rmSync(path.join(DIST, 'api/data', kind, `${ID}.json`), { force: true });
+        for (const kind of ['owners', 'opens', 'replies']) fs.rmSync(path.join(DIST, 'api/data', kind, `${ID}.json`), { force: true });
     }
 }

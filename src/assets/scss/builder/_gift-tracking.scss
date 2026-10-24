@@ -57,6 +57,54 @@
     font-size: 1.5rem;
 }
 
+// Lời cảm ơn của người nhận: mới nhất trên cùng, dài thì cuộn trong khung
+.share-replies {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+
+    &.hide {
+        display: none;
+    }
+
+    > strong {
+        color: $b-text;
+        font-size: 0.88rem;
+    }
+
+    ul {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+        max-height: 220px;
+        margin: 0;
+        padding: 0;
+        overflow-y: auto;
+        list-style: none;
+    }
+
+    li {
+        padding: 0.6rem 0.75rem;
+        border-radius: 10px;
+        background: $b-panel-2;
+        border: 1px solid $b-line;
+    }
+
+    p {
+        margin: 0;
+        color: $b-text;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    small {
+        color: $b-faint;
+        font-size: 0.78rem;
+    }
+}
+
 .gift-badge {
     display: inline-block;
     padding: 0.05rem 0.45rem;

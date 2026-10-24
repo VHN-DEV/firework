@@ -85,12 +85,13 @@ export async function run(browser, base, { check }) {
         const end = await page.evaluate(() => ({
             shown: !document.querySelector('.end-screen').classList.contains('hide'),
             message: document.querySelector('.end-screen__message').textContent,
-            // Ba ô thao tác cùng một kiểu (Xem lại, Chia sẻ, Tạo video), lời mời tạo màn pháo hoa dẫn tới builder
+            // Các ô thao tác cùng một kiểu (Xem lại, Cảm ơn: gửi lời cảm ơn người tặng, Chia sẻ, Tạo video), lời mời tạo màn pháo
+            // hoa dẫn tới builder
             actions: [...document.querySelectorAll('.end-screen__action:not(.remove)')].map(b => b.textContent.trim()).join(','),
             create: document.querySelector('.end-screen__create').getAttribute('href')
         }));
-        check('kịch bản không lặp chạy xong thì hiện màn kết: Xem lại, Chia sẻ, Tạo video, lời mời tạo màn pháo hoa',
-            end.shown && end.message === 'Con thương mẹ nhiều lắm!' && end.actions === 'Xem lại,Chia sẻ,Tạo video' && end.create === './builder', JSON.stringify(end));
+        check('kịch bản không lặp chạy xong thì hiện màn kết: Xem lại, Cảm ơn, Chia sẻ, Tạo video, lời mời tạo màn pháo hoa',
+            end.shown && end.message === 'Con thương mẹ nhiều lắm!' && end.actions === 'Xem lại,Cảm ơn,Chia sẻ,Tạo video' && end.create === './builder', JSON.stringify(end));
         await page.click('.end-screen__replay');
         await sleep(400);
         check('"Xem lại" đóng màn kết và chạy lại', await page.evaluate(() => document.querySelector('.end-screen').classList.contains('hide')));

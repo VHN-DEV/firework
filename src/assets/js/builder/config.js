@@ -24,7 +24,7 @@ import { refreshMiniPreview, stopPreviewMusic, updateMiniInfo } from './preview.
 import { clearDraft, markSaved } from './history.js';
 import { renderSchedule, renderScreenTheme, renderStartFrames, revealSetting } from './settings.js';
 import { WATER_LIFE_THINGS, WATER_THINGS, loadPeoplePlan, normalizeDecor, normalizeMoon, normalizeViewer, peoplePlanConfig, renderScene, renderSky, renderSmoke, renderViewer } from './scene.js';
-import { renderNotifyOpen } from './gift-watch.js';
+import { renderAllowReply, renderNotifyOpen } from './gift-watch.js';
 import { autoFilename, withRandomSuffix } from './images.js';
 import { loadNatureSound, natureSoundConfig } from './nature-ui.js';
 import { detectSeoImageAxis, getSeoImageConfig, openShareModal, renderSeoControls, scheduleSeoPreview, updateShareBar } from './share.js';
@@ -86,6 +86,7 @@ export function getFinalConfig() {
         screenTheme: compactScreenTheme(state.screenTheme),
         openAt: state.openAt || undefined,
         notifyOpen: state.notifyOpen,
+        allowReply: state.allowReply ? undefined : false,
         reduceFlashing: state.reduceFlashing || undefined,
         openMode: state.openAt && state.openMode === 'countdown' ? 'countdown' : undefined,
         recipient: document.getElementById('recipient').value.trim() || undefined,
@@ -391,6 +392,8 @@ export function loadConfigIntoState(config, filename, { migrate = true } = {}) {
     renderSchedule();
     // Kịch bản cũ chưa có lựa chọn này: bật như kịch bản mới
     state.notifyOpen = config.notifyOpen !== false;
+    state.allowReply = config.allowReply !== false;
+    renderAllowReply();
     renderNotifyOpen();
     state.reduceFlashing = config.reduceFlashing === true;
     document.getElementById('reduce-flashing').checked = state.reduceFlashing;

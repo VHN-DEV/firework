@@ -7,7 +7,7 @@
 // Phần máy chủ khi triển khai lên Cloudflare Workers (wrangler.jsonc), thay cho các file PHP trong src/static/api: cùng
 // đường dẫn, cùng dữ liệu gửi nhận nên trang (builder, trình phát, theo dõi quà) không phải sửa. File trong dist phục vụ
 // thẳng; Worker chạy trước cho api/*, s/* (wrangler.jsonc: run_worker_first) và khi không có file tĩnh:
-// - api/save_config.php, manage_configs.php (list, delete), opens.php (record, status), upload_image.php,
+// - api/save_config.php, manage_configs.php (list, delete), opens.php (record, reply, status), upload_image.php,
 //   upload_audio.php, share.php; account.php (đăng nhập Google, chỉ có trên Cloudflare: account.js)
 // - s/<tên>: trang chia sẻ có ảnh, tiêu đề xem trước (share-page.js), cả kịch bản mẫu lẫn kịch bản lưu
 // - configs/<tên>.json, configs/<tên>.jpg, uploads/...: kịch bản, ảnh, nhạc đã lưu (D1, KV/R2)
@@ -19,9 +19,9 @@
 import { renderSharePage, shareMetaFromConfig } from '../share-page.js';
 import { account, currentUser } from './account.js';
 import {
-    TRACK_DEVICES, TRACK_EVENTS, canModify, checkKey, createKey, deleteConfig, deleteOldPreviews, deleteOldQuota, deleteOldSessions,
-    getConfig, getConfigText, hasKey, listConfigs, loadOpens, now, putConfig, randomHex, recordOpen, sha256, syncUserKeys, unusedMedia,
-    useQuota, validTrackId
+    TRACK_DEVICES, TRACK_EVENTS, addReply, canModify, createKey, deleteConfig, deleteOldPreviews, deleteOldQuota, deleteOldSessions,
+    getConfig, getConfigText, hasKey, listConfigs, now, openStatus, putConfig, randomHex, recordOpen, sha256, syncUserKeys,
+    unusedMedia, useQuota, validTrackId
 } from './db.js';
 import { deleteMedia, hasMedia, listMedia, putMedia, serveMedia } from './media.js';
 
@@ -56,7 +56,8 @@ const LIMITS = {
     upload: [[20, 600], [60, DAY]], // tải ảnh, nhạc lên
     uploadKB: [[150 * 1024, DAY]],
     open: [[60, 600]], // báo mở quà (mỗi lần xem quà gửi tối đa 3 lần)
-    login: [[20, 600]] // đăng nhập Google
+    login: [[20, 600]], // đăng nhập Google
+    reply: [[5, 600], [20, DAY]] // lời cảm ơn của người nhận
 };
 
 // Máy gửi: địa chỉ IP Cloudflare ghi vào CF-Connecting-IP, IPv6 tính theo khối /64 (nhà mạng thường cấp cả khối cho
@@ -245,20 +246,27 @@ async function opens(request, env, url) {
         if (await overQuota(request, env, [['open', 1]], 'báo mở quà')) return json({ success: false, code: 'rate_limited' });
         return json({ success: await recordOpen(env, id, body.event, device) });
     }
+    if (action === 'reply') {
+        // Lời cảm ơn người nhận gửi người tặng: kịch bản có thật, có mã theo dõi, người tạo không tắt "Cho người nhận gửi lời
+        // cảm ơn" (allowReply)
+        const id = typeof body.id === 'string' ? body.id.toLowerCase() : '';
+        const message = typeof body.message === 'string' ? body.message.replace(/[\x00-\x08\x0B-\x1F\x7F]/g, '').trim() : '';
+        const name = typeof body.name === 'string' ? body.name.replace(/[\x00-\x1F\x7F]/g, '').trim() : '';
+        if (!validTrackId(id) || !message) return fail('Hãy viết vài lời trước khi gửi.');
+        if ([...message].length > 500 || [...name].length > 60) return fail('Lời nhắn tối đa 500 ký tự, tên tối đa 60 ký tự.');
+        const saved = await getConfig(env, id);
+        if (!saved || saved.data.allowReply === false || !(await hasKey(env, id))) return fail('Màn pháo hoa này không nhận lời cảm ơn.');
+        const limit = await overQuota(request, env, [['reply', 1]], 'gửi lời cảm ơn');
+        if (limit) return limited(limit);
+        await addReply(env, id, name, message);
+        return json({ success: true, message: 'Đã gửi lời cảm ơn!' });
+    }
     if (action === 'status') {
-        const items = Array.isArray(body.items) ? body.items.slice(0, 100) : [];
-        const result = [];
-        for (const item of items) {
-            const id = item && typeof item.id === 'string' ? item.id.toLowerCase() : '';
-            const key = item && typeof item.key === 'string' ? item.key : '';
-            if (!(await checkKey(env, id, key))) {
-                result.push({ id, ok: false });
-                continue;
-            }
-            const data = await loadOpens(env, id);
-            result.push({ id, ok: true, counts: data.counts, first: data.first, events: data.events.slice(-50) });
-        }
-        return json({ success: true, items: result });
+        const items = (Array.isArray(body.items) ? body.items.slice(0, 100) : []).map(item => ({
+            id: item && typeof item.id === 'string' ? item.id.toLowerCase() : '',
+            key: item && typeof item.key === 'string' ? item.key : ''
+        }));
+        return json({ success: true, items: await openStatus(env, items) });
     }
     return json({ success: false, message: 'Hành động không hợp lệ.' }, { status: 400 });
 }

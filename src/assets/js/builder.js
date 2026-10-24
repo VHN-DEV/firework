@@ -33,7 +33,7 @@ import { initScreenThemeControls, initSettingsGroups, previewScreen, renderSched
 import { renderScene, renderSky, renderSmoke, renderViewer, setBank, setNearBank, setPeople, setPeopleFirst, setPeopleStart, setPeopleWait, setClouds, setFloating, setMeteors, setMilkyWay, setMoonMode, setMoonPhase, setSeason, setSmoke, setStars, setViewerOption, setWater, setWaterStyle, setWeather, toggleDecor, toggleOption, togglePerson, toggleSeason } from './builder/scene.js';
 import { createFromTemplate, openTemplatesModal, renderTemplateChips, selectOccasion, startBlankScript, updateTemplateStrip } from './builder/templates-ui.js';
 import { afterMusicStartChange, applyBeatShow, drawBeatChart, openBeatModal, setBeatDensity } from './builder/beat-ui.js';
-import { checkGiftOpens, copyTrackingLink, enableOpenNotifications, renderNotifyOpen, startGiftWatch } from './builder/gift-watch.js';
+import { checkGiftOpens, copyTrackingLink, enableOpenNotifications, renderAllowReply, renderNotifyOpen, startGiftWatch } from './builder/gift-watch.js';
 import { accountDelete, accountLogin, accountLogout, initAccount, openAccount } from './builder/account.js';
 import { closeVideoModal, createVideo, downloadVideo, openVideoModal, restartVideo, setVideoFormat, setVideoQuality, shareVideo } from './builder/video-ui.js';
 import { closeShareModal, copyShareLink, downloadShareImage, downloadShareQr, handleSeoImageUpload, openShareModal, renderSeoControls, scheduleSeoPreview, setSeoImageMode, setShareMode, shareTo, storeImageFile } from './builder/share.js';
@@ -306,11 +306,16 @@ document.addEventListener('DOMContentLoaded', () => {
         state.notifyOpen = e.target.checked;
         renderNotifyOpen();
     });
+    document.getElementById('allow-reply')?.addEventListener('change', (e) => {
+        state.allowReply = e.target.checked;
+        renderAllowReply();
+    });
     document.getElementById('reduce-flashing')?.addEventListener('change', (e) => {
         state.reduceFlashing = e.target.checked;
         refreshMiniPreview();
     });
     renderNotifyOpen();
+    renderAllowReply();
     startGiftWatch();
     initAccount();
 });

@@ -19,7 +19,8 @@ import { createFrameComposer, createMp4Writer, mixAudio } from './recorder.js';
 import { advanceClock, after, cancel, now, useSimulatedClock } from './player/clock.js';
 import { setupViewerShare } from './viewer-share.js';
 import { getOwnerKeys } from './gift-tracking.js';
-import { packedConfigInLink, unpackConfig } from './share-link.js';
+import { isStaticSite, packedConfigInLink, unpackConfig } from './share-link.js';
+import { setupGiftReply } from './gift-reply.js';
 import { CONFIG_NAME, IS_DESKTOP, IS_HEADER, IS_HIGH_END_DEVICE, IS_PREVIEW, IS_RECORD, MAX_HEIGHT, MAX_WIDTH, QUALITY_HIGH, QUALITY_NORMAL, SKY_LIGHT_DIM, SKY_LIGHT_NONE, SKY_LIGHT_NORMAL, getDefaultScaleFactor } from './player/env.js';
 import { isLowQuality, quality, setCanPlaySound, setHorizon, setIsRunning, setQuality, setReduceFlashing, setSeason, setSettings, setSimSpeed, setSmokeLevel, setSoundEnabled, setStageSize, setWeather } from './player/state.js';
 import { QUALITY_AUTO, QUALITY_LEVELS, qualityLevel, validQuality } from './player/quality.js';
@@ -719,14 +720,8 @@ window.preloadFireworkImage = (url, frame, crop) => {
 
 // Đọc kịch bản trong link (?config=<tên>): bản lưu trong trình duyệt (trang tĩnh) hoặc file configs/<tên>.json
 async function fetchBurstConfig(configName) {
-    const isStaticEnv = window.location.hostname.includes('github.io') ||
-                        window.location.hostname.includes('vercel.app') ||
-                        window.location.hostname.includes('netlify.app') ||
-                        window.location.hostname.includes('pages.dev') ||
-                        window.location.protocol === 'file:';
-
     let config;
-    if (isStaticEnv) {
+    if (isStaticSite) {
         try {
             const localScripts = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}');
             if (localScripts[configName]) {
@@ -763,6 +758,7 @@ async function loadBurstConfig() {
     const config = await configRequest;
     if (!config) return;
     viewerShare.setConfig(config);
+    giftReply.setConfig(config);
     try {
         burstConfig = await prepareBurstConfig(config, { showOverlay: true });
         soundManager.setEffectsVolume(burstConfig.effectsVolume ?? 1);
@@ -1101,6 +1097,19 @@ const viewerShare = setupViewerShare({
     off: IS_RECORD || IS_HEADER,
     reduceFlashing: reduceFlashingSelector,
     natureSound: () => store.state.config.natureSound !== false
+});
+
+// Người nhận gửi lời cảm ơn cho người tặng: chỉ kịch bản lưu trên máy chủ (không phải link chứa sẵn kịch bản, trang tĩnh)
+const giftReply = setupGiftReply({
+    configName: CONFIG_NAME,
+    canSend: !!CONFIG_NAME && !PACKED_CONFIG && !isStaticSite,
+    preview: IS_PREVIEW,
+    off: IS_RECORD || IS_HEADER,
+    pauseShow(paused) {
+        const was = store.state.paused;
+        togglePause(paused);
+        return was;
+    }
 });
 
 // Kịch bản tạo bởi builder phiên bản cũ dùng tọa độ 0-1 thay vì 0-100 (mọi phát bắn dồn vào góc dưới trái).
@@ -1769,6 +1778,7 @@ if (IS_PREVIEW) {
 
         const version = ++previewVersion;
         viewerShare.setConfig(msg.config);
+        giftReply.setConfig(msg.config);
         const config = await prepareBurstConfig(msg.config, { showOverlay: false });
         // Trong lúc đang tải ảnh, builder đã gửi một kịch bản mới hơn
         if (version !== previewVersion) return;

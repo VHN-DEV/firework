@@ -200,6 +200,8 @@ const HELP_TIPS = {
     notifyOpen: 'Biết khi người nhận <strong>mở link</strong>, <strong>bấm mở quà</strong> và <strong>xem hết</strong> (chỉ thời điểm và loại thiết bị, '
         + 'không có thông tin cá nhân). Xem trong hộp Chia sẻ, danh sách Kịch bản của tôi hoặc link theo dõi riêng. '
         + 'Người nhận thấy một dòng nhỏ "Người gửi sẽ biết khi bạn mở quà". Cần bản có máy chủ PHP.',
+    allowReply: 'Người nhận bấm nút <strong>♥</strong> (góc dưới màn trình diễn, màn kết) để viết vài lời cảm ơn gửi bạn. Bạn đọc '
+        + 'trong hộp Chia sẻ, link theo dõi riêng và được báo khi có lời mới. Cần bản có máy chủ.',
     giftTracking: 'Trạng thái món quà: đã mở link, đã mở quà, đã xem hết. Link theo dõi riêng mở được trên mọi máy, hãy giữ bí mật. '
         + 'Bạn tự mở thử trên máy này (hoặc máy đã mở link theo dõi) thì không tính là người nhận mở.',
     // Xuất video

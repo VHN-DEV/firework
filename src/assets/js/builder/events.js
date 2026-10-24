@@ -17,7 +17,7 @@ import { renderMusic } from './music.js';
 import { refreshMiniPreview, stopPreviewMusic, updateMiniInfo } from './preview.js';
 import { renderSchedule, renderScreenTheme, renderStartFrames } from './settings.js';
 import { WATER_THINGS, loadPeoplePlan, renderScene, renderSky, renderSmoke, renderViewer } from './scene.js';
-import { renderNotifyOpen } from './gift-watch.js';
+import { renderAllowReply, renderNotifyOpen } from './gift-watch.js';
 import { loadNatureSound } from './nature-ui.js';
 import { renderSeoControls } from './share.js';
 
@@ -160,6 +160,8 @@ export function createNewScript() {
         renderSchedule();
         state.notifyOpen = true;
         renderNotifyOpen();
+        state.allowReply = true;
+        renderAllowReply();
         state.reduceFlashing = false;
         document.getElementById('reduce-flashing').checked = false;
         document.getElementById('intro-message').value = '';
