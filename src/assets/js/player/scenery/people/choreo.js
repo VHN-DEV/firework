@@ -22,6 +22,10 @@ const pick = list => list[(Math.random() * list.length) | 0];
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const smooth01 = x => {
+    const s = clamp(x, 0, 1);
+    return s * s * (3 - 2 * s);
+};
 
 // Hướng nhìn pháo hoa: quay đầu theo chỗ pháo đang nổ, ngẩng theo độ cao. Người thật đưa mắt theo chỗ pháo mới nổ chứ
 // không bám đều như máy quay: chỗ nổ dời đủ xa (hoặc vừa có loạt pháo mới) thì sau một nhịp phản xạ riêng của mỗi người
@@ -67,6 +71,9 @@ function bodyDir(actor, r, u, f) {
     const c = Math.cos(actor.yaw);
     return V(c * r + s * f, u, -(-s * r + c * f)).normalize();
 }
+
+// Ô đã gập cầm buông bên người: chúc đầu xuống, hơi chếch ra trước
+const HANG = actor => bodyDir(actor, 0.05, -1, 0.1);
 
 // Đi tới hoành độ x: đi dạo (động tác walk / walkSad) theo đúng quãng tiến của chuyển động, gần tới thì chuyển sang
 // động tác dừng bước, xong thì đứng thở. Trả true khi đã đứng yên. lane: đi lệch ra trước, ra sau bao nhiêu (độ sâu z,
@@ -491,7 +498,9 @@ export class Duo {
         }
     }
 
-    // Trời mưa: anh giơ cao ô che sang phía cô; cô gập ô (tay phải vuốt khép tán), cầm buông bên người, bước vào
+    // Trời mưa: anh giơ cao ô che sang phía cô; cô gập ô như người thật: hạ ô xuống trước ngực (khuỷu tay gập), tay phải
+    // với lên con chạy sát tán ô rồi vuốt xuống, tán cụp dần theo tay; rũ nước hai cái; tay phải giữ thân ô đã gập, buông tay
+    // trái, ô xoay dần chúc đầu xuống, hạ xuống bên hông; rồi bước vào đứng dưới ô của anh
     foldUmbrella() {
         const { m, w } = this;
         const t = this.t;
@@ -499,30 +508,41 @@ export class Duo {
         // Anh giơ ô cao, nghiêng sang cô
         m.ik[1] = { target: bodyPoint(m, 0.05, 1.32, 0.3), pole: bodyDir(m, 0.7, -1, 0), tau: 0.4 };
         m.umbrellaDir = bodyDir(m, 0, 1, 0.42);
-        if (t < 2.4) {
-            // Cô hạ ô xuống trước mặt, tay phải nắm lấy cán vuốt con chạy xuống
-            w.ik[0] = { target: bodyPoint(w, -0.05, 1.0, 0.3), pole: bodyDir(w, -0.6, -1, 0), tau: 0.3 };
-            w.umbrellaDir = bodyDir(w, -0.15, 1, -0.05);
-            if (t > 0.6) {
+        // Con chạy: từ sát tán ô (dọc cán, tính từ tay cầm) vuốt xuống tới đây thì tán cụp hẳn
+        const top = 0.56;
+        const low = 0.3;
+        const slide = smooth01((t - 1.0) / 0.9);
+        const along = top - (top - low) * slide;
+        if (t < 2.3) {
+            // Tay trái cầm ô trước ngực, cán dựng hơi chếch ra trước; rũ nước: ô nhấp xuống hai cái
+            const shake = t > 1.9 ? Math.sin((t - 1.9) / 0.4 * Math.PI * 2) * 0.5 : 0;
+            w.ik[0] = { target: bodyPoint(w, -0.06, 1.02 - Math.abs(shake) * 0.06, 0.2), pole: bodyDir(w, -0.7, -1, -0.2), tau: 0.35 };
+            w.umbrellaDir = bodyDir(w, -0.08, 1, 0.14 + shake * 0.25);
+            w.curlGoal[0] = 0.9;
+            if (t > 0.5) {
+                // Tay phải với lên nắm con chạy rồi vuốt xuống, tán cụp theo tay
                 const grip = uw.group.position.clone();
-                const along = t < 1.0 ? 0.5 : 0.5 - 0.28 * clamp((t - 1.0) / 0.9, 0, 1);
-                w.ik[1] = { target: grip.clone().addScaledVector(w.umbrellaDir, along), pole: bodyDir(w, 0.6, -1, 0), tau: 0.15 };
+                w.ik[1] = { target: grip.addScaledVector(w.umbrellaDir, along), pole: bodyDir(w, 0.7, -1, 0), tau: 0.25 };
                 w.curlGoal[1] = 0.85;
             }
-            if (t > 1.0) uw.goalOpen = 0;
+            uw.goalOpen = 1 - slide;
         } else {
-            // Cầm ô đã gập ở tay phải, buông bên người; tay trái rảnh
+            // Đổi sang tay phải (đang nắm thân ô ở chỗ con chạy), buông tay trái; ô xoay dần chúc đầu xuống quanh tay cầm
+            // (qua phía trước, bên phải), tay hạ xuống bên hông
             if (!this.swapped) {
                 this.swapped = true;
                 w.umbrellaHand = 'right';
-                w.umbrellaGrip = 0.28;
+                w.umbrellaGrip = low;
             }
             w.ik[0] = null;
             w.curlGoal[0] = RELAX;
-            w.ik[1] = { target: bodyPoint(w, 0.22, 0.72, 0.02), pole: bodyDir(w, 0.3, -0.2, -1), tau: 0.4 };
-            w.umbrellaDir = bodyDir(w, 0.05, -1, 0.1);
+            const k = smooth01((t - 2.3) / 0.7);
+            w.ik[1] = { target: bodyPoint(w, 0.2 + 0.02 * (1 - k), 1.25 - 0.5 * k, 0.16 * (1 - k) + 0.03), pole: bodyDir(w, 0.4, -0.6, -1), tau: 0.35 };
+            const up = bodyDir(w, -0.08, 1, 0.14);
+            const out = bodyDir(w, 0.45, 0, 1);
+            w.umbrellaDir = k < 0.5 ? up.lerp(out, k * 2).normalize() : out.lerp(HANG(w), k * 2 - 1).normalize();
             // Bước vào đứng dưới ô của anh
-            if (t > 2.8 && !this.stepIn) {
+            if (t > 2.9 && !this.stepIn) {
                 this.stepIn = new Walker(w, m.x + 0.4);
             }
             if (this.stepIn) this.stepIn.update(this.dt);
@@ -538,9 +558,11 @@ export class Duo {
             m.umbrellaDir = bodyDir(m, shelter, 1, -0.12);
             m.ik[0] = null;
             m.curlGoal = [RELAX, 0.9];
-            // Cô khoác tay anh: bàn tay trái đặt lên cẳng tay anh
+            // Cô khoác tay anh: bàn tay trái đặt lên cẳng tay anh; tay phải cầm ô đã gập buông bên người
             const fore = m.worldOf('rightLowerArm').lerp(m.worldOf('rightHand'), 0.4);
             w.ik[0] = { target: fore.add(V(0.03, -0.02, 0.05)), pole: bodyDir(w, -0.4, -1, -0.5), tau: 0.4 };
+            w.ik[1] = { target: bodyPoint(w, 0.2, 0.75, 0.03), pole: bodyDir(w, 0.4, -0.6, -1), tau: 0.4 };
+            w.umbrellaDir = HANG(w);
             w.curlGoal = [0.55, 0.85];
             return;
         }
