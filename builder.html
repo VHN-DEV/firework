@@ -133,6 +133,9 @@
                 <button id="btn-copy-link" class="btn secondary small" title="Sao chép link">
                     <i class="fas fa-copy"></i><span>Sao chép</span>
                 </button>
+                <a id="share-bar-open" class="btn secondary small" target="_blank" rel="noopener" title="Mở link trong tab mới">
+                    <i class="fas fa-arrow-up-right-from-square"></i><span>Mở</span>
+                </a>
                 <div class="social-share">
                     <button class="btn-social facebook" onclick="shareTo('facebook')" title="Chia sẻ lên Facebook">
                         <i class="fab fa-facebook-f"></i>
@@ -904,9 +907,21 @@
                         onclick="this.select()">
                     <button class="btn primary" onclick="copyShareLink()"><i class="fas fa-copy"></i>
                         <span>Sao chép</span></button>
+                    <a id="share-open-link" class="btn secondary share-open" target="_blank" rel="noopener" title="Mở link trong tab mới">
+                        <i class="fas fa-arrow-up-right-from-square"></i><span>Mở</span></a>
+                </div>
+
+                <!-- Các nút bên dưới gửi link, hoặc ảnh mã QR (thẻ có tiêu đề, mã QR, lời nhắn quét mã) -->
+                <div id="share-mode" class="share-mode">
+                    <span class="share-mode-label">Gửi đi bằng</span>
+                    <div class="segmented" role="group" aria-label="Gửi đi bằng">
+                        <button type="button" data-share-mode="link" onclick="setShareMode('link')"><i class="fas fa-link"></i>Link</button>
+                        <button type="button" data-share-mode="qr" onclick="setShareMode('qr')"><i class="fas fa-qrcode"></i>Mã QR</button>
+                    </div>
                 </div>
 
                 <div id="share-grid" class="share-grid"></div>
+                <small id="share-mode-hint" class="field-hint share-mode-hint hide"></small>
 
                 <!-- Báo mở quà: trạng thái và link theo dõi riêng của người gửi -->
                 <div id="share-track" class="share-track hide">

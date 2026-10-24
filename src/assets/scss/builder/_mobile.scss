@@ -367,6 +367,11 @@
         grid-template-columns: repeat(4, 1fr);
     }
 
+    // Chừa chỗ cho link: nút Mở chỉ còn biểu tượng
+    .share-open span {
+        display: none;
+    }
+
     .share-extras {
         flex-direction: column;
         text-align: center;

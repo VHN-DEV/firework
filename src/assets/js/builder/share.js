@@ -8,7 +8,7 @@
 
 import qrcode from 'qrcode-generator';
 import { renderShareImage } from '../share-image.js';
-import { availablePlatforms, copyText, platformIcon, shareLink } from '../share-targets.js';
+import { availablePlatforms, copyText, isMobileDevice, platformIcon, shareLink } from '../share-targets.js';
 import { isStaticEnv, state } from './state.js';
 import { getShowUrl, hideLoading, hideModal, localScript, notify, showLoading, showModal } from './util.js';
 import { canPackConfig, packedShowUrl } from '../share-link.js';
@@ -209,17 +209,27 @@ function refreshShareText() {
     share.description = getShareDescription(config);
 }
 
+// Nút "Mở" cạnh nút Sao chép (thanh link sau khi lưu, hộp Chia sẻ): mở link chia sẻ trong tab mới
+function setOpenLinks(url) {
+    ['share-bar-open', 'share-open-link'].forEach(id => {
+        const link = document.getElementById(id);
+        if (link) link.href = url;
+    });
+}
+
 export function updateShareBar(filename) {
     const shareBar = document.getElementById('share-bar');
     const shareUrlEl = document.getElementById('share-url');
     share.id = filename;
     share.url = getShareUrl(filename);
     shareUrlEl.innerText = share.url;
+    setOpenLinks(share.url);
     shareBar.classList.remove('hide');
     resolveShareUrl(filename).then(found => {
         if (share.id !== filename) return;
         Object.assign(share, found);
         shareUrlEl.innerText = found.url;
+        setOpenLinks(found.url);
     });
 
     // Add highlight effect
@@ -241,12 +251,15 @@ export async function copyShareLink() {
     }
 }
 
-export async function shareTo(platform) {
+// mode: 'link' gửi link (thanh link sau khi lưu luôn gửi link), 'qr' gửi ảnh mã QR (các nút trong hộp Chia sẻ khi chọn
+// "Gửi đi bằng: Mã QR")
+export async function shareTo(platform, mode = 'link') {
     if (!share.id) {
         notify('Vui lòng lưu kịch bản trước khi chia sẻ!', 'warning');
         return;
     }
     refreshShareText();
+    if (mode === 'qr') return shareQrTo(platform);
     const url = share.url;
     const text = `🎆 ${share.title}${share.description ? ` – ${share.description}` : ''}`;
     await shareLink(platform, { url, title: share.title, text }, {
@@ -261,12 +274,85 @@ export async function shareTo(platform) {
     });
 }
 
+// Các nút trong hộp Chia sẻ gửi link hay ảnh mã QR (giữ lựa chọn tới lần mở hộp sau)
+let shareMode = 'link';
+
+export function setShareMode(mode) {
+    shareMode = mode === 'qr' ? 'qr' : 'link';
+    renderShareGrid();
+}
+
 function renderShareGrid() {
+    const qr = shareMode === 'qr';
+    document.querySelectorAll('[data-share-mode]').forEach(btn => {
+        const on = btn.dataset.shareMode === shareMode;
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-pressed', String(on));
+    });
     document.getElementById('share-grid').innerHTML = availablePlatforms().map(p => `
-            <button type="button" class="share-item" onclick="shareTo('${p.id}')" title="Chia sẻ qua ${p.name}">
+            <button type="button" class="share-item" onclick="shareTo('${p.id}', '${shareMode}')" title="${qr ? 'Gửi mã QR' : 'Chia sẻ'} qua ${p.name}">
                 ${platformIcon(p)}
                 <span class="share-name">${p.name}</span>
             </button>`).join('');
+    const hint = document.getElementById('share-mode-hint');
+    hint.classList.toggle('hide', !qr);
+    hint.textContent = isMobileDevice()
+        ? 'Gửi ảnh mã QR kèm tiêu đề qua bảng chia sẻ của máy; người nhận quét mã bằng camera để xem.'
+        : 'Máy tính: ảnh mã QR được sao chép để dán (Ctrl+V) vào khung chat, bài đăng hoặc thư; người nhận quét mã bằng camera để xem.';
+}
+
+// Bản web của từng nơi để dán ảnh mã QR vào (máy tính)
+const QR_WEB = {
+    facebook: 'https://www.facebook.com/',
+    messenger: 'https://www.messenger.com/',
+    zalo: 'https://chat.zalo.me/',
+    telegram: 'https://web.telegram.org/',
+    whatsapp: 'https://web.whatsapp.com/',
+    x: 'https://x.com/compose/post',
+    threads: 'https://www.threads.net/',
+    linkedin: 'https://www.linkedin.com/feed/'
+};
+
+async function copyImage(blob) {
+    try {
+        await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+// Gửi ảnh mã QR: điện thoại (mọi nút) và nút "Ứng dụng khác" dùng bảng chia sẻ của máy (chọn Zalo, Messenger... ở đó);
+// máy tính sao chép ảnh rồi mở bản web để dán, không sao chép được thì tải ảnh về để đính kèm. Instagram, TikTok: tải ảnh
+// về để đăng.
+async function shareQrTo(platform) {
+    const card = renderQrCard();
+    if (!card) return;
+    const name = qrFileName();
+    const blob = await new Promise(resolve => card.toBlob(resolve, 'image/png'));
+    const file = new File([blob], name, { type: 'image/png' });
+    const label = (availablePlatforms().find(p => p.id === platform) || {}).name || '';
+    if ((platform === 'native' || isMobileDevice()) && navigator.canShare?.({ files: [file] })) {
+        try {
+            await navigator.share({ files: [file], title: share.title, text: `🎆 ${share.title}: quét mã để xem màn pháo hoa` });
+        } catch (e) {
+            // Người dùng đóng bảng chia sẻ
+        }
+        return;
+    }
+    if (platform === 'instagram' || platform === 'tiktok' || !(await copyImage(blob))) {
+        downloadDataUrl(card.toDataURL('image/png'), name);
+        notify(platform === 'instagram' || platform === 'tiktok' ? `Đã tải ảnh mã QR để đăng lên ${label}.`
+            : `Đã tải ảnh mã QR về máy, hãy đính kèm ảnh khi gửi${label && platform !== 'native' ? ` qua ${label}` : ''}.`, 'success');
+    } else {
+        notify(`Đã sao chép ảnh mã QR, hãy dán (Ctrl+V) vào ${platform === 'email' ? 'thư' : platform === 'native' ? 'nơi muốn gửi' : label}.`, 'success');
+    }
+    if (QR_WEB[platform]) {
+        const win = window.open(QR_WEB[platform], '_blank');
+        if (win) win.opener = null;
+    } else if (platform === 'email') {
+        window.location.href = `mailto:?subject=${encodeURIComponent(share.title)}&body=${encodeURIComponent('Quét mã QR trong ảnh để xem màn pháo hoa 🎆')}`;
+    }
 }
 
 // Vẽ mã QR lên canvas (nền trắng, chừa lề 2 ô theo chuẩn để camera dễ nhận). Link quá dài (kịch bản gói trong link) không
@@ -309,9 +395,10 @@ function downloadDataUrl(dataUrl, name) {
     a.remove();
 }
 
-// Mã QR dạng thẻ để in: tiêu đề + QR + lời nhắn quét mã
-export function downloadShareQr() {
-    if (!share.id) return;
+const qrFileName = () => `qr-${share.id}.png`;
+
+// Mã QR dạng thẻ để in hoặc gửi: tiêu đề + QR + lời nhắn quét mã. Link quá dài không vừa mã QR thì null
+function renderQrCard() {
     refreshShareText();
     const W = 720, H = 900, qrSize = 520;
     const canvas = document.createElement('canvas');
@@ -333,7 +420,7 @@ export function downloadShareQr() {
 
     const qrCanvas = document.createElement('canvas');
     qrCanvas.width = qrCanvas.height = qrSize;
-    if (!drawQr(qrCanvas, share.url, qrSize)) return;
+    if (!drawQr(qrCanvas, share.url, qrSize)) return null;
     ctx.drawImage(qrCanvas, (W - qrSize) / 2, 140);
 
     ctx.fillStyle = '#6b21a8';
@@ -342,8 +429,13 @@ export function downloadShareQr() {
     ctx.fillStyle = '#64748b';
     ctx.font = '400 22px Inter, sans-serif';
     ctx.fillText(new URL(share.url).hostname, W / 2, 762);
+    return canvas;
+}
 
-    downloadDataUrl(canvas.toDataURL('image/png'), `qr-${share.id}.png`);
+export function downloadShareQr() {
+    if (!share.id) return;
+    const card = renderQrCard();
+    if (card) downloadDataUrl(card.toDataURL('image/png'), qrFileName());
 }
 
 export async function downloadShareImage() {
@@ -360,11 +452,13 @@ export async function openShareModal() {
     refreshShareText();
     showModal('share-modal');
     renderShareGrid();
+    setOpenLinks(share.url);
 
     const found = await resolveShareUrl(share.id);
     Object.assign(share, found);
     const { url, published } = found;
     document.getElementById('share-link-input').value = url;
+    setOpenLinks(url);
     document.getElementById('share-preview-domain').textContent = new URL(url).hostname;
     document.getElementById('share-preview-title').textContent = share.title;
     document.getElementById('share-preview-desc').textContent = share.description;
@@ -389,6 +483,9 @@ export async function openShareModal() {
     const qrOk = drawQr(qrCanvas, url, 320);
     qrCanvas.classList.toggle('hide', !qrOk);
     document.getElementById('btn-share-qr').classList.toggle('hide', !qrOk);
+    // Không có mã QR thì chỉ gửi được link
+    document.getElementById('share-mode').classList.toggle('hide', !qrOk);
+    if (!qrOk && shareMode === 'qr') setShareMode('link');
     const qrText = document.getElementById('share-qr-text');
     qrText.dataset.text ??= qrText.textContent;
     qrText.textContent = qrOk ? qrText.dataset.text : 'Kịch bản dài nên link không vừa mã QR, hãy gửi link. Ảnh thiệp dùng để đăng Instagram, TikTok hoặc gửi kèm tin nhắn.';

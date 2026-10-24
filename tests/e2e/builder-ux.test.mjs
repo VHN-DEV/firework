@@ -90,6 +90,31 @@ export async function run(browser, base, { check }) {
             templatesOpen.includes('templates-modal') && !templatesClosed.length && shareOpen.includes('share-modal') && !shareClosed.length,
             JSON.stringify({ templatesOpen, templatesClosed, shareOpen, shareClosed }));
 
+        // Hộp Chia sẻ: nút Mở link trong tab mới cạnh Sao chép; "Gửi đi bằng: Mã QR" thì các nút gửi ảnh mã QR (máy tính:
+        // sao chép hoặc tải ảnh rồi mở bản web để dán). Không mở trang ngoài thật khi kiểm thử
+        await page.evaluate(() => { window.open = url => { window.openedUrl = url; return null; }; openShareModal(); });
+        await page.waitForFunction(() => document.getElementById('share-link-input').value, { timeout: 10000 }).catch(() => {});
+        await page.evaluate(() => document.querySelector('[data-share-mode="qr"]').click());
+        const qrMode = await page.evaluate(() => ({
+            link: document.getElementById('share-link-input').value,
+            open: document.getElementById('share-open-link').href,
+            target: document.getElementById('share-open-link').target,
+            barOpen: document.getElementById('share-bar-open').href,
+            titles: [...document.querySelectorAll('#share-grid .share-item')].map(b => b.title),
+            hint: !document.getElementById('share-mode-hint').classList.contains('hide')
+        }));
+        await page.evaluate(() => document.querySelector('#share-grid [onclick*="telegram"]').click());
+        await page.waitForFunction(() => window.openedUrl, { timeout: 5000 }).catch(() => {});
+        const sent = await page.evaluate(() => ({
+            opened: window.openedUrl,
+            toast: [...document.querySelectorAll('.toast')].map(t => t.textContent.trim()).find(t => t.includes('mã QR')) || ''
+        }));
+        check('hộp Chia sẻ: nút Mở link trong tab mới; chọn Mã QR thì các nút gửi ảnh mã QR (máy tính mở bản web để dán)',
+            qrMode.link.endsWith(`/s/${ID}`) && qrMode.open === qrMode.link && qrMode.barOpen === qrMode.link && qrMode.target === '_blank'
+                && qrMode.titles.every(t => t.startsWith('Gửi mã QR')) && qrMode.hint && sent.opened === 'https://web.telegram.org/' && sent.toast,
+            JSON.stringify({ qrMode: { ...qrMode, titles: qrMode.titles.slice(0, 2) }, sent }));
+        await page.evaluate(() => { setShareMode('link'); closeShareModal(); });
+
         check('builder (tinh chỉnh thao tác) không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
         await page.close();

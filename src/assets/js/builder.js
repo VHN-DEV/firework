@@ -35,7 +35,7 @@ import { createFromTemplate, openTemplatesModal, renderTemplateChips, selectOcca
 import { afterMusicStartChange, applyBeatShow, drawBeatChart, openBeatModal, setBeatDensity } from './builder/beat-ui.js';
 import { checkGiftOpens, copyTrackingLink, enableOpenNotifications, renderNotifyOpen, startGiftWatch } from './builder/gift-watch.js';
 import { closeVideoModal, createVideo, downloadVideo, openVideoModal, restartVideo, setVideoFormat, setVideoQuality, shareVideo } from './builder/video-ui.js';
-import { closeShareModal, copyShareLink, downloadShareImage, downloadShareQr, handleSeoImageUpload, openShareModal, renderSeoControls, scheduleSeoPreview, setSeoImageMode, shareTo, storeImageFile } from './builder/share.js';
+import { closeShareModal, copyShareLink, downloadShareImage, downloadShareQr, handleSeoImageUpload, openShareModal, renderSeoControls, scheduleSeoPreview, setSeoImageMode, setShareMode, shareTo, storeImageFile } from './builder/share.js';
 import { copyScriptLink, deleteScript, duplicateScript, editScript, exportConfig, importConfig, openScriptsModal, previewScript } from './builder/scripts.js';
 import { closeMoreMenu, initSettingsRail, openSettingsGroup, toggleMoreMenu, toggleSettingsCollapsed, toggleSidebar } from './builder/layout.js';
 
@@ -314,7 +314,7 @@ Object.assign(window, {
     handleShellChange, toggleEmojiPicker, showEmojiGroup, pickTextEmoji, changeBurst, toggleEventColor, addColorToEvent, addCustomColor, removeColorFromEvent,
     rememberSection, editScript, duplicateScript, deleteScript, previewScript, copyShareLink, copyScriptLink,
     openScriptsModal, exportConfig, previewConfig, saveConfig, toggleSidebar, toggleSettingsCollapsed, openSettingsGroup, toggleMoreMenu, showModal,
-    resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, downloadShareQr,
+    resizeMiniStages, notify, confirmAction, openShareModal, closeShareModal, shareTo, setShareMode, downloadShareQr,
     downloadShareImage, renderShareImage, renderInspector, setMusicFromUrl, removeMusic, useCurrentMusicTime,
     togglePreviewSound, previewAsRecipient, setSeoImageMode, openTemplatesModal, selectOccasion, startBlankScript, createFromTemplate,
     hideModal, setBank, setPeople, setPeopleFirst, setSeason, toggleSeason, setWeather, setStartFrame, setScreenThemePreset, setScreenThemeField, resetScreenTheme, previewScreen, undo, redo, setOpenMode, setSmoke, setViewerOption, setWater, setWaterStyle, setFloating, setStars, setMilkyWay, setMeteors, setClouds, setMoonMode, setMoonPhase, toggleDecor, toggleOption, togglePerson, openLibrary, closeLibrary, setLibraryTag,
