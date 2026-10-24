@@ -5,7 +5,9 @@
  */
 
 // Chiếc ô cầm tay tô kiểu anime (màu phẳng hai tông, viền nét đậm như nhân vật): cán thẳng, tay cầm cong chữ J, tán 8
-// nan cong vồng, mép tán võng vào giữa hai đầu nan. Gập ô: nan cụp dần sát cán, vải túm thành búp dài.
+// nan cong vồng, mép tán võng vào giữa hai đầu nan. Gập ô: nan cụp dần sát cán, vải túm thành búp dài. Ô nhựa trong (kiểu
+// ô cửa hàng tiện lợi phố Nhật, Hàn): tán trắng trong mờ, thấy rõ nan, mép tán sáng, tay cầm nhựa trắng; ban đêm vẫn
+// nổi trên nền tối (ô vải màu sẫm nhìn từ sau lưng chỉ thấy mặt dưới tán, chìm hẳn vào nền).
 
 import * as THREE from 'three';
 
@@ -28,7 +30,7 @@ function ramp() {
 }
 
 export class Umbrella3D {
-    constructor({ color = 0x23262e, size = 0.5, shaft = 0.78 } = {}) {
+    constructor({ color = 0x23262e, size = 0.5, shaft = 0.78, clear = false } = {}) {
         this.size = size;
         this.shaft = shaft;
         this.open = 1;
@@ -49,20 +51,31 @@ export class Umbrella3D {
             }
         }
         this.geo.setIndex(idx);
-        const fabric = new THREE.MeshToonMaterial({ color, gradientMap: ramp(), side: THREE.DoubleSide });
+        const fabric = clear
+            ? new THREE.MeshToonMaterial({ color: 0xeef3f9, gradientMap: ramp(), side: THREE.DoubleSide, transparent: true, opacity: 0.3, depthWrite: false })
+            : new THREE.MeshToonMaterial({ color, gradientMap: ramp(), side: THREE.DoubleSide });
         this.canopy = new THREE.Mesh(this.geo, fabric);
-        // Viền nét: lớp vỏ phồng ra, chỉ vẽ mặt trong, màu tối
-        this.outline = new THREE.Mesh(this.geo, new THREE.MeshBasicMaterial({ color: 0x0b0b10, side: THREE.BackSide }));
+        // Viền nét: lớp vỏ phồng ra, chỉ vẽ mặt trong, màu tối (ô nhựa: viền sáng trong mờ như mép nhựa bắt ánh đèn)
+        const edge = clear
+            ? new THREE.MeshBasicMaterial({ color: 0xdfe7f1, side: THREE.BackSide, transparent: true, opacity: 0.5, depthWrite: false })
+            : new THREE.MeshBasicMaterial({ color: 0x0b0b10, side: THREE.BackSide });
+        this.outline = new THREE.Mesh(this.geo, edge);
         this.outline.scale.setScalar(1.025);
+        // Ô nhựa: nan ô lộ qua tán trong
+        if (clear) {
+            this.ribs = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xd3dae4, transparent: true, opacity: 0.85 }));
+            this.ribs.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(RIBS * RINGS * 2 * 3), 3));
+        }
         const metal = new THREE.MeshToonMaterial({ color: 0x8c8f99, gradientMap: ramp() });
         this.stick = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, shaft + 0.06, 6), metal);
         this.stick.position.y = (shaft + 0.06) / 2 - 0.02;
-        const hook = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.009, 6, 12, Math.PI), new THREE.MeshToonMaterial({ color: 0x3a2a20, gradientMap: ramp() }));
+        const hook = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.009, 6, 12, Math.PI), new THREE.MeshToonMaterial({ color: clear ? 0xe9edf2 : 0x3a2a20, gradientMap: ramp() }));
         hook.rotation.z = Math.PI;
         hook.position.set(0.035, -0.02, 0);
         this.canopyGroup = new THREE.Group();
         this.canopyGroup.position.y = shaft;
         this.canopyGroup.add(this.canopy, this.outline);
+        if (this.ribs) this.canopyGroup.add(this.ribs);
         this.group.add(this.stick, hook, this.canopyGroup);
         this.group.traverse(o => {
             if (o.isMesh) o.frustumCulled = false;
@@ -95,6 +108,21 @@ export class Umbrella3D {
         }
         this.geo.attributes.position.needsUpdate = true;
         this.geo.computeVertexNormals();
+        if (this.ribs) {
+            // Mỗi nan: từ đỉnh tán qua từng vòng ra tới mép
+            const out = this.ribs.geometry.attributes.position.array;
+            let n = 0;
+            for (let i = 0; i < RIBS; i++) {
+                for (let r = 0; r < RINGS; r++) {
+                    const a = r ? (1 + i * SUB * RINGS + r - 1) * 3 : 0;
+                    const b = (1 + i * SUB * RINGS + r) * 3;
+                    for (let k = 0; k < 3; k++) out[n + k] = pos[a + k];
+                    for (let k = 0; k < 3; k++) out[n + 3 + k] = pos[b + k];
+                    n += 6;
+                }
+            }
+            this.ribs.geometry.attributes.position.needsUpdate = true;
+        }
         this.shaped = o;
     }
 

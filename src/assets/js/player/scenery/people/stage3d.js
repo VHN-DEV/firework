@@ -188,7 +188,8 @@ export class Stage3D {
 
     // Chiếc ô cho nhân vật (màu theo người cầm)
     umbrellaFor(actor, sex) {
-        const u = new Umbrella3D(sex === 'm' ? { color: 0x262a33, size: 0.55, shaft: 0.8 } : { color: 0xc23a5c, size: 0.47, shaft: 0.72 });
+        // Chàng trai: ô nhựa trong; cô gái: ô vải hồng đỏ
+        const u = new Umbrella3D(sex === 'm' ? { clear: true, size: 0.55, shaft: 0.8 } : { color: 0xc23a5c, size: 0.47, shaft: 0.72 });
         this.scene.add(u.group);
         this.umbrellas.push(u);
         actor.umbrella = u;
