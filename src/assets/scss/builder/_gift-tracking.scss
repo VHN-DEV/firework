@@ -47,7 +47,8 @@
         font-size: 0.9rem;
     }
 
-    span:not(.share-track-icon) {
+    // Chỉ dòng trạng thái: span trong tên mục là cụm chữ cuối + nút "?" (help.js), giữ kiểu đậm của tên
+    div > span {
         color: $b-muted;
         font-size: 0.82rem;
     }

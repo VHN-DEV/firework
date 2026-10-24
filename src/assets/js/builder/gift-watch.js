@@ -75,6 +75,7 @@ export async function renderShareTracking() {
         return;
     }
     document.getElementById('share-track-input').value = trackingUrl(share.id, key);
+    document.getElementById('share-track-open').href = trackingUrl(share.id, key);
     status.textContent = 'Đang kiểm tra...';
     try {
         const [item] = await fetchOpenStatus([{ id: share.id, key }]);
@@ -122,6 +123,11 @@ export async function showGiftBadges() {
             if (item.replies && item.replies.length) {
                 el.insertAdjacentHTML('beforeend', `<span class="gift-badge is-opened" title="Lời cảm ơn của người nhận">💌 ${item.replies.length}</span>`);
             }
+            // Nút mở trang theo dõi (tab mới, builder giữ nguyên)
+            const key = items.find(owned => owned.id === item.id).key;
+            el.closest('.script-item').querySelector('.script-actions').insertAdjacentHTML('beforeend',
+                `<a class="btn secondary small" href="${escapeHtml(trackingUrl(item.id, key))}" target="_blank" rel="noopener"`
+                + ` title="Mở trang theo dõi món quà"><i class="fas fa-chart-line"></i> Theo dõi</a>`);
         });
     } catch (e) {
         // Không có máy chủ: bỏ qua nhãn

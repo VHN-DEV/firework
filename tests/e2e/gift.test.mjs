@@ -35,6 +35,8 @@ export async function run(browser, base, { check }) {
         const key = await sender.evaluate(id => JSON.parse(localStorage.getItem('firework_owner_keys') || '{}')[id], ID);
         const link = await sender.$eval('#share-track-input', i => i.value);
         check('lưu kịch bản: người gửi có mã và link theo dõi riêng', /^[a-f0-9]{32}$/.test(key || '') && link.includes(`theo-doi?id=${ID}`), key);
+        const openHref = await sender.$eval('#share-track-open', a => a.href);
+        check('hộp Chia sẻ có nút Mở trang theo dõi', openHref === link, openHref);
         await sender.evaluate(() => closeShareModal());
         check('dữ liệu theo dõi không tải trực tiếp được', (await fetch(`${base}/api/data/owners/${ID}.json`)).status === 403);
 
@@ -64,6 +66,13 @@ export async function run(browser, base, { check }) {
         await sleep(1500);
         const toast = await sender.evaluate(() => [...document.querySelectorAll('.toast')].map(t => t.textContent).find(t => /đã mở quà/.test(t)) || '');
         check('builder báo người nhận đã mở quà', /Mẹ đã mở quà/.test(toast), toast.trim());
+        await sender.evaluate(() => openScriptsModal());
+        const cardTrack = await sender.waitForFunction(id => {
+            const a = document.querySelector(`#scripts-list .script-item[data-id="${id}"] .script-actions a[href*="theo-doi"]`);
+            return a && a.href;
+        }, { timeout: 10000 }, ID).then(h => h.jsonValue()).catch(() => '');
+        await sender.evaluate(() => hideModal('scripts-modal'));
+        check('thẻ kịch bản trong danh sách Của tôi có nút Theo dõi', cardTrack === link, cardTrack);
 
         // Người nhận gửi lời cảm ơn: nút ♥ ở góc dưới, tên điền sẵn tên người nhận
         const MESSAGE = 'Cảm ơn con, mẹ vui lắm!';
