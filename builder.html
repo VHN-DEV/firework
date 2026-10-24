@@ -424,11 +424,10 @@
                             <div class="field">
                                 <label>Mùa<button type="button" class="help-tip" data-help="season" aria-label="Giải thích">?</button></label>
                                 <div class="segmented scene-season" role="group" aria-label="Mùa">
-                                    <button type="button" data-season="auto" onclick="setSeason('auto')"><span class="emoji">📅</span>Theo ngày xem</button>
-                                    <button type="button" data-season="spring" onclick="setSeason('spring')" title="Xuân" aria-label="Xuân"><span class="emoji" aria-hidden="true">🌸</span></button>
-                                    <button type="button" data-season="" onclick="setSeason('')" title="Hạ" aria-label="Hạ"><span class="emoji" aria-hidden="true">🌿</span></button>
-                                    <button type="button" data-season="autumn" onclick="setSeason('autumn')" title="Thu" aria-label="Thu"><span class="emoji" aria-hidden="true">🍂</span></button>
-                                    <button type="button" data-season="winter" onclick="setSeason('winter')" title="Đông" aria-label="Đông"><span class="emoji" aria-hidden="true">❄️</span></button>
+                                    <button type="button" data-season="spring" onclick="toggleSeason('spring')" title="Xuân" aria-label="Xuân"><span class="emoji" aria-hidden="true">🌸</span></button>
+                                    <button type="button" data-season="" onclick="toggleSeason('')" title="Hạ" aria-label="Hạ"><span class="emoji" aria-hidden="true">🌿</span></button>
+                                    <button type="button" data-season="autumn" onclick="toggleSeason('autumn')" title="Thu" aria-label="Thu"><span class="emoji" aria-hidden="true">🍂</span></button>
+                                    <button type="button" data-season="winter" onclick="toggleSeason('winter')" title="Đông" aria-label="Đông"><span class="emoji" aria-hidden="true">❄️</span></button>
                                 </div>
                                 <small id="season-hint" class="field-hint"></small>
                             </div>

@@ -133,6 +133,18 @@ export async function run(browser, base, { check }) {
         await builder.evaluate(() => setSeason('auto'));
         const hint = await builder.$eval('#season-hint', e => e.textContent);
         check('builder: "Theo ngày xem" cho biết mùa của hôm nay', /Hôm nay/.test(hint), hint);
+        // Chỉ bốn nút mùa; bấm lại mùa đang chọn là bỏ chọn: theo ngày xem, không nút nào sáng
+        const unpicked = await builder.evaluate(() => {
+            setSeason('winter');
+            document.querySelector('.scene-season .active').click();
+            return {
+                buttons: document.querySelectorAll('.scene-season button').length,
+                active: document.querySelectorAll('.scene-season .active').length,
+                hint: document.getElementById('season-hint').textContent
+            };
+        });
+        check('builder: bốn nút mùa, bấm lại mùa đang chọn thì về theo ngày xem',
+            unpicked.buttons === 4 && unpicked.active === 0 && /Hôm nay/.test(unpicked.hint), JSON.stringify(unpicked));
         // Bấm nút như người dùng: bản nháp được chụp sau mỗi lần bấm (gọi thẳng hàm thì phải chờ lượt chụp 3 giây một lần)
         await builder.evaluate(() => {
             document.querySelector('[data-season=""]').click();

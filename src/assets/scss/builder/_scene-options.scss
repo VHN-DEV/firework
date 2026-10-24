@@ -4,15 +4,9 @@
 
 @use 'tokens' as *;
 
-// Mùa: "Theo ngày xem" một hàng, bốn mùa một hàng. Mùa, thời tiết chỉ có biểu tượng (tên hiện khi rê chuột)
+// Mùa: bốn mùa một hàng, không chọn mùa nào là theo ngày xem. Mùa, thời tiết chỉ có biểu tượng (tên hiện khi rê chuột)
 .segmented.scene-season {
     grid-template-columns: repeat(4, 1fr);
-
-    [data-season="auto"] {
-        grid-column: 1 / -1;
-        flex-direction: row;
-        gap: 0.4rem;
-    }
 }
 
 .segmented.scene-season button,
@@ -28,10 +22,6 @@
         font-size: 1.3rem;
         line-height: 1;
     }
-}
-
-.segmented.scene-season [data-season="auto"] .emoji {
-    font-size: 1.05rem;
 }
 
 // Âm thanh thiên nhiên: âm lượng, các nhóm tiếng (hiện khi bật)

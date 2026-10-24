@@ -190,7 +190,7 @@ export function createNewScript() {
         state.meteors = '';
         state.clouds = '';
         state.moon = null;
-        state.season = '';
+        state.season = 'auto';
         state.weather = '';
         renderSky();
 

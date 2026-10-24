@@ -74,6 +74,11 @@ export function setSeason(value) {
     refreshMiniPreview();
 }
 
+// Nút bốn mùa: bấm lại mùa đang chọn là bỏ chọn, không chọn mùa nào thì mùa theo ngày người nhận mở xem
+export function toggleSeason(value) {
+    setSeason(state.season === value ? 'auto' : value);
+}
+
 export function setWeather(value) {
     state.weather = validWeather(value);
     renderSky();
@@ -129,8 +134,8 @@ export function renderSky() {
         const season = SEASONS.find(s => s.value === state.season) || SEASONS.find(s => !s.value);
         const today = SEASONS.find(s => s.value === (seasonOfDate(new Date()) === 'summer' ? '' : seasonOfDate(new Date())));
         seasonHint.textContent = state.season === 'auto'
-            ? `Hôm nay: ${today.icon} mùa ${today.name.toLowerCase()}. Người nhận mở vào mùa khác sẽ thấy cảnh của mùa đó.`
-            : season.hint;
+            ? `Chưa chọn mùa: theo ngày xem. Hôm nay: ${today.icon} mùa ${today.name.toLowerCase()}; người nhận mở vào mùa khác sẽ thấy cảnh của mùa đó.`
+            : `${season.hint} Bấm lại để bỏ chọn (mùa theo ngày xem).`;
     }
     const phases = document.getElementById('moon-phases');
     phases.classList.toggle('hide', mode !== 'pick');

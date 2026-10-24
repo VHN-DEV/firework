@@ -116,7 +116,8 @@ const HELP_TIPS = {
     season: '<strong>Xuân</strong>: cây đâm lộc non, hoa đào nở, cánh hoa bay theo gió rơi xuống trôi trên mặt nước, cỏ lấm tấm hoa, '
         + 'bướm lượn ven bờ. <strong>Hạ</strong>: lá xanh um, sen nở, đom đóm. <strong>Thu</strong>: lá vàng, lá đỏ, lá rụng bay theo gió '
         + 'rồi trôi trên mặt nước, cỏ úa, lau trắng. <strong>Đông</strong>: cây trơ cành đọng tuyết, bờ phủ tuyết, mặt nước đóng băng. '
-        + '<strong>Theo ngày xem</strong>: mùa của hôm người nhận mở (tính theo lập xuân, lập hạ, lập thu, lập đông). '
+        + '<strong>Không chọn mùa nào</strong> (bấm lại mùa đang chọn để bỏ): theo ngày xem, mùa của hôm người nhận mở '
+        + '(tính theo lập xuân, lập hạ, lập thu, lập đông). '
         + 'Cây, cỏ, bờ, mặt nước chỉ có khi bật Mặt nước; lá rụng, cánh hoa bay thì luôn có.',
     weather: '<strong>Mưa</strong>: mưa rơi xiên theo gió, gần to xa nhỏ, hạt mưa gợn vòng lăn tăn trên mặt nước (mặt băng thì hạt mưa vỡ '
         + 'tung), lóe sáng khi pháo nổ. <strong>Tuyết rơi</strong>: bông tuyết lả tả bay theo gió, rơi xuống mặt nước thì tan. '

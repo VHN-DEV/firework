@@ -197,7 +197,7 @@ function settingsSummaries() {
         state.water ? `${state.waterStyle === 'river' ? 'Sông' : 'Hồ'} ${state.water === 'third' ? '1/3' : 'nửa'} màn hình` : '',
         state.water && state.bank && BANK_STYLES.find(b => b.value === state.bank).name,
         state.water && state.people && `Người ngắm pháo: ${PEOPLE_OPTIONS.find(p => p.value === state.people).name.toLowerCase()}${state.nearBank || state.bank === 'none' ? '' : ' ở bờ bên kia'}${peoplePlanSummary() ? ` (${peoplePlanSummary()})` : ''}`,
-        state.season && `Mùa ${state.season === 'auto' ? 'theo ngày xem' : SEASONS.find(s => s.value === state.season).name.toLowerCase()}`,
+        state.season !== 'auto' && `Mùa ${SEASONS.find(s => s.value === state.season).name.toLowerCase()}`,
         state.weather && WEATHERS.find(w => w.value === state.weather).name,
         state.water && { lanterns: 'hoa đăng', petals: 'cánh hoa' }[state.floating]
     ].filter(Boolean);

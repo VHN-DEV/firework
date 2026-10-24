@@ -34,8 +34,9 @@ export const state = {
     peopleStart: { ...PEOPLE_START },
     peopleFirst: '',
     peopleWait: PEOPLE_WAIT,
-    // Mùa ('' hạ, 'auto' theo ngày xem, 'spring', 'autumn', 'winter') và thời tiết ('' / 'rain' / 'snow'), xem player/seasons.js
-    season: '',
+    // Mùa ('auto' theo ngày xem: không chọn mùa nào, '' hạ, 'spring', 'autumn', 'winter') và thời tiết ('' / 'rain' / 'snow'),
+    // xem player/seasons.js. Kịch bản mới để theo ngày xem; kịch bản cũ không lưu mùa vẫn là mùa hạ
+    season: 'auto',
     weather: '',
     floating: '',
     // Chim, cá, khúc gỗ trên mặt nước
