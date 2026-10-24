@@ -16,6 +16,7 @@
 //   đưa tay lên mặt lau nước mắt. Mưa: cầm ô gác vai, ngước nhìn thì ngả ô ra sau, cúi đầu thì ô cụp xuống.
 
 import * as THREE from 'three';
+import { RELAX } from './actor3d.js';
 
 const pick = list => list[(Math.random() * list.length) | 0];
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -429,16 +430,16 @@ export class Duo {
         if (!this.umbrella) {
             m.ik = [null, null];
             w.ik = [null, null];
-            m.curlGoal = [0.3, 0.3];
-            w.curlGoal = [0.25, 0.25];
+            m.curlGoal = [RELAX, RELAX];
+            w.curlGoal = [RELAX, RELAX];
             return;
         }
         // Tay cầm ô trước ngực, cán hơi ngả về sau: tán ô nằm ngay trên đầu (tay thấp, cán chúi tới trước thì tán ô che
         // trước mặt, không giống đang che ô)
         m.ik[1] = { target: bodyPoint(m, 0.1, 1.22, 0.2), pole: bodyDir(m, 0.6, -1, -0.2) };
         w.ik[0] = { target: bodyPoint(w, -0.08, 1.12, 0.19), pole: bodyDir(w, -0.6, -1, -0.2) };
-        m.curlGoal = [0.3, 0.9];
-        w.curlGoal = [0.9, 0.25];
+        m.curlGoal = [RELAX, 0.9];
+        w.curlGoal = [0.9, RELAX];
         m.umbrellaDir = bodyDir(m, -0.04, 1, -0.3).add(V(-env.wind * 0.06, 0, 0));
         w.umbrellaDir = bodyDir(w, 0.04, 1, -0.26).add(V(-env.wind * 0.06, 0, 0));
     }
@@ -498,7 +499,7 @@ export class Duo {
                 w.umbrellaGrip = 0.28;
             }
             w.ik[0] = null;
-            w.curlGoal[0] = 0.3;
+            w.curlGoal[0] = RELAX;
             w.ik[1] = { target: bodyPoint(w, 0.22, 0.72, 0.02), pole: bodyDir(w, 0.3, -0.2, -1), tau: 0.4 };
             w.umbrellaDir = bodyDir(w, 0.05, -1, 0.1);
             // Bước vào đứng dưới ô của anh
@@ -517,7 +518,7 @@ export class Duo {
             m.ik[1] = { target: bodyPoint(m, 0.12, 1.36, 0.16), pole: bodyDir(m, 0.6, -1, -0.2), tau: 0.5 };
             m.umbrellaDir = bodyDir(m, shelter, 1, -0.12);
             m.ik[0] = null;
-            m.curlGoal = [0.35, 0.9];
+            m.curlGoal = [RELAX, 0.9];
             // Cô khoác tay anh: bàn tay trái đặt lên cẳng tay anh
             const fore = m.worldOf('rightLowerArm').lerp(m.worldOf('rightHand'), 0.4);
             w.ik[0] = { target: fore.add(V(0.03, -0.02, 0.05)), pole: bodyDir(w, -0.4, -1, -0.5), tau: 0.4 };
@@ -533,8 +534,8 @@ export class Duo {
             // tới hông bên kia thì tay duỗi thẳng chéo cả lưng như cây gậy)
             const waist = bodyPoint(m, 0.02, 1.0, -0.14);
             w.ik[0] = { target: waist, pole: bodyDir(w, -0.1, -1, -0.8), tau: 0.4 };
-            m.curlGoal = [0.3, 0.5];
-            w.curlGoal = [0.5, 0.3];
+            m.curlGoal = [RELAX, 0.45];
+            w.curlGoal = [0.45, RELAX];
             return;
         }
         let p = holdPoint(m, w, 0.84, 0.16);
@@ -542,8 +543,8 @@ export class Duo {
         m.ik[1] = { target: p, pole: bodyDir(m, 0.3, -1, -0.5), tau: 0.3 };
         w.ik[0] = { target: p, pole: bodyDir(w, -0.3, -1, -0.5), tau: 0.3 };
         m.ik[0] = null;
-        m.curlGoal = [0.3, 0.75];
-        w.curlGoal = [0.75, 0.3];
+        m.curlGoal = [RELAX, 0.75];
+        w.curlGoal = [0.75, RELAX];
         if (name === 'point' && gt > 0.5 && gt < 3.3) {
             const dx = env.focus.x - w.x;
             const dir = bodyDir(w, 0.25 + clamp(dx / 8, -0.4, 0.4), 1.2, 0.8);
@@ -745,7 +746,7 @@ export class Solo {
             }
             if (gesture && !this.umbrella) {
                 a.ik[i] = null;
-                a.curlGoal[i] = 0.35;
+                a.curlGoal[i] = RELAX;
                 return;
             }
             if (a.sex === 'm') {

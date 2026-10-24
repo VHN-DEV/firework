@@ -150,6 +150,10 @@ const LOOK = [['chest', 0.1, 0.06, 0], ['upperChest', 0.14, 0.1, 0], ['neck', 0.
 // Ngón tay: đốt gần, giữa, xa; ngón cái
 const FINGERS = ['Index', 'Middle', 'Ring', 'Little'];
 const THUMB = ['ThumbMetacarpal', 'ThumbProximal', 'ThumbDistal'];
+// Phần co của từng đốt ngón (gốc, giữa, đầu)
+const FLEX = [0.85, 1.2, 0.7];
+// Bàn tay buông thả lỏng (curlFingers): không xòe, không nắm
+export const RELAX = 0.5;
 
 const _v1 = new THREE.Vector3();
 const _v2 = new THREE.Vector3();
@@ -236,8 +240,8 @@ export class Actor3D {
         this.leanGoal = 0;
         this.bow = 0;
         this.bowGoal = 0;
-        this.curl = [0.35, 0.35];
-        this.curlGoal = [0.35, 0.35];
+        this.curl = [RELAX, RELAX];
+        this.curlGoal = [RELAX, RELAX];
         // IK hai tay: { target (Vector3 thế giới three.js), pole, weight } hoặc null
         this.ik = [null, null];
         this.ikW = [0, 0];
@@ -548,13 +552,13 @@ export class Actor3D {
             let worst = 0.002;
             let at = null;
             let out = null;
-            [E.clone().lerp(W, 0.5), W, W.clone().addScaledVector(W.clone().sub(E), 0.35)].forEach(P => {
+            this.handPoints(side, E, W).forEach(([P, gap]) => {
                 const R = this.skirtAt(P.y - H.y);
                 const dx = P.x - H.x;
                 const dz = P.z - H.z;
                 const r = Math.hypot(dx, dz);
-                if (!R || r < 1e-3 || R + SKIRT_GAP - r <= worst) return;
-                worst = R + SKIRT_GAP - r;
+                if (!R || r < 1e-3 || R + gap - r <= worst) return;
+                worst = R + gap - r;
                 at = P;
                 out = new THREE.Vector3(dx / r, 0, dz / r);
             });
@@ -565,6 +569,27 @@ export class Actor3D {
             if (axis.lengthSq() < 1e-8) return;
             rotateWorld(ua, new THREE.Quaternion().setFromAxisAngle(axis.normalize(), worst * w / arm.length()));
         }
+    }
+
+    // Các điểm của cẳng tay, bàn tay phải nằm ngoài váy, kèm khoảng cách tới mép váy (mét): giữa cẳng tay, cổ tay (nửa bề
+    // dày bàn tay), gốc ngón giữa, đầu ngón trỏ, giữa, út, ngón cái (ngón co về phía lòng bàn tay, úp vào đùi)
+    handPoints(side, E, W) {
+        const pts = [[E.clone().lerp(W, 0.5), SKIRT_GAP], [W, SKIRT_GAP]];
+        const at = name => {
+            const node = this.bone(`${side}${name}`);
+            return node ? node.getWorldPosition(new THREE.Vector3()) : null;
+        };
+        const base = at('MiddleProximal');
+        if (!base) return pts.concat([[W.clone().addScaledVector(W.clone().sub(E), 0.35), SKIRT_GAP]]);
+        pts.push([base, 0.022]);
+        ['Index', 'Middle', 'Little'].forEach(f => {
+            const D = at(`${f}Distal`);
+            const I = at(`${f}Intermediate`);
+            if (D && I) pts.push([D.addScaledVector(D.clone().sub(I), 0.8), 0.014]);
+        });
+        const thumb = at('ThumbDistal');
+        if (thumb) pts.push([thumb, 0.014]);
+        return pts;
     }
 
     // IK hai đoạn: vai cố định, khuỷu tay gập về phía pole, cổ tay tới đích (trộn với tư thế chuyển động theo w)
@@ -604,30 +629,61 @@ export class Actor3D {
         }
     }
 
-    // Co ngón tay (0 duỗi, 1 nắm chặt): xoay từng đốt quanh trục vuông góc với ngón, về phía lòng bàn tay
+    // Bàn tay (0 duỗi, ~0,5 thả lỏng tự nhiên, 1 nắm chặt): ngón co dần từ gốc ra (đốt giữa co nhiều nhất, đốt đầu ít
+    // hơn), ngón út co hơn ngón trỏ, các ngón khép về phía ngón giữa (tư thế gốc của mô hình để ngón tách ra); ngón cái úp
+    // xuống phía lòng bàn tay, áp bên cạnh ngón trỏ. Ở tư thế chuẩn hóa ngón tay duỗi theo trục X, lòng bàn tay úp xuống
     curlFingers(side, amount) {
-        const down = new THREE.Vector3(0, -1, 0);
+        const down = _v3.set(0, -1, 0);
         const sideSign = side === 'left' ? -1 : 1;
+        const hand = this.handRest(side);
         FINGERS.forEach((f, fi) => {
+            const k = amount * (0.85 + fi * 0.12) * 1.2;
             ['Proximal', 'Intermediate', 'Distal'].forEach((seg, si) => {
                 const node = this.bone(`${side}${f}${seg}`);
                 if (!node) return;
-                // Ở tư thế chuẩn hóa ngón tay duỗi theo trục X (trái: +X với VRM 0.x nhìn -Z thì tay trái ở +X? lấy theo vị trí con)
                 const child = node.children[0];
-                const dir = child ? child.position.clone().normalize() : new THREE.Vector3(-sideSign, 0, 0);
-                const axis = new THREE.Vector3().crossVectors(dir, down).normalize();
-                const k = amount * (si === 0 ? 0.9 : si === 1 ? 1.25 : 0.9) * (1 + fi * 0.08);
-                node.quaternion.setFromAxisAngle(axis, k * 1.15);
+                const dir = child ? _v1.copy(child.position).normalize() : _v1.set(sideSign, 0, 0);
+                const axis = _v2.crossVectors(dir, down).normalize();
+                node.quaternion.setFromAxisAngle(axis, k * FLEX[si]);
+                // Khép ngón quanh pháp tuyến lòng bàn tay (gốc ngón)
+                if (!si) node.quaternion.premultiply(_q1.setFromAxisAngle(_up, hand.spread[fi] * 0.65));
             });
         });
         THUMB.forEach((seg, si) => {
             const node = this.bone(`${side}${seg}`);
             if (!node) return;
             const child = node.children[0];
-            const dir = child ? child.position.clone().normalize() : new THREE.Vector3(-sideSign, 0, 0);
-            const axis = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 0, sideSign)).normalize();
-            node.quaternion.setFromAxisAngle(axis, amount * (si ? 0.6 : 0.35));
+            const dir = child ? _v1.copy(child.position).normalize() : _v1.set(sideSign, 0, 0);
+            const axis = _v2.crossVectors(dir, down).normalize();
+            node.quaternion.setFromAxisAngle(axis, amount * (si ? 0.55 : 0.2));
+            if (!si) {
+                // Ngón cái: khép về phía ngón trỏ, úp xuống dưới lòng bàn tay (quanh trục dọc bàn tay)
+                node.quaternion.premultiply(_q1.setFromAxisAngle(_up, -sideSign * (0.3 + 0.25 * amount)));
+                node.quaternion.premultiply(_q1.setFromAxisAngle(_v2.set(1, 0, 0), -(0.45 + 0.35 * amount)));
+            }
         });
+    }
+
+    // Góc tách của từng ngón so với ngón giữa (quanh pháp tuyến lòng bàn tay) ở tư thế gốc: khép ngón quay ngược lại
+    handRest(side) {
+        if (!this.hands) this.hands = {};
+        if (!this.hands[side]) {
+            const angle = f => {
+                const node = this.bone(`${side}${f}Proximal`);
+                const c = node && node.children[0];
+                return c ? Math.atan2(c.position.z, c.position.x) : 0;
+            };
+            const mid = angle('Middle');
+            this.hands[side] = {
+                spread: FINGERS.map(f => {
+                    let d = angle(f) - mid;
+                    if (d > Math.PI) d -= 2 * Math.PI;
+                    if (d < -Math.PI) d += 2 * Math.PI;
+                    return d;
+                })
+            };
+        }
+        return this.hands[side];
     }
 
     // Vị trí thế giới (three.js) của một xương
