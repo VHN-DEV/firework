@@ -1,8 +1,18 @@
+// Triển khai lên Cloudflare Workers (miễn phí): file tĩnh trong dist (lệnh build: npm run build), phần máy chủ thay cho
+// PHP ở worker/ (lưu kịch bản, ảnh, nhạc, trang chia sẻ s/<tên>, báo mở quà). Cơ sở dữ liệu D1 và nơi lưu ảnh, nhạc (KV)
+// không ghi mã: lần triển khai đầu Cloudflare tự tạo (wrangler 4.45 trở lên). Muốn dùng R2 (10 GB, cần bật R2 trong tài
+// khoản) thay KV: thay khối kv_namespaces bằng "r2_buckets": [{ "binding": "MEDIA" }].
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "firework",
+  "main": "worker/index.js",
   "compatibility_date": "2026-10-24",
   "assets": {
-    "directory": "./dist"
-  }
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // Worker xử lý API và trang chia sẻ; đường dẫn khác: file tĩnh, không có file thì Worker (kịch bản, ảnh, nhạc đã lưu)
+    "run_worker_first": ["/api/*", "/s/*"]
+  },
+  "d1_databases": [{ "binding": "DB" }],
+  "kv_namespaces": [{ "binding": "MEDIA_KV" }]
 }

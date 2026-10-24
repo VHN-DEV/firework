@@ -1,0 +1,3 @@
+# Cloudflare Workers (wrangler.jsonc): không đưa lên làm file tĩnh. API PHP do worker/ thay thế; .htaccess chỉ dùng cho Apache
+api/
+.htaccess

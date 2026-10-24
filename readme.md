@@ -39,17 +39,25 @@
 - Thư mục `dist` và `node_modules` không còn đưa lên git. Kịch bản lưu bằng builder trên XAMPP nằm trong `dist/configs`
   (và ảnh, nhạc trong `dist/uploads`): muốn giữ lâu dài hoặc đưa lên GitHub Pages thì chép sang `src/static/configs`
   (và `src/static/uploads`) rồi commit.
-- **Trang tĩnh** (GitHub Pages, Cloudflare Pages/Workers, Vercel, Netlify, mở file trực tiếp: không có PHP): builder lưu kịch
+- **Trang tĩnh** (GitHub Pages, Cloudflare Pages, Vercel, Netlify, mở file trực tiếp: không có máy chủ): builder lưu kịch
   bản trong trình duyệt của người tạo, link chia sẻ và tab Xem thử dạng `/demo#k=...` chứa sẵn cả kịch bản (nén, xem
   `src/assets/js/share-link.js`) nên ai mở cũng xem đúng. Ảnh tự tải lên không gói vào link; muốn link ngắn, có ảnh xem
-  trước khi dán link, báo mở quà thì chạy trên máy chủ có PHP.
+  trước khi dán link, báo mở quà thì chạy trên máy chủ có PHP hoặc Cloudflare Workers.
+- **Cloudflare Workers** (miễn phí, có máy chủ, không phải tự quản): `wrangler.jsonc` + `worker/` thay cho API PHP, cùng
+  đường dẫn (`api/*.php`, `s/<tên>`) nên trang không phải sửa. Kịch bản, mã chủ, lịch sử mở quà lưu trong cơ sở dữ liệu
+  D1; ảnh, nhạc tải lên và ảnh thiệp lưu trong KV (hoặc R2: đổi khối `kv_namespaces` thành `"r2_buckets": [{ "binding":
+  "MEDIA" }]`); file tĩnh trong `dist` (`src/static/.assetsignore` bỏ thư mục `api/` PHP). Triển khai: trên Cloudflare,
+  Workers & Pages, nối repo GitHub; lệnh build `npm run build`, lệnh triển khai `npx wrangler deploy`; biến môi trường
+  lúc build `SITE_URL=https://<tên>.<tài khoản>.workers.dev/` (ảnh, link xem trước của trang chủ, sitemap). Lần triển
+  khai đầu Cloudflare tự tạo D1, KV (wrangler 4.45 trở lên), bảng do Worker tự tạo. Chạy thử tại máy: `npm run build` rồi
+  `npx wrangler dev` (D1, KV giả lập trong `.wrangler/`); kiểm thử `npm run test:worker` (cần mạng để tải wrangler).
 - **Đường dẫn (route)**: mọi link dùng đường dẫn không đuôi `.html`: `/` (trang chủ), `/demo` (trình phát, link tặng
   `/demo?config=<tên>`), `/builder`, `/terms`, `/privacy`, `/theo-doi?id=...&key=...`, `/s/<tên>` (trang chia sẻ). Mỗi
   route là file `<tên>.html` ở thư mục gốc nên đường dẫn tương đối (`assets/`, `api/`, `configs/`) không đổi. GitHub
   Pages và Vite dev tự phục vụ `/<tên>` bằng `<tên>.html`; Apache dùng `.htaccess` (cần `mod_rewrite`); máy chủ kiểm thử
   dùng `tests/e2e/router.php`. Nginx cần thêm `try_files $uri $uri.html $uri/ =404;` và chuyển `s/<tên>` sang
   `api/share.php?c=<tên>`. Link cũ có `.html` vẫn mở được; thẻ `canonical` của mỗi trang trỏ về bản không đuôi.
-- **Báo mở quà** (cần máy chủ PHP): mã theo dõi và lịch sử mở quà nằm trong `api/data/` (file JSON, các hàm đọc/ghi gom
+- **Báo mở quà** (cần máy chủ PHP hoặc Cloudflare Workers; dưới đây là bản PHP): mã theo dõi và lịch sử mở quà nằm trong `api/data/` (file JSON, các hàm đọc/ghi gom
   trong `api/tracking.inc.php` để sau này chuyển sang cơ sở dữ liệu). Thư mục này cần quyền ghi và phải chặn tải trực
   tiếp: Apache dùng sẵn `api/data/.htaccess`; Nginx cần thêm `location ^~ /api/data/ { deny all; }`. Khi triển khai bản
   mới, đừng xóa `api/data/` (và `configs/`, `uploads/`) trên máy chủ.

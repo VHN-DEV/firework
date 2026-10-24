@@ -5,6 +5,9 @@ node_modules/
 # Chạy trên XAMPP thì build tại máy bằng "npm run build" (thư mục vẫn có ở máy, chỉ không đưa lên git).
 dist/
 
+# Dữ liệu giả lập (D1, KV) khi chạy Worker tại máy bằng "wrangler dev" / "npm run test:worker"
+.wrangler/
+
 # Dữ liệu báo mở quà khi chạy builder bằng "npm run dev" (API ghi vào src/static): không đưa lên git
 src/static/api/data/*
 !src/static/api/data/.htaccess
