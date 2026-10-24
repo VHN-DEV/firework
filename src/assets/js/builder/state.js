@@ -90,4 +90,5 @@ export const isStaticEnv = window.location.hostname.includes('github.io') ||
     window.location.hostname.includes('vercel.app') ||
     window.location.hostname.includes('netlify.app') ||
     window.location.hostname.includes('pages.dev') ||
+    window.location.hostname.includes('workers.dev') ||
     window.location.protocol === 'file:';
