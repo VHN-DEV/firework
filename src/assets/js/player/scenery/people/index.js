@@ -7,7 +7,7 @@
 // Người ngắm pháo bên bờ (kịch bản `people`: 'man' | 'woman' | 'couple', chỉ khi có mặt nước): nhân vật anime đứng
 // trên bờ bên này ở đáy khung, quay lưng về phía người xem, nhìn ra mặt nước. Tắt bờ bên này (`nearBank: false`) thì
 // người ở bờ bên kia: nhỏ theo tỉ lệ xa, đi dọc bờ vào giữa; bờ có cầu (cầu vòm, cầu nhiều vòm) thì đi lên giữa cầu theo
-// độ vồng của mặt cầu, lan can phía trước che phần dưới người. Biển khơi không có bờ bên kia nên vẫn đứng bờ bên này. Vẽ trên lớp riêng phía trên các lớp pháo
+// độ vồng của mặt cầu, lan can phía trước che phần dưới người. Biển khơi không có bờ bên kia nên vẫn đứng bờ bên này (bãi cát lớp mặt nước vẽ, sóng tràn lên). Vẽ trên lớp riêng phía trên các lớp pháo
 // (ghép bình thường, không "lighten") nên che được ánh pháo, bóng pháo dưới nước. Phần dựng hình nhân vật (three.js,
 // mô hình, biên đạo) tải riêng khi kịch bản có người (stage3d.js); trong lúc tải chỉ có bờ đất.
 // Ngoài nhân vật: bóng đổ về phía người xem trên mặt đất (pháo ở trước mặt họ), trời mưa đất ướt in bóng người; hạt mưa
@@ -20,15 +20,8 @@ import { makeCanvas } from '../../utils.js';
 import { Weather } from '../weather.js';
 import { bankStyle } from '../bank.js';
 import { skylineCache } from '../skylines.js';
-import { drawGround, groundKind } from './ground.js';
+import { MAN_HEIGHT, TILT, drawGround, groundKind, nearBank } from './ground.js';
 import { PEOPLE_MIDDLE, peoplePlan } from '../../people-options.js';
-
-// Góc nhìn hơi từ trên xuống: điểm xa hơn lên cao chừng này phần
-const TILT = 0.26;
-// Mép nước cách chỗ người đứng (mét)
-const EDGE = 0.62;
-// Chiều cao chàng trai (mét): theo đó tính cỡ trên màn hình
-const MAN_HEIGHT = 1.8;
 
 // Gió (cùng nhịp với mưa, tuyết trong weather.js): thổi từ trái sang phải từng đợt
 const windAt = time => 0.6 + 0.4 * Math.sin(time * 0.00021) + 0.3 * Math.sin(time * 0.00063 + 1);
@@ -180,22 +173,10 @@ export const People = {
         });
     },
 
-    // Cỡ người theo khung: chừng 1/5 chiều cao màn hình, đứng trên dải bờ ở đáy, đầu (kể cả ô giơ cao) không vượt quá
-    // chân trời
+    // Bờ bên này: dải bờ ở đáy khung (ground.js), người đứng trên đó
     layoutFor(cssW, cssH, level) {
-        const horizonY = level * cssH;
-        let Hp = Math.min(cssH * 0.22, cssW * 0.55);
-        for (let i = 0; i < 2; i++) {
-            const ppm = Hp / MAN_HEIGHT;
-            const band = (EDGE * TILT + 0.3) * ppm;
-            const gy = cssH - band + EDGE * TILT * ppm;
-            Hp = Math.min(Hp, (gy - horizonY - 4) / 1.3);
-        }
-        Hp = Math.max(40, Hp);
-        const ppm = Hp / MAN_HEIGHT;
-        const edge = EDGE * TILT * ppm;
-        const band = edge + 0.3 * ppm;
-        this.layout = { cssW, cssH, ppm, top: cssH - band, gy: cssH - band + edge, cx: cssW / 2, halfW: cssW / 2 / ppm, horizonY };
+        const { ppm, top, gy } = nearBank(cssW, cssH, level, bankStyle === 'none');
+        this.layout = { cssW, cssH, ppm, top, gy, cx: cssW / 2, halfW: cssW / 2 / ppm, horizonY: level * cssH };
     },
 
     // Bờ bên kia: người nhỏ theo tỉ lệ xa (cỡ lan can cầu, cột đèn), chân đứng trên chân trời (mặt bờ)
@@ -396,7 +377,8 @@ export const People = {
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = 'source-over';
         ctx.clearRect(0, 0, W, H);
-        if (!L.far) drawGround(ctx, { W, top: L.top, k, kind: groundKind(bank || ''), season: sceneSeason(), wet, sky, time, calm });
+        // Biển khơi: bãi cát bên này có sóng tràn lên, lớp mặt nước vẽ (sea-waves.js)
+        if (!L.far && bankStyle !== 'none') drawGround(ctx, { W, top: L.top, k, kind: groundKind(bank || ''), season: sceneSeason(), wet, sky, time, calm });
         const stage = this.stage;
         if (!this.show || !stage) return;
         // Chất lượng 480p trở xuống: dựng nhân vật thưa hơn cho máy yếu đỡ nặng. Bờ bên kia: nhìn gần như ngang

@@ -8,12 +8,14 @@
 
 import MyMath from '../../MyMath.js';
 import { IS_MOBILE } from '../env.js';
-import { horizon, isLowQuality, season as sceneSeason } from '../state.js';
+import { horizon, isLowQuality, season as sceneSeason, weather as sceneWeather } from '../state.js';
 import { validBankStyle } from '../bank-styles.js';
 import { fireLight, hash, litCanvas } from './util.js';
 import { horizonLight, skyAmbient } from '../sky-light.js';
-import { fallingLeafSprite, floatLanternSprite, moundSprite, padSprite, rockSprite, seasonSprite, setSpriteRes, warmWaterSprites } from './water-sprites.js';
+import { SEA_ROCK_KINDS, fallingLeafSprite, floatLanternSprite, moundSprite, padSprite, rockSprite, seaRockSprite, seasonSprite, setSpriteRes, warmWaterSprites } from './water-sprites.js';
 import { WaterLife } from './water-life.js';
+import { SeaWaves, seaFace } from './sea-waves.js';
+import { nearBank } from './people/ground.js';
 import { drawFlowMarks, drawLightStreak, drawReflection, drawSubmerged, iceSheet, steerAround } from './water-fx.js';
 import { cityLightStreaks } from './city-skyline.js';
 import { bankBandCss, bankSprite, bankStyle, drawBeachFoam, setBankStyle } from './bank.js';
@@ -64,6 +66,9 @@ let mirror = null;
 // Thành phố: bóng đèn nhà cao tầng thu nhỏ để kéo dài, làm nhòe (xem bước 4)
 let cityGlow = null;
 
+// Ánh pháo chỗ đá biển (dùng lại mỗi khung)
+const rockLight = { r: 0, g: 0, b: 0 };
+
 export const Water = {
     drawn: false,
     frame: 0,
@@ -85,18 +90,18 @@ export const Water = {
     // style: 'lake' hồ tĩnh lặng | 'river' sông chảy; floating: '' | 'lanterns' hoa đăng | 'petals' cánh hoa;
     // life: { birds: cò, ducks: vịt trời, fish: cá nhảy, logs: khúc gỗ trôi, boats: thuyền } (false: tắt hết); plants: lá bèo;
     // rocks: đá, gò đất giữa dòng
-    // bank: kiểu bờ bên kia (bank-styles.js)
-    render(ctx, { sources, background, cssW, cssH, time, style, floating, calm, life: lifeFlags, plants, rocks: rocksOn, bank: bankKind }) {
+    // bank: kiểu bờ bên kia (bank-styles.js); sky: màu trời theo ánh pháo (rọi lên bãi cát bên này của biển khơi)
+    render(ctx, { sources, background, cssW, cssH, time, style, floating, calm, life: lifeFlags, plants, rocks: rocksOn, bank: bankKind, sky = skyAmbient }) {
         // Mùa: đông mặt nước đóng băng (không sóng, không cá, vịt, cò, khúc gỗ, lá bèo, vật trôi); biển thì không đóng băng
         const season = sceneSeason();
         this.season = season;
-        // Biển khơi: giữa biển không có đá, gò đất, lá bèo, khúc gỗ, ếch, cò, vịt, lá rụng, thuyền. Sông thành phố: không
-        // có gò đất, đá giữa dòng; có thuyền neo sát bờ
+        // Biển khơi: sóng lừng vào bãi cát bên này (sea-waves.js); giữa biển không có gò đất, lá bèo, khúc gỗ, ếch, cò, vịt,
+        // lá rụng, thuyền; đá là đá biển cho sóng đánh vào. Sông thành phố: không có gò đất, đá giữa dòng; có thuyền neo sát bờ
         const shore = validBankStyle(bankKind);
         const sea = shore === 'none';
         const frozen = season === 'winter' && !sea;
         if (sea) plants = false;
-        if (sea || shore === 'city') rocksOn = false;
+        if (shore === 'city') rocksOn = false;
         if (lifeFlags) {
             lifeFlags = { ...lifeFlags, sea, ...(sea ? { birds: false, ducks: false, frogs: false, logs: false } : {}),
                 boats: !!lifeFlags.boats && shore === 'city' };
@@ -130,6 +135,12 @@ export const Water = {
         const reflTop = Math.min(H, surf + bankPx);
         const waterTopCss = surf / k;
         const waterDepthCss = Math.max(1, (H - surf) / k);
+        // Biển khơi: bãi cát bên này (đỉnh dải cát beachTop, điểm ảnh CSS; beachD: độ xa chỗ đó), sóng tới đó thì tràn lên
+        // cát. Sinh vật chỉ ở phần nước phía trên bãi cát (lifeDepthCss)
+        const near = sea ? nearBank(cssW, cssH, level, true) : null;
+        const beachTop = near ? near.top : cssH;
+        const beachD = near ? Math.min(1, Math.max(0.3, (beachTop - waterTopCss) / waterDepthCss)) : 1;
+        const lifeDepthCss = waterDepthCss * beachD;
 
         // 1. Bầu trời ngay trên mặt nước, lật ngược (dải cao bằng phần nước)
         if (!mirror) mirror = document.createElement('canvas');
@@ -202,12 +213,21 @@ export const Water = {
             const span = H - from;
             for (let y = 0, i = 0; y < span; i++) {
                 const d = y / span;
-                const band = Math.max(strip, Math.round((strip + d * (river ? 9 : 5) * k * 2) / strip) * strip);
+                // Biển: dải mỏng hơn cho kịp theo sườn sóng
+                const band = Math.max(strip, Math.round((strip + d * (sea ? 3 : river ? 9 : 5) * k * 2) / strip) * strip);
                 const phase = hash(i) * Math.PI * 2;
                 const speed = 0.0008 + hash(i + 50) * 0.0016;
                 const amp = frozen ? 0 : (river ? 0.6 + d * 9 : 0.2 + d * 3) * k;
                 const dx = Math.round((Math.sin(time * speed + phase) + 0.5 * Math.sin(time * speed * 1.7 + phase * 2)) * amp);
-                const alpha = frozen ? 0.4 * (1 - d * 0.5) : (river ? 0.6 * (1 - d * 0.6) : 0.78 * (1 - d * 0.5));
+                let alpha = frozen ? 0.4 * (1 - d * 0.5) : (river ? 0.6 * (1 - d * 0.6) : 0.78 * (1 - d * 0.5));
+                // Biển: sườn sóng quay về người xem soi phần trời cao hơn, sáng hơn; sườn sau tối hơn. Bóng pháo, bóng trăng
+                // vỡ thành từng dải chạy theo sóng vào bờ
+                let sy = y;
+                if (sea) {
+                    const face = seaFace(d, time, band / k, depthCss);
+                    sy = Math.min(depth - band, Math.max(0, y + Math.round(face * (1 + 24 * d) * k)));
+                    alpha *= 0.8 + 0.2 * face;
+                }
                 // Khe tối, càng xa bờ càng nhiều: bóng trăng, bóng pháo vỡ thành từng lát như mặt nước gợn. Mỗi khe chỉ là
                 // một đoạn ngắn, trôi theo dòng (hồ trôi rất chậm) và mờ dần rồi hiện lại theo nhịp riêng: không thành vạch
                 // tối kẻ suốt bề ngang đứng yên như vạch quét màn hình. Mặt băng: bóng phẳng, không khe
@@ -224,16 +244,16 @@ export const Water = {
                 }
                 ctx.globalAlpha = alpha;
                 if (dark < 0.02) {
-                    ctx.drawImage(mirror, 0, y, W, band, dx, from + y, W, band);
+                    ctx.drawImage(mirror, 0, sy, W, band, dx, from + y, W, band);
                 } else {
                     // Phần trước khe, khe (tối hơn), phần sau khe
                     const a = Math.max(0, gx);
                     const b = Math.min(W, gx + gw);
-                    if (a > 0) ctx.drawImage(mirror, 0, y, a, band, dx, from + y, a, band);
+                    if (a > 0) ctx.drawImage(mirror, 0, sy, a, band, dx, from + y, a, band);
                     ctx.globalAlpha = alpha * (1 - dark);
-                    if (b > a) ctx.drawImage(mirror, a, y, b - a, band, dx + a, from + y, b - a, band);
+                    if (b > a) ctx.drawImage(mirror, a, sy, b - a, band, dx + a, from + y, b - a, band);
                     ctx.globalAlpha = alpha;
-                    if (b < W) ctx.drawImage(mirror, b, y, W - b, band, dx + b, from + y, W - b, band);
+                    if (b < W) ctx.drawImage(mirror, b, sy, W - b, band, dx + b, from + y, W - b, band);
                 }
                 y += band;
             }
@@ -314,8 +334,12 @@ export const Water = {
             ctx.drawImage(mirror, Math.max(0, x), Math.max(0, row - reflTop), len, 1, x, row, len, thin);
         });
         const moon = Decor.moonGlow();
+        const light = fireLight(horizonLight);
+        if (sea) SeaWaves.drawCrests(ctx, { W, H, k, cssW, surf, time, light, moon, beachD });
         if (moon && moon.light > 0.03 && moon.x > -moon.radius * 4 && moon.x < cssW + moon.radius * 4) {
-            this.drawMoonGlade(ctx, moon, k, surf, H, time, river && !frozen, calm || frozen);
+            // Biển: ánh trăng lấp lánh trên sườn sóng quay về người xem
+            const face = sea ? d => Math.max(0, 1 + 0.7 * seaFace(d, time, 4, depthCss)) : null;
+            this.drawMoonGlade(ctx, moon, k, surf, H, time, river && !frozen, calm || frozen, face);
         }
         // Thành phố: đèn sáng (mặt kính màu, đỉnh tháp, biển quảng cáo, dãy nhà ven sông) in vệt dài lấp lánh xuống sông
         if (bankStyle === 'city' && skylineCache.style === 'city' && !frozen) {
@@ -330,7 +354,6 @@ export const Water = {
         // 6. Bờ đất: bóng của bờ in ngay dưới chân bờ, rồi tới bờ. Pháo rọi lên bờ và bóng bờ như lên cầu, nhà, cây ở lớp
         //    bầu trời (cùng một độ sáng, theo màu của vật)
         const bank = bankSprite(W, bankPx, k, bankStyle, sceneSeason());
-        const light = fireLight(horizonLight);
         const bankLayer = (src, mode) => {
             ctx.globalCompositeOperation = mode;
             ctx.save();
@@ -402,7 +425,8 @@ export const Water = {
         // 7. Vật trên mặt nước: lá bèo, hoa đăng, cánh hoa, đá, gò đất, khúc gỗ, cò, vịt. Vẽ chung theo tầm
         //    xa (xa trước, gần sau); quanh mỗi vật mặt nước gợn lên, trên sông nước rẽ qua vật. Vật trôi né đá, gò đất.
         //    Tọa độ điểm ảnh CSS.
-        const rocks = this.syncRocks(rocksOn, river, cssW);
+        const rocks = this.syncRocks(rocksOn, river, cssW, sea);
+        if (sea) SeaWaves.updateRocks(rocks, time, dt);
         const surfY = d => waterTopCss + d * waterDepthCss;
         const floatScale = d => (0.35 + d * 0.9) * (IS_MOBILE ? 0.85 : 1);
         this.syncPlants(plants && !frozen, river, cssW);
@@ -435,13 +459,13 @@ export const Water = {
                 WaterLife.key = key;
                 WaterLife.reset(river, cssW, lifeFlags);
             }
-            WaterLife.update(dt, river, cssW, waterTopCss, waterDepthCss, rocks, lifeFlags, this.plants);
+            WaterLife.update(dt, river, cssW, waterTopCss, lifeDepthCss, rocks, lifeFlags, this.plants);
         } else if (WaterLife.key) {
             WaterLife.key = '';
         }
         ctx.setTransform(k, 0, 0, k, 0, 0);
         ctx.globalCompositeOperation = 'source-over';
-        if (life) WaterLife.drawUnder(ctx, k, waterTopCss, waterDepthCss, time);
+        if (life) WaterLife.drawUnder(ctx, k, waterTopCss, lifeDepthCss, time);
         [
             ...this.plants.map(item => ({
                 d: item.d, draw: () => this.drawPlant(ctx, item, item.u * cssW, surfY(item.d) + Math.sin(item.bob) * 0.5, floatScale(item.d), k, time, river)
@@ -452,11 +476,25 @@ export const Water = {
             ...this.seasonFloats.map(item => ({
                 d: item.d, draw: () => this.drawFloat(ctx, item, item.u * cssW, surfY(item.d) + Math.sin(item.bob) * 0.6, floatScale(item.d), k, time, river, calm)
             })),
-            ...rocks.map(rock => ({ d: rock.d, draw: () => this.drawRock(ctx, rock, surfY(rock.d), WaterLife.scale(rock.d), k, time, river, frozen) })),
-            ...(life ? WaterLife.things(ctx, k, waterTopCss, waterDepthCss, time, river) : [])
+            ...rocks.map(rock => ({
+                d: rock.d,
+                draw: () => (rock.kind === 'sea'
+                    ? this.drawSeaRock(ctx, rock, surfY(rock.d), WaterLife.scale(rock.d), k, time, cssW)
+                    : this.drawRock(ctx, rock, surfY(rock.d), WaterLife.scale(rock.d), k, time, river, frozen))
+            })),
+            ...(life ? WaterLife.things(ctx, k, waterTopCss, lifeDepthCss, time, river) : [])
         ].sort((a, b) => a.d - b.d).forEach(item => item.draw());
-        if (life) WaterLife.drawOver(ctx, k, waterTopCss, waterDepthCss, time);
+        if (life) WaterLife.drawOver(ctx, k, waterTopCss, lifeDepthCss, time);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        // 8. Biển khơi: bãi cát bên này, sóng tràn lên (che phần nước sát người xem)
+        if (sea) {
+            // Sóng tràn lên không tới chỗ chân người đứng
+            SeaWaves.drawBeach(ctx, {
+                W, H, k, surf, topCss: beachTop, reachCss: (near.gy - near.top) * 0.85, beachD, time, sky, season,
+                wet: sceneWeather() === 'rain', calm, mirror, light
+            });
+        }
 
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
@@ -619,10 +657,34 @@ export const Water = {
         }
     },
 
+    // Đá giữa biển: bóng in xuống nước, ánh pháo rọi lên đá, sóng đánh vào (sea-waves.js)
+    drawSeaRock(ctx, rock, y, s, k, time, cssW) {
+        const sprite = seasonSprite(seaRockSprite(rock.variant), this.season);
+        const w = rock.size * s;
+        const h = w * sprite.height / sprite.width;
+        const wlOff = h * sprite.wl / sprite.height;
+        const x0 = rock.x - w / 2;
+        drawReflection(ctx, sprite, x0, y, w, wlOff, 0.3, time, rock.seed, s);
+        drawFlowMarks(ctx, rock.x, y, w * 0.46, s, k, time, rock.seed, false, 1);
+        const light = fireLight(horizonLight(Math.min(1, Math.max(0, rock.x / cssW)), rockLight));
+        // Nước tung lên sau đá (sóng đánh vào mặt phía biển), đá che phần giữa
+        SeaWaves.drawSplash(ctx, rock, y, k, light);
+        ctx.globalAlpha = 1;
+        ctx.drawImage(sprite, 0, 0, sprite.width, sprite.wl, x0, y - wlOff, w, wlOff);
+        if (light) {
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.drawImage(litCanvas(sprite, light, 0, 0, sprite.width, sprite.wl), 0, 0, sprite.width, sprite.wl, x0, y - wlOff, w, wlOff);
+            ctx.globalCompositeOperation = 'source-over';
+        }
+        drawSubmerged(ctx, sprite, x0, y, w, h - wlOff, time, rock.seed, s);
+        SeaWaves.drawRockSurf(ctx, rock, y, w, (sprite.wl - sprite.top) / sprite.height * h, s, k, time, light);
+    },
+
     // Đường trăng: dưới trăng là vệt sáng lấp lánh trải dài trên mặt nước, hẹp ở xa, loe dần về phía người xem; từng
     // đốm ánh trăng chớp lên rồi tắt, lượt sau hiện chỗ khác (sông chảy thì lấp lánh nhanh hơn); trăng càng tròn càng
     // sáng, mây che thì tối đi, trăng thấp thì ngả vàng cam
-    drawMoonGlade(ctx, moon, k, surf, H, time, river, calm) {
+    // face(d): độ sáng thêm bớt theo sườn sóng (biển khơi), không có thì đều
+    drawMoonGlade(ctx, moon, k, surf, H, time, river, calm, face) {
         const tone = `255, ${Math.round(244 - 40 * moon.warm)}, ${Math.round(222 - 95 * moon.warm)}`;
         const cx = moon.x * k;
         const depth = H - surf;
@@ -652,25 +714,27 @@ export const Water = {
             const u = (hash(i * 17 + cycle * 3 + 5) + hash(i * 5 + cycle * 11 + 9) + hash(i * 23 + cycle * 2 + 4) - 1.5) / 0.75;
             const flash = calm ? 0.3 : Math.pow(Math.sin(Math.PI * (t - cycle)), 3);
             const len = (2 + 6 * hash(i * 3 + cycle)) * (0.4 + d * 1.2) * k;
-            ctx.globalAlpha = Math.min(1, 1.3 * moon.light * flash * Math.exp(-u * u * 0.5) * (1 - 0.5 * d));
+            ctx.globalAlpha = Math.min(1, 1.3 * moon.light * flash * Math.exp(-u * u * 0.5) * (1 - 0.5 * d) * (face ? face(d) : 1));
             ctx.fillRect(cx + u * halfAt(d) * 0.6 - len / 2, surf + Math.round(d * (depth - 1)), len, thin);
         }
         ctx.globalCompositeOperation = 'source-over';
     },
 
-    // Đá, gò đất giữa dòng: rải lại khi bật/tắt, đổi kiểu nước hoặc cỡ khung; cách xa nhau cho vật trôi có lối đi
-    syncRocks(on, river, cssW) {
-        const key = `${on}_${river}_${Math.round(cssW)}`;
+    // Đá, gò đất giữa dòng: rải lại khi bật/tắt, đổi kiểu nước hoặc cỡ khung; cách xa nhau cho vật trôi có lối đi. Biển
+    // khơi: một hai tảng đá biển (kind 'sea') cho sóng đánh vào
+    syncRocks(on, river, cssW, sea) {
+        const key = `${on}_${river}_${Math.round(cssW)}_${sea}`;
         if (key === this.rockKey) return this.rocks;
         this.rockKey = key;
         this.rocks = [];
         if (!on) return this.rocks;
-        const count = river ? 2 + (Math.random() < 0.5 ? 1 : 0) : 1 + (Math.random() < 0.4 ? 1 : 0);
+        const count = sea ? 1 + (Math.random() < 0.5 ? 1 : 0) : river ? 2 + (Math.random() < 0.5 ? 1 : 0) : 1 + (Math.random() < 0.4 ? 1 : 0);
         for (let tries = 0; this.rocks.length < count && tries < 40; tries++) {
-            const kind = Math.random() < 0.55 ? 'rock' : 'mound';
+            const kind = sea ? 'sea' : Math.random() < 0.55 ? 'rock' : 'mound';
             const rock = {
-                kind, variant: (Math.random() * (kind === 'rock' ? 3 : 2)) | 0, x: MyMath.random(0.12, 0.88) * cssW,
-                d: MyMath.random(0.25, 0.8), size: kind === 'rock' ? MyMath.random(55, 80) : MyMath.random(95, 135), seed: Math.random()
+                kind, variant: (Math.random() * (sea ? SEA_ROCK_KINDS : kind === 'rock' ? 3 : 2)) | 0, x: MyMath.random(0.12, 0.88) * cssW,
+                d: sea ? MyMath.random(0.3, 0.62) : MyMath.random(0.25, 0.8),
+                size: sea ? MyMath.random(110, 160) : kind === 'rock' ? MyMath.random(55, 80) : MyMath.random(95, 135), seed: Math.random()
             };
             if (this.rocks.some(o => Math.abs(o.x - rock.x) < cssW * 0.2 && Math.abs(o.d - rock.d) < 0.3)) continue;
             this.rocks.push(rock);

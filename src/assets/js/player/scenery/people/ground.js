@@ -11,7 +11,36 @@
 
 import { makeCanvas, seededRandom } from '../../utils.js';
 
+// Góc nhìn hơi từ trên xuống: điểm xa hơn lên cao chừng này phần
+export const TILT = 0.26;
+// Mép nước cách chỗ người đứng (mét); bãi biển thì đứng lùi xa hơn cho sóng tràn lên cát không tới chân
+const EDGE = 0.62;
+const SEA_EDGE = 2.2;
+// Chiều cao chàng trai (mét): theo đó tính cỡ trên màn hình
+export const MAN_HEIGHT = 1.8;
+
 export const groundKind = bank => (bank === '' ? 'grass' : bank === 'sand' || bank === 'none' ? 'sand' : 'stone');
+
+// Dải bờ bên này theo khung (điểm ảnh CSS; level: chân trời, phần chiều cao khung): người cao chừng 1/5 màn hình, đầu
+// (kể cả ô giơ cao) không vượt quá chân trời. ppm: điểm ảnh mỗi mét, top: mép nước (đỉnh dải bờ), gy: chỗ chân người.
+// Người ngắm pháo đứng trên dải này; biển khơi (sea) thì có hay không có người cũng là bãi cát rộng cho sóng tràn lên
+// (chỗ chân người vẫn thế, mép nước lùi xa hơn)
+export function nearBank(cssW, cssH, level, sea = false) {
+    const horizonY = level * cssH;
+    const meters = sea ? SEA_EDGE : EDGE;
+    let Hp = Math.min(cssH * 0.22, cssW * 0.55);
+    for (let i = 0; i < 2; i++) {
+        const ppm = Hp / MAN_HEIGHT;
+        const band = (meters * TILT + 0.3) * ppm;
+        const gy = cssH - band + meters * TILT * ppm;
+        Hp = Math.min(Hp, (gy - horizonY - 4) / 1.3);
+    }
+    Hp = Math.max(40, Hp);
+    const ppm = Hp / MAN_HEIGHT;
+    const edge = meters * TILT * ppm;
+    const band = edge + 0.3 * ppm;
+    return { ppm, top: cssH - band, gy: cssH - band + edge };
+}
 
 let cache = { key: '', canvas: null };
 
@@ -156,8 +185,8 @@ export function groundSprite(W, H, k, kind, season, wet) {
 }
 
 // Vẽ bờ bên này lên ctx (đang ở điểm ảnh thật): ảnh vẽ sẵn, ánh pháo rọi xuống (sáng hơn ở mép nước), mặt ướt loáng
-// sáng; bãi cát có bọt sóng liếm vào rồi rút ra
-export function drawGround(ctx, { W, top, k, kind, season, wet, sky, time, calm }) {
+// sáng; bãi cát có bọt sóng liếm vào rồi rút ra (foam: false thì không, biển khơi có sóng tràn lên riêng)
+export function drawGround(ctx, { W, top, k, kind, season, wet, sky, time, calm, foam = true }) {
     const H = ctx.canvas.height;
     const y0 = Math.round(top * k);
     const h = H - y0;
@@ -175,7 +204,7 @@ export function drawGround(ctx, { W, top, k, kind, season, wet, sky, time, calm 
         ctx.fillStyle = g;
         ctx.fillRect(0, y0, W, h);
     }
-    if (kind === 'sand' && season !== 'winter') {
+    if (foam && kind === 'sand' && season !== 'winter') {
         // Bọt sóng: hai lớp lượn sóng trắng mờ, liếm vào rồi rút ra
         for (let i = 0; i < 2; i++) {
             const phase = calm ? 0.5 : 0.5 + 0.5 * Math.sin(time * 0.0009 + i * 2.1);

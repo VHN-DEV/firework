@@ -360,13 +360,13 @@ export function renderScene() {
     const nearHint = document.getElementById('near-bank-hint');
     if (nearHint) {
         nearHint.textContent = state.nearBank ? 'Người đứng ở bờ bên này, sát người xem'
-            : state.bank === 'none' ? 'Biển khơi không có bờ bên kia nên người vẫn đứng ở bờ bên này'
+            : state.bank === 'none' ? 'Biển khơi không có bờ bên kia nên người đứng trên bãi cát bên này'
                 : ['bridge', 'arch'].includes(state.bank) ? 'Người đi lên giữa cầu bên kia, lan can che một phần người'
                     : 'Người đứng nhỏ xa xa ở bờ bên kia';
     }
-    // Chỉ hiện thứ có trên mặt nước của kiểu bờ đang chọn: giữa biển chỉ có cá; sông thành phố có thuyền, không có đá, gò
-    // đất; các kiểu bờ khác không có thuyền
-    const things = state.bank === 'none' ? ['waterFish']
+    // Chỉ hiện thứ có trên mặt nước của kiểu bờ đang chọn: giữa biển chỉ có cá, đá (sóng đánh vào); sông thành phố có
+    // thuyền, không có đá, gò đất; các kiểu bờ khác không có thuyền
+    const things = state.bank === 'none' ? ['waterFish', 'waterRocks']
         : WATER_THINGS.filter(key => (state.bank === 'city' ? key !== 'waterRocks' : key !== 'waterBoats'));
     document.querySelectorAll('[data-water-thing]').forEach(input => {
         input.checked = state[input.dataset.waterThing];

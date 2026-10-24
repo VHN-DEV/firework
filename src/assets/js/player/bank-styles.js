@@ -16,7 +16,7 @@ export const BANK_STYLES = [
     { value: 'bridge', name: 'Cầu nhiều vòm', icon: '🌉', hint: 'Cây cầu đá cổ nhiều vòm bắc qua sông, vòm giữa cao nhất, trụ cầu đứng dưới nước, đèn trên cầu; mỗi vòm cùng bóng dưới nước khép thành vòng tròn.' },
     { value: 'arch', name: 'Cầu vòm cong', icon: '🌙', hint: 'Một cây cầu đá vòm cong ở giữa, lan can trụ đá, liễu rủ bên cầu; vòm cầu và bóng dưới nước khép thành vòng tròn.' },
     { value: 'city', name: 'Thành phố', icon: '🏙️', hint: 'Thành phố về đêm bên sông như Sài Gòn: tháp cao mặt kính sáng đèn, đỉnh tháp rực vàng, mặt kính đèn LED đổi màu, đèn đỏ nóc nhà cao tầng nhấp nháy, dãy nhà ven sông sáng vàng, thuyền neo giăng đèn sát bờ.' },
-    { value: 'none', name: 'Biển khơi', icon: '🌊', hint: 'Không có bờ: mặt nước trải tới tận chân trời như ngoài biển.' }
+    { value: 'none', name: 'Biển khơi', icon: '🌊', hint: 'Không có bờ: mặt nước trải tới tận chân trời như ngoài biển, sóng lừng nối nhau vào, vỡ trắng rồi tràn lên bãi cát bên này chỗ xa chỗ gần.' }
 ];
 
 // Kịch bản cũ chọn cầu sắt (đã bỏ) thì thành kiểu thành phố

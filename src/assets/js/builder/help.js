@@ -41,7 +41,7 @@ const HELP_TIPS = {
     bank: 'Bờ bên kia mặt nước, chỗ pháo bắn lên: <strong>bờ đất</strong> cỏ lau quê, <strong>kè gạch</strong> có đèn đường, '
         + '<strong>kè đá</strong> liễu rủ, <strong>bãi cát</strong> hàng dừa, <strong>phố cổ</strong> đèn lồng, <strong>cầu đá nhiều vòm</strong> (vòm to dần vào giữa), '
         + '<strong>cầu vòm cong</strong> (một cây cầu ở giữa), '
-        + '<strong>thành phố</strong> về đêm như Sài Gòn (tháp cao sáng đèn, thuyền neo giăng đèn bên sông), hoặc <strong>biển khơi</strong> không bờ (mặt biển trải tới tận chân trời). Đèn, nhà, cầu đều in bóng xuống nước, '
+        + '<strong>thành phố</strong> về đêm như Sài Gòn (tháp cao sáng đèn, thuyền neo giăng đèn bên sông), hoặc <strong>biển khơi</strong> không bờ (sóng lừng nối nhau từ chân trời vào, vỡ trắng rồi tràn lên bãi cát bên này). Đèn, nhà, cầu đều in bóng xuống nước, '
         + 'được ánh pháo rọi sáng.',
     people: 'Nhân vật hoạt hình kiểu anime đứng ở bờ bên này, quay lưng ngắm pháo hoa (chuyển động quay từ người thật nên đi đứng tự '
         + 'nhiên, tóc, váy bay theo bước chân). Bật riêng <strong>Nam</strong> hoặc <strong>Nữ</strong>: một người thong thả bước ra giữa bờ, đứng một '
@@ -76,9 +76,10 @@ const HELP_TIPS = {
         + 'Mặt nước còn có bong bóng nổi lên rồi vỡ.</li>'
         + '<li><strong>Khúc gỗ trôi</strong>: mỗi khúc một dáng, trôi theo dòng (chỉ khi "Sông chảy").</li>'
         + '<li><strong>Lá bèo</strong>: lá bèo, thỉnh thoảng có hoa súng; hồ thì mọc thành đám, sông thì trôi theo dòng.</li>'
-        + '<li><strong>Đá, gò đất</strong>: giữa dòng; sông chảy thì nước dồn vào, rẽ ra hai bên, vật trôi lách qua.</li>'
+        + '<li><strong>Đá, gò đất</strong>: giữa dòng; sông chảy thì nước dồn vào, rẽ ra hai bên, vật trôi lách qua. Biển khơi là '
+        + 'tảng đá biển: mỗi con sóng tới là đánh vào đá, nước tung trắng xóa, nghe tiếng sóng vỗ.</li>'
         + '<li><strong>Thuyền</strong>: sông thành phố có thuyền neo sát bờ giăng đèn, đèn in vệt sáng lấp lánh xuống nước.</li>'
-        + '</ul>Giữa biển khơi chỉ có cá (không có đá, lá bèo, cò, vịt, ếch, thuyền).',
+        + '</ul>Giữa biển khơi chỉ có cá và đá (không có gò đất, lá bèo, cò, vịt, ếch, thuyền).',
     viewerQuality: 'Như trang xem phim: số càng lớn hình càng nét nhưng càng nặng máy. <strong>Tự động</strong> (khuyên dùng): theo màn hình '
         + 'và sức máy người xem, giật thì tự hạ xuống. Từ <strong>1080p</strong> (Full HD) trở lên vẽ đầy đủ mọi hiệu ứng, hợp khi biết '
         + 'người nhận dùng máy mạnh; <strong>720p</strong> bớt tia lửa lúc pháo dày đặc nhất; <strong>480p</strong> trở xuống nhẹ nhất, '

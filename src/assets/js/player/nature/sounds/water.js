@@ -5,7 +5,7 @@
  */
 
 // Tiếng nước: dòng sông chảy, hồ vỗ bờ (bờ đất, kè đá, bãi cát sóng vỗ bọt trắng, biển khơi); tiếng nước bắn khi cá
-// quẫy, ếch nhảy tõm, vịt đáp; cá đớp mồi; bong bóng vỡ. Tiếng nước phần lớn là bong bóng: mỗi bong bóng kêu một
+// quẫy, ếch nhảy tõm, vịt đáp; cá đớp mồi; bong bóng vỡ; biển khơi: sóng đánh vào đá, sóng vỗ bãi cát bên này. Tiếng nước phần lớn là bong bóng: mỗi bong bóng kêu một
 // tiếng "tóp" ngắn, cao độ trượt lên (mô hình Minnaert), hàng trăm cái chồng lên nhau thành tiếng róc rách.
 
 import { mixIn, renderLoop, renderShot } from '../dsp.js';
@@ -182,6 +182,67 @@ export const WATER_SOUNDS = {
                     const low = s.filter('lowpass', 250, 0.7);
                     for (let i = 0; i < s.samples(0.4); i++) buf[i] += low.tick(s.brown()) * Math.exp(-i / (0.08 * s.rate)) * 1.2;
                 }
+            });
+        }
+    },
+
+    // Sóng đánh vào đá giữa biển: tiếng "ầm" trầm lúc sóng đập vào đá, nước tung xối xả (ồn sáng, dải lọc trượt xuống),
+    // nước rơi lại lộp độp, bọt xèo xèo tan dần. size: 'small' | 'large'
+    crash: {
+        render(s, { size = 'large' } = {}) {
+            const z = size === 'small' ? 0.6 : 1;
+            return renderShot(s, 2.2 + 0.8 * z, buf => {
+                const n = buf.length;
+                const low = s.filter('lowpass', 140 + 80 * z, 0.7);
+                const attack = s.samples(0.02);
+                for (let i = 0, len = Math.min(n, s.samples(1.2)); i < len; i++) {
+                    buf[i] += low.tick(s.brown()) * Math.min(1, i / attack) * Math.exp(-i / (0.22 * s.rate)) * 1.8 * z;
+                }
+                const band = s.filter('bandpass', 2600, 0.6);
+                for (let i = 0, len = Math.min(n, s.samples(1.3 + 0.6 * z)); i < len; i++) {
+                    const p = i / len;
+                    if (i % 32 === 0) band.set(2800 - 2000 * p, 0.6);
+                    buf[i] += band.tick(s.pink()) * Math.min(1, i / s.samples(0.04)) * Math.exp(-p * 3) * 1.1;
+                }
+                for (let j = 0; j < Math.round(16 * z); j++) {
+                    const at = s.samples(s.range(0.3, 1.5));
+                    if (at < n) s.bubble(buf, at, s.logRange(500, 1800), s.range(0.004, 0.012), s.range(0.2, 0.5), s.skew(0.1, 0.5));
+                }
+                const fizz = new Float32Array(n);
+                const from = s.samples(0.25);
+                s.events(n - from, 200 * z, i => Math.exp(-2.5 * i / (n - from))).forEach(i => {
+                    s.bubble(fizz, from + i, s.logRange(1800, 5200), s.range(0.0015, 0.004), 0.3, s.skew(0.05, 0.4));
+                });
+                mixIn(buf, fizz, 0.3);
+            });
+        }
+    },
+
+    // Sóng vỗ bãi cát bên này của biển khơi: sóng đổ "ào" xuống mép cát rồi tràn lên, bọt xèo xèo tan dần lúc nước rút.
+    // size: 'small' | 'large'
+    shore: {
+        render(s, { size = 'large' } = {}) {
+            const z = size === 'small' ? 0.65 : 1;
+            return renderShot(s, 3.2, buf => {
+                const n = buf.length;
+                const wash = s.filter('lowpass', 300, 0.7);
+                const up = s.samples(0.1);
+                const down = Math.min(n - up, s.samples(2.4));
+                for (let i = 0; i < up + down; i++) {
+                    const rising = i < up;
+                    const p = rising ? i / up : (i - up) / down;
+                    if (i % 32 === 0) wash.set(rising ? 600 + 1600 * p : 2200 - 1700 * p, 0.7);
+                    buf[i] += wash.tick(s.pink()) * (rising ? p : Math.exp(-p * 2.6)) * z;
+                }
+                const low = s.filter('lowpass', 180, 0.7);
+                for (let i = 0, len = s.samples(0.6); i < len && up + i < n; i++) {
+                    buf[up + i] += low.tick(s.brown()) * Math.exp(-i / (0.15 * s.rate)) * 0.9 * z;
+                }
+                const fizz = new Float32Array(n);
+                s.events(down, 220 * z, i => Math.exp(-2.2 * i / down)).forEach(i => {
+                    if (up + i < n) s.bubble(fizz, up + i, s.logRange(1800, 5600), s.range(0.0015, 0.004), 0.3, s.skew(0.05, 0.4));
+                });
+                mixIn(buf, fizz, 0.35);
             });
         }
     },

@@ -26,7 +26,8 @@ export function natureSceneOf(config, { viewer = store.state.config.natureSound 
         season: seasonNow ?? resolveSeason(c.season),
         weather: weatherNow ?? (validWeather(c.weather) || ''),
         life: waterLifeFlags(c),
-        music: !!c.music
+        music: !!c.music,
+        rocks: c.waterRocks !== false
     });
 }
 

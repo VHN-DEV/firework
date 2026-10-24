@@ -41,6 +41,14 @@ function checkSynthesis(check) {
         if (!info.finite || info.seconds > 2.5 || info.seconds < 0.02 || Math.abs(info.peak - 0.9) > 0.05) badShots.push(info);
     }));
     check('tiếng ngắn (ếch, nước bắn, vịt, cò...): không lỗi số, ngắn gọn, cùng độ to', !badShots.length, JSON.stringify(badShots));
+    // Sóng biển dài hơn: sóng đổ rồi bọt tan dần
+    const badWaves = [];
+    [['crash', { size: 'small' }], ['crash', { size: 'large' }], ['shore', { size: 'small' }], ['shore', { size: 'large' }]].forEach(([id, params]) => [0, 2].forEach(part => {
+        const a = renderSound({ id, params, part });
+        const info = { id, params, part, finite: a.every(Number.isFinite), seconds: a.length / RATE, peak: peak(a) };
+        if (!info.finite || info.seconds > 3.3 || info.seconds < 0.5 || Math.abs(info.peak - 0.9) > 0.05) badWaves.push(info);
+    }));
+    check('tiếng sóng biển (đánh vào đá, vỗ bãi cát): không lỗi số, đủ dài, cùng độ to', !badWaves.length, JSON.stringify(badWaves));
 
     const a = renderSound({ id: 'frog', part: 2 });
     const b = renderSound({ id: 'frog', part: 2 });
@@ -64,6 +72,11 @@ function checkSceneChoice(check) {
     const sea = natureScene({ water: true, bank: 'none', season: 'summer', life: LIFE });
     check('biển khơi: không có dế, ếch nhái trên bờ; gió không qua cây',
         ids(ambienceLayers(sea)) === 'leaves,water' && ambienceLayers(sea).find(l => l.id === 'leaves').params.veg === 'none');
+    const seaShots = ids(eventSounds(natureScene({ water: true, bank: 'none', season: 'summer', life: LIFE, rocks: true })));
+    const riverShots = ids(eventSounds(natureScene({ water: true, bank: 'stone', season: 'summer', life: LIFE, rocks: true })));
+    check('biển khơi: sóng vỗ bãi cát, có đá thì sóng đánh vào đá; sông hồ không có tiếng sóng biển',
+        seaShots.includes('shore') && seaShots.includes('crash') && ids(eventSounds(sea)).includes('shore') && !ids(eventSounds(sea)).includes('crash')
+        && !riverShots.includes('shore') && !riverShots.includes('crash'), JSON.stringify({ seaShots, riverShots }));
     const off = natureScene({ water: true, season: 'summer', life: LIFE, off: ['insects', 'water', 'frogs'] });
     check('tắt nhóm nào thì không có tiếng nhóm đó', ids(ambienceLayers(off)) === 'leaves' && !ids(eventSounds(off)).includes('frog'), ids(ambienceLayers(off)));
     check('tắt âm thanh thiên nhiên: không có tiếng nào',

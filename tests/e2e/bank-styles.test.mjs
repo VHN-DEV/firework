@@ -5,7 +5,7 @@
  */
 
 // Kiểu bờ bên kia mặt nước (bank): mỗi kiểu vẽ được, phần nhô lên trời có mặt ngay trên chân trời (biển khơi thì không),
-// đèn kè gạch sáng ấm, thành phố có nhà cao tầng, đèn màu; biển khơi không có thuyền; kịch bản cũ chọn
+// đèn kè gạch sáng ấm, thành phố có nhà cao tầng, đèn màu; biển khơi không có thuyền, bờ bên này là bãi cát; kịch bản cũ chọn
 // cầu sắt thành thành phố; builder chọn kiểu, lưu đúng, tắt mặt nước thì không lưu kiểu bờ, chỉ hiện thứ hợp với kiểu bờ.
 import { sleep, openPage } from './helpers.mjs';
 import { validBankStyle } from '../../src/assets/js/player/bank-styles.js';
@@ -26,6 +26,17 @@ const skyline = page => page.evaluate(() => {
         if (max > 150 && max - min > 70) vivid++;
     }
     return { solid, warm, vivid };
+});
+
+// Màu trung bình dải sát đáy lớp mặt nước (biển khơi là bãi cát bên này, các kiểu bờ khác là nước)
+const bottomTone = page => page.evaluate(() => {
+    const c = document.getElementById('water-canvas');
+    const h = Math.max(1, Math.round(c.height * 0.04));
+    const d = c.getContext('2d').getImageData(0, c.height - h, c.width, h).data;
+    const sum = [0, 0, 0, 0];
+    for (let i = 0; i < d.length; i += 4) for (let j = 0; j < 4; j++) sum[j] += d[i + j];
+    const n = d.length / 4;
+    return { r: Math.round(sum[0] / n), g: Math.round(sum[1] / n), b: Math.round(sum[2] / n), a: Math.round(sum[3] / n) };
 });
 
 // Chân cầu đá xuống tới mép nước (cầu không lơ lửng trên mặt kè): một hàng ngay dưới chân trời, đếm điểm có đá ở lớp bầu
@@ -55,7 +66,7 @@ export async function run(browser, base, { check }) {
             await page.evaluate(cfg => window.postMessage({ type: 'firework-preview', config: cfg, restart: true }, location.origin),
                 { loop: true, events: [], water: 'half', waterStyle: 'river', bank: bank || undefined, waterBirds: false, waterDucks: false });
             await sleep(900);
-            results[bank || 'earth'] = { ...(await skyline(page)), foot: await footing(page) };
+            results[bank || 'earth'] = { ...(await skyline(page)), foot: await footing(page), bottom: await bottomTone(page) };
         }
         const structures = ['brick', 'stone', 'sand', 'oldtown', 'bridge', 'arch', 'city'];
         check('mỗi kiểu bờ có phần nhô lên trời (lan can, cây, nhà, cầu) ngay trên chân trời',
@@ -76,6 +87,9 @@ export async function run(browser, base, { check }) {
             return n;
         });
         check('biển khơi: không có thuyền thắp đèn', seaLights < 5, String(seaLights));
+        check('biển khơi: bờ bên này là bãi cát cho sóng tràn lên (kè gạch thì sát đáy vẫn là nước)',
+            results.none.bottom.a > 200 && results.none.bottom.r > results.none.bottom.b && results.brick.bottom.b > results.brick.bottom.r,
+            JSON.stringify({ none: results.none.bottom, brick: results.brick.bottom }));
         check('kịch bản cũ chọn "cầu sắt" (đã bỏ) thì thành thành phố', validBankStyle('steel') === 'city' && validBankStyle('city') === 'city');
         check('các kiểu bờ không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
@@ -108,7 +122,7 @@ export async function run(browser, base, { check }) {
         await sleep(1200);
         const off = await draft();
         check('builder: tắt mặt nước thì không lưu kiểu bờ', off && off.bank === null, JSON.stringify(off));
-        // Chỉ hiện thứ hợp với kiểu bờ: biển khơi chỉ có cá; sông thành phố có thuyền, không có đá, gò đất
+        // Chỉ hiện thứ hợp với kiểu bờ: biển khơi chỉ có cá, đá; sông thành phố có thuyền, không có đá, gò đất
         const chips = bank => builder.evaluate(value => {
             setWater('half');
             setBank(value);
@@ -117,8 +131,8 @@ export async function run(browser, base, { check }) {
         const sea = await chips('none');
         const city = await chips('city');
         const earth = await chips('');
-        check('builder: biển khơi chỉ có cá; thành phố có thuyền, không đá; bờ đất không có thuyền',
-            sea.join() === 'waterFish' && city.includes('waterBoats') && !city.includes('waterRocks') && !earth.includes('waterBoats') && earth.includes('waterRocks'),
+        check('builder: biển khơi chỉ có cá, đá; thành phố có thuyền, không đá; bờ đất không có thuyền',
+            sea.join() === 'waterFish,waterRocks' && city.includes('waterBoats') && !city.includes('waterRocks') && !earth.includes('waterBoats') && earth.includes('waterRocks'),
             JSON.stringify({ sea, city, earth }));
         check('kiểu bờ trong builder không lỗi JS', builder.errors.length === 0, builder.errors.join(' | '));
     } finally {

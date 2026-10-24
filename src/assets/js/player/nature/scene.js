@@ -45,15 +45,15 @@ const BANKS = {
 const WARM = ['spring', 'summer', 'autumn'];
 
 // Cảnh để nghe: on (người tạo và người xem đều bật), volume (0-1), off (nhóm tắt), water (có mặt nước), style ('river' |
-// 'lake'), bank, season, weather ('' | 'rain' | 'snow'), life (sinh vật trên mặt nước đang bật), music (có nhạc nền).
-// key: hai cảnh cùng key thì nghe như nhau.
-export function natureScene({ on = true, volume = NATURE_VOLUME, off = [], water = false, style = 'lake', bank = '', season = 'summer', weather = '', life = {}, music = false }) {
+// 'lake'), bank, season, weather ('' | 'rain' | 'snow'), life (sinh vật trên mặt nước đang bật), music (có nhạc nền),
+// rocks (có đá giữa nước: biển khơi thì sóng đánh vào đá). key: hai cảnh cùng key thì nghe như nhau.
+export function natureScene({ on = true, volume = NATURE_VOLUME, off = [], water = false, style = 'lake', bank = '', season = 'summer', weather = '', life = {}, music = false, rocks = false }) {
     const [shore, veg] = BANKS[bank] || BANKS[''];
     const scene = {
         on, volume, off: new Set(off), water, style: style === 'river' ? 'river' : 'lake', shore, veg, season, weather,
-        frozen: water && season === 'winter' && shore !== 'sea', life: { ...life }, music
+        frozen: water && season === 'winter' && shore !== 'sea', life: { ...life }, music, rocks: water && shore === 'sea' && !!rocks
     };
-    scene.key = JSON.stringify([on, volume, [...scene.off], water, scene.style, shore, veg, season, weather, scene.life, music]);
+    scene.key = JSON.stringify([on, volume, [...scene.off], water, scene.style, shore, veg, season, weather, scene.life, music, scene.rocks]);
     return scene;
 }
 
@@ -98,6 +98,11 @@ export function eventSound(name, extra = {}) {
         const size = Number(extra.size) || 0.6;
         return { id: 'splash', params: { size: splashSize(size) }, variant: pick(4), group: extra.who || 'water', gain: 0.22 + 0.3 * Math.min(1, size) };
     }
+    // Biển khơi: sóng đánh vào đá, sóng vỗ bãi cát (size 0-1: sóng to nhỏ)
+    if (name === 'crash' || name === 'shore') {
+        const size = Number(extra.size) || 0.6;
+        return { id: name, params: { size: size < 0.6 ? 'small' : 'large' }, variant: pick(3), group: 'water', gain: (name === 'crash' ? 0.3 : 0.25) + 0.35 * Math.min(1, size) };
+    }
     if (name === 'quack') {
         const kind = extra.kind === 'male' ? 'male' : 'female';
         return { id: 'quack', params: { kind, series: kind === 'female' && !!extra.series }, variant: pick(3), group: 'ducks', gain: kind === 'male' ? 0.28 : 0.42 };
@@ -115,6 +120,10 @@ export function eventSounds(scene) {
     const add = (id, params, variants) => list.push({ id, params, variants });
     if (on('water') || on('fish') || on('frogs') || on('ducks') || on('birds')) SPLASH_SIZES.forEach(size => add('splash', { size }, 4));
     if (on('water') && life.bubbles) add('bubble', {}, 4);
+    if (on('water') && scene.shore === 'sea') {
+        ['small', 'large'].forEach(size => add('shore', { size }, 3));
+        if (scene.rocks) ['small', 'large'].forEach(size => add('crash', { size }, 3));
+    }
     if (on('fish') && life.fish) add('plip', {}, 4);
     if (on('frogs') && life.frogs) add('frog', {}, 6);
     if (on('ducks') && life.ducks) {

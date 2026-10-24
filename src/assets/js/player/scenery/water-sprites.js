@@ -6,7 +6,7 @@
 
 // Ảnh vẽ sẵn của vật trên mặt nước: hoa đăng, khúc gỗ, lá bèo, đá, gò đất (đổi màu theo mùa).
 
-import { built, fbm, hdSprite, makeNoise, snowCap, sprites } from './util.js';
+import { built, fbm, hdSprite, makeNoise, smooth01, snowCap, sprites } from './util.js';
 import { makeCanvas, seededRandom } from '../utils.js';
 
 // Hoa đăng: đế hoa sen giấy, nến cháy ở giữa
@@ -359,6 +359,7 @@ export function warmWaterSprites() {
     for (let v = 0; v < LOG_KINDS; v++) list.push([`log${v}@${S}`, () => buildLog(v, S)]);
     for (let v = 0; v < 3; v++) list.push([`rock${v}@${S}`, () => buildRock(v, S)]);
     for (let v = 0; v < 2; v++) list.push([`mound${v}@${S}`, () => buildMound(v, S)]);
+    for (let v = 0; v < SEA_ROCK_KINDS; v++) list.push([`seaRock${v}@${S}`, () => buildSeaRock(v, S)]);
     let item = null;
     let job = null;
     const step = () => {
@@ -447,6 +448,85 @@ function* buildRock(variant, S = 2) {
     const peak = stones.reduce((a, b) => (b[1] - b[3] < a[1] - a[3] ? b : a));
     c.top = (peak[1] - peak[3] + 1) * S;
     c.perchX = peak[0] / W - 0.5;
+    c.res = S;
+    return c;
+}
+
+// Đá giữa biển (sóng đánh vào, sea-waves.js): cao, lởm chởm hơn đá sông, đá sẫm xám xanh, không rêu; mặt quay lên khô
+// hơn, lấm tấm muối trắng; nửa dưới ướt sẫm, loáng ánh nước; sát mặt nước là dải hà, rong sẫm. Ánh sáng từ trên bên
+// trái. Mặt nước ở hàng 52 (khung 72 x 66), vẽ sẵn gấp đôi cho nét.
+export const SEA_ROCK_KINDS = 3;
+
+export function seaRockSprite(variant) {
+    return pixelSprite(`seaRock${variant}`, S => buildSeaRock(variant, S));
+}
+
+function* buildSeaRock(variant, S = 2) {
+    const W = 72;
+    const H = 66;
+    const wl = 52;
+    const [c, g] = makeCanvas(W * S, H * S);
+    const noise = makeNoise(131 + variant * 29);
+    // Khối đá [tâm x, tâm y, bán kính ngang, bán kính dọc]: cột đá có vai, hai mỏm, rạn thấp có một mỏm nhọn
+    const blocks = [
+        [[34, 34, 13, 26], [21, 44, 12, 12], [48, 45, 11, 9], [58, 50, 7, 5]],
+        [[25, 31, 10, 23], [44, 36, 12, 20], [13, 48, 8, 6], [58, 49, 9, 5]],
+        [[36, 46, 27, 9], [27, 34, 8, 16], [50, 41, 9, 8]]
+    ][variant % SEA_ROCK_KINDS];
+    const tones = [[96, 100, 110], [106, 108, 116], [86, 90, 100], [100, 100, 104]];
+    const img = g.createImageData(W * S, H * S);
+    const d = img.data;
+    for (let py = 0; py < H * S; py++) {
+        if (py % (16 / S) === 16 / S - 1) yield;
+        const Y = (py + 0.5) / S;
+        for (let px = 0; px < W * S; px++) {
+            const X = (px + 0.5) / S;
+            let hit = null;
+            blocks.forEach(([bx, by, rx, ry], i) => {
+                const dx = (X - bx) / rx;
+                const dy = (Y - by) / ry;
+                const ang = Math.atan2(dy, dx);
+                // Mép lởm chởm: nhiễu theo góc mạnh hơn đá sông, thêm răng cưa nhỏ
+                const rr = 1 + (noise(Math.cos(ang) * 1.8 + i * 5, Math.sin(ang) * 1.8 + i * 3) - 0.5) * 0.5
+                    + (noise(Math.cos(ang) * 7 + i * 9, Math.sin(ang) * 7) - 0.5) * 0.12;
+                const dist = Math.sqrt(dx * dx + dy * dy) / rr;
+                if (dist <= 1) hit = { i, dx: dx / rr, dy: dy / rr, dist };
+            });
+            if (!hit) continue;
+            // Mặt đá vát từng mảng: pháp tuyến làm tròn theo nấc nên sáng tối thành từng khối như đá thật
+            const nz = Math.sqrt(Math.max(0, 1 - hit.dist * hit.dist));
+            const facet = 0.18 * (noise(X / 4 + hit.i * 7, Y / 4) - 0.5);
+            let lambert = Math.min(1, Math.max(0, -0.45 * hit.dx - 0.68 * hit.dy + 0.55 * nz + facet));
+            lambert = Math.round(lambert * 6) / 6;
+            const shade = 0.22 + 0.9 * lambert;
+            const tone = tones[hit.i % 4];
+            const patch = fbm(noise, X / 6 + hit.i * 13, Y / 6, 4);
+            let col = tone.map(v => v * (0.74 + 0.46 * patch));
+            // Khe nứt dọc (đá biển nứt thớ đứng), hạt đá
+            if (Math.abs(fbm(noise, X / 5 + 70, Y / 16 + 30, 3) - 0.5) < 0.022) col = col.map(v => v * 0.45);
+            const grain = noise(X / 0.9 + 50, Y / 0.9 + 20);
+            if (grain > 0.86) col = col.map(v => v + 22);
+            else if (grain < 0.1) col = col.map(v => v * 0.7);
+            // Mặt quay lên: lấm tấm muối trắng
+            if (hit.dy < -0.35 && noise(X / 1.3 + 11, Y / 1.3 + 7) > 0.82) col = [168, 172, 176];
+            // Nửa dưới bị sóng đánh ướt: sẫm hơn, lóe sáng lấm tấm như nước còn đọng
+            const wet = smooth01(wl - 20, wl - 6, Y);
+            col = col.map(v => v * (1 - 0.32 * wet));
+            if (wet > 0.3 && grain > 0.8) col = col.map(v => v + 40 * wet);
+            // Dải hà, rong sát mặt nước
+            if (Y > wl - 4.5 + (noise(X / 2.5, 9) - 0.5) * 3) col = [44, 48, 42].map(v => v * (0.8 + 0.4 * patch));
+            const i = (py * W * S + px) * 4;
+            d[i] = Math.min(255, col[0] * shade);
+            d[i + 1] = Math.min(255, col[1] * shade);
+            d[i + 2] = Math.min(255, col[2] * shade);
+            d[i + 3] = 255;
+        }
+    }
+    g.putImageData(img, 0, 0);
+    sinkBelow(g, W * S, H * S, wl * S, 0.5);
+    c.wl = wl * S;
+    const peak = blocks.reduce((a, b) => (b[1] - b[3] < a[1] - a[3] ? b : a));
+    c.top = (peak[1] - peak[3] + 1) * S;
     c.res = S;
     return c;
 }
@@ -666,6 +746,8 @@ export function seasonSprite(sprite, season) {
     const reedColor = season === 'autumn' ? '#6a5c32' : '#5c5442';
     Object.assign(c, {
         wl: sprite.wl,
+        top: sprite.top,
+        res: sprite.res,
         logicalW: sprite.logicalW,
         reeds: sprite.reeds && sprite.reeds.map(reed => ({ ...reed, color: reedColor, cattail: season === 'autumn' && reed.cattail }))
     });

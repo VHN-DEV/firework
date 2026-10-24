@@ -445,7 +445,8 @@ function render(speed) {
         life: waterLifeFlags(),
         plants: !burstConfig || burstConfig.waterPlants !== false,
         rocks: !burstConfig || burstConfig.waterRocks !== false,
-        bank: burstConfig && burstConfig.bank
+        bank: burstConfig && burstConfig.bank,
+        sky: currentSkyColor
     });
     // Mưa, tuyết rơi trên cùng (cùng lớp mặt nước: không in bóng xuống nước)
     Weather.render(waterCtx, { cssW: frameW, cssH: frameH, time: now(), sky: currentSkyColor, state: waterState });
