@@ -127,8 +127,8 @@ export function renderInspector() {
                 <h3 id="insp-title">${title}</h3>
                 <span id="insp-sub">${sub}</span>
             </div>
-            <button class="icon-btn" onclick="duplicateEvent(${event.id})" title="Nhân bản"><i class="fas fa-copy"></i></button>
-            <button class="icon-btn danger" onclick="removeEvent(${event.id})" title="Xóa phát bắn"><i class="fas fa-trash"></i></button>
+            <button class="icon-btn" onclick="duplicateEvent(${event.id})" title="Nhân bản (Ctrl+D)"><i class="fas fa-copy"></i></button>
+            <button class="icon-btn danger" onclick="removeEvent(${event.id})" title="Xóa phát bắn (Delete)"><i class="fas fa-trash"></i></button>
             <button class="icon-btn" onclick="closeInspector()" title="Đóng"><i class="fas fa-xmark"></i></button>
         </div>`;
 

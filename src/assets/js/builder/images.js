@@ -315,9 +315,6 @@ export function initCropper() {
         e.preventDefault();
     });
     document.getElementById('crop-zoom').addEventListener('input', e => setCropZoom(Number(e.target.value)));
-    document.getElementById('crop-modal').addEventListener('keydown', e => {
-        if (e.key === 'Escape') closeCropper();
-    });
     window.addEventListener('resize', () => {
         if (!cropper.img) return;
         layoutCropper();

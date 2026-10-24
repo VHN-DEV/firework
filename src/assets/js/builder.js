@@ -233,12 +233,44 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!e.target.closest('.more-menu')) closeMoreMenu();
     });
 
-    // Esc: đóng menu, ngăn cấu hình, bảng chỉnh sửa (trên điện thoại)
+    // Esc: đóng hộp thoại trên cùng như bấm nút đóng của nó (hộp Xác nhận: Hủy bỏ; hộp Lưu: chỉ khi đã lưu xong); không có
+    // hộp thoại thì đóng menu, ngăn cấu hình, bảng chỉnh sửa (trên điện thoại)
     document.addEventListener('keydown', (e) => {
-        if (e.key !== 'Escape' || document.querySelector('.modal:not(.hide)')) return;
+        if (e.key !== 'Escape') return;
+        const modal = [...document.querySelectorAll('.modal:not(.hide)')].pop();
+        if (modal) {
+            const close = modal.id === 'confirm-modal' ? document.getElementById('btn-confirm-no')
+                : modal.id === 'save-modal' ? document.querySelector('#save-actions:not(.hide) .btn')
+                    : modal.querySelector('.modal-header .btn.icon');
+            close?.click();
+            return;
+        }
         if (!document.getElementById('more-menu').classList.contains('hide')) return closeMoreMenu();
         if (document.getElementById('settings-panel').classList.contains('open')) return toggleSidebar();
         if (state.activeEventId) closeInspector();
+    });
+
+    // Phím tắt: Ctrl+S lưu (thay cho hộp "Lưu trang" của trình duyệt); ngoài ô nhập: Ctrl+D nhân bản, Delete xóa phát
+    // đang chọn (Ctrl+Z để lấy lại)
+    document.addEventListener('keydown', (e) => {
+        const ctrl = (e.ctrlKey || e.metaKey) && !e.altKey;
+        const key = e.key.toLowerCase();
+        const modalOpen = !!document.querySelector('.modal:not(.hide)');
+        if (ctrl && key === 's') {
+            e.preventDefault();
+            if (!modalOpen) saveConfig();
+            return;
+        }
+        if (modalOpen || !state.activeEventId || e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+        if (ctrl && key === 'd') {
+            e.preventDefault();
+            duplicateEvent(state.activeEventId);
+        } else if (!ctrl && (e.key === 'Delete' || e.key === 'Backspace')) {
+            e.preventDefault();
+            const index = state.events.findIndex(ev => ev.id === state.activeEventId) + 1;
+            removeEvent(state.activeEventId);
+            notify(`Đã xóa phát #${index}. Bấm Ctrl+Z để lấy lại.`, 'info');
+        }
     });
 
     initCropper();

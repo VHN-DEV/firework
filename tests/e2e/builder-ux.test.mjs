@@ -57,6 +57,39 @@ export async function run(browser, base, { check }) {
         check('nhân bản phát bắn: bản sao đặt đối xứng sang bên kia, cùng độ cao, cùng thời điểm',
             copy && copy.shell === 'Liễu' && copy.x === 78 && copy.y === 60 && copy.when === 'Ngay', JSON.stringify(copy));
 
+        // Phím tắt với phát đang chọn: Ctrl+D nhân bản, Delete xóa
+        const shortcut = async (key, ctrl) => {
+            if (ctrl) await page.keyboard.down('Control');
+            await page.keyboard.press(key);
+            if (ctrl) await page.keyboard.up('Control');
+            await sleep(300);
+            return (await rows()).length;
+        };
+        await page.click(`.shot-row[data-id="${first}"]`);
+        await sleep(200);
+        const count0 = (await rows()).length;
+        const afterCopy = await shortcut('d', true);
+        const afterDelete = await shortcut('Delete', false);
+        check('phím tắt: Ctrl+D nhân bản, Delete xóa phát đang chọn', afterCopy === count0 + 1 && afterDelete === count0, `${count0} → ${afterCopy} → ${afterDelete}`);
+
+        // Esc đóng hộp thoại: Tạo màn trình diễn mới; Ctrl+S lưu (mở hộp Chia sẻ), Esc đóng
+        const openModals = () => page.$$eval('.modal:not(.hide)', list => list.map(m => m.id));
+        await page.evaluate(() => openTemplatesModal());
+        await sleep(200);
+        const templatesOpen = await openModals();
+        await page.keyboard.press('Escape');
+        await sleep(200);
+        const templatesClosed = await openModals();
+        await shortcut('s', true);
+        await page.waitForFunction(() => !document.getElementById('share-modal').classList.contains('hide'), { timeout: 20000 }).catch(() => {});
+        const shareOpen = await openModals();
+        await page.keyboard.press('Escape');
+        await sleep(200);
+        const shareClosed = await openModals();
+        check('Esc đóng hộp thoại; Ctrl+S lưu kịch bản (mở hộp Chia sẻ)',
+            templatesOpen.includes('templates-modal') && !templatesClosed.length && shareOpen.includes('share-modal') && !shareClosed.length,
+            JSON.stringify({ templatesOpen, templatesClosed, shareOpen, shareClosed }));
+
         check('builder (tinh chỉnh thao tác) không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
         await page.close();

@@ -199,7 +199,7 @@ export async function run(browser, base, { check }) {
         const rowsBefore = await page.$$eval('.shot-row', rows => rows.length);
         await page.evaluate(() => document.querySelector('.shot-row').click());
         await sleep(300);
-        await page.evaluate(() => document.querySelector('#inspector [title="Nhân bản"]').click());
+        await page.evaluate(() => document.querySelector('#inspector [title^="Nhân bản"]').click());
         await sleep(300);
         const rowsAfter = await page.$$eval('.shot-row', rows => rows.length);
         check('nhân bản phát bắn: bản sao hiện ngay trong danh sách', rowsAfter === rowsBefore + 1, `${rowsBefore} → ${rowsAfter}`);

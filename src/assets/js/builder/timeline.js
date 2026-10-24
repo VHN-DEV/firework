@@ -110,8 +110,8 @@ function renderShotRow(event, burstStart = 0) {
             </div>
             <div class="shot-colors">${isPause ? '' : renderColorDots(event)}</div>
             <div class="shot-actions">
-                <button class="icon-btn" onclick="event.stopPropagation(); duplicateEvent(${event.id})" title="Nhân bản"><i class="fas fa-copy"></i></button>
-                <button class="icon-btn danger" onclick="event.stopPropagation(); removeEvent(${event.id})" title="Xóa"><i class="fas fa-trash"></i></button>
+                <button class="icon-btn" onclick="event.stopPropagation(); duplicateEvent(${event.id})" title="Nhân bản (Ctrl+D)"><i class="fas fa-copy"></i></button>
+                <button class="icon-btn danger" onclick="event.stopPropagation(); removeEvent(${event.id})" title="Xóa (Delete)"><i class="fas fa-trash"></i></button>
             </div>
         </div>`;
 }
