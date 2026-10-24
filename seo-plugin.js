@@ -20,15 +20,67 @@ import fs from 'fs';
 import path from 'path';
 import { renderSharePage, shareMetaFromConfig } from './share-page.js';
 
-// Địa chỉ trang khi đăng lên mạng (bắt buộc là URL tuyệt đối cho ảnh xem trước). Đổi bằng biến môi trường SITE_URL.
-export const SITE_URL = (process.env.SITE_URL || 'https://vhn-dev.github.io/firework/').replace(/\/?$/, '/');
+// Địa chỉ trang chính khi đăng lên mạng (bắt buộc là URL tuyệt đối cho ảnh xem trước). Đổi bằng biến môi trường SITE_URL.
+export const SITE_URL = (process.env.SITE_URL || 'https://firework.vhnam18032002.workers.dev/').replace(/\/?$/, '/');
+// Địa chỉ bản cũ khi build cho chính bản cũ (biến môi trường MOVED_FROM, vd bản GitHub Pages sau khi trang chính chuyển
+// sang Cloudflare): mỗi trang tự mở trang tương ứng ở SITE_URL, xem movedScript
+const MOVED_FROM = process.env.MOVED_FROM || '';
+
+// Chạy trong trang của bản cũ (from: gốc bản cũ, to: gốc bản mới, page: tên trang): mở đúng trang đó ở bản mới, giữ
+// nguyên ?config=..., #k=... Bản cũ là trang tĩnh lưu kịch bản trong trình duyệt của người tạo, bản mới khác tên miền nên
+// không đọc được: builder còn kịch bản, bản nháp thì ở lại và báo cách chuyển sang; màn trình diễn kịch bản lưu trong
+// trình duyệt này cũng ở lại.
+function movedRedirect(from, to, page) {
+    var here = location.href;
+    if (here.indexOf(from) !== 0) return;
+    var saved = {};
+    var draft = false;
+    try {
+        saved = JSON.parse(localStorage.getItem('my_firework_scripts') || '{}') || {};
+        draft = !!localStorage.getItem('firework_builder_draft');
+    } catch (e) {
+        // localStorage bị chặn: trình duyệt không giữ kịch bản nào
+    }
+    var config = new URLSearchParams(location.search).get('config');
+    if (page === 'demo' && config && saved[config]) return;
+    if (page !== 'builder' || (!Object.keys(saved).length && !draft)) {
+        location.replace(to + here.slice(from.length));
+        return;
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+        var bar = document.createElement('div');
+        bar.id = 'moved-notice';
+        bar.setAttribute('role', 'status');
+        bar.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:100000;max-width:720px;margin:0 auto;'
+            + 'padding:12px 16px;border-radius:12px;background:#1d1838;color:#eef0ff;font:14px/1.5 system-ui,sans-serif;'
+            + 'box-shadow:0 8px 28px rgba(0,0,0,.45);display:flex;gap:12px;align-items:center';
+        bar.innerHTML = '<span>Hanabi đã chuyển sang <a href="' + to + 'builder" style="color:#ffc65c;font-weight:600">trang mới</a>.'
+            + ' Kịch bản bạn lưu ở đây chỉ nằm trong trình duyệt này: mở từng kịch bản, bấm Xuất để lưu ra file .json, rồi vào'
+            + ' trang mới bấm Nhập.</span><button type="button" style="flex:none;padding:6px 12px;border:0;border-radius:8px;'
+            + 'background:#3a3266;color:inherit;font:inherit;cursor:pointer">Đóng</button>';
+        bar.querySelector('button').onclick = function () {
+            bar.remove();
+        };
+        document.body.appendChild(bar);
+    });
+}
+
+// Thẻ <script> chèn ngay sau <meta charset> của mỗi trang khi build cho bản cũ ('' khi không có MOVED_FROM)
+export function movedScript(page, from = MOVED_FROM, to = SITE_URL) {
+    if (!from) return '';
+    const args = [from.replace(/\/?$/, '/'), to, page].map(v => JSON.stringify(v)).join(', ');
+    return `<script>(${movedRedirect})(${args});</script>`;
+}
+
+const withMovedScript = (html, page) => html.replace(/<meta charset="UTF-8">/i, tag => tag + movedScript(page));
+
 export default function seoPlugin({ configsDir }) {
     return {
         name: 'firework-seo',
 
         // Điền địa chỉ tuyệt đối vào thẻ meta của các trang (index.html, demo.html, builder.html)
-        transformIndexHtml(html) {
-            return html.replace(/__SITE_URL__/g, SITE_URL);
+        transformIndexHtml(html, ctx) {
+            return withMovedScript(html.replace(/__SITE_URL__/g, SITE_URL), path.basename(ctx.filename || ctx.path || '', '.html'));
         },
 
         generateBundle() {
@@ -55,7 +107,7 @@ export default function seoPlugin({ configsDir }) {
                 this.emitFile({
                     type: 'asset',
                     fileName: `s/${id}.html`,
-                    source: renderSharePage({ id, ...shareMetaFromConfig(config), shareUrl: `${SITE_URL}s/${id}`, imageUrl })
+                    source: withMovedScript(renderSharePage({ id, ...shareMetaFromConfig(config), shareUrl: `${SITE_URL}s/${id}`, imageUrl }), 's')
                 });
                 ids.push(id);
             }

@@ -39,10 +39,14 @@ jobs:
         env:
           CHROME_PATH: /usr/bin/google-chrome
 
-      # Build lại để bản triển khai chắc chắn không lẫn dữ liệu kiểm thử
+      # Build lại để bản triển khai chắc chắn không lẫn dữ liệu kiểm thử. Trang chính đã chuyển sang Cloudflare Workers
+      # (SITE_URL trong seo-plugin.js): MOVED_FROM làm mỗi trang trên GitHub Pages tự mở trang tương ứng ở trang chính.
+      # Bỏ dòng env này nếu muốn GitHub Pages chạy độc lập như trước.
       - name: Build bản triển khai
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: npm run build
+        env:
+          MOVED_FROM: https://vhn-dev.github.io/firework/
 
       - uses: actions/configure-pages@v4
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

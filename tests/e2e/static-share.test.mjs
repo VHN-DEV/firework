@@ -7,8 +7,10 @@
 // Trang tĩnh (GitHub Pages: không có máy chủ lưu kịch bản): tên miền *.github.io trỏ về máy chủ thử (STATIC_HOST). Builder
 // lưu kịch bản trong trình duyệt, link chia sẻ chứa sẵn cả kịch bản (demo#k=...) nên mở ở trình duyệt khác (không có bản
 // lưu) vẫn đúng; kịch bản dài không vừa mã QR; ảnh tự tải lên không gói vào link (có báo); Xem thử mở link chứa kịch bản.
+// Bản GitHub Pages sau khi trang chính chuyển đi (build có MOVED_FROM, seo-plugin.js): mở đúng trang ở trang chính.
 import fs from 'fs';
 import path from 'path';
+import { movedScript } from '../../seo-plugin.js';
 import { DIST, STATIC_HOST, sleep } from './helpers.mjs';
 
 // Trang mới trong một "trình duyệt" riêng (không chung localStorage), ghi lỗi JS
@@ -85,6 +87,50 @@ export async function run(browser, base, { check }) {
         const tab = await Promise.race([opened, sleep(15000).then(() => '')]);
         check('Xem thử trên trang tĩnh mở link chứa sẵn kịch bản', tab.includes('/demo#k='), tab.slice(0, 100));
         check('builder trên trang tĩnh không lỗi JS', !page.errors.length, page.errors.join(' | '));
+    } finally {
+        await context.close();
+    }
+    await moved(browser, check);
+}
+
+// Trang của bản cũ, bản mới giả lập bằng chặn request (không cần mạng): bản cũ trả trang có đoạn chuyển trang của build
+// thật, __setup là trang không có đoạn đó để ghi localStorage của tên miền cũ
+async function moved(browser, check) {
+    const FROM = 'https://hanabi-cu.example/firework/';
+    const TO = 'https://hanabi-moi.example/';
+    const { context, page } = await freshPage(browser);
+    try {
+        await page.setRequestInterception(true);
+        page.on('request', r => {
+            const url = r.url();
+            if (!url.startsWith(FROM)) return r.respond({ contentType: 'text/html; charset=utf-8', body: '<!DOCTYPE html><html><body>mới</body></html>' });
+            const name = url.slice(FROM.length).split(/[?#]/)[0].replace(/\.html$/, '').split('/')[0] || 'index';
+            const script = name === '__setup' ? '' : movedScript(name, FROM, TO);
+            return r.respond({ contentType: 'text/html; charset=utf-8', body: `<!DOCTYPE html><html><head><meta charset="UTF-8">${script}</head><body>cũ</body></html>` });
+        });
+        const open = async rel => {
+            await page.goto(FROM + rel, { waitUntil: 'load' });
+            await page.waitForFunction(() => document.body && document.body.textContent.length, { timeout: 5000 }).catch(() => {});
+            await sleep(300);
+            return page.url();
+        };
+        const packed = await open('demo?config=christmas#k=abc');
+        const builder = await open('builder');
+        const share = await open('s/christmas');
+        check('bản cũ mở đúng trang ở trang chính, giữ ?config=, #k=', packed === `${TO}demo?config=christmas#k=abc` && builder === `${TO}builder` && share === `${TO}s/christmas`,
+            `${packed} | ${builder} | ${share}`);
+
+        await open('__setup');
+        await page.evaluate(() => localStorage.setItem('my_firework_scripts', JSON.stringify({ zz_cua_toi: { events: [] } })));
+        const kept = await open('builder');
+        const notice = await page.$eval('#moved-notice a', a => a.href).catch(() => '');
+        const local = await open('demo?config=zz_cua_toi');
+        const other = await open('demo?config=christmas');
+        check('bản cũ: builder còn kịch bản trong trình duyệt thì ở lại, báo cách chuyển sang trang mới', kept === `${FROM}builder` && notice === `${TO}builder`,
+            `${kept} ${notice}`);
+        check('bản cũ: kịch bản lưu trong trình duyệt vẫn xem được, kịch bản khác chuyển sang trang chính', local === `${FROM}demo?config=zz_cua_toi` && other === `${TO}demo?config=christmas`,
+            `${local} | ${other}`);
+        check('bản build thường không chèn đoạn chuyển trang', !movedScript('builder', '') && !fs.readFileSync(path.join(DIST, 'builder.html'), 'utf8').includes('movedRedirect'));
     } finally {
         await context.close();
     }

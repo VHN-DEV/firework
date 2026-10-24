@@ -42,13 +42,17 @@
 - **Trang tĩnh** (GitHub Pages, Cloudflare Pages, Vercel, Netlify, mở file trực tiếp: không có máy chủ): builder lưu kịch
   bản trong trình duyệt của người tạo, link chia sẻ và tab Xem thử dạng `/demo#k=...` chứa sẵn cả kịch bản (nén, xem
   `src/assets/js/share-link.js`) nên ai mở cũng xem đúng. Ảnh tự tải lên không gói vào link; muốn link ngắn, có ảnh xem
-  trước khi dán link, báo mở quà thì chạy trên máy chủ có PHP hoặc Cloudflare Workers.
+  trước khi dán link, báo mở quà thì chạy trên máy chủ có PHP hoặc Cloudflare Workers. Trang chính hiện chạy trên
+  Cloudflare Workers: bản GitHub Pages build với `MOVED_FROM=https://vhn-dev.github.io/firework/` (`deploy.yml`) nên mỗi
+  trang tự mở trang tương ứng ở trang chính (giữ `?config=`, `#k=`); builder còn kịch bản, bản nháp trong trình duyệt thì
+  ở lại và báo cách Xuất, Nhập sang trang mới (`movedScript` trong `seo-plugin.js`).
 - **Cloudflare Workers** (miễn phí, có máy chủ, không phải tự quản): `wrangler.jsonc` + `worker/` thay cho API PHP, cùng
   đường dẫn (`api/*.php`, `s/<tên>`) nên trang không phải sửa. Kịch bản, mã chủ, lịch sử mở quà lưu trong cơ sở dữ liệu
   D1; ảnh, nhạc tải lên và ảnh thiệp lưu trong KV (hoặc R2: đổi khối `kv_namespaces` thành `"r2_buckets": [{ "binding":
   "MEDIA" }]`); file tĩnh trong `dist` (`src/static/.assetsignore` bỏ thư mục `api/` PHP). Triển khai: trên Cloudflare,
-  Workers & Pages, nối repo GitHub; lệnh build `npm run build`, lệnh triển khai `npx wrangler@4 deploy` (dự án không ghi wrangler trong package.json); biến môi trường
-  lúc build `SITE_URL=https://<tên>.<tài khoản>.workers.dev/` (ảnh, link xem trước của trang chủ, sitemap). Lần triển
+  Workers & Pages, nối repo GitHub; lệnh build `npm run build`, lệnh triển khai `npx wrangler@4 deploy` (dự án không ghi wrangler trong package.json). Địa chỉ trang
+  (ảnh, link xem trước của trang chủ, sitemap) mặc định là `https://firework.vhnam18032002.workers.dev/` (`SITE_URL` trong
+  `seo-plugin.js`); gắn tên miền khác thì đặt biến môi trường lúc build `SITE_URL=https://<tên miền>/`. Lần triển
   khai đầu Cloudflare tự tạo D1, KV (wrangler 4.45 trở lên), bảng do Worker tự tạo. Chống spam: mỗi máy (IP, lưu bản
   băm) chỉ được lưu, tải ảnh nhạc, báo mở quà một số lần (`LIMITS` trong `worker/index.js`); ảnh thiệp giống lần lưu
   trước thì không ghi lại (KV chỉ có 1.000 lần ghi mỗi ngày). Xóa kịch bản thì xóa luôn ảnh, nhạc chỉ nó dùng; mỗi ngày
