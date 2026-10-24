@@ -5,14 +5,17 @@
 @use 'tokens' as *;
 
 // Thông báo
-// Góc dưới: không che thanh công cụ của khung xem nhanh; thông báo chỉ để đọc nên bấm xuyên qua được
+// Giữa cạnh dưới (trên dòng thời gian): không che thanh công cụ của khung xem nhanh, không che các ô của bảng chỉnh sửa
+// ở góc phải; thông báo chỉ để đọc nên bấm xuyên qua được
 .notification-container {
     position: fixed;
     bottom: 1.25rem;
-    right: 1.25rem;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 5000;
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 0.6rem;
     pointer-events: none;
 }

@@ -203,6 +203,20 @@ export async function run(browser, base, { check }) {
                 && /waterRocks(,|$)/.test(riverThings),
             JSON.stringify({ lakeThings, riverThings }));
 
+        // Thông báo không che bảng chỉnh sửa phát bắn (máy tính: giữa cạnh dưới; bảng chỉnh sửa ở bên phải)
+        await page.evaluate(() => {
+            document.querySelectorAll('.toast').forEach(t => t.remove());
+            document.querySelector('.shot-row').click();
+            duplicateEvent(Number(document.querySelector('.shot-row').dataset.id));
+        });
+        await sleep(400);
+        const overlap = await page.evaluate(() => {
+            const t = document.querySelector('.toast').getBoundingClientRect();
+            const i = document.getElementById('inspector').getBoundingClientRect();
+            return t.left < i.right && t.right > i.left && t.top < i.bottom && t.bottom > i.top;
+        });
+        check('thông báo không che bảng chỉnh sửa phát bắn', !overlap);
+
         check('builder (tinh chỉnh thao tác) không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
         await page.close();

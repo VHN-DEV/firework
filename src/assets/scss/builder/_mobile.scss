@@ -327,6 +327,7 @@
     .notification-container {
         left: 0.75rem;
         right: 0.75rem;
+        transform: none;
         bottom: calc(1.1rem + 58px + 0.75rem + env(safe-area-inset-bottom));
         align-items: stretch;
 
@@ -334,6 +335,12 @@
             max-width: none;
             min-width: 0;
         }
+    }
+
+    // Đang mở bảng chỉnh sửa (trải từ giữa màn hình xuống): thông báo lên trên cùng để không che các ô đang chỉnh
+    body:has(.inspector.open) .notification-container {
+        top: calc(0.75rem + env(safe-area-inset-top));
+        bottom: auto;
     }
 
     .help-guide .help-content {
