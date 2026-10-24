@@ -200,39 +200,44 @@ export class NightSky {
         return Math.pow(clamp01((this.height - y) / (this.height * 0.13)), 1.3);
     }
 
-    // Dựng lớp vẽ sẵn từng phần (generator): quầng Ngân Hà, sao mờ khắp trời, sao dày đặc trong dải
+    // Dựng lớp vẽ sẵn từng phần (generator): quầng Ngân Hà, sao mờ khắp trời, sao dày đặc trong dải. Quầng (theo ô điểm
+    // ảnh CSS) và chỗ các sao mờ tính một lần: dựng lại ở độ nét khác thì bầu trời vẫn y như cũ
     *build(k) {
         const { width: w, height: h, margin: m, pad } = this;
         const [canvas, g] = makeCanvas(Math.ceil((w + 2 * m) * k), Math.ceil((h + pad) * k));
         g.setTransform(k, 0, 0, k, m * k, pad * k);
         if (this.band) {
             const cell = 3;
-            const gw = Math.ceil((w + 2 * m) / cell);
-            const gh = Math.ceil((h + pad) / cell);
-            const [gc, gg] = makeCanvas(gw, gh);
-            const img = gg.createImageData(gw, gh);
             const glow = this.milky.glow;
-            for (let j = 0; j < gh; j++) {
-                const y = j * cell - pad + cell / 2;
-                const ext = this.extinction(y);
-                for (let i = 0; i < gw; i++) {
-                    if (ext <= 0) break;
-                    const [d, core] = this.bandAt(i * cell - m + cell / 2, y);
-                    if (d <= 0) continue;
-                    const a = clamp01(d * glow * ext);
-                    const warm = core * 0.85;
-                    const o = (j * gw + i) * 4;
-                    img.data[o] = 172 + (255 - 172) * warm;
-                    img.data[o + 1] = 186 + (226 - 186) * warm;
-                    img.data[o + 2] = 232 + (186 - 232) * warm;
-                    img.data[o + 3] = a * 255;
+            if (!this.glowCells) {
+                const gw = Math.ceil((w + 2 * m) / cell);
+                const gh = Math.ceil((h + pad) / cell);
+                const [gc, gg] = makeCanvas(gw, gh);
+                const img = gg.createImageData(gw, gh);
+                for (let j = 0; j < gh; j++) {
+                    const y = j * cell - pad + cell / 2;
+                    const ext = this.extinction(y);
+                    for (let i = 0; i < gw; i++) {
+                        if (ext <= 0) break;
+                        const [d, core] = this.bandAt(i * cell - m + cell / 2, y);
+                        if (d <= 0) continue;
+                        const a = clamp01(d * glow * ext);
+                        const warm = core * 0.85;
+                        const o = (j * gw + i) * 4;
+                        img.data[o] = 172 + (255 - 172) * warm;
+                        img.data[o + 1] = 186 + (226 - 186) * warm;
+                        img.data[o + 2] = 232 + (186 - 232) * warm;
+                        img.data[o + 3] = a * 255;
+                    }
+                    if (j % 4 === 3) yield;
                 }
-                if (j % 4 === 3) yield;
+                gg.putImageData(img, 0, 0);
+                this.glowCells = gc;
             }
-            gg.putImageData(img, 0, 0);
+            const gc = this.glowCells;
             g.imageSmoothingEnabled = true;
             g.imageSmoothingQuality = 'high';
-            g.drawImage(gc, -m, -pad, gw * cell, gh * cell);
+            g.drawImage(gc, -m, -pad, gc.width * cell, gc.height * cell);
             // Tinh vân hồng nhạt quanh lõi
             const b = this.band;
             g.globalCompositeOperation = 'lighter';
@@ -248,25 +253,29 @@ export class NightSky {
             g.globalCompositeOperation = 'source-over';
             yield;
         }
-        // Sao mờ: theo màu thành từng nhóm cho ít lần đổi màu vẽ
-        const groups = STAR_TINTS.map(() => []);
-        for (let i = 0; i < this.faintCount; i++) {
-            groups[pickTint()].push([rand(-m, w + m), rand(-pad, h), 0.1 + 0.55 * Math.pow(Math.random(), 1.8), rand(0.45, 1.05)]);
-        }
-        if (this.band) {
-            // Sao trong dải: rải đều rồi giữ lại theo mật độ (dải sáng, lõi nhiều sao, dải bụi tối ít sao)
-            let kept = 0;
-            for (let tries = 0; kept < this.milky.stars && tries < this.milky.stars * 8; tries++) {
-                const x = rand(-m, w + m);
-                const y = rand(-pad, h);
-                const [d, core] = this.bandAt(x, y);
-                if (Math.random() * 1.2 > d) continue;
-                kept++;
-                const tint = core > 0.5 && Math.random() < 0.5 ? 3 : pickTint();
-                groups[tint].push([x, y, 0.06 + 0.5 * Math.pow(Math.random(), 2), rand(0.35, 0.85)]);
-                if (kept % 800 === 0) yield;
+        if (!this.faint) {
+            // Sao mờ: theo màu thành từng nhóm cho ít lần đổi màu vẽ
+            const groups = STAR_TINTS.map(() => []);
+            for (let i = 0; i < this.faintCount; i++) {
+                groups[pickTint()].push([rand(-m, w + m), rand(-pad, h), 0.1 + 0.55 * Math.pow(Math.random(), 1.8), rand(0.45, 1.05)]);
             }
+            if (this.band) {
+                // Sao trong dải: rải đều rồi giữ lại theo mật độ (dải sáng, lõi nhiều sao, dải bụi tối ít sao)
+                let kept = 0;
+                for (let tries = 0; kept < this.milky.stars && tries < this.milky.stars * 8; tries++) {
+                    const x = rand(-m, w + m);
+                    const y = rand(-pad, h);
+                    const [d, core] = this.bandAt(x, y);
+                    if (Math.random() * 1.2 > d) continue;
+                    kept++;
+                    const tint = core > 0.5 && Math.random() < 0.5 ? 3 : pickTint();
+                    groups[tint].push([x, y, 0.06 + 0.5 * Math.pow(Math.random(), 2), rand(0.35, 0.85)]);
+                    if (kept % 800 === 0) yield;
+                }
+            }
+            this.faint = groups;
         }
+        const groups = this.faint;
         let drawn = 0;
         for (let t = 0; t < groups.length; t++) {
             g.fillStyle = `rgb(${tintRgb(t)})`;
@@ -281,10 +290,12 @@ export class NightSky {
         this.layerK = k;
     }
 
-    // Dựng tiếp lớp vẽ sẵn trong giới hạn thời gian của khung này; độ nét cao hơn lớp đang có thì dựng lại
+    // Dựng tiếp lớp vẽ sẵn trong giới hạn thời gian của khung này. Độ nét đổi (đổi chất lượng, thôi vẽ dư, "Tự động" hạ
+    // mức) thì dựng lại đúng độ nét mới: lớp nét hơn khung phải thu nhỏ mịn mỗi lần vẽ, card đồ họa dựng lại mipmap của
+    // cả lớp mỗi khung (vẽ dư 2160p lùi về 1080p: ~40 ms mỗi khung trên card tích hợp). Lớp cũ vẫn vẽ trong lúc dựng
     pump(k) {
         if (!this.faintCount && !this.band) return;
-        if (!this.job && (!this.layer || k > this.layerK + 0.01)) this.job = this.build(k);
+        if (!this.job && (!this.layer || Math.abs(k - this.layerK) > 0.01)) this.job = this.build(k);
         if (!this.job) return;
         const until = performance.now() + BUILD_BUDGET;
         while (performance.now() < until) {
