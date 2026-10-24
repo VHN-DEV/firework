@@ -17,6 +17,17 @@ import * as THREE from 'three';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const approach = (cur, target, dt, tau) => cur + (target - cur) * (1 - Math.exp(-dt / Math.max(1e-4, tau)));
+// Lò xo tắt dần tới hạn (lời giải đúng, bước lớn vẫn ổn định): tăng tốc dần rồi hãm êm vào đích như cử động người thật
+// (tiến dần kiểu hàm mũ thì vừa bắt đầu đã nhanh nhất, giật). s: { x, v }; w: độ nhanh (rad/s, ~4,7/w giây là gần tới)
+const spring = (s, target, dt, w) => {
+    const e = Math.exp(-w * dt);
+    const d = s.x - target;
+    const k = (s.v + w * d) * dt;
+    s.x = target + (d + k) * e;
+    s.v = (s.v - w * k) * e;
+    return s.x;
+};
+const smooth = s => s * s * (3 - 2 * s);
 
 const b64buf = s => {
     const bin = atob(s);
@@ -124,6 +135,8 @@ const forwardAt = (clip, t) => sampleAt(clip, clip.userData.forward, t);
 
 // Nghiêng người sang bên, cúi: phần góc của từng đốt sống (nghiêng, cúi), cộng thêm phần cả người ngả từ bàn chân
 const LEAN = [['spine', 0.24, 0.3], ['chest', 0.16, 0.4], ['upperChest', 0.1, 0.3]];
+// Nhìn (quay, ngẩng): ngực, vai theo một phần như người thật, còn lại ở cổ, đầu. Nghiêng đầu chỉ ở cổ, đầu
+const LOOK = [['chest', 0.1, 0.06, 0], ['upperChest', 0.14, 0.1, 0], ['neck', 0.3, 0.34, 0.4], ['head', 0.46, 0.5, 0.6]];
 
 // Ngón tay: đốt gần, giữa, xa; ngón cái
 const FINGERS = ['Index', 'Middle', 'Ring', 'Little'];
@@ -203,6 +216,13 @@ export class Actor3D {
         // Lớp cử động thêm (tiến dần về đích)
         this.look = { yaw: 0, pitch: 0, roll: 0 };
         this.lookGoal = { yaw: 0, pitch: 0, roll: 0 };
+        // Trạng thái lò xo (vị trí, vận tốc) của hướng nhìn, nghiêng, cúi, độ với tay
+        this.springs = { yaw: { x: 0, v: 0 }, pitch: { x: 0, v: 0 }, roll: { x: 0, v: 0 }, lean: { x: 0, v: 0 }, bow: { x: 0, v: 0 }, ik: [{ x: 0, v: 0 }, { x: 0, v: 0 }] };
+        // Đầu lay động rất nhẹ quanh hướng nhìn (mỗi người một nhịp)
+        this.clock = 0;
+        this.sway = [Math.random() * 6.28, Math.random() * 6.28, Math.random() * 6.28];
+        // Đích IK đang dùng của từng tay và đường chuyển sang đích mới
+        this.ikPath = [{ pos: null, s: 1 }, { pos: null, s: 1 }];
         this.lean = 0;
         this.leanGoal = 0;
         this.bow = 0;
@@ -411,12 +431,16 @@ export class Actor3D {
     overlay(dt) {
         const L = this.look;
         const G = this.lookGoal;
-        L.yaw = approach(L.yaw, G.yaw, dt, 0.4);
-        L.pitch = approach(L.pitch, G.pitch, dt, 0.45);
-        L.roll = approach(L.roll, G.roll, dt, 0.5);
-        this.lean = approach(this.lean, this.leanGoal, dt, 0.6);
-        this.bow = approach(this.bow, this.bowGoal, dt, 0.6);
-        // Nhìn: chia cho cổ 40%, đầu 60% (trục trong hệ của thân: ngẩng quanh trục ngang, quay quanh trục đứng)
+        const S = this.springs;
+        this.clock += dt;
+        const c = this.clock;
+        const [p1, p2, p3] = this.sway;
+        // Quay đầu nhanh hơn ngẩng; đầu sống: lay động chừng 1° quanh hướng nhìn
+        L.yaw = spring(S.yaw, G.yaw, dt, 6.5) + 0.018 * Math.sin(c * 0.9 + p1) + 0.01 * Math.sin(c * 2.1 + p2);
+        L.pitch = spring(S.pitch, G.pitch, dt, 5.5) + 0.014 * Math.sin(c * 0.7 + p2) + 0.008 * Math.sin(c * 1.9 + p3);
+        L.roll = spring(S.roll, G.roll, dt, 4.5) + 0.01 * Math.sin(c * 0.5 + p3);
+        this.lean = spring(S.lean, this.leanGoal, dt, 3.2);
+        this.bow = spring(S.bow, this.bowGoal, dt, 3.2);
         const body = _q3.setFromAxisAngle(_v3.set(0, 1, 0), -this.yaw);
         const right = _v1.set(1, 0, 0).applyQuaternion(body);
         const up = _v2.set(0, 1, 0);
@@ -433,14 +457,17 @@ export class Actor3D {
                 if (node) rotateWorld(node, tilt(k, b));
             });
         }
-        ['neck', 'head'].forEach((name, i) => {
-            const k = i ? 0.6 : 0.4;
+        // Nhìn: ngực, vai quay theo một phần, cổ, đầu phần còn lại (ngẩng quanh trục ngang đã quay theo phần trước đó,
+        // quay quanh trục đứng)
+        let turned = 0;
+        LOOK.forEach(([name, ky, kp, kr]) => {
             const node = this.bone(name);
             if (!node) return;
-            const q = new THREE.Quaternion().setFromAxisAngle(up, -L.yaw * k);
-            q.multiply(new THREE.Quaternion().setFromAxisAngle(right.clone().applyAxisAngle(up, -L.yaw * k), L.pitch * k));
+            turned += L.yaw * ky;
+            const q = new THREE.Quaternion().setFromAxisAngle(up, -L.yaw * ky);
+            q.multiply(new THREE.Quaternion().setFromAxisAngle(right.clone().applyAxisAngle(up, -turned), L.pitch * kp));
             // Nghiêng đầu (dương: sang phải của nhân vật), cùng chiều với nghiêng thân
-            q.premultiply(new THREE.Quaternion().setFromAxisAngle(fwd, L.roll * k));
+            if (kr) q.premultiply(new THREE.Quaternion().setFromAxisAngle(fwd, L.roll * kr));
             rotateWorld(node, q);
         });
         // Váy xòe: tay buông (tay đang với tới đích bằng IK thì không đụng)
@@ -448,16 +475,47 @@ export class Actor3D {
         // IK tay
         ['left', 'right'].forEach((side, i) => {
             const goal = this.ik[i];
-            this.ikW[i] = approach(this.ikW[i], goal ? (goal.weight ?? 1) : 0, dt, goal && goal.tau ? goal.tau : 0.25);
+            this.ikW[i] = clamp(spring(S.ik[i], goal ? (goal.weight ?? 1) : 0, dt, 1.6 / (goal && goal.tau ? goal.tau : 0.25)), 0, 1);
             if (goal) this.lastIk[i] = goal;
             const g = goal || this.lastIk[i];
-            if (g && this.ikW[i] > 0.002) this.solveArm(side, i, g, this.ikW[i]);
+            if (g && this.ikW[i] > 0.002) this.solveArm(side, i, this.ikTarget(i, g, dt, fwd), this.ikW[i]);
         });
         // Ngón tay co tự nhiên (buông), nắm lại (cầm ô, nắm tay)
         ['left', 'right'].forEach((side, i) => {
             this.curl[i] = approach(this.curl[i], this.curlGoal[i], dt, 0.2);
             this.curlFingers(side, this.curl[i]);
         });
+    }
+
+    // Đích IK tay i đang dùng: đích đổi chỗ đột ngột (đổi cử chỉ: đang nắm tay chuyển sang ôm vai...) thì tay không nhảy
+    // tới ngay mà đi dần theo đường cong vòng lên, ra sau lưng (không xuyên qua người kia), nhanh dần rồi chậm lại
+    ikTarget(i, goal, dt, fwd) {
+        const P = this.ikPath[i];
+        const target = goal.target;
+        if (!P.pos || this.ikW[i] < 0.05) {
+            P.pos = target.clone();
+            P.s = 1;
+        } else if (P.s >= 1 && P.pos.distanceTo(target) > 0.08) {
+            const dist = P.pos.distanceTo(target);
+            P.from = P.pos.clone();
+            P.pole = (P.goal && P.goal.pole ? P.goal.pole : new THREE.Vector3(0, -1, 0)).clone();
+            P.s = 0;
+            P.dur = 0.45 + 0.8 * Math.min(1, dist);
+            P.lift = Math.min(0.25, dist * 0.35);
+            // Cả hai đầu ở sau lưng (nắm tay sau lưng sang ôm vai...): vòng ra sau, không thì chỉ nâng lên
+            const hips = this.bone('hips').getWorldPosition(_v3);
+            P.back = P.from.clone().sub(hips).dot(fwd) < 0.05 && target.clone().sub(hips).dot(fwd) < 0.05 ? 0.5 : 0;
+        }
+        P.goal = goal;
+        if (P.s >= 1) {
+            P.pos.copy(target);
+            return goal;
+        }
+        P.s = Math.min(1, P.s + dt / P.dur);
+        const k = smooth(P.s);
+        const arc = Math.sin(Math.PI * P.s) * P.lift;
+        P.pos.copy(P.from).lerp(target, k).addScaledVector(_up, arc * 0.7).addScaledVector(fwd, -arc * P.back);
+        return { ...goal, target: P.pos, pole: goal.pole ? P.pole.clone().lerp(goal.pole, k) : P.pole };
     }
 
     // Bán kính váy ở độ cao dy (mét, so với hông); 0 là ngoài váy

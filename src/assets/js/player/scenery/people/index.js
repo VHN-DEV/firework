@@ -245,7 +245,7 @@ export const People = {
             // Ở bờ bên kia pháo nổ ngay trên đầu: ngẩng cao hơn
             pitch: L.far ? 0.55 + 0.3 * up : 0.25 + 0.45 * up
         };
-        const env = { wind, focus, time: this.time, burst: this.burst };
+        const env = { wind, focus, time: this.time, burst: this.burst, dt };
         this.show.update(dt, env);
         const deck = L.far ? this.deck() : null;
         this.actors.forEach(a => {

@@ -22,12 +22,25 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
-// Hướng nhìn pháo hoa: quay đầu theo chỗ pháo đang nổ, ngẩng theo độ cao
+// Hướng nhìn pháo hoa: quay đầu theo chỗ pháo đang nổ, ngẩng theo độ cao. Người thật đưa mắt theo chỗ pháo mới nổ chứ
+// không bám đều như máy quay: chỗ nổ dời đủ xa (hoặc vừa có loạt pháo mới) thì sau một nhịp phản xạ riêng của mỗi người
+// (0,15-0,5 giây) mới quay đầu theo, hai người không cùng nhịp
 function lookSky(actor, env, add = 0) {
     const dx = env.focus.x - actor.x;
-    const yaw = Math.atan2(dx, 9) - actor.yaw;
-    actor.lookGoal.yaw = clamp(yaw, -0.9, 0.9);
-    actor.lookGoal.pitch = env.focus.pitch * 1.25 + add;
+    const yaw = clamp(Math.atan2(dx, 9) - actor.yaw, -0.9, 0.9);
+    const pitch = env.focus.pitch * 1.25 + add;
+    const s = actor.sky || (actor.sky = { yaw, pitch, wait: 0 });
+    if (!s.wait && (Math.abs(yaw - s.yaw) > 0.1 || Math.abs(pitch - s.pitch) > 0.08 || env.burst)) s.wait = rand(0.15, 0.5);
+    if (s.wait) {
+        s.wait -= env.dt || 0;
+        if (s.wait <= 0) {
+            s.wait = 0;
+            s.yaw = yaw;
+            s.pitch = pitch;
+        }
+    }
+    actor.lookGoal.yaw = s.yaw;
+    actor.lookGoal.pitch = s.pitch;
 }
 
 function lookAtActor(actor, other, pitch = 0) {
@@ -333,8 +346,9 @@ export class Duo {
         }
         if (g.t < g.until) lookSky(a, env, -0.1);
         else {
+            // Nhìn tới trước (động tác đi dạo của chàng trai hơi cúi đầu: ngẩng lên bù)
             a.lookGoal.yaw = 0;
-            a.lookGoal.pitch = -0.05;
+            a.lookGoal.pitch = a.sex === 'm' ? 0.12 : 0.02;
         }
     }
 
@@ -508,6 +522,14 @@ export class Duo {
         }
     }
 
+    // Thỉnh thoảng đổi tư thế đứng (đứng thở, dồn trọng tâm sang chân kia), mỗi người một nhịp
+    stance(a, dt) {
+        a.stanceT = (a.stanceT ?? rand(1, 6)) - dt;
+        if (a.stanceT > 0) return;
+        a.stanceT = rand(7, 14);
+        a.play(Math.random() < 0.4 ? 'idle2' : 'idle', { fade: 1 });
+    }
+
     // Cử chỉ lúc đứng ngắm: nối tiếp ngẫu nhiên, không lặp cử chỉ vừa làm
     watch(dt, env) {
         const { m, w } = this;
@@ -518,13 +540,15 @@ export class Duo {
             this.last = name;
             const dur = { watch: rand(5, 8), lean: rand(7, 10), embrace: rand(8, 11), gaze: rand(5, 6.5), point: 4.4, swing: 4.2, shelter: rand(5, 7) }[name];
             this.g = { name, t: 0, dur };
-            // Thân thỉnh thoảng đổi tư thế đứng (dồn trọng tâm)
-            [m, w].forEach(a => a.play(Math.random() < 0.4 ? 'idle2' : 'idle', { fade: 0.8 }));
         }
+        // Mỗi người đổi tư thế đứng (dồn trọng tâm) theo nhịp riêng
+        [m, w].forEach(a => this.stance(a, dt));
         const g = this.g;
         g.t += dt;
         const t = g.t;
         const edge = Math.min(1, t / 0.9, (g.dur - t) / 0.9);
+        // Người kia đáp lại chậm một nhịp
+        const late = clamp(Math.min((t - 0.5) / 0.9, (g.dur - 0.3 - t) / 0.9), 0, 1);
         m.goalYaw = 0.32;
         w.goalYaw = -0.32;
         lookSky(m, env);
@@ -541,14 +565,12 @@ export class Duo {
             w.leanGoal = -0.55 * edge;
             w.lookGoal.roll = -0.12 * edge;
             w.lookGoal.pitch -= 0.1 * edge;
-            m.leanGoal = 0.12 * edge;
-            m.lookGoal.roll = 0.07 * edge;
+            m.leanGoal = 0.12 * late;
+            m.lookGoal.roll = 0.07 * late;
         } else if (g.name === 'gaze') {
-            const look = t > 0.6 && t < g.dur - 1;
-            if (look) {
-                lookAtActor(m, w, -0.2);
-                lookAtActor(w, m, 0.2);
-            }
+            // Anh quay sang nhìn cô trước, cô nhận ra rồi ngước lên nhìn anh
+            if (t > 0.6 && t < g.dur - 1) lookAtActor(m, w, -0.2);
+            if (t > 1.1 && t < g.dur - 1.3) lookAtActor(w, m, 0.2);
             // Anh cúi xuống hôn lên tóc cô: nghiêng, cúi cả thân trên về phía cô, đầu cúi theo; cô hơi ngả vào anh
             const kiss = clamp((t - 2.2) / 0.7, 0, 1) * clamp((g.dur - 1.4 - t) / 0.6, 0, 1);
             m.leanGoal = 0.3 * kiss;
