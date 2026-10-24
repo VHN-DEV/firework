@@ -7,6 +7,8 @@
 // Tiện ích giao diện dùng chung: thoát HTML, đường dẫn, thông báo, màn chờ, hỏi xác nhận, định dạng số, hộp thoại.
 
 import { sendPreview, setPreviewMode, updateMiniInfo } from './preview.js';
+import { isStaticEnv } from './state.js';
+import { canPackConfig, packedShowUrl } from '../share-link.js';
 
 // Thoát ký tự HTML trước khi chèn dữ liệu người dùng (chữ, màu, tên kịch bản...) vào innerHTML.
 // Tránh vỡ giao diện khi chữ có dấu nháy và tránh chạy mã độc từ kịch bản do người khác lưu.
@@ -46,6 +48,29 @@ export function getShowUrl(filename) {
     const url = new URL('demo', window.location.href);
     url.searchParams.set('config', filename);
     return url.href;
+}
+
+// Kịch bản lưu trong trình duyệt này (trang tĩnh), không có thì null
+export function localScript(filename) {
+    try {
+        return JSON.parse(localStorage.getItem('my_firework_scripts') || '{}')[filename] || null;
+    } catch (e) {
+        return null;
+    }
+}
+
+// Link xem kịch bản: trang tĩnh (kịch bản chỉ lưu trong trình duyệt này) thì link chứa sẵn cả kịch bản, mở ở trình duyệt,
+// máy khác vẫn đúng; kịch bản có ảnh tự tải lên (không gói vào link được) thì xem bằng bản lưu trong trình duyệt này
+export async function showUrlFor(filename, config = isStaticEnv ? localScript(filename) : null) {
+    if (isStaticEnv && config && canPackConfig) {
+        try {
+            const { url, dropped } = await packedShowUrl(config);
+            if (!dropped) return url;
+        } catch (e) {
+            // Không nén được: dùng link theo tên
+        }
+    }
+    return getShowUrl(filename);
 }
 
 // Đồng bộ chế độ xem nhanh và nút "Chạy kịch bản" với ô "Tự động lặp lại",

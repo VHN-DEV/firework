@@ -10,7 +10,8 @@ import qrcode from 'qrcode-generator';
 import { renderShareImage } from '../share-image.js';
 import { availablePlatforms, copyText, platformIcon, shareLink } from '../share-targets.js';
 import { isStaticEnv, state } from './state.js';
-import { getShowUrl, hideLoading, hideModal, notify, showLoading, showModal } from './util.js';
+import { getShowUrl, hideLoading, hideModal, localScript, notify, showLoading, showModal } from './util.js';
+import { canPackConfig, packedShowUrl } from '../share-link.js';
 import { getUploadFolder } from './images.js';
 import { getFinalConfig } from './config.js';
 import { renderShareTracking } from './gift-watch.js';
@@ -176,20 +177,30 @@ function getShareUrl(filename) {
     return new URL(`s/${encodeURIComponent(filename)}`, window.location.href).href;
 }
 
-// Thông tin của lần chia sẻ hiện tại
-export const share = { id: '', url: '', published: true, title: '', description: '', imageCanvas: null };
+// Thông tin của lần chia sẻ hiện tại; packed: link chứa sẵn kịch bản, dropped: số ảnh tự tải lên không gói vào link được
+export const share = { id: '', url: '', published: true, packed: false, dropped: 0, title: '', description: '', imageCanvas: null };
 
-// Trên GitHub Pages kịch bản chỉ lưu trong trình duyệt, nên chỉ kịch bản đã đưa vào configs/ mới có trang chia sẻ
+// Trang tĩnh (GitHub Pages...) không có máy chủ, kịch bản chỉ lưu trong trình duyệt: link chứa sẵn cả kịch bản vừa lưu
+// (share-link.js), ai mở cũng xem đúng. Trình duyệt quá cũ không nén được thì chỉ kịch bản đã đưa vào configs/ mới có
+// trang chia sẻ
 export async function resolveShareUrl(filename) {
     const pageUrl = getShareUrl(filename);
-    if (!isStaticEnv) return { url: pageUrl, published: true };
+    if (!isStaticEnv) return { url: pageUrl, published: true, packed: false, dropped: 0 };
+    if (canPackConfig) {
+        try {
+            const { url, dropped } = await packedShowUrl(localScript(filename) || getFinalConfig());
+            return { url, published: true, packed: true, dropped };
+        } catch (e) {
+            // Không nén được: dùng trang chia sẻ hoặc link theo tên bên dưới
+        }
+    }
     try {
         const response = await fetch(pageUrl, { method: 'HEAD', cache: 'no-store' });
-        if (response.ok) return { url: pageUrl, published: true };
+        if (response.ok) return { url: pageUrl, published: true, packed: false, dropped: 0 };
     } catch (e) {
         // Không kiểm tra được (vd mở file trực tiếp): coi như chưa đăng
     }
-    return { url: getShowUrl(filename), published: false };
+    return { url: getShowUrl(filename), published: false, packed: false, dropped: 0 };
 }
 
 function refreshShareText() {
@@ -205,10 +216,10 @@ export function updateShareBar(filename) {
     share.url = getShareUrl(filename);
     shareUrlEl.innerText = share.url;
     shareBar.classList.remove('hide');
-    resolveShareUrl(filename).then(({ url, published }) => {
+    resolveShareUrl(filename).then(found => {
         if (share.id !== filename) return;
-        Object.assign(share, { url, published });
-        shareUrlEl.innerText = url;
+        Object.assign(share, found);
+        shareUrlEl.innerText = found.url;
     });
 
     // Add highlight effect
@@ -258,11 +269,21 @@ function renderShareGrid() {
             </button>`).join('');
 }
 
-// Vẽ mã QR lên canvas (nền trắng, chừa lề 2 ô theo chuẩn để camera dễ nhận)
+// Vẽ mã QR lên canvas (nền trắng, chừa lề 2 ô theo chuẩn để camera dễ nhận). Link quá dài (kịch bản gói trong link) không
+// vừa mã QR thì trả về false
 function drawQr(canvas, text, size) {
-    const qr = qrcode(0, 'M');
-    qr.addData(text);
-    qr.make();
+    let qr = null;
+    for (const level of ['M', 'L']) {
+        try {
+            qr = qrcode(0, level);
+            qr.addData(text);
+            qr.make();
+            break;
+        } catch (e) {
+            qr = null;
+        }
+    }
+    if (!qr) return false;
     const count = qr.getModuleCount();
     const cell = size / (count + 4);
     const ctx = canvas.getContext('2d');
@@ -276,6 +297,7 @@ function drawQr(canvas, text, size) {
             }
         }
     }
+    return true;
 }
 
 function downloadDataUrl(dataUrl, name) {
@@ -311,7 +333,7 @@ export function downloadShareQr() {
 
     const qrCanvas = document.createElement('canvas');
     qrCanvas.width = qrCanvas.height = qrSize;
-    drawQr(qrCanvas, share.url, qrSize);
+    if (!drawQr(qrCanvas, share.url, qrSize)) return;
     ctx.drawImage(qrCanvas, (W - qrSize) / 2, 140);
 
     ctx.fillStyle = '#6b21a8';
@@ -339,8 +361,9 @@ export async function openShareModal() {
     showModal('share-modal');
     renderShareGrid();
 
-    const { url, published } = await resolveShareUrl(share.id);
-    Object.assign(share, { url, published });
+    const found = await resolveShareUrl(share.id);
+    Object.assign(share, found);
+    const { url, published } = found;
     document.getElementById('share-link-input').value = url;
     document.getElementById('share-preview-domain').textContent = new URL(url).hostname;
     document.getElementById('share-preview-title').textContent = share.title;
@@ -350,14 +373,25 @@ export async function openShareModal() {
     const warning = document.getElementById('share-warning');
     warning.classList.toggle('hide', !isStaticEnv);
     if (isStaticEnv) {
-        warning.innerHTML = published
+        const dropped = share.dropped
+            ? ` <strong>${share.dropped} ảnh bạn tự tải lên</strong> (ảnh pháo, ảnh nền, ảnh khi chia sẻ) không gửi kèm link được: người nhận sẽ không thấy các ảnh đó.`
+            : '';
+        warning.innerHTML = share.packed
+            ? `<i class="fas fa-circle-info"></i><span>Trang đang chạy không có máy chủ lưu kịch bản nên <strong>link chứa sẵn cả kịch bản</strong>: ai mở, ở máy nào cũng xem đúng bản bạn vừa lưu. Link khá dài, hãy gửi bằng nút Sao chép hoặc các nút chia sẻ; khi dán link, Zalo, Facebook hiện thẻ chung của Hanabi.${dropped}</span>`
+            : published
             ? '<i class="fas fa-circle-info"></i><span>Người nhận sẽ thấy <strong>bản đã đăng</strong> của kịch bản này. Những thay đổi bạn vừa lưu (kể cả tiêu đề, mô tả, ảnh khi chia sẻ) chỉ nằm trong trình duyệt của bạn. Để cập nhật: bấm <strong>Xuất</strong> và <strong>Tải ảnh thiệp</strong> bên dưới, chép file <code>.json</code> và <code>.jpg</code> vào <code>src/static/configs/</code> rồi đăng lại trang.</span>'
             : '<i class="fas fa-triangle-exclamation"></i><span>Kịch bản này mới chỉ lưu trong trình duyệt của bạn nên <strong>người khác mở link sẽ không xem được</strong>. Để gửi tặng: bấm <strong>Xuất</strong> và <strong>Tải ảnh thiệp</strong> bên dưới, đưa file <code>.json</code> và <code>.jpg</code> vào thư mục <code>src/static/configs/</code> của dự án rồi đăng lại trang (hoặc chạy trên máy chủ có PHP).</span>';
     }
 
+    // Link dài (kịch bản gói trong link) không vừa mã QR: ẩn mã QR, nút tải mã QR
     const qrCanvas = document.getElementById('share-qr');
     qrCanvas.width = qrCanvas.height = 320;
-    drawQr(qrCanvas, url, 320);
+    const qrOk = drawQr(qrCanvas, url, 320);
+    qrCanvas.classList.toggle('hide', !qrOk);
+    document.getElementById('btn-share-qr').classList.toggle('hide', !qrOk);
+    const qrText = document.getElementById('share-qr-text');
+    qrText.dataset.text ??= qrText.textContent;
+    qrText.textContent = qrOk ? qrText.dataset.text : 'Kịch bản dài nên link không vừa mã QR, hãy gửi link. Ảnh thiệp dùng để đăng Instagram, TikTok hoặc gửi kèm tin nhắn.';
 
     renderShareTracking();
     share.imageCanvas = await renderShareImage(getFinalConfig());

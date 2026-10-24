@@ -23,8 +23,11 @@ function chromePath() {
     return '/usr/bin/google-chrome';
 }
 
+// Tên miền giả của trang tĩnh (GitHub Pages): trình duyệt thử trỏ về máy chủ thử, trang tự nhận là trang tĩnh
+export const STATIC_HOST = 'hanabi-e2e.github.io';
+
 export function launchBrowser() {
-    const args = ['--mute-audio'];
+    const args = ['--mute-audio', `--host-resolver-rules=MAP ${STATIC_HOST} 127.0.0.1`];
     // Máy chạy CI (Linux) không cho Chrome dùng sandbox
     if (process.platform === 'linux') args.push('--no-sandbox');
     return puppeteer.launch({ executablePath: chromePath(), headless: 'new', protocolTimeout: 180000, args });

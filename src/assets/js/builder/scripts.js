@@ -9,7 +9,7 @@
 import { copyText } from '../share-targets.js';
 import { getOwnerKeys, removeOwnerKey } from '../gift-tracking.js';
 import { isStaticEnv, state } from './state.js';
-import { confirmAction, escapeHtml, getShowUrl, hideLoading, hideModal, notify, showLoading, showModal } from './util.js';
+import { confirmAction, escapeHtml, hideLoading, hideModal, notify, showLoading, showModal, showUrlFor } from './util.js';
 import { updateScriptNameLabel } from './timeline.js';
 import { getFinalConfig, getUniqueFilename, loadConfigIntoState } from './config.js';
 import { markSaved } from './history.js';
@@ -194,7 +194,12 @@ export async function duplicateScript(filename) {
 }
 
 export function previewScript(filename) {
-    window.open(getShowUrl(filename), '_blank');
+    // Mở tab ngay lúc bấm (đợi nén link xong mới mở thì trình duyệt chặn popup)
+    const tab = window.open('', '_blank');
+    showUrlFor(filename).then(url => {
+        if (tab) tab.location.href = url;
+        else window.open(url, '_blank');
+    });
 }
 
 export function editScript(filename) {

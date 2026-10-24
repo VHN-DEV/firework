@@ -24,6 +24,7 @@ import * as startFrames from './start-frames.test.mjs';
 import * as natureSound from './nature-sound.test.mjs';
 import * as nightSky from './night-sky.test.mjs';
 import * as people from './people.test.mjs';
+import * as staticShare from './static-share.test.mjs';
 import * as landing from './landing.test.mjs';
 
 if (!fs.existsSync(path.join(DIST, 'index.html'))) {
@@ -36,7 +37,7 @@ const browser = await launchBrowser();
 const all = [];
 let crashed = false;
 try {
-    for (const [name, suite] of [['Trình phát', player], ['Builder', builder], ['Xếp pháo theo nhịp nhạc', beat], ['Xuất video', video], ['Người nhận chụp, chia sẻ, tạo video', viewerShare], ['Báo mở quà', gift], ['Giao diện màn mở quà, màn kết', screenTheme], ['Kiểu bờ bên kia mặt nước', bankStyles], ['Mùa, thời tiết', seasons], ['Khung bắt đầu', startFrames], ['Âm thanh thiên nhiên', natureSound], ['Bầu trời sao', nightSky], ['Người ngắm pháo', people], ['API máy chủ', api], ['Trang chủ', landing], ['Trang & bản build', pages]]) {
+    for (const [name, suite] of [['Trình phát', player], ['Builder', builder], ['Xếp pháo theo nhịp nhạc', beat], ['Xuất video', video], ['Người nhận chụp, chia sẻ, tạo video', viewerShare], ['Báo mở quà', gift], ['Giao diện màn mở quà, màn kết', screenTheme], ['Kiểu bờ bên kia mặt nước', bankStyles], ['Mùa, thời tiết', seasons], ['Khung bắt đầu', startFrames], ['Âm thanh thiên nhiên', natureSound], ['Bầu trời sao', nightSky], ['Người ngắm pháo', people], ['Chia sẻ trên trang tĩnh (GitHub Pages)', staticShare], ['API máy chủ', api], ['Trang chủ', landing], ['Trang & bản build', pages]]) {
         console.log(`\n${name}`);
         const reporter = createReporter(name);
         try {

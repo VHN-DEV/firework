@@ -19,6 +19,7 @@ import { createFrameComposer, createMp4Writer, mixAudio } from './recorder.js';
 import { advanceClock, after, cancel, now, useSimulatedClock } from './player/clock.js';
 import { setupViewerShare } from './viewer-share.js';
 import { getOwnerKeys } from './gift-tracking.js';
+import { packedConfigInLink, unpackConfig } from './share-link.js';
 import { CONFIG_NAME, IS_DESKTOP, IS_HEADER, IS_HIGH_END_DEVICE, IS_PREVIEW, IS_RECORD, MAX_HEIGHT, MAX_WIDTH, QUALITY_HIGH, QUALITY_NORMAL, SKY_LIGHT_DIM, SKY_LIGHT_NONE, SKY_LIGHT_NORMAL, getDefaultScaleFactor } from './player/env.js';
 import { isLowQuality, quality, setCanPlaySound, setHorizon, setIsRunning, setQuality, setReduceFlashing, setSeason, setSettings, setSimSpeed, setSmokeLevel, setSoundEnabled, setStageSize, setWeather } from './player/state.js';
 import { QUALITY_AUTO, QUALITY_LEVELS, qualityLevel, validQuality } from './player/quality.js';
@@ -67,9 +68,12 @@ console.clear();
 
 printCopyrightNotice('Hanabi – Pháo hoa gửi tặng');
 
-// Màn trình diễn tặng riêng (?config=..., có tên người nhận) không đưa lên công cụ tìm kiếm.
+// Kịch bản gói sẵn trong link (demo#k=..., trang tĩnh không có máy chủ lưu kịch bản: share-link.js)
+const PACKED_CONFIG = packedConfigInLink();
+
+// Màn trình diễn tặng riêng (?config=... hay kịch bản gói trong link, có tên người nhận) không đưa lên công cụ tìm kiếm.
 // Đặt ngay khi tải trang vì Google không bấm nút "Bắt đầu".
-if (IS_PREVIEW || IS_RECORD || new URLSearchParams(window.location.search).get('config')) {
+if (IS_PREVIEW || IS_RECORD || new URLSearchParams(window.location.search).get('config') || PACKED_CONFIG) {
     document.querySelector('meta[name="robots"]')?.setAttribute('content', 'noindex, follow');
 }
 
@@ -718,6 +722,7 @@ async function fetchBurstConfig(configName) {
     const isStaticEnv = window.location.hostname.includes('github.io') ||
                         window.location.hostname.includes('vercel.app') ||
                         window.location.hostname.includes('netlify.app') ||
+                        window.location.hostname.includes('pages.dev') ||
                         window.location.protocol === 'file:';
 
     let config;
@@ -737,15 +742,18 @@ async function fetchBurstConfig(configName) {
         if (!response.ok) throw new Error('Config not found');
         config = await response.json();
     }
+    return checkedConfig(config);
+}
 
+function checkedConfig(config) {
     if (!config || !Array.isArray(config.events)) {
         throw new Error('Invalid config: missing events');
     }
     return config;
 }
 
-export const configRequest = !IS_PREVIEW && CONFIG_NAME
-    ? fetchBurstConfig(CONFIG_NAME).catch(e => {
+export const configRequest = !IS_PREVIEW && (CONFIG_NAME || PACKED_CONFIG)
+    ? (PACKED_CONFIG ? unpackConfig(PACKED_CONFIG).then(checkedConfig) : fetchBurstConfig(CONFIG_NAME)).catch(e => {
         console.error('Error loading burst config:', e);
         return null;
     })
@@ -1087,6 +1095,8 @@ const viewerShare = setupViewerShare({
         return was;
     },
     configName: CONFIG_NAME,
+    // Kịch bản gói trong link: chia sẻ lại đúng link đang xem
+    link: PACKED_CONFIG ? window.location.href : null,
     preview: IS_PREVIEW,
     off: IS_RECORD || IS_HEADER,
     reduceFlashing: reduceFlashingSelector,

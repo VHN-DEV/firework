@@ -42,11 +42,12 @@ async function shareFile(file, title) {
 /**
  * composeFrame(): Promise<canvas> khung hình đang hiện; describe(): { title, description } của màn trình diễn;
  * pauseShow(paused): tạm dừng/chạy tiếp, trả về trạng thái tạm dừng trước đó; configName: tên kịch bản (link quà) hoặc null;
+ * link: link chia sẻ cho sẵn (kịch bản gói trong link) hoặc null;
  * preview: bản xem nhanh trong builder (chỉ báo cho người tạo biết nút dùng làm gì); reduceFlashing(): không chớp khi chụp;
  * natureSound(): người xem đang nghe âm thanh thiên nhiên (tắt thì video tạo ra cũng không có);
  * off: không dùng tới (khung dựng video, ảnh đầu trang hồ sơ).
  */
-export function setupViewerShare({ composeFrame, describe, pauseShow, configName, preview, reduceFlashing, natureSound = () => true, off }) {
+export function setupViewerShare({ composeFrame, describe, pauseShow, configName, link = null, preview, reduceFlashing, natureSound = () => true, off }) {
     const bar = $('.moment-bar');
     const endShare = $('.end-screen__share');
     const endVideo = $('.end-screen__video');
@@ -111,6 +112,7 @@ export function setupViewerShare({ composeFrame, describe, pauseShow, configName
     // ---- Link chia sẻ: trang chia sẻ s/<tên> (khung xem trước đẹp trên mạng xã hội), chưa có thì link xem trực tiếp
     function shareUrl() {
         if (shareUrlRequest) return shareUrlRequest;
+        if (link) return (shareUrlRequest = Promise.resolve(link));
         if (!configName) return (shareUrlRequest = Promise.resolve(new URL('./', window.location.href).href));
         const page = new URL(`s/${encodeURIComponent(configName)}`, window.location.href).href;
         const direct = new URL(`demo?config=${encodeURIComponent(configName)}`, window.location.href).href;

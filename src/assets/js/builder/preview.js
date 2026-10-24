@@ -8,7 +8,7 @@
 
 import fscreen from '../fscreen@1.0.1.js';
 import { state } from './state.js';
-import { getShowUrl, notify } from './util.js';
+import { notify, showUrlFor } from './util.js';
 import { showActiveEvent } from './timeline.js';
 import { closeInspector, positionMobileSheet, renderInspector } from './inspector.js';
 import { getMusicAudio } from './music.js';
@@ -123,10 +123,12 @@ export function stopPreviewMusic() {
 export function previewConfig() {
     // Mở tab ngay lúc bấm nút: nếu đợi lưu xong mới mở, trình duyệt (nhất là Safari/iPhone) sẽ chặn popup
     const previewWindow = window.open('', '_blank');
-    saveConfig(true).then(filename => {
+    saveConfig(true).then(async filename => {
         if (filename) {
-            if (previewWindow) previewWindow.location.href = getShowUrl(filename);
-            else window.open(getShowUrl(filename), '_blank');
+            // Trang tĩnh: link chứa sẵn kịch bản, chép link ở tab xem thử gửi người khác vẫn xem đúng
+            const url = await showUrlFor(filename, getFinalConfig());
+            if (previewWindow) previewWindow.location.href = url;
+            else window.open(url, '_blank');
         } else if (previewWindow) {
             previewWindow.close();
         }

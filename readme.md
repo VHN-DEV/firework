@@ -39,6 +39,10 @@
 - Thư mục `dist` và `node_modules` không còn đưa lên git. Kịch bản lưu bằng builder trên XAMPP nằm trong `dist/configs`
   (và ảnh, nhạc trong `dist/uploads`): muốn giữ lâu dài hoặc đưa lên GitHub Pages thì chép sang `src/static/configs`
   (và `src/static/uploads`) rồi commit.
+- **Trang tĩnh** (GitHub Pages, Cloudflare Pages, Vercel, Netlify, mở file trực tiếp: không có PHP): builder lưu kịch
+  bản trong trình duyệt của người tạo, link chia sẻ và tab Xem thử dạng `/demo#k=...` chứa sẵn cả kịch bản (nén, xem
+  `src/assets/js/share-link.js`) nên ai mở cũng xem đúng. Ảnh tự tải lên không gói vào link; muốn link ngắn, có ảnh xem
+  trước khi dán link, báo mở quà thì chạy trên máy chủ có PHP.
 - **Đường dẫn (route)**: mọi link dùng đường dẫn không đuôi `.html`: `/` (trang chủ), `/demo` (trình phát, link tặng
   `/demo?config=<tên>`), `/builder`, `/terms`, `/privacy`, `/theo-doi?id=...&key=...`, `/s/<tên>` (trang chia sẻ). Mỗi
   route là file `<tên>.html` ở thư mục gốc nên đường dẫn tương đối (`assets/`, `api/`, `configs/`) không đổi. GitHub
