@@ -188,12 +188,48 @@ export function renderEventList() {
     refreshMiniPreview();
 }
 
+// Phát mới, bản sao: không chép theo pháo chữ, pháo ảnh (nội dung riêng của từng phát) hay Tạm dừng, Lời nhắn
+export const isPlainShot = e => !!e && isFireworkShot(e) && e.shell !== 'Văn bản' && e.shell !== 'Hình ảnh';
+
+// Chỗ ngang ưu tiên khi đặt một phát vào đợt: giữa trời rồi đối xứng dần ra hai bên
+const SPOTS_X = [50, 30, 70, 20, 80, 40, 60, 15, 85, 10, 90];
+// Hai phát cùng đợt gần nhau hơn chừng này (đơn vị vị trí 0-100) thì nổ chồng lên nhau, trông như một phát
+const SPOT_GAP = 15;
+// Phát mới nổ sau phát cuối của đợt một nhịp ngắn
+const NEXT_SHOT_MS = 250;
+
+// Chỗ ngang còn trống trong đợt cho một phát ở độ cao y: thử `prefer` trước rồi tới các chỗ ưu tiên; kín hết thì lấy
+// chỗ xa các phát khác nhất
+export function freeSpotX(burst, y, prefer) {
+    const others = getBurstEvents(burst).filter(isFireworkShot);
+    const room = x => Math.min(Infinity, ...others.map(e => Math.hypot((Number(e.x) || 0) - x, (Number(e.y) || 0) - y)));
+    const spots = prefer === undefined ? SPOTS_X : [prefer, ...SPOTS_X];
+    return spots.find(x => room(x) >= SPOT_GAP) ?? spots.reduce((best, x) => (room(x) > room(best) ? x : best));
+}
+
+// Phát mới: giống phát đang chọn (không thì phát cuối của đợt, của cả kịch bản) về loại pháo, màu, cỡ, kiểu bắn, hiệu
+// ứng, âm thanh; cùng độ cao, đặt vào chỗ còn trống của đợt; nổ sau phát cuối của đợt một nhịp ngắn (khớp nhạc thì nổ
+// cùng nhịp với phát mẫu). Chưa có phát nào để theo: Hoa cúc giữa trời như trước.
+function newShotConfig(burst, active) {
+    const shots = getBurstEvents(burst);
+    const model = [active, ...[...shots].reverse(), ...[...state.events].reverse()].find(isPlainShot);
+    if (!model) return { burst };
+    const { id, expanded, burst: _, x, y, delay, duration, text, textSize, frame, imageUrl, position, ...look } = JSON.parse(JSON.stringify(model));
+    const times = shots.filter(isFireworkShot).map(e => Number(e.delay) || 0);
+    const last = Math.max(0, ...times);
+    const nextDelay = !times.length ? 0
+        : isSyncMode() ? (shots.includes(model) ? Number(model.delay) || 0 : last)
+        : Math.min(last + NEXT_SHOT_MS, Math.max(last, getBurstDuration(shots) - 1000));
+    const height = Number(model.y) || 50;
+    return { ...look, burst, x: freeSpotX(burst, height), y: height, delay: nextDelay };
+}
+
 // Thêm phát bắn từ giao diện rồi mở luôn bảng chỉnh sửa.
 // Mặc định vào cùng đợt với phát đang chọn (không chọn thì vào đợt cuối).
 export function addEventFromUI(burst) {
     const active = state.events.find(e => e.id === state.activeEventId);
     const targetBurst = burst ?? (active ? Number(active.burst) || 1 : Math.max(1, getMaxBurst()));
-    addEvent({ burst: targetBurst }, { render: false });
+    addEvent(newShotConfig(targetBurst, active), { render: false });
 
     // Đặt ngay sau phát cuối cùng của đợt đó để số thứ tự (#) liền mạch
     const added = state.events.pop();

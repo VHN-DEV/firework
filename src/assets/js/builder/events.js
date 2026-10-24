@@ -10,8 +10,8 @@ import { resolveScreenTheme } from '../player/screen-themes.js';
 import { EMOJI_GROUPS } from '../text-emojis.js';
 import backgroundImgUrl from '../../img/background.webp';
 import { state } from './state.js';
-import { confirmAction, notify, syncLoopState } from './util.js';
-import { renderEventList, selectEvent, updateScriptNameLabel } from './timeline.js';
+import { confirmAction, formatNumber, notify, syncLoopState } from './util.js';
+import { freeSpotX, isPlainShot, renderEventList, selectEvent, updateScriptNameLabel } from './timeline.js';
 import { refreshInspectorHeader, renderInspector, syncXYPad } from './inspector.js';
 import { renderMusic } from './music.js';
 import { refreshMiniPreview, stopPreviewMusic, updateMiniInfo } from './preview.js';
@@ -242,6 +242,14 @@ export function duplicateEvent(id) {
         id: newId,
         expanded: false
     };
+    // Bản sao nổ cùng lúc ở đúng chỗ cũ thì trông như một phát: đặt đối xứng sang bên kia (phát gần giữa trời, hay bên
+    // kia đã có phát thì sang chỗ còn trống của đợt). Pháo chữ, pháo ảnh giữ chỗ cũ để sửa nội dung.
+    const moved = isPlainShot(newEvent);
+    if (moved) {
+        const x = Number(newEvent.x) || 50;
+        const mirror = Math.abs(x - 50) >= 8 ? Math.round((100 - x) * 10) / 10 : undefined;
+        newEvent.x = freeSpotX(Number(newEvent.burst) || 1, Number(newEvent.y) || 50, mirror);
+    }
 
     // Insert after the original event
     state.events.splice(index + 1, 0, newEvent);
@@ -249,7 +257,7 @@ export function duplicateEvent(id) {
 
     // Mở luôn bản sao để chỉnh tiếp
     selectEvent(newId);
-    notify('Đã nhân bản phát bắn!', 'success');
+    notify(moved ? `Đã nhân bản phát bắn, bản sao ở vị trí ngang ${formatNumber(newEvent.x)}.` : 'Đã nhân bản phát bắn!', 'success');
 }
 
 // Giá trị dùng khi người dùng xóa trống các ô bắt buộc (thiếu "Đợt" thì phát bắn không bao giờ được bắn)

@@ -31,6 +31,32 @@ export async function run(browser, base, { check }) {
         check('chưa đặt tên file: bấm Lưu tự đặt theo Tiêu đề, ô Tên file báo trước tên sẽ dùng',
             saved === ID && placeholder.includes(ID) && fs.existsSync(path.join(DIST, 'configs', `${ID}.json`)), JSON.stringify({ saved, placeholder }));
 
+        // Danh sách phát bắn như người tạo thấy: loại pháo, vị trí, thời điểm của từng dòng
+        const rows = () => page.$$eval('.shot-row', list => list.map(row => {
+            const [x, y] = row.querySelector('.fa-location-dot')?.parentElement.textContent.split(',').map(Number) || [];
+            const when = row.querySelector('.fa-clock')?.parentElement.textContent.trim();
+            return { id: Number(row.dataset.id), shell: row.querySelector('.shot-title').childNodes[2]?.textContent.trim(), x, y, when };
+        }));
+        // Phát mới giống phát đang chọn (Liễu, cỡ, độ cao), đặt vào chỗ trống của đợt, nổ sau một nhịp; không chồng lên nhau
+        const first = (await rows())[0].id;
+        await page.evaluate(id => {
+            selectEvent(id);
+            updateEvent(id, 'shell', 'Liễu');
+            updateEvent(id, 'x', 22);
+            updateEvent(id, 'y', 60);
+        }, first);
+        await page.evaluate(() => addEventFromUI());
+        await sleep(300);
+        const added = (await rows())[1];
+        check('thêm phát bắn: giống phát đang chọn, cùng độ cao, đặt chỗ trống của đợt, nổ sau một nhịp',
+            added && added.shell === 'Liễu' && added.y === 60 && Math.abs(added.x - 22) >= 15 && added.when === '+250 ms', JSON.stringify(added));
+        // Nhân bản: bản sao đối xứng sang bên kia (22 -> 78), không nổ chồng lên phát gốc
+        await page.evaluate(id => duplicateEvent(id), first);
+        await sleep(300);
+        const copy = (await rows())[1];
+        check('nhân bản phát bắn: bản sao đặt đối xứng sang bên kia, cùng độ cao, cùng thời điểm',
+            copy && copy.shell === 'Liễu' && copy.x === 78 && copy.y === 60 && copy.when === 'Ngay', JSON.stringify(copy));
+
         check('builder (tinh chỉnh thao tác) không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
         await page.close();
