@@ -6,13 +6,15 @@
 
 // Trang quản trị (/admin: admin.html, src/assets/js/admin.js): chỉ tài khoản Google có email trong ADMIN_EMAILS
 // (wrangler.jsonc: vars, nhiều email cách nhau dấu phẩy) dùng được, đăng nhập như builder (account.js).
-// api/admin.php?action=... (POST): overview; scripts, script, deleteScript; users, lockUser, deleteUser; library,
-// libraryAdd (form có file), libraryUpdate, libraryDelete; replies, deleteReply.
+// api/admin.php?action=... (POST): overview, usage (hạn mức Cloudflare hôm nay: usage.js); scripts, script, deleteScript;
+// users, lockUser, deleteUser; library, libraryAdd (form có file), libraryUpdate, libraryDelete; replies (gom theo kịch
+// bản), deleteReply.
 
 import { currentUser } from './account.js';
 import { database, deleteUser, now, randomHex } from './db.js';
 import { LIBRARY_FIELDS, LIBRARY_KINDS, deleteLibraryRow, libraryItems, libraryRow, saveLibraryRow } from './library.js';
 import { audioType, deleteMedia, imageType, putMedia } from './media.js';
+import { cloudflareUsage } from './usage.js';
 
 const PAGE_SIZE = 50;
 // Xóa người dùng kèm kịch bản: mỗi lần gọi xóa tối đa chừng này kịch bản (D1 miễn phí chỉ cho 50 câu lệnh mỗi lần gọi
@@ -163,14 +165,27 @@ async function libraryAdd(request, env, { json, fail }) {
 
 // ---- Lời cảm ơn ----
 
-async function replyRows(env, { page = 1 }) {
+// Gom theo kịch bản (ai tặng ai, ai cảm ơn), kịch bản có lời mới nhất trước: [{ id, title, author, recipient, owners,
+// total, replies: [{ n, t, name, message }] }]
+const REPLY_GROUPS = 20;
+
+async function replyGroups(env, { page = 1 }) {
     const db = await database(env);
-    const [rows, total] = await db.batch([
-        db.prepare('SELECT r.n, r.id, r.t, r.name, r.message, c.title FROM replies r LEFT JOIN configs c ON c.id = r.id '
-            + 'ORDER BY r.n DESC LIMIT ? OFFSET ?').bind(PAGE_SIZE, (page - 1) * PAGE_SIZE),
-        db.prepare('SELECT count(*) AS n FROM replies')
+    const [groups, total] = await db.batch([
+        db.prepare("SELECT r.id, c.title, c.author, json_extract(c.data, '$.recipient') AS recipient, count(*) AS total, max(r.n) AS last, "
+            + "(SELECT group_concat(u.email, ', ') FROM user_keys k JOIN users u ON u.id = k.user WHERE k.id = r.id) AS owners "
+            + 'FROM replies r LEFT JOIN configs c ON c.id = r.id GROUP BY r.id ORDER BY last DESC LIMIT ? OFFSET ?')
+            .bind(REPLY_GROUPS, (page - 1) * REPLY_GROUPS),
+        db.prepare('SELECT count(DISTINCT id) AS n FROM replies')
     ]);
-    return { items: rows.results, total: total.results[0].n, page, pageSize: PAGE_SIZE };
+    const ids = groups.results.map(group => group.id);
+    const { results } = await db.prepare('SELECT n, id, t, name, message FROM replies WHERE id IN (SELECT value FROM json_each(?)) ORDER BY n DESC')
+        .bind(JSON.stringify(ids)).all();
+    const items = groups.results.map(group => ({
+        id: group.id, title: group.title || group.id, author: group.author || '', recipient: group.recipient || '',
+        owners: group.owners || '', total: group.total, replies: results.filter(reply => reply.id === group.id)
+    }));
+    return { items, total: total.results[0].n, page, pageSize: REPLY_GROUPS };
 }
 
 // ---------------------------------------------------------------------------
@@ -197,11 +212,17 @@ export async function admin(request, env, url, tools) {
             + "(SELECT count(*) FROM configs WHERE id LIKE 'preview_temp%') AS previews, "
             + '(SELECT count(*) FROM users) AS users, (SELECT count(*) FROM users WHERE created > ?1) AS usersWeek, '
             + '(SELECT count(*) FROM users WHERE locked = 1) AS locked, (SELECT count(*) FROM replies) AS replies, '
-            + '(SELECT count(*) FROM sessions WHERE expires > ?2) AS sessions').bind(weekAgo, now()).first();
+            + "(SELECT count(*) FROM replies WHERE t > ?3) AS repliesWeek, "
+            + "(SELECT coalesce(sum(json_extract(data, '$.counts.open')), 0) FROM opens) AS opens, "
+            + "(SELECT coalesce(sum(json_extract(data, '$.counts.view')), 0) FROM opens) AS views, "
+            + '(SELECT count(*) FROM sessions WHERE expires > ?2) AS sessions')
+            .bind(weekAgo, now(), new Date(weekAgo * 1000).toISOString()).first();
         const scripts = await scriptRows(env, { size: 6 });
         const users = await userRows(env, {});
         return json({ success: true, counts, scripts: scripts.items, users: users.items.slice(0, 6), me: user.email });
     }
+    case 'usage':
+        return json({ success: true, ...(await cloudflareUsage(env)) });
     case 'scripts':
         return json({ success: true, ...(await scriptRows(env, { q: text(body.q, 80), user: text(body.user, 120), page: pageOf(body.page) })) });
     case 'script': {
@@ -266,7 +287,7 @@ export async function admin(request, env, url, tools) {
         return json({ success: true });
     }
     case 'replies':
-        return json({ success: true, ...(await replyRows(env, { page: pageOf(body.page) })) });
+        return json({ success: true, ...(await replyGroups(env, { page: pageOf(body.page) })) });
     case 'deleteReply':
         await db.prepare('DELETE FROM replies WHERE n = ?').bind(Math.floor(Number(body.n)) || 0).run();
         return json({ success: true });

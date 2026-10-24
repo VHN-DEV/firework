@@ -10,7 +10,7 @@
 // mở quà, Xem thử, trình duyệt giữ được kịch bản, nhạc, trang chia sẻ (mở lại không tải lại), giới hạn số lần tải lên của mỗi máy, xóa kịch bản thì xóa ảnh, nhạc chỉ nó dùng, lần dọn hằng ngày
 // xóa ảnh không kịch bản nào dùng, đăng nhập Google (khóa giả thay Google: mã đăng nhập do kiểm thử tự ký) giữ kịch bản
 // trên máy khác, trang quản trị (chỉ email quản trị vào được; xem, xóa kịch bản; khóa, xóa người dùng; kho nhạc; lời cảm
-// ơn). Mỗi lần chạy dùng dữ liệu mới (thư mục tạm). Cần bản build (npm run build) và mạng để npx tải wrangler lần đầu. Chạy: npm run test:worker
+// ơn gom theo kịch bản; hạn mức Cloudflare đọc từ GraphQL giả). Mỗi lần chạy dùng dữ liệu mới (thư mục tạm). Cần bản build (npm run build) và mạng để npx tải wrangler lần đầu. Chạy: npm run test:worker
 import { spawn, spawnSync } from 'child_process';
 import crypto from 'crypto';
 import fs from 'fs';
@@ -34,9 +34,33 @@ const ADMIN_EMAIL = 'quantri@example.com';
 const CERTS_PORT = PORT - 3;
 const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
 const jwk = { ...publicKey.export({ format: 'jwk' }), kid: 'hanabi-test', alg: 'RS256', use: 'sig' };
+// Cùng máy chủ giả trả số liệu Cloudflare (GraphQL) cho trang quản trị: một nhóm báo lỗi để thấy nhóm khác vẫn hiện
+const CF_ACCOUNT = 'a'.repeat(32);
+const today = new Date().toISOString().slice(0, 10);
+const GRAPHQL = {
+    workersInvocationsAdaptive: [{ sum: { requests: 1200, errors: 3 } }, { sum: { requests: 34, errors: 0 } }],
+    d1AnalyticsAdaptiveGroups: [{ sum: { readQueries: 90, writeQueries: 9, rowsRead: 5000, rowsWritten: 70 } }],
+    kvOperationsAdaptiveGroups: [{ sum: { requests: 40 }, dimensions: { actionType: 'read' } }, { sum: { requests: 5 }, dimensions: { actionType: 'write' } }],
+    kvStorageAdaptiveGroups: [{ max: { byteCount: 2048, keyCount: 3 }, dimensions: { date: today, namespaceId: 'n1' } },
+        { max: { byteCount: 1024, keyCount: 2 }, dimensions: { date: '2000-01-01', namespaceId: 'n1' } }]
+};
 const certs = http.createServer((req, res) => {
-    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'public, max-age=3600' });
-    res.end(JSON.stringify({ keys: [jwk] }));
+    if (req.url !== '/graphql') {
+        res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'public, max-age=3600' });
+        res.end(JSON.stringify({ keys: [jwk] }));
+        return;
+    }
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+        const query = JSON.parse(body).query;
+        const name = Object.keys(GRAPHQL).find(key => query.includes(key));
+        const authorized = req.headers.authorization === 'Bearer cf-test-token' && query.includes(CF_ACCOUNT);
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(!authorized ? { data: null, errors: [{ message: 'not authorized' }] }
+            : name ? { data: { viewer: { accounts: [{ [name]: GRAPHQL[name] }] } }, errors: null }
+                : { data: null, errors: [{ message: 'unknown field "databaseSizeBytes"' }] }));
+    });
 }).listen(CERTS_PORT, '127.0.0.1');
 const base64url = obj => Buffer.from(JSON.stringify(obj)).toString('base64url');
 const googleToken = (claims = {}) => {
@@ -51,7 +75,8 @@ const googleToken = (claims = {}) => {
 // --test-scheduled: gọi lần dọn hằng ngày qua /__scheduled; ORPHAN_DAYS=0: dọn cả ảnh vừa tải lên
 const wrangler = spawn('npx', ['--yes', 'wrangler@4', 'dev', '--port', String(PORT), '--ip', '127.0.0.1', '--persist-to', `"${STATE}"`,
     '--test-scheduled', '--var', 'ORPHAN_DAYS:0', '--var', `GOOGLE_CLIENT_ID:${CLIENT_ID}`, '--var', `GOOGLE_CERTS_URL:http://127.0.0.1:${CERTS_PORT}/certs`,
-    '--var', `ADMIN_EMAILS:${ADMIN_EMAIL}`,
+    '--var', `ADMIN_EMAILS:${ADMIN_EMAIL}`, '--var', `CF_ACCOUNT_ID:${CF_ACCOUNT}`, '--var', 'CF_API_TOKEN:cf-test-token',
+    '--var', `CF_GRAPHQL_URL:http://127.0.0.1:${CERTS_PORT}/graphql`,
     '--show-interactive-dev-session=false'],
     { cwd: ROOT, shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
 let log = '';
@@ -357,34 +382,54 @@ try {
     // Lời cảm ơn: xem, xóa; xóa người dùng kèm kịch bản
     await api('opens.php?action=reply', { id: GUEST_ID, name: 'Bạn', message: 'Lời cần xóa' });
     const adminReplies = await call(adm.cookie, 'admin.php?action=replies');
-    const reply = adminReplies.items.find(r => r.message === 'Lời cần xóa');
+    const group = adminReplies.items.find(g => g.id === GUEST_ID) || { replies: [] };
+    const reply = group.replies.find(r => r.message === 'Lời cần xóa');
     await call(adm.cookie, 'admin.php?action=deleteReply', { n: reply && reply.n });
     const repliesAfter = await call(adm.cookie, 'admin.php?action=replies');
     const removedUser = await call(adm.cookie, 'admin.php?action=deleteUser', { id: guestId.id, scripts: true });
     const usersAfter = await call(adm.cookie, 'admin.php?action=users');
-    check('quản trị: xóa lời cảm ơn; xóa người dùng kèm kịch bản của họ', !!reply && reply.title === 'Quà của khách'
-        && !repliesAfter.items.some(r => r.message === 'Lời cần xóa') && removedUser.success && !usersAfter.items.some(u => u.email === 'nguoidung@example.com')
-        && (await fetch(`${BASE}/configs/${GUEST_ID}.json`)).status === 404, JSON.stringify({ reply, removedUser }));
+    check('quản trị: lời cảm ơn gom theo kịch bản (ai tặng, tài khoản), xóa được; xóa người dùng kèm kịch bản của họ', !!reply
+        && group.title === 'Quà của khách' && group.author === 'Khách' && group.owners === 'nguoidung@example.com'
+        && !repliesAfter.items.some(g => g.replies.some(r => r.message === 'Lời cần xóa')) && removedUser.success && !usersAfter.items.some(u => u.email === 'nguoidung@example.com')
+        && (await fetch(`${BASE}/configs/${GUEST_ID}.json`)).status === 404, JSON.stringify({ group, removedUser }));
+
+    const usage = await call(adm.cookie, 'admin.php?action=usage');
+    const used = Object.fromEntries((usage.items || []).map(item => [item.key, item.used]));
+    const guestUsage = await call((await loginAs({ sub: '4000004', email: 'khac@example.com' })).cookie, 'admin.php?action=usage');
+    check('quản trị: hạn mức Cloudflare hôm nay (lượt gọi, D1, KV, dung lượng); nhóm lỗi chỉ báo nhóm đó; tài khoản thường không xem được',
+        usage.configured && used.requests === 1234 && used.d1RowsRead === 5000 && used.d1RowsWritten === 70 && used.kvRead === 40
+        && used.kvWrite === 5 && used.kvStorage === 2048 && used.d1Storage === null && guestUsage.status === 403, JSON.stringify(usage));
 
     // Trang /admin trong trình duyệt: email quản trị thấy các mục; tài khoản thường chỉ thấy lời báo không có quyền
     const { context: adminCtx, p: adminPage } = await page();
+    await adminPage.setViewport({ width: 1366, height: 900 });
     await adminPage.goto(`${BASE}/admin`, { waitUntil: 'networkidle0' });
     const gateText = await adminPage.$eval('#gate-message', e => e.textContent);
     await adminPage.evaluate(token => fetch('api/account.php?action=login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential: token, keys: {} }) }), googleToken({ sub: '2000002', email: ADMIN_EMAIL }));
     await adminPage.reload({ waitUntil: 'networkidle0' });
-    await adminPage.waitForSelector('.admin-stat', { timeout: 10000 }).catch(() => {});
-    const stats = await adminPage.$$eval('.admin-stat', els => els.length);
+    await adminPage.waitForSelector('.kpi', { timeout: 10000 }).catch(() => {});
+    await adminPage.waitForSelector('#usage .meter', { timeout: 10000 }).catch(() => {});
+    const stats = await adminPage.$$eval('.kpi', els => els.length);
+    const meters = await adminPage.$$eval('#usage .meter', els => els.length);
     await adminPage.click('[data-tab="scripts"]');
-    await adminPage.waitForSelector('#panel .admin-row', { timeout: 10000 }).catch(() => {});
-    const scriptRows = await adminPage.$$eval('#panel .admin-row', els => els.length);
+    await adminPage.waitForSelector('#panel tbody tr', { timeout: 10000 }).catch(() => {});
+    const scriptRows = await adminPage.$$eval('#panel tbody tr', els => els.length);
+    // Chi tiết kịch bản -> Xóa kịch bản -> hộp hỏi lại (không bấm Xóa)
+    await adminPage.click('#panel [data-action="detail"]');
+    await adminPage.waitForSelector('#modal[open] [data-modal-action="delete"]', { timeout: 5000 }).catch(() => {});
+    await adminPage.click('#modal [data-modal-action="delete"]');
+    await adminPage.waitForSelector('#modal[open] [data-modal-action="ok"]', { timeout: 5000 }).catch(() => {});
+    await sleep(300);
+    const confirmTitle = await adminPage.$eval('#modal[open] #modal-title', el => el.textContent).catch(() => '');
+    await adminPage.click('#modal [data-modal-action="cancel"]');
     await adminPage.click('[data-tab="music"]');
-    await adminPage.waitForSelector('#panel .admin-upload', { timeout: 10000 }).catch(() => {});
-    const musicRows = await adminPage.$$eval('#panel .admin-row', els => els.length);
-    check('trang /admin: chưa đăng nhập thì mời đăng nhập; quản trị thấy Tổng quan, Kịch bản, Kho nhạc, không lỗi JS', /Đăng nhập/.test(gateText)
-        && stats === 5 && scriptRows > 0 && musicRows === JSON.parse(fs.readFileSync(path.join(DIST, 'library/music/index.json'), 'utf8')).length
-        && !adminPage.errors.length,
-        JSON.stringify({ gateText, stats, scriptRows, musicRows, errors: adminPage.errors }));
+    await adminPage.waitForSelector('#panel tbody tr', { timeout: 10000 }).catch(() => {});
+    const musicRows = await adminPage.$$eval('#panel tbody tr', els => els.length);
+    check('trang /admin: chưa đăng nhập thì mời đăng nhập; quản trị thấy Bảng điều khiển (số liệu, hạn mức Cloudflare), Kịch bản (hỏi lại trước khi xóa), Kho nhạc, không lỗi JS',
+        /Đăng nhập/.test(gateText) && stats === 4 && meters === 9 && scriptRows > 0 && confirmTitle === 'Xóa kịch bản?'
+        && musicRows === JSON.parse(fs.readFileSync(path.join(DIST, 'library/music/index.json'), 'utf8')).length && !adminPage.errors.length,
+        JSON.stringify({ gateText, stats, meters, scriptRows, confirmTitle, musicRows, errors: adminPage.errors }));
     await adminCtx.close();
     check('builder không lỗi JS', !a.errors.length, a.errors.join(' | '));
     await context.close();

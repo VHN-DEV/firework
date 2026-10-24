@@ -15,7 +15,7 @@
     <!-- Trang quản trị của chủ trang: không đưa lên công cụ tìm kiếm -->
     <meta name="robots" content="noindex, nofollow">
     <meta name="referrer" content="no-referrer">
-    <meta name="theme-color" content="#0e1119">
+    <meta name="theme-color" content="#0b0d12">
     <link rel="icon" href="/favicon.ico" sizes="48x48">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -25,48 +25,66 @@
 </head>
 
 <body>
-    <header class="admin-top">
-        <a class="admin-brand" href="./"><img src="/favicon.svg" alt="" width="30" height="30"><span><b>Hanabi</b><small>Quản trị</small></span></a>
-        <div id="admin-me" class="admin-me hide">
-            <span id="admin-email"></span>
-            <button type="button" class="admin-btn ghost" id="btn-logout"><i class="fas fa-right-from-bracket"></i><span>Đăng xuất</span></button>
-        </div>
-    </header>
-
     <!-- Chưa đăng nhập, không có quyền, bản không có quản trị -->
-    <main id="gate" class="admin-gate">
-        <div class="admin-card">
-            <i class="fas fa-shield-halved admin-gate__icon" aria-hidden="true"></i>
-            <h1>Trang quản trị</h1>
+    <main id="gate" class="gate">
+        <div class="gate__card">
+            <a class="brand" href="./"><img src="/favicon.svg" alt="" width="40" height="40"><span><b>Hanabi</b><small>Quản trị</small></span></a>
+            <h1>Đăng nhập quản trị</h1>
             <p id="gate-message">Đang kiểm tra...</p>
             <div id="gate-google" class="google-button"></div>
-            <button type="button" id="gate-logout" class="admin-btn hide">Đăng xuất, dùng tài khoản khác</button>
+            <button type="button" id="gate-logout" class="btn hide">Đăng xuất, dùng tài khoản khác</button>
         </div>
+        <p class="gate__foot">© 2026 Vũ Hoài Nam · <a href="./">Về trang chủ</a></p>
     </main>
 
-    <div id="app" class="admin-app hide">
-        <nav class="admin-tabs" role="tablist" aria-label="Mục quản trị">
-            <button type="button" role="tab" data-tab="overview"><i class="fas fa-gauge"></i> Tổng quan</button>
-            <button type="button" role="tab" data-tab="scripts"><i class="fas fa-wand-magic-sparkles"></i> Kịch bản</button>
-            <button type="button" role="tab" data-tab="users"><i class="fas fa-users"></i> Người dùng</button>
-            <button type="button" role="tab" data-tab="music"><i class="fas fa-compact-disc"></i> Kho nhạc</button>
-            <button type="button" role="tab" data-tab="images"><i class="fas fa-images"></i> Kho ảnh</button>
-            <button type="button" role="tab" data-tab="replies"><i class="fas fa-heart"></i> Lời cảm ơn</button>
-        </nav>
-        <!-- Nội dung từng mục: admin.js dựng -->
-        <main id="panel" class="admin-panel" role="tabpanel"></main>
+    <div id="app" class="shell hide">
+        <aside id="sidebar" class="sidebar" aria-label="Điều hướng quản trị">
+            <a class="brand" href="./"><img src="/favicon.svg" alt="" width="32" height="32"><span><b>Hanabi</b><small>Quản trị</small></span></a>
+            <nav class="sidebar__nav">
+                <span class="sidebar__group">Tổng quan</span>
+                <button type="button" data-tab="overview"><i class="fas fa-chart-pie"></i><span>Bảng điều khiển</span></button>
+                <span class="sidebar__group">Nội dung</span>
+                <button type="button" data-tab="scripts"><i class="fas fa-wand-magic-sparkles"></i><span>Kịch bản</span><em data-count="scripts"></em></button>
+                <button type="button" data-tab="replies"><i class="fas fa-heart"></i><span>Lời cảm ơn</span><em data-count="replies"></em></button>
+                <span class="sidebar__group">Tài khoản</span>
+                <button type="button" data-tab="users"><i class="fas fa-users"></i><span>Người dùng</span><em data-count="users"></em></button>
+                <span class="sidebar__group">Kho</span>
+                <button type="button" data-tab="music"><i class="fas fa-music"></i><span>Kho nhạc</span></button>
+                <button type="button" data-tab="images"><i class="fas fa-image"></i><span>Kho ảnh</span></button>
+            </nav>
+            <div class="sidebar__me">
+                <span id="me-avatar" class="avatar"></span>
+                <div><strong id="me-name"></strong><small id="me-email"></small></div>
+                <button type="button" class="btn btn--icon btn--ghost" id="btn-logout" title="Đăng xuất" aria-label="Đăng xuất"><i class="fas fa-arrow-right-from-bracket"></i></button>
+            </div>
+        </aside>
+        <div class="sidebar-backdrop" data-close-nav></div>
+
+        <div class="main">
+            <header class="topbar">
+                <button type="button" class="btn btn--icon btn--ghost topbar__menu" data-open-nav aria-label="Mở menu"><i class="fas fa-bars"></i></button>
+                <div class="topbar__heading">
+                    <h1 id="page-title"></h1>
+                    <p id="page-subtitle"></p>
+                </div>
+                <div id="page-actions" class="topbar__actions"></div>
+            </header>
+            <!-- Nội dung từng mục: admin.js dựng -->
+            <main id="panel" class="content"></main>
+        </div>
     </div>
 
-    <!-- Chi tiết kịch bản -->
-    <dialog id="script-dialog" class="admin-dialog">
-        <div class="admin-dialog__head">
-            <h2 id="script-dialog-title"></h2>
-            <button type="button" class="admin-btn icon" data-close aria-label="Đóng"><i class="fas fa-xmark"></i></button>
+    <!-- Hộp thoại dùng chung: chi tiết kịch bản, xác nhận, thêm và sửa mục kho -->
+    <dialog id="modal" class="modal" aria-labelledby="modal-title">
+        <div class="modal__head">
+            <h2 id="modal-title"></h2>
+            <button type="button" class="btn btn--icon btn--ghost" data-modal-close aria-label="Đóng"><i class="fas fa-xmark"></i></button>
         </div>
-        <div id="script-dialog-body" class="admin-dialog__body"></div>
+        <div id="modal-body" class="modal__body"></div>
+        <div id="modal-foot" class="modal__foot"></div>
     </dialog>
 
-    <div id="toast" class="admin-toast hide" role="status" aria-live="polite"></div>
+    <div id="toasts" class="toasts" aria-live="polite"></div>
 
     <script type="module" src="./src/assets/js/admin.js"></script>
 </body>

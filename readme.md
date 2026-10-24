@@ -66,8 +66,10 @@
   Trang quản trị `/admin` (`admin.html`, `src/assets/js/admin.js`, `worker/admin.js`): chỉ email Google trong
   `ADMIN_EMAILS` (`wrangler.jsonc`) vào được. Xem, tìm, xóa kịch bản; khóa, mở khóa, xóa người dùng (kèm kịch bản nếu muốn);
   thêm, sửa, ẩn, xóa bài nhạc, ảnh trong kho (file lưu KV/R2 `library/<loại>/`, danh sách gộp với
-  `library/<loại>/index.json` tĩnh trong bảng `library` của D1: `worker/library.js`); xóa lời cảm ơn. Bản PHP không có
-  trang quản trị (`api/admin.php` trả "không hỗ trợ").
+  `library/<loại>/index.json` tĩnh trong bảng `library` của D1: `worker/library.js`); lời cảm ơn gom theo kịch bản. Bảng
+  điều khiển hiện hạn mức Cloudflare đã dùng hôm nay (lượt gọi Worker, D1, KV, dung lượng; `worker/usage.js`, GraphQL
+  Analytics API) khi Worker có hai Secret `CF_ACCOUNT_ID`, `CF_API_TOKEN` (token quyền Account Analytics: Read). Bản PHP
+  không có trang quản trị (`api/admin.php` trả "không hỗ trợ").
   Chạy thử tại máy: `npm run build` rồi
   `npx wrangler dev` (D1, KV giả lập trong `.wrangler/`); kiểm thử `npm run test:worker` (cần mạng để tải wrangler).
 - **Đường dẫn (route)**: mọi link dùng đường dẫn không đuôi `.html`: `/` (trang chủ), `/demo` (trình phát, link tặng
