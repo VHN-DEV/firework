@@ -159,6 +159,7 @@ export class Stage3D {
         this.scene.add(this.hemi, this.key, this.key.target, this.fill);
         this.actors = [];
         this.toon = [];
+        this.outlines = [];
         this.umbrellas = [];
         this.size = { w: 0, h: 0, k: 0 };
     }
@@ -177,12 +178,17 @@ export class Stage3D {
             this.scene.add(actor.root);
             return actor;
         });
-        // Chất liệu MToon có viền sáng (setLight đổi theo ánh pháo mỗi khung)
+        // Chất liệu MToon có viền sáng (setLight đổi theo ánh pháo mỗi khung); viền nét dày theo mét (setView)
         const toon = new Set();
+        const outlines = new Set();
         this.actors.forEach(a => a.vrm.scene.traverse(o => {
-            if (o.isMesh) [].concat(o.material).forEach(m => { if (m && m.isMToonMaterial && m.parametricRimColorFactor) toon.add(m); });
+            if (o.isMesh) [].concat(o.material).forEach(m => {
+                if (m && m.isMToonMaterial && m.parametricRimColorFactor) toon.add(m);
+                if (m && m.isOutline && m.outlineWidthMode === 'worldCoordinates') outlines.add(m);
+            });
         }));
         this.toon = [...toon];
+        this.outlines = [...outlines];
         return this.actors;
     }
 
@@ -214,6 +220,10 @@ export class Stage3D {
         cam.updateProjectionMatrix();
         cam.updateMatrixWorld(true);
         this.view = { cssW, cssH, ppm };
+        // Viền nét của áo, da (0,8 mm theo mét) ở cỡ nhân vật trong cảnh mảnh hơn một điểm ảnh (~0,2 điểm ảnh cả khi 4K):
+        // không thành nét viền mà chỉ thò ra lấm tấm dọc nếp áo, đường may, càng nét càng rõ. Mảnh vậy thì không vẽ (bớt
+        // luôn một lượt vẽ mỗi mảnh áo); nhân vật được vẽ to tới mức viền dày đủ một điểm ảnh thì viền hiện lại
+        this.outlines.forEach(m => { m.visible = m.outlineWidthFactor * ppm * k >= 1; });
     }
 
     // sky: màu trời theo ánh pháo; focusX: chỗ pháo đang nổ (mét, theo trục x của cảnh)
