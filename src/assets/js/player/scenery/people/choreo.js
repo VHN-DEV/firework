@@ -70,10 +70,13 @@ class Walker {
         this.gait = gait;
         this.dir = x > actor.x ? 1 : -1;
         this.stopDist = Math.max(0.2, actor.stride('stop').dist);
-        actor.goalYaw = this.dir * Math.PI / 2;
-        if (turn && Math.abs(actor.yaw - actor.goalYaw) > 0.35) {
+        const goal = this.dir * Math.PI / 2;
+        if (turn && Math.abs(actor.yaw - goal) > 0.35) {
+            // Đang đứng trong khung: quay người bằng bước chân sang hướng đi rồi bước luôn
             this.state = 'turn';
+            if (!actor.turnTo(goal, { then: [gait, { fade: 0.35, speed }] })) actor.goalYaw = goal;
         } else {
+            actor.goalYaw = goal;
             actor.yaw = actor.goalYaw;
             this.state = 'walk';
             actor.play(gait, { fade: 0.01, speed });
@@ -88,9 +91,9 @@ class Walker {
     update(dt = 1 / 60) {
         const a = this.a;
         if (this.state === 'turn') {
-            if (Math.abs(a.yaw - a.goalYaw) < 0.35) {
+            if (a.turning ? a.turning.ending : Math.abs(a.yaw - a.goalYaw) < 0.35) {
                 this.state = 'walk';
-                a.play(this.gait, { fade: 0.4, speed: this.speed });
+                if (!a.turning) a.play(this.gait, { fade: 0.4, speed: this.speed });
             }
             return false;
         }
@@ -277,20 +280,23 @@ export class Duo {
                     // Vừa đi vừa ngước nhìn pháo; người kia đã đứng đợi ở gần thì nhìn người đó
                     if (o.arrived && Math.abs(o.a.x - a.x) < 2.5) lookAtActor(a, o.a, 0);
                     else this.glance(a, dt, env);
-                } else if (!o.arrived && this.eta(o) > 3) {
+                } else if (!o.arrived && this.eta(o) > (r.waits ? 3 : 6)) {
+                    // Đứng đợi (người kia còn xa: vừa tới mà người kia đã gần thì đứng luôn hướng về phía đó, không quay
+                    // ra mặt nước rồi lại quay vào)
+                    r.waits = true;
                     this.waiting(r, dt, env);
                 } else {
                     // Người kia sắp tới (hoặc đang dừng bước): quay sang phía người đó, nhìn người đó
                     if (a.clipName !== 'idle' && a.clipName !== 'stop') a.play('idle', { fade: 0.5 });
-                    a.goalYaw = r === rm ? Math.PI / 2 : -Math.PI / 2;
+                    a.turnTo(r === rm ? Math.PI / 2 : -Math.PI / 2);
                     if (o.a.root.visible) lookAtActor(a, o.a, a === m ? -0.05 : 0.08);
                 }
             });
             this.handInHand();
             // Hai người đã tới: quay hẳn vào nhau rồi mới chào
             if (rm.arrived && rw.arrived) {
-                m.goalYaw = Math.PI / 2;
-                w.goalYaw = -Math.PI / 2;
+                m.turnTo(Math.PI / 2);
+                w.turnTo(-Math.PI / 2);
                 if (Math.abs(m.yaw - m.goalYaw) < 0.3 && Math.abs(w.yaw - w.goalYaw) < 0.3) this.go('meet');
             }
         } else if (this.phase === 'meet') {
@@ -300,8 +306,9 @@ export class Duo {
             else this.greet();
             if (t > (this.umbrella ? 4.6 : 2.4)) this.go('turn');
         } else if (this.phase === 'turn') {
-            m.goalYaw = 0.32;
-            w.goalYaw = -0.32;
+            // Cùng quay ra mặt nước bằng bước chân, cô theo anh chậm một nhịp
+            m.turnTo(0.32);
+            if (t > 0.25) w.turnTo(-0.32);
             if (t < 0.6) {
                 lookAtActor(m, w, -0.1);
                 lookAtActor(w, m, 0.12);
@@ -310,7 +317,7 @@ export class Duo {
                 lookSky(w, env);
             }
             this.hands(env);
-            if (t > 1.8) this.go('watch');
+            if (t > 1 && !m.turning && !w.turning) this.go('watch');
         } else {
             this.watch(dt, env);
         }
@@ -337,7 +344,7 @@ export class Duo {
         const a = r.a;
         const o = r.other;
         const side = Math.sign((o.a.root.visible || o.walker ? o.a.x : o.from) - a.x) || (r === this.rm ? 1 : -1);
-        a.goalYaw = side * 0.35;
+        a.turnTo(side * 0.35);
         if (!r.g || r.g.t >= r.g.dur) {
             const options = this.umbrella ? ['sky', 'toward', 'look', 'sky', 'toward']
                 : ['sky', 'toward', 'look', 'sky', 'shift', 'toward', a.sex === 'm' ? 'scratch' : 'hair'];
@@ -618,10 +625,10 @@ export class Solo {
                 this.t = 0;
             }
         } else if (this.phase === 'turn') {
-            a.goalYaw = this.dir * 0.1;
+            a.turnTo(this.dir * 0.1);
             a.lookGoal.pitch = -0.3;
             a.lookGoal.yaw = 0;
-            if (t > 1.6) this.phase = 'watch';
+            if (t > 0.8 && !a.turning) this.phase = 'watch';
         } else {
             this.watch(dt, env);
         }

@@ -31,37 +31,96 @@ export function buildClips(vrm, data) {
     const clips = {};
     const hipsName = vrm.humanoid.getNormalizedBoneNode('hips').name;
     const nb = data.bones.length;
+    const hipsIndex = data.bones.indexOf('hips');
     Object.entries(data.clips).forEach(([name, c]) => {
         const q = new Int16Array(b64buf(c.q));
         const p = new Float32Array(b64buf(c.p));
         const times = Float32Array.from({ length: c.frames }, (_, i) => Math.min(c.dur, i / c.fps));
-        const tracks = [];
-        data.bones.forEach((bone, i) => {
-            const node = vrm.humanoid.getNormalizedBoneNode(bone);
-            if (!node) return;
+        const quats = data.bones.map((bone, i) => {
             const v = new Float32Array(c.frames * 4);
             for (let f = 0; f < c.frames; f++) {
                 for (let k = 0; k < 4; k++) v[f * 4 + k] = q[(f * nb + i) * 4 + k] / 32767;
             }
-            tracks.push(new THREE.QuaternionKeyframeTrack(`${node.name}.quaternion`, times, v));
+            return v;
+        });
+        const userData = { forward: Float32Array.from({ length: c.frames }, (_, f) => -p[f * 3 + 2]), fps: c.fps, frames: c.frames };
+        if (/^turn/.test(name)) userData.turn = extractTurn(quats[hipsIndex], p, c.frames, c.fps, userData);
+        const tracks = [];
+        data.bones.forEach((bone, i) => {
+            const node = vrm.humanoid.getNormalizedBoneNode(bone);
+            if (node) tracks.push(new THREE.QuaternionKeyframeTrack(`${node.name}.quaternion`, times, quats[i]));
         });
         tracks.push(new THREE.VectorKeyframeTrack(`${hipsName}.position`, times, p));
         const clip = new THREE.AnimationClip(name, c.dur, tracks);
         // Quãng tiến của gốc (theo -Z của mô hình) để đẩy nhân vật đi, tách khỏi tư thế
-        clip.userData = { forward: Float32Array.from({ length: c.frames }, (_, f) => -p[f * 3 + 2]), fps: c.fps, frames: c.frames };
+        clip.userData = userData;
         clips[name] = clip;
     });
     return clips;
 }
 
-// Quãng tiến của gốc khung xương tại thời điểm t trong clip (nội suy)
-function forwardAt(clip, t) {
-    const { forward, fps, frames } = clip.userData;
+// Động tác quay người tại chỗ (turn*: quay trái, phải 60/90/120°, bước chân thật): tách phép xoay quanh trục đứng và
+// quãng dời của hông thành hướng, chỗ đứng của cả người (như quãng tiến khi đi), tư thế còn lại giữ hướng ban đầu (sửa
+// tại chỗ hq, p). Trả { yaw: góc đã quay (rad, dương là quay trái) theo từng khung, x, z: chỗ đứng dời đi (mét, hệ của
+// hướng ban đầu, -z là phía trước), total: góc cả động tác, start: lúc bắt đầu xoay thật (giây) }. Chỗ đứng lúc xong kéo
+// về chỗ cũ (dồn đều vào cả động tác, chân trượt chưa tới 1 cm mỗi khung): quay xong vẫn đứng đúng chỗ hẹn
+function extractTurn(hq, p, frames, fps, userData) {
+    const yaw = new Float32Array(frames);
+    const x = new Float32Array(frames);
+    const z = new Float32Array(frames);
+    let prev = 0;
+    let base = 0;
+    const qy = new THREE.Quaternion();
+    const qh = new THREE.Quaternion();
+    for (let f = 0; f < frames; f++) {
+        let a = 2 * Math.atan2(hq[f * 4 + 1], hq[f * 4 + 3]);
+        if (f) {
+            while (a - prev > Math.PI) a -= 2 * Math.PI;
+            while (a - prev < -Math.PI) a += 2 * Math.PI;
+        } else {
+            base = a;
+        }
+        prev = a;
+        const d = a - base;
+        yaw[f] = d;
+        qy.setFromAxisAngle(_up, -d);
+        qh.fromArray(hq, f * 4).premultiply(qy).toArray(hq, f * 4);
+    }
+    const x0 = p[0];
+    const z0 = p[2];
+    const ex = p[(frames - 1) * 3] - x0;
+    const ez = p[(frames - 1) * 3 + 2] - z0;
+    for (let f = 0; f < frames; f++) {
+        const s = f / (frames - 1);
+        const k = s * s * (3 - 2 * s);
+        x[f] = p[f * 3] - x0 - ex * k;
+        z[f] = p[f * 3 + 2] - z0 - ez * k;
+        // Hông còn lại: chỗ ban đầu (gốc đã dời theo), quay về hướng ban đầu
+        const c = Math.cos(-yaw[f]);
+        const sn = Math.sin(-yaw[f]);
+        const rx = p[f * 3] - x[f];
+        const rz = p[f * 3 + 2] - z[f];
+        p[f * 3] = c * rx + sn * rz;
+        p[f * 3 + 2] = -sn * rx + c * rz;
+    }
+    userData.forward.fill(0);
+    const total = yaw[frames - 1];
+    let i = 0;
+    while (i < frames - 1 && Math.abs(yaw[i]) < Math.abs(total) * 0.03) i++;
+    return { yaw, x, z, total, start: Math.max(0, i / fps - 0.15) };
+}
+
+// Giá trị của một dãy theo từng khung của clip tại thời điểm t (nội suy)
+function sampleAt(clip, arr, t) {
+    const { fps, frames } = clip.userData;
     const x = clamp(t * fps, 0, frames - 1);
     const i = Math.floor(x);
     const f = x - i;
-    return forward[i] + (forward[Math.min(frames - 1, i + 1)] - forward[i]) * f;
+    return arr[i] + (arr[Math.min(frames - 1, i + 1)] - arr[i]) * f;
 }
+
+// Quãng tiến của gốc khung xương tại thời điểm t trong clip (nội suy)
+const forwardAt = (clip, t) => sampleAt(clip, clip.userData.forward, t);
 
 // Nghiêng người sang bên, cúi: phần góc của từng đốt sống (nghiêng, cúi), cộng thêm phần cả người ngả từ bàn chân
 const LEAN = [['spine', 0.24, 0.3], ['chest', 0.16, 0.4], ['upperChest', 0.1, 0.3]];
@@ -76,6 +135,7 @@ const _v3 = new THREE.Vector3();
 const _q1 = new THREE.Quaternion();
 const _q2 = new THREE.Quaternion();
 const _q3 = new THREE.Quaternion();
+const _up = new THREE.Vector3(0, 1, 0);
 
 // Xoay xương một góc quanh trục trong hệ tọa độ thế giới (giữ nguyên các xương cha)
 function rotateWorld(node, q) {
@@ -155,6 +215,8 @@ export class Actor3D {
         // Đích IK gần nhất của từng tay (tay thả ra thì nhả dần khỏi đích cũ)
         this.lastIk = [null, null];
         this.umbrella = null;
+        // Đang quay người bằng bước chân (turnTo): { action, from, angle, then, ending }
+        this.turning = null;
         this.fresh = true;
         const hips = this.bone('hips');
         this.hipsRest = hips.position.clone();
@@ -175,10 +237,16 @@ export class Actor3D {
         this.skirt = sex === 'f' ? measureSkirt(this.root, this.bone('hips').getWorldPosition(new THREE.Vector3())) : null;
     }
 
-    // Chuyển sang động tác name (trộn mờ trong fade giây). loop: lặp; once: làm một lượt rồi đứng ở khung cuối
-    play(name, { fade = 0.45, loop = true, pingpong = false, speed = 1, from = 0 } = {}) {
+    // Chuyển sang động tác name (trộn mờ trong fade giây). loop: lặp; once: làm một lượt rồi đứng ở khung cuối. Đang quay
+    // người (turnTo) thì để dành, quay xong mới làm
+    play(name, opts = {}) {
+        const { fade = 0.45, loop = true, pingpong = false, speed = 1, from = 0 } = opts;
         const clip = this.clips[name];
         if (!clip) return null;
+        if (this.turning && !this.turning.ending) {
+            this.turning.then = [name, opts];
+            return null;
+        }
         let action = this.actions[name];
         if (!action) action = this.actions[name] = this.mixer.clipAction(clip);
         if (this.current === action && action.isRunning()) {
@@ -205,6 +273,66 @@ export class Actor3D {
 
     get clipName() {
         return this.current ? this.current.getClip().name : '';
+    }
+
+    // Quay người tại chỗ sang hướng yaw bằng bước chân thật: động tác quay trái, phải 60/90/120° gần góc cần nhất, co giãn
+    // cho đúng góc (xoay cả người theo hông trong động tác, chân bám đất); lệch ít (dưới ~25°) thì xoay dần như cũ. then:
+    // [tên, tùy chọn] động tác làm tiếp khi quay xong (mặc định đứng thở). Gọi lại với cùng hướng thì không làm gì. Trả về
+    // true khi đang quay bằng bước chân
+    turnTo(yaw, { then = null } = {}) {
+        const t = this.turning;
+        if (t && !t.ending && Math.abs(t.from + t.angle - yaw) < 0.02) return true;
+        const d = yaw - this.yaw;
+        this.goalYaw = yaw;
+        if (Math.abs(d) < 0.45 || (t && !t.ending)) return !!t;
+        // Quay phải (yaw tăng) là động tác có góc âm (three.js: dương là quay trái)
+        let best = null;
+        Object.values(this.clips).forEach(clip => {
+            const u = clip.userData.turn;
+            if (!u || Math.sign(u.total) !== -Math.sign(d)) return;
+            const err = Math.abs(Math.log(Math.abs(d / u.total)));
+            if (!best || err < best.err) best = { clip, err };
+        });
+        if (!best) return false;
+        const clip = best.clip;
+        const u = clip.userData.turn;
+        this.turning = null;
+        this.play(clip.name, { loop: false, fade: 0.3, from: u.start / clip.duration });
+        this.turning = { action: this.current, from: this.yaw, angle: d, then, px: sampleAt(clip, u.x, this.current.time), pz: sampleAt(clip, u.z, this.current.time), y0: sampleAt(clip, u.yaw, this.current.time) };
+        return true;
+    }
+
+    // Đang quay người: hướng, chỗ đứng theo động tác quay; gần xong thì trộn sang động tác kế tiếp (vẫn quay nốt phần cuối)
+    followTurn() {
+        const t = this.turning;
+        const a = t.action;
+        const clip = a.getClip();
+        const u = clip.userData.turn;
+        const time = Math.min(a.time, clip.duration);
+        const done = (sampleAt(clip, u.yaw, time) - t.y0) / (u.total - t.y0);
+        this.yaw = t.from + t.angle * done;
+        // Chỗ đứng dời theo hông (hệ của hướng lúc bắt đầu quay: x sang phải, -z tới trước)
+        const px = sampleAt(clip, u.x, time);
+        const pz = sampleAt(clip, u.z, time);
+        const dx = px - t.px;
+        const df = -(pz - t.pz);
+        t.px = px;
+        t.pz = pz;
+        const s = Math.sin(t.from);
+        const c = Math.cos(t.from);
+        this.x += c * dx + s * df;
+        this.z += -s * dx + c * df;
+        // Quay gần xong (phần cuối động tác chỉ đứng lặng) thì làm tiếp động tác sau
+        const left = (clip.duration - time) / Math.max(0.01, a.timeScale);
+        if (!t.ending && (left < 0.35 || done > 0.97)) {
+            t.ending = true;
+            const [name, opts] = t.then || ['idle', {}];
+            this.play(name, { ...opts, fade: Math.max(0.3, Math.min(opts.fade ?? 0.35, left)) });
+        }
+        if (time >= clip.duration - 1e-3 || !a.isRunning()) {
+            this.yaw = this.goalYaw = t.from + t.angle;
+            this.turning = null;
+        }
     }
 
     // Phần còn lại của động tác đang làm (giây)
@@ -235,10 +363,14 @@ export class Actor3D {
     }
 
     update(dt) {
-        // Xoay người tới hướng đích (không nhanh quá 1,6 rad/s)
-        const dy = this.goalYaw - this.yaw;
-        this.yaw += clamp(dy * (1 - Math.exp(-dt / 0.35)), -1.6 * dt, 1.6 * dt);
         this.mixer.update(dt);
+        if (this.turning) {
+            this.followTurn();
+        } else {
+            // Xoay người tới hướng đích (không nhanh quá 1,6 rad/s)
+            const dy = this.goalYaw - this.yaw;
+            this.yaw += clamp(dy * (1 - Math.exp(-dt / 0.35)), -1.6 * dt, 1.6 * dt);
+        }
         // Quãng tiến của gốc khung xương theo các động tác đang chạy (cộng theo trọng số trộn)
         let advance = 0;
         Object.values(this.actions).forEach(a => {
