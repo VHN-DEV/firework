@@ -8,7 +8,7 @@
 // đường dẫn, cùng dữ liệu gửi nhận nên trang (builder, trình phát, theo dõi quà) không phải sửa. File trong dist phục vụ
 // thẳng; Worker chạy trước cho api/*, s/* (wrangler.jsonc: run_worker_first) và khi không có file tĩnh:
 // - api/save_config.php, manage_configs.php (list, delete), opens.php (record, status), upload_image.php,
-//   upload_audio.php, share.php
+//   upload_audio.php, share.php; account.php (đăng nhập Google, chỉ có trên Cloudflare: account.js)
 // - s/<tên>: trang chia sẻ có ảnh, tiêu đề xem trước (share-page.js), cả kịch bản mẫu lẫn kịch bản lưu
 // - configs/<tên>.json, configs/<tên>.jpg, uploads/...: kịch bản, ảnh, nhạc đã lưu (D1, KV/R2)
 // - mỗi ngày lúc 7h05 sáng (wrangler.jsonc: triggers): xóa bản Xem thử cũ, bộ đếm giới hạn đã hết hạn, ảnh, nhạc không kịch bản nào dùng
@@ -17,9 +17,11 @@
 // trang.
 
 import { renderSharePage, shareMetaFromConfig } from '../share-page.js';
+import { account, currentUser } from './account.js';
 import {
-    TRACK_DEVICES, TRACK_EVENTS, canModify, checkKey, createKey, deleteConfig, deleteOldPreviews, deleteOldQuota, getConfig,
-    getConfigText, hasKey, listConfigs, loadOpens, now, putConfig, randomHex, recordOpen, sha256, unusedMedia, useQuota, validTrackId
+    TRACK_DEVICES, TRACK_EVENTS, canModify, checkKey, createKey, deleteConfig, deleteOldPreviews, deleteOldQuota, deleteOldSessions,
+    getConfig, getConfigText, hasKey, listConfigs, loadOpens, now, putConfig, randomHex, recordOpen, sha256, syncUserKeys, unusedMedia,
+    useQuota, validTrackId
 } from './db.js';
 import { deleteMedia, hasMedia, listMedia, putMedia, serveMedia } from './media.js';
 
@@ -53,7 +55,8 @@ const LIMITS = {
     saveKB: [[50 * 1024, DAY]], // tổng dung lượng kịch bản đã gửi
     upload: [[20, 600], [60, DAY]], // tải ảnh, nhạc lên
     uploadKB: [[150 * 1024, DAY]],
-    open: [[60, 600]] // báo mở quà (mỗi lần xem quà gửi tối đa 3 lần)
+    open: [[60, 600]], // báo mở quà (mỗi lần xem quà gửi tối đa 3 lần)
+    login: [[20, 600]] // đăng nhập Google
 };
 
 // Máy gửi: địa chỉ IP Cloudflare ghi vào CF-Connecting-IP, IPv6 tính theo khối /64 (nhà mạng thường cấp cả khối cho
@@ -116,6 +119,7 @@ async function deleteOrphanMedia(env) {
 async function daily(env) {
     await deleteOldPreviews(env);
     await deleteOldQuota(env);
+    await deleteOldSessions(env);
     if (hasMedia(env)) await deleteOrphanMedia(env);
 }
 
@@ -178,7 +182,12 @@ async function saveConfig(request, env, url) {
     const response = { success: true, message: 'Đã lưu kịch bản thành công!', filename };
     // Kịch bản mới: tạo mã theo dõi mở quà, chỉ trả về lần này (trình soạn của người gửi giữ lại)
     const trackKey = !existing && !isPreview ? await createKey(env, filename) : null;
-    if (trackKey) response.trackKey = trackKey;
+    if (trackKey) {
+        response.trackKey = trackKey;
+        // Đang đăng nhập: tài khoản giữ luôn mã của kịch bản mới (máy khác đăng nhập là có)
+        const user = await currentUser(request, env);
+        if (user) await syncUserKeys(env, user.id, { [filename]: trackKey });
+    }
     return json(response);
 }
 
@@ -343,6 +352,7 @@ async function route(request, env, url) {
         if (name === 'upload_image.php') return upload(request, env, 'image');
         if (name === 'upload_audio.php') return upload(request, env, 'audio');
         if (name === 'share.php') return sharePage(env, url, cleanName(url.searchParams.get('c')));
+        if (name === 'account.php') return account(request, env, url, { json, fail, overQuota });
         return json({ success: false, message: 'Không có API này.' }, { status: 404 });
     }
     let m = /^\/s\/([A-Za-z0-9_-]+)(?:\.html)?$/.exec(path);

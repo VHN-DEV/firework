@@ -7,13 +7,17 @@
 // Cơ sở dữ liệu D1 (binding DB) thay cho file JSON của bản PHP: kịch bản lưu từ builder (configs), mã chủ của máy đã tạo
 // kịch bản (owners, chỉ lưu bản băm: cũng là mã theo dõi mở quà), lịch sử mở quà (opens, xem api/tracking.inc.php). Bảng
 // tạo khi cần (lần đầu mỗi isolate), không phải chạy lệnh tạo bảng. Bảng quota đếm số lần lưu, tải lên của mỗi máy (xem
-// useQuota).
+// useQuota). Tài khoản (account.js): users (người dùng Google), sessions (phiên đăng nhập, chỉ lưu bản băm của mã phiên),
+// user_keys (mã chủ các kịch bản tài khoản giữ hộ).
 
 const SCHEMA = [
     'CREATE TABLE IF NOT EXISTS configs (id TEXT PRIMARY KEY, data TEXT NOT NULL, title TEXT, author TEXT, events INTEGER NOT NULL DEFAULT 0, updated INTEGER NOT NULL, image INTEGER NOT NULL DEFAULT 0)',
     'CREATE TABLE IF NOT EXISTS owners (id TEXT PRIMARY KEY, hash TEXT NOT NULL, created TEXT NOT NULL)',
     'CREATE TABLE IF NOT EXISTS opens (id TEXT PRIMARY KEY, data TEXT NOT NULL)',
-    'CREATE TABLE IF NOT EXISTS quota (key TEXT PRIMARY KEY, used INTEGER NOT NULL, expires INTEGER NOT NULL)'
+    'CREATE TABLE IF NOT EXISTS quota (key TEXT PRIMARY KEY, used INTEGER NOT NULL, expires INTEGER NOT NULL)',
+    'CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT, name TEXT, picture TEXT, created INTEGER NOT NULL)',
+    'CREATE TABLE IF NOT EXISTS sessions (hash TEXT PRIMARY KEY, user TEXT NOT NULL, expires INTEGER NOT NULL)',
+    'CREATE TABLE IF NOT EXISTS user_keys (user TEXT NOT NULL, id TEXT NOT NULL, key TEXT NOT NULL, PRIMARY KEY (user, id))'
 ];
 // Cột thêm sau khi đã có bảng: thumb (bản băm ảnh thiệp đang lưu, để không ghi lại ảnh không đổi)
 const COLUMNS = ['ALTER TABLE configs ADD COLUMN thumb TEXT'];
@@ -102,10 +106,10 @@ export async function listConfigs(env, keys) {
     return list;
 }
 
-// Xóa kịch bản cùng mã chủ, lịch sử mở quà
+// Xóa kịch bản cùng mã chủ, lịch sử mở quà, mã tài khoản giữ hộ
 export async function deleteConfig(env, id) {
     const db = await database(env);
-    await db.batch(['configs', 'owners', 'opens'].map(table => db.prepare(`DELETE FROM ${table} WHERE id = ?`).bind(id)));
+    await db.batch(['configs', 'owners', 'opens', 'user_keys'].map(table => db.prepare(`DELETE FROM ${table} WHERE id = ?`).bind(id)));
 }
 
 // Trong các file keys (uploads/...), những file không còn kịch bản nào (kể cả bản Xem thử) nhắc tới
@@ -203,4 +207,69 @@ export async function useQuota(env, who, items, limits) {
 
 export async function deleteOldQuota(env) {
     await (await database(env)).prepare('DELETE FROM quota WHERE expires < ?').bind(now()).run();
+}
+
+// ---- Tài khoản ----
+
+export async function upsertUser(env, user) {
+    await (await database(env)).prepare('INSERT INTO users (id, email, name, picture, created) VALUES (?, ?, ?, ?, ?) '
+        + 'ON CONFLICT(id) DO UPDATE SET email = excluded.email, name = excluded.name, picture = excluded.picture')
+        .bind(user.id, user.email, user.name, user.picture, now()).run();
+}
+
+// Phiên đăng nhập mới: trả về mã phiên (chỉ một lần, vào cookie), máy chủ giữ bản băm
+export async function createSession(env, user, seconds) {
+    const token = randomHex(32);
+    await (await database(env)).prepare('INSERT INTO sessions (hash, user, expires) VALUES (?, ?, ?)')
+        .bind(await sha256(token), user, now() + seconds).run();
+    return token;
+}
+
+// { id, email, name, picture } của phiên còn hạn, hoặc null
+export async function sessionUser(env, token) {
+    if (!/^[a-f0-9]{64}$/.test(token)) return null;
+    return (await database(env)).prepare('SELECT u.id, u.email, u.name, u.picture FROM sessions s JOIN users u ON u.id = s.user '
+        + 'WHERE s.hash = ? AND s.expires > ?').bind(await sha256(token), now()).first();
+}
+
+export async function deleteSession(env, token) {
+    if (!/^[a-f0-9]{64}$/.test(token)) return;
+    await (await database(env)).prepare('DELETE FROM sessions WHERE hash = ?').bind(await sha256(token)).run();
+}
+
+// Xóa tài khoản: thông tin người dùng, mọi phiên, mã giữ hộ (kịch bản vẫn còn, máy đang giữ mã vẫn sửa được)
+export async function deleteUser(env, user) {
+    const db = await database(env);
+    await db.batch([['users', 'id'], ['sessions', 'user'], ['user_keys', 'user']]
+        .map(([table, column]) => db.prepare(`DELETE FROM ${table} WHERE ${column} = ?`).bind(user)));
+}
+
+export async function deleteOldSessions(env) {
+    await (await database(env)).prepare('DELETE FROM sessions WHERE expires < ?').bind(now()).run();
+}
+
+// Tài khoản giữ thêm các mã chủ đúng trong keys ({ tên kịch bản: mã }); trả về mọi mã tài khoản đang giữ (của kịch bản còn
+// tồn tại). Mã đã giữ rồi thì không ghi lại.
+export async function syncUserKeys(env, user, keys) {
+    const db = await database(env);
+    const { results } = await db.prepare('SELECT k.id, k.key FROM user_keys k JOIN owners o ON o.id = k.id WHERE k.user = ?').bind(user).all();
+    const held = Object.fromEntries(results.map(r => [r.id, r.key]));
+    const offered = Object.entries(keys)
+        .filter(([id, key]) => validTrackId(id) && typeof key === 'string' && /^[a-f0-9]{32}$/.test(key) && held[id] !== key)
+        .slice(0, 500);
+    if (!offered.length) return held;
+    const { results: owners } = await db.prepare('SELECT id, hash FROM owners WHERE id IN (SELECT value FROM json_each(?))')
+        .bind(JSON.stringify(offered.map(([id]) => id))).all();
+    const hashes = Object.fromEntries(owners.map(r => [r.id, r.hash]));
+    const valid = [];
+    for (const [id, key] of offered) {
+        if (hashes[id] && hashes[id] === await sha256(key)) valid.push([id, key]);
+    }
+    if (valid.length) {
+        await db.batch(valid.map(([id, key]) => db.prepare(
+            'INSERT INTO user_keys (user, id, key) VALUES (?, ?, ?) ON CONFLICT(user, id) DO UPDATE SET key = excluded.key'
+        ).bind(user, id, key)));
+        valid.forEach(([id, key]) => { held[id] = key; });
+    }
+    return held;
 }

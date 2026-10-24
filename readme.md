@@ -59,6 +59,10 @@
   lúc 7h05 sáng (`triggers` trong `wrangler.jsonc`) Worker xóa bản Xem thử cũ, bộ đếm hết hạn, ảnh, nhạc quá 30 ngày
   không kịch bản nào dùng. Mở lại link quà chỉ tốn 1 lượt gọi Worker (giới hạn 100.000 lượt mỗi ngày): trình duyệt giữ
   trang chia sẻ 1 giờ, giữ ảnh, nhạc (cả các đoạn nhạc đã tải), hỏi lại kịch bản thì Worker trả 304 nếu chưa đổi.
+  Đăng nhập bằng Google (không bắt buộc; `worker/account.js`, `src/assets/js/builder/account.js`): tài khoản giữ hộ mã
+  chủ các kịch bản, đăng nhập ở máy nào thì máy đó sửa, xóa, xem Báo mở quà được; đăng xuất thì gỡ các mã đó khỏi máy.
+  Bật bằng `GOOGLE_CLIENT_ID` trong `wrangler.jsonc` (Client ID loại Web application ở Google Cloud Console, Authorized
+  JavaScript origins là địa chỉ trang); bản PHP không có đăng nhập (`api/account.php` trả "chưa bật").
   Chạy thử tại máy: `npm run build` rồi
   `npx wrangler dev` (D1, KV giả lập trong `.wrangler/`); kiểm thử `npm run test:worker` (cần mạng để tải wrangler).
 - **Đường dẫn (route)**: mọi link dùng đường dẫn không đuôi `.html`: `/` (trang chủ), `/demo` (trình phát, link tặng

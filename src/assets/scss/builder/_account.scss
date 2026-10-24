@@ -1,0 +1,133 @@
+// Hanabi – giao diện builder (tài khoản)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// Nút tài khoản trên thanh trên cùng: biểu tượng người khi chưa đăng nhập, ảnh đại diện (hoặc chữ cái đầu) khi đã đăng nhập
+.account-btn.signed-in {
+    padding: 3px;
+
+    img,
+    span {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+    }
+
+    img {
+        object-fit: cover;
+    }
+
+    span {
+        display: grid;
+        place-items: center;
+        background: $b-gradient;
+        color: #fff;
+        font-weight: 700;
+    }
+}
+
+.account-modal {
+    max-width: 440px;
+    padding: 0;
+    text-align: left;
+
+    .modal-header {
+        padding: 1rem 1.25rem 0.25rem;
+    }
+}
+
+.account-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    padding: 0.5rem 1.25rem 1.25rem;
+
+    p {
+        margin: 0;
+        color: $b-muted;
+        font-size: 0.92rem;
+        line-height: 1.55;
+    }
+}
+
+.account-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    img,
+    > span {
+        flex: none;
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+    }
+
+    img {
+        object-fit: cover;
+    }
+
+    > span {
+        display: grid;
+        place-items: center;
+        background: $b-gradient;
+        color: #fff;
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+
+    strong,
+    small {
+        display: block;
+        overflow-wrap: anywhere;
+    }
+
+    small {
+        color: $b-faint;
+    }
+}
+
+.account-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+
+    .btn {
+        flex: 1 1 160px;
+        justify-content: center;
+    }
+}
+
+.google-button {
+    display: flex;
+    justify-content: center;
+    min-height: 44px;
+}
+
+.account-error {
+    color: $b-danger !important;
+    text-align: center;
+}
+
+.account-body .account-note {
+    color: $b-faint;
+    font-size: 0.8rem;
+
+    a {
+        color: inherit;
+    }
+}
+
+.account-delete {
+    align-self: flex-start;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: $b-danger;
+    font: inherit;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    cursor: pointer;
+}

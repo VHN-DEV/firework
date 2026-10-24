@@ -241,6 +241,8 @@ export async function run(browser, base, { check }) {
         check('thu gọn Cấu hình chung thành dải biểu tượng, nhớ sau khi tải lại, bấm biểu tượng nhóm thì mở lại đúng nhóm',
             open.panel >= 310 && folded.panel <= 64 && folded.rail >= 5 && folded.timeline > open.timeline + 200 && kept && !back.collapsed && back.sound,
             JSON.stringify({ open, folded, kept, back }));
+        const account = await page.evaluate(() => ['btn-account', 'menu-account'].every(id => document.getElementById(id).classList.contains('hide')));
+        check('máy chủ PHP (không có đăng nhập Google): không hiện nút Tài khoản', account);
         check('builder không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
         await page.close();

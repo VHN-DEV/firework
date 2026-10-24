@@ -50,7 +50,8 @@
         <div class="summary">
             <strong>Tóm tắt</strong>
             <ul>
-                <li>Không cần tài khoản. Không dùng cookie quảng cáo, không dùng công cụ phân tích của bên thứ ba.</li>
+                <li>Không bắt buộc tài khoản; có thể đăng nhập bằng Google để giữ kịch bản trên mọi máy. Không dùng cookie
+                    quảng cáo, không dùng công cụ phân tích của bên thứ ba.</li>
                 <li>Nếu người gửi bật <strong>báo mở quà</strong>, khi người nhận mở link hệ thống chỉ ghi lại thời điểm và
                     loại thiết bị (không ghi IP hay thông tin cá nhân) để người gửi biết món quà đã được mở.</li>
                 <li>Chỉ lưu những gì bạn chủ động nhập hoặc tải lên để tạo màn trình diễn.</li>
@@ -86,6 +87,15 @@
         <p>Trên bản có máy chủ (PHP), các nội dung trên được lưu thành tệp trên máy chủ (thư mục <code>configs/</code> và
             <code>uploads/</code>). Trên bản tĩnh (GitHub Pages), kịch bản chỉ được lưu trong trình duyệt của bạn cho tới
             khi chủ trang đăng nó lên.</p>
+        <h3 id="tai-khoan">Tài khoản (đăng nhập bằng Google)</h3>
+        <p>Đăng nhập là tùy chọn. Khi bạn đăng nhập bằng Google, trang nhận từ Google và lưu: mã người dùng Google, email,
+            tên và địa chỉ ảnh đại diện. Tài khoản giữ hộ mã bí mật của các màn trình diễn bạn tạo, để đăng nhập ở máy khác
+            vẫn sửa, xóa và xem báo mở quà được. Trang không nhận mật khẩu Google của bạn.</p>
+        <p>Đăng nhập dùng một cookie <code>hanabi_session</code> (chỉ để biết bạn đã đăng nhập, hết hạn sau 30 ngày; máy
+            chủ chỉ giữ bản băm của mã này). Đăng xuất thì mã bí mật của các màn trình diễn trong tài khoản được gỡ khỏi
+            trình duyệt đó. Bạn có thể xóa tài khoản trong trình soạn (nút Tài khoản > Xóa tài khoản): trang xóa thông tin
+            trên và danh sách mã giữ hộ; các màn trình diễn đã lưu vẫn còn.</p>
+
         <h3>Nhật ký kỹ thuật</h3>
         <p>Như mọi trang web, nhà cung cấp hosting (GitHub Pages, Cloudflare hoặc máy chủ PHP) có thể tự động ghi nhật ký
             truy cập (địa chỉ IP, thời điểm, trình duyệt, trang đã mở) để vận hành và bảo vệ hệ thống. Chúng tôi không dùng
@@ -123,8 +133,8 @@
             thử trên máy của mình thì không được tính. Dữ liệu này bị xóa cùng màn trình diễn.</p>
 
         <h2 id="trinh-duyet">4. Dữ liệu trong trình duyệt</h2>
-        <p>Trang không dùng cookie. Một số cài đặt được lưu trong bộ nhớ cục bộ (<code>localStorage</code>) của trình
-            duyệt trên máy bạn và không được gửi đi đâu:</p>
+        <p>Trang chỉ dùng cookie khi bạn đăng nhập (xem mục Tài khoản ở trên). Một số cài đặt được lưu trong bộ nhớ cục bộ
+            (<code>localStorage</code>) của trình duyệt trên máy bạn và không được gửi đi đâu:</p>
         <ul>
             <li><code>cm_fireworks_data</code>: cài đặt hiển thị (chất lượng, cỡ pháo, tỉ lệ, ánh sáng bầu trời).</li>
             <li><code>my_firework_scripts</code>: kịch bản bạn lưu khi dùng bản tĩnh (GitHub Pages).</li>
@@ -139,6 +149,8 @@
         <ul>
             <li><strong>Google Fonts</strong> (fonts.googleapis.com, fonts.gstatic.com): tải phông chữ cho trang. Google
                 nhận địa chỉ IP và thông tin trình duyệt của bạn khi tải phông chữ.</li>
+            <li><strong>Đăng nhập bằng Google</strong> (accounts.google.com): chỉ tải khi bạn mở hộp Tài khoản trong trình
+                soạn; khi đó chính sách bảo mật của Google được áp dụng.</li>
             <li><strong>cdnjs (Cloudflare)</strong>: tải bộ biểu tượng Font Awesome cho trang chủ, trình soạn kịch bản và
                 cho bảng chia sẻ của người xem (chỉ khi mở bảng này).</li>
             <li><strong>YouTube</strong> (youtube-nocookie.com): nếu trang chủ có video giới thiệu, video chỉ được tải khi bạn

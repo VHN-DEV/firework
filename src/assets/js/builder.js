@@ -34,6 +34,7 @@ import { renderScene, renderSky, renderSmoke, renderViewer, setBank, setNearBank
 import { createFromTemplate, openTemplatesModal, renderTemplateChips, selectOccasion, startBlankScript, updateTemplateStrip } from './builder/templates-ui.js';
 import { afterMusicStartChange, applyBeatShow, drawBeatChart, openBeatModal, setBeatDensity } from './builder/beat-ui.js';
 import { checkGiftOpens, copyTrackingLink, enableOpenNotifications, renderNotifyOpen, startGiftWatch } from './builder/gift-watch.js';
+import { accountDelete, accountLogin, accountLogout, initAccount, openAccount } from './builder/account.js';
 import { closeVideoModal, createVideo, downloadVideo, openVideoModal, restartVideo, setVideoFormat, setVideoQuality, shareVideo } from './builder/video-ui.js';
 import { closeShareModal, copyShareLink, downloadShareImage, downloadShareQr, handleSeoImageUpload, openShareModal, renderSeoControls, scheduleSeoPreview, setSeoImageMode, setShareMode, shareTo, storeImageFile } from './builder/share.js';
 import { deleteScript, duplicateScript, editScript, exportConfig, importConfig, openScriptsModal, previewScript } from './builder/scripts.js';
@@ -311,6 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     renderNotifyOpen();
     startGiftWatch();
+    initAccount();
 });
 
 // Các hàm được gọi từ thuộc tính onclick/onchange trong HTML
@@ -327,6 +329,7 @@ Object.assign(window, {
     toggleLibraryPreview, chooseLibraryItem, openBeatModal, setBeatDensity, applyBeatShow, drawBeatChart,
     openVideoModal, closeVideoModal, setVideoFormat, setVideoQuality, createVideo, downloadVideo, shareVideo,
     restartVideo, setTimelineView, zoomTrack, copyTrackingLink, enableOpenNotifications, checkGiftOpens,
+    openAccount, accountLogin, accountLogout, accountDelete,
     openCropper, closeCropper, zoomCropper, resetCropper, saveCropper
 });
 

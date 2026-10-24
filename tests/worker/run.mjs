@@ -8,9 +8,12 @@
 // .wrangler/): builder lưu kịch bản kèm ảnh thiệp, link s/<tên> có ảnh, tiêu đề xem trước, mở ở trình duyệt khác đúng
 // kịch bản, tải ảnh, nhạc lên rồi đọc lại (nhạc tải từng đoạn), file giả dạng ảnh bị từ chối, mã chủ khi lưu đè, xóa, báo
 // mở quà, Xem thử, trình duyệt giữ được kịch bản, nhạc, trang chia sẻ (mở lại không tải lại), giới hạn số lần tải lên của mỗi máy, xóa kịch bản thì xóa ảnh, nhạc chỉ nó dùng, lần dọn hằng ngày
-// xóa ảnh không kịch bản nào dùng. Mỗi lần chạy dùng dữ liệu mới (thư mục tạm). Cần bản build (npm run build) và mạng để npx tải wrangler lần đầu. Chạy: npm run test:worker
+// xóa ảnh không kịch bản nào dùng, đăng nhập Google (khóa giả thay Google: mã đăng nhập do kiểm thử tự ký) giữ kịch bản
+// trên máy khác. Mỗi lần chạy dùng dữ liệu mới (thư mục tạm). Cần bản build (npm run build) và mạng để npx tải wrangler lần đầu. Chạy: npm run test:worker
 import { spawn, spawnSync } from 'child_process';
+import crypto from 'crypto';
 import fs from 'fs';
+import http from 'http';
 import os from 'os';
 import path from 'path';
 import { DIST, ROOT, launchBrowser, sleep } from '../e2e/helpers.mjs';
@@ -23,9 +26,30 @@ if (!fs.existsSync(path.join(DIST, 'index.html'))) {
 const PORT = Number(process.env.WORKER_PORT) || 8798;
 const BASE = `http://127.0.0.1:${PORT}`;
 const STATE = fs.mkdtempSync(path.join(os.tmpdir(), 'hanabi-worker-'));
+
+// "Google" giả: khóa công khai ở http://127.0.0.1:<cổng>/certs (Worker đọc qua GOOGLE_CERTS_URL), mã đăng nhập tự ký
+const CLIENT_ID = 'hanabi-test';
+const CERTS_PORT = PORT - 3;
+const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+const jwk = { ...publicKey.export({ format: 'jwk' }), kid: 'hanabi-test', alg: 'RS256', use: 'sig' };
+const certs = http.createServer((req, res) => {
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'public, max-age=3600' });
+    res.end(JSON.stringify({ keys: [jwk] }));
+}).listen(CERTS_PORT, '127.0.0.1');
+const base64url = obj => Buffer.from(JSON.stringify(obj)).toString('base64url');
+const googleToken = (claims = {}) => {
+    const head = base64url({ alg: 'RS256', kid: 'hanabi-test', typ: 'JWT' });
+    const body = base64url({
+        iss: 'https://accounts.google.com', aud: CLIENT_ID, sub: '1000001', email: 'khach@example.com', email_verified: true,
+        name: 'Khách Thử', iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 3600, ...claims
+    });
+    return `${head}.${body}.${crypto.sign('RSA-SHA256', Buffer.from(`${head}.${body}`), privateKey).toString('base64url')}`;
+};
+
 // --test-scheduled: gọi lần dọn hằng ngày qua /__scheduled; ORPHAN_DAYS=0: dọn cả ảnh vừa tải lên
 const wrangler = spawn('npx', ['--yes', 'wrangler@4', 'dev', '--port', String(PORT), '--ip', '127.0.0.1', '--persist-to', `"${STATE}"`,
-    '--test-scheduled', '--var', 'ORPHAN_DAYS:0', '--show-interactive-dev-session=false'],
+    '--test-scheduled', '--var', 'ORPHAN_DAYS:0', '--var', `GOOGLE_CLIENT_ID:${CLIENT_ID}`, '--var', `GOOGLE_CERTS_URL:http://127.0.0.1:${CERTS_PORT}/certs`,
+    '--show-interactive-dev-session=false'],
     { cwd: ROOT, shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
 let log = '';
 wrangler.stdout.on('data', d => { log += d; });
@@ -36,6 +60,7 @@ const stop = () => {
     if (process.platform === 'win32') spawnSync('taskkill', ['/pid', String(wrangler.pid), '/T', '/F'], { stdio: 'ignore' });
     else spawnSync('pkill', ['-P', String(wrangler.pid)], { stdio: 'ignore' });
     wrangler.kill();
+    certs.close();
     try {
         fs.rmSync(STATE, { recursive: true, force: true });
     } catch (e) {
@@ -145,6 +170,51 @@ try {
     check('danh sách kịch bản: chỉ máy đã tạo (gửi mã) thấy, máy khác chỉ thấy kịch bản mẫu', lists.owner.some(s => s.id === ID && s.locked)
         && !lists.stranger.some(s => s.id === ID) && !lists.wrongKey.some(s => s.id === ID) && lists.stranger.every(s => s.status === 'private'),
         JSON.stringify({ owner: lists.owner.length, stranger: lists.stranger.map(s => s.id).filter(id => id.startsWith('zz')) }));
+
+    // Đăng nhập Google: máy A (đã tạo kịch bản) đăng nhập, máy B đăng nhập cùng tài khoản thì có lại kịch bản, lưu kịch bản
+    // mới ở B thì A cũng có; mã sai bị từ chối; đăng xuất ở B thì B không còn kịch bản; xóa tài khoản thì A vẫn giữ mã
+    const bad = {
+        audience: await api('account.php?action=login', { credential: googleToken({ aud: 'trang-khac' }) }),
+        expired: await api('account.php?action=login', { credential: googleToken({ exp: Math.floor(Date.now() / 1000) - 10 }) }),
+        forged: await api('account.php?action=login', { credential: googleToken().replace(/.{8}$/, 'AAAAAAAA') })
+    };
+    check('đăng nhập: mã của trang khác, hết hạn, sai chữ ký bị từ chối', Object.values(bad).every(r => !r.success && !r.user), JSON.stringify(bad));
+    const loggedA = await a.evaluate(token => accountLogin(token), googleToken());
+    const headerA = await a.$eval('#btn-account', b => ({ shown: !b.classList.contains('hide'), signedIn: b.classList.contains('signed-in') }));
+    const { context: deviceB, p: pb } = await page();
+    await pb.goto(`${BASE}/builder`, { waitUntil: 'networkidle0' });
+    await pb.waitForFunction(() => !document.getElementById('btn-account').classList.contains('hide'), { timeout: 10000 }).catch(() => {});
+    const beforeB = await pb.evaluate(id => ({ shown: !document.getElementById('btn-account').classList.contains('hide'), key: JSON.parse(localStorage.getItem('firework_owner_keys') || '{}')[id] }), ID);
+    const loggedB = await pb.evaluate(token => accountLogin(token), googleToken());
+    const afterB = await pb.evaluate(id => JSON.parse(localStorage.getItem('firework_owner_keys') || '{}')[id], ID);
+    await pb.evaluate(() => openScriptsModal());
+    await pb.waitForSelector(`#scripts-list [data-panel="mine"] .script-item[data-id="${ID}"]`, { timeout: 10000 }).catch(() => {});
+    const listedB = !!(await pb.$(`#scripts-list [data-panel="mine"] .script-item[data-id="${ID}"]`));
+    check('đăng nhập ở máy khác: có lại kịch bản (Của tôi, mã sửa, xóa, Báo mở quà)', loggedA && headerA.shown && headerA.signedIn && beforeB.shown && !beforeB.key
+        && loggedB && afterB === ownerKey && listedB, JSON.stringify({ loggedA, headerA, beforeB, loggedB, same: afterB === ownerKey, listedB }));
+    const NEW_ID = `${ID}_b`;
+    const savedB = await pb.evaluate(id => fetch('api/save_config.php', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: id, config: { title: 'Lưu ở máy B', events: [] } }) }).then(r => r.json()), NEW_ID);
+    await a.reload({ waitUntil: 'networkidle0' });
+    await a.waitForFunction(id => JSON.parse(localStorage.getItem('firework_owner_keys') || '{}')[id], { timeout: 10000 }, NEW_ID).catch(() => {});
+    const syncedA = await a.evaluate(id => JSON.parse(localStorage.getItem('firework_owner_keys') || '{}')[id], NEW_ID);
+    check('lưu kịch bản mới ở máy B thì máy A (cùng tài khoản) cũng sửa được', !!savedB.trackKey && syncedA === savedB.trackKey, JSON.stringify({ savedB, syncedA }));
+    await pb.evaluate(() => accountLogout());
+    const outB = await pb.evaluate((id, other) => {
+        const keys = JSON.parse(localStorage.getItem('firework_owner_keys') || '{}');
+        return { key: keys[id], other: keys[other], signedIn: document.getElementById('btn-account').classList.contains('signed-in') };
+    }, ID, NEW_ID);
+    const meB = await pb.evaluate(() => fetch('api/account.php?action=me', { method: 'POST', body: '{}' }).then(r => r.json()));
+    check('đăng xuất: máy đó không còn mã của các kịch bản trong tài khoản', !outB.key && !outB.other && !outB.signedIn && !meB.user, JSON.stringify({ outB, meB: meB.user }));
+    await deviceB.close();
+    await a.evaluate(() => accountDelete());
+    await a.click('#btn-confirm-yes');
+    await sleep(800);
+    const meA = await a.evaluate(() => fetch('api/account.php?action=me', { method: 'POST', body: '{}' }).then(r => r.json()));
+    const keptA = await a.evaluate(id => JSON.parse(localStorage.getItem('firework_owner_keys') || '{}')[id], ID);
+    const again = await api('account.php?action=login', { credential: googleToken() });
+    check('xóa tài khoản: đăng xuất, máy này vẫn giữ mã; đăng nhập lại là tài khoản mới, trống', !meA.user && keptA === ownerKey && again.success
+        && !Object.keys(again.keys).length, JSON.stringify({ me: meA.user, kept: keptA === ownerKey, keys: again.keys }));
     const template = await api('save_config.php', { filename: 'christmas', config: { title: 'x', events: [] } });
     check('không ghi đè kịch bản mẫu', template.code === 'not_owner');
     const key = await a.evaluate(id => JSON.parse(localStorage.getItem('firework_owner_keys') || '{}')[id], ID);
