@@ -476,8 +476,10 @@ export class Duo {
             // (khuỷu giơ cao thì tay duỗi ngang qua đầu cô). Cô vòng tay ôm ngang lưng anh
             const sh = w.worldOf('rightUpperArm').addScaledVector(bodyDir(w, -0.35, 0.4, -1), 0.1);
             m.ik[1] = { target: sh, pole: bodyDir(m, 0.25, -0.35, -1), tau: 0.4 };
-            const waist = bodyPoint(m, -0.02, 0.98, -0.17);
-            w.ik[0] = { target: waist, pole: bodyDir(w, -0.2, -0.5, -1), tau: 0.4 };
+            // Cô vòng tay ra sau lưng anh: khuỷu hạ xuống sau hông, cẳng tay nằm ngang thắt lưng, bàn tay áp giữa lưng (với
+            // tới hông bên kia thì tay duỗi thẳng chéo cả lưng như cây gậy)
+            const waist = bodyPoint(m, 0.02, 1.0, -0.14);
+            w.ik[0] = { target: waist, pole: bodyDir(w, -0.1, -1, -0.8), tau: 0.4 };
             m.curlGoal = [0.3, 0.5];
             w.curlGoal = [0.5, 0.3];
             return;
@@ -524,24 +526,30 @@ export class Duo {
         w.lookGoal.roll = 0;
         m.leanGoal = 0;
         w.leanGoal = 0;
+        m.bowGoal = 0;
+        w.bowGoal = 0;
         if (g.name === 'lean' || g.name === 'embrace' || (g.name === 'shelter' && t > 1.5)) {
-            // Cô tựa đầu vào vai anh (nghiêng sang trái của cô, thân ngả theo, cổ không gập), anh nghiêng đầu về phía cô
-            w.leanGoal = -0.5 * edge;
-            w.lookGoal.roll = -0.34 * edge;
-            w.lookGoal.pitch -= 0.15 * edge;
-            m.lookGoal.roll = 0.12 * edge;
+            // Cô tựa đầu vào vai anh: cả người ngả sang trái của cô, thân trên nghiêng từ eo, đầu chỉ nghiêng thêm chút theo
+            // thân (Actor3D); anh hơi ngả người, nghiêng đầu về phía cô
+            w.leanGoal = -0.55 * edge;
+            w.lookGoal.roll = -0.12 * edge;
+            w.lookGoal.pitch -= 0.1 * edge;
+            m.leanGoal = 0.12 * edge;
+            m.lookGoal.roll = 0.07 * edge;
         } else if (g.name === 'gaze') {
             const look = t > 0.6 && t < g.dur - 1;
             if (look) {
                 lookAtActor(m, w, -0.2);
                 lookAtActor(w, m, 0.2);
             }
-            // Anh cúi xuống hôn lên tóc cô
+            // Anh cúi xuống hôn lên tóc cô: nghiêng, cúi cả thân trên về phía cô, đầu cúi theo; cô hơi ngả vào anh
             const kiss = clamp((t - 2.2) / 0.7, 0, 1) * clamp((g.dur - 1.4 - t) / 0.6, 0, 1);
-            m.leanGoal = 0.35 * kiss;
-            m.lookGoal.pitch -= 0.35 * kiss;
-            m.lookGoal.roll = 0.25 * kiss;
-            w.lookGoal.roll = -0.15 * kiss;
+            m.leanGoal = 0.3 * kiss;
+            m.bowGoal = 0.22 * kiss;
+            m.lookGoal.pitch -= 0.2 * kiss;
+            m.lookGoal.roll = 0.1 * kiss;
+            w.leanGoal = -0.18 * kiss;
+            w.lookGoal.roll = -0.08 * kiss;
         } else if (g.name === 'shelter') {
             if (t < 1.5) lookAtActor(m, w, -0.2);
         }

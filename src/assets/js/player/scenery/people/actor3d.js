@@ -63,6 +63,9 @@ function forwardAt(clip, t) {
     return forward[i] + (forward[Math.min(frames - 1, i + 1)] - forward[i]) * f;
 }
 
+// Nghiêng người sang bên, cúi: phần góc của từng đốt sống (nghiêng, cúi), cộng thêm phần cả người ngả từ bàn chân
+const LEAN = [['spine', 0.24, 0.3], ['chest', 0.16, 0.4], ['upperChest', 0.1, 0.3]];
+
 // Ngón tay: đốt gần, giữa, xa; ngón cái
 const FINGERS = ['Index', 'Middle', 'Ring', 'Little'];
 const THUMB = ['ThumbMetacarpal', 'ThumbProximal', 'ThumbDistal'];
@@ -142,6 +145,8 @@ export class Actor3D {
         this.lookGoal = { yaw: 0, pitch: 0, roll: 0 };
         this.lean = 0;
         this.leanGoal = 0;
+        this.bow = 0;
+        this.bowGoal = 0;
         this.curl = [0.35, 0.35];
         this.curlGoal = [0.35, 0.35];
         // IK hai tay: { target (Vector3 thế giới three.js), pole, weight } hoặc null
@@ -257,7 +262,7 @@ export class Actor3D {
         const hips = this.bone('hips');
         hips.position.z = this.hipsRest.z;
         this.root.position.set(this.x, this.y, -this.z);
-        this.root.rotation.y = -this.yaw;
+        this.root.rotation.set(0, -this.yaw, 0);
         // Không cập nhật ma trận cả mô hình ở đây (lúc vẽ three.js làm lại): lớp cử động thêm đọc vị trí, hướng xương
         // bằng getWorld*, tự cập nhật theo chuỗi xương cha
         this.overlay(dt);
@@ -278,18 +283,23 @@ export class Actor3D {
         L.pitch = approach(L.pitch, G.pitch, dt, 0.45);
         L.roll = approach(L.roll, G.roll, dt, 0.5);
         this.lean = approach(this.lean, this.leanGoal, dt, 0.6);
+        this.bow = approach(this.bow, this.bowGoal, dt, 0.6);
         // Nhìn: chia cho cổ 40%, đầu 60% (trục trong hệ của thân: ngẩng quanh trục ngang, quay quanh trục đứng)
         const body = _q3.setFromAxisAngle(_v3.set(0, 1, 0), -this.yaw);
         const right = _v1.set(1, 0, 0).applyQuaternion(body);
         const up = _v2.set(0, 1, 0);
         const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(body);
-        if (Math.abs(this.lean) > 1e-3) {
-            // Nghiêng thân, đầu sang bên (dương: sang phải của nhân vật) như tựa vào vai người kia. Xoay quanh trục nhìn tới
-            // trước (fwd) một góc dương thì đỉnh đầu ngả sang phải
-            const q = new THREE.Quaternion().setFromAxisAngle(fwd, this.lean * 0.35);
-            rotateWorld(this.bone('spine'), q);
-            const q2 = new THREE.Quaternion().setFromAxisAngle(fwd, this.lean * 0.25);
-            rotateWorld(this.bone('upperChest') || this.bone('chest'), q2);
+        if (Math.abs(this.lean) > 1e-3 || Math.abs(this.bow) > 1e-3) {
+            // Nghiêng người sang bên (dương: sang phải của nhân vật) như tựa vào vai người kia, cúi (bow, dương: tới trước):
+            // cả người ngả nhẹ từ bàn chân (dồn trọng tâm sang người kia, chân lệch chưa tới 1 cm), thân trên nghiêng, cúi
+            // từ eo dần lên ngực; đầu chỉ nghiêng thêm chút theo thân (choreo.js), nghiêng mỗi cổ trông như gãy cổ. Xoay quanh
+            // trục nhìn tới trước (fwd) một góc dương thì đỉnh đầu ngả sang phải
+            const tilt = (k, b) => new THREE.Quaternion().setFromAxisAngle(fwd, this.lean * k).multiply(new THREE.Quaternion().setFromAxisAngle(right, -this.bow * b));
+            this.root.quaternion.premultiply(tilt(0.07, 0));
+            LEAN.forEach(([name, k, b]) => {
+                const node = this.bone(name);
+                if (node) rotateWorld(node, tilt(k, b));
+            });
         }
         ['neck', 'head'].forEach((name, i) => {
             const k = i ? 0.6 : 0.4;
