@@ -12,8 +12,10 @@ import { SEASONS, WEATHERS } from '../player/seasons.js';
 import { SCREEN_CARDS, SCREEN_EFFECTS, SCREEN_FONTS, SCREEN_ICONS, SCREEN_THEMES, compactScreenTheme, loadScreenFont, resolveScreenTheme } from '../player/screen-themes.js';
 import { MOON_PHASES } from '../player/moon.js';
 import { qualityLevel } from '../player/quality.js';
+import { OCCASIONS } from '../templates.js';
 import { state } from './state.js';
 import { START_FRAMES } from './constants.js';
+import { notify } from './util.js';
 import { showActiveEvent } from './timeline.js';
 import { renderInspector } from './inspector.js';
 import { getPreviewFrame, previewMode, previewReady, sendPreview, setPreviewMode, toggleMiniPreview } from './preview.js';
@@ -92,7 +94,17 @@ export function initScreenThemeControls() {
 }
 
 // Chọn bộ có sẵn: bỏ phần đã tự chỉnh, xem ngay màn mở quà với giao diện mới
-export function setScreenThemePreset(id) {
+// Khung bắt đầu hợp với từng giao diện theo dịp, lấy từ mẫu theo dịp (Tết: Bao lì xì, Giáng sinh: Cây thông...); Cổ
+// điển: Thiệp chào
+const THEME_FRAMES = Object.fromEntries(OCCASIONS.filter(o => o.theme).map(o => [o.theme, o.frame || 'gift']));
+
+// syncFrame: khung bắt đầu chưa tự chọn (còn là Thiệp chào hay khung hợp với giao diện trước) thì đổi theo dịp mới
+export function setScreenThemePreset(id, syncFrame = true) {
+    const frame = THEME_FRAMES[id] || '';
+    if (syncFrame && frame !== state.startFrame && (!state.startFrame || state.startFrame === THEME_FRAMES[state.screenTheme.id])) {
+        setStartFrame(frame);
+        notify(`Khung bắt đầu đổi theo dịp: ${START_FRAMES.find(f => f.value === frame).name}.`, 'info');
+    }
     state.screenTheme = resolveScreenTheme({ preset: id });
     renderScreenTheme();
     previewScreen('start');
@@ -107,7 +119,7 @@ export function setScreenThemeField(key, value) {
 }
 
 export function resetScreenTheme() {
-    setScreenThemePreset(state.screenTheme.id);
+    setScreenThemePreset(state.screenTheme.id, false);
 }
 
 let screenThemePushFrame = 0;

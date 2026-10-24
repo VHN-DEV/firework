@@ -130,6 +130,19 @@ export async function run(browser, base, { check }) {
         await page.click('label[for="loop"] .switch');
         check('ô Lời chúc ở màn kết chỉ hiện khi tắt Tự động lặp lại', loopOn && !whileLoop && afterOff, JSON.stringify({ loopOn, whileLoop, afterOff }));
 
+        // Giao diện theo dịp kéo theo khung bắt đầu hợp dịp, trừ khi người tạo đã tự chọn khung khác
+        const frameAfter = async theme => {
+            await page.click(`#screen-theme-grid .theme-option[title="${theme}"]`);
+            await sleep(200);
+            return page.$eval('#start-frame-grid .shell-option.selected', e => e.textContent.trim());
+        };
+        const tetFrame = await frameAfter('Tết');
+        const noelFrame = await frameAfter('Giáng sinh');
+        await page.evaluate(() => setStartFrame('gift'));
+        const keptFrame = await frameAfter('Trung thu');
+        check('chọn giao diện Tết, Giáng sinh thì khung bắt đầu đổi theo (Bao lì xì, Cây thông); đã tự chọn khung khác thì giữ',
+            tetFrame.endsWith('Bao lì xì') && noelFrame.endsWith('Cây thông') && keptFrame.endsWith('Hộp quà'), JSON.stringify({ tetFrame, noelFrame, keptFrame }));
+
         // Tiếng thiên nhiên không có trong cảnh thì mờ đi (vẫn bật/tắt được); thứ trên mặt nước theo kiểu mặt nước, mùa
         const idleSounds = () => page.$$eval('#nature-things .toggle-chip.is-idle input', list => list.map(i => i.dataset.natureGroup).sort().join());
         const waterChips = () => page.$$eval('[data-water-thing]', list => list.map(i => {
