@@ -134,12 +134,13 @@ export async function run(browser, base, { check }) {
                 mine: ids('mine'),
                 samples: ids('samples'),
                 mineActions: mineCard ? [...mineCard.querySelectorAll('.script-actions .btn')].map(b => b.textContent.trim() || b.title).join(',') : '',
+                mineDelete: !!mineCard?.querySelector('.script-thumb .script-delete'),
                 sampleAction: document.querySelector('[data-panel="samples"] .script-item .btn.primary')?.textContent.trim()
             };
         }, ID);
-        check('hộp Kịch bản: kịch bản đã lưu ở "Của tôi", mẫu ở "Mẫu có sẵn" (Dùng mẫu này), không lẫn nhau',
+        check('hộp Kịch bản: kịch bản đã lưu ở "Của tôi" (Nhân bản, Xem; xóa ở góc ảnh), mẫu ở "Mẫu có sẵn" (Dùng mẫu này), không lẫn nhau',
             lists.tab === 'mine' && lists.mine.includes(ID) && !lists.samples.includes(ID) && lists.samples.length > 0
-                && lists.mine.every(id => !lists.samples.includes(id)) && lists.mineActions === 'Sửa,Nhân bản,Xem,Xóa' && lists.sampleAction === 'Dùng mẫu này',
+                && lists.mine.every(id => !lists.samples.includes(id)) && lists.mineActions === 'Nhân bản,Xem' && lists.mineDelete && lists.sampleAction === 'Dùng mẫu này',
             JSON.stringify(lists));
         await page.evaluate(() => hideModal('scripts-modal'));
 

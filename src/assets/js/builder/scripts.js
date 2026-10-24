@@ -6,7 +6,6 @@
 
 // Danh sách kịch bản đã lưu: nhân bản, xem, sửa, xóa, xuất, nhập.
 
-import { copyText } from '../share-targets.js';
 import { getOwnerKeys, removeOwnerKey } from '../gift-tracking.js';
 import { isStaticEnv, state } from './state.js';
 import { confirmAction, escapeHtml, hideLoading, hideModal, notify, showLoading, showModal, showUrlFor } from './util.js';
@@ -14,16 +13,7 @@ import { updateScriptNameLabel } from './timeline.js';
 import { getFinalConfig, getUniqueFilename, loadConfigIntoState } from './config.js';
 import { markSaved } from './history.js';
 import { showGiftBadges } from './gift-watch.js';
-import { resolveShareUrl, updateShareBar } from './share.js';
-
-export async function copyScriptLink(filename) {
-    const { url } = await resolveShareUrl(filename);
-    if (await copyText(url)) {
-        notify('Đã sao chép link kịch bản!', 'success');
-    } else {
-        notify('Không thể sao chép link, hãy thử lại.', 'error');
-    }
-}
+import { updateShareBar } from './share.js';
 
 // My Scripts Management
 export function openScriptsModal() {
@@ -77,35 +67,44 @@ function loadScriptsList() {
         });
 }
 
-// Thẻ một kịch bản. kind: 'sample' (dùng mẫu, xem), 'mine' (sửa, nhân bản, xem, xóa), 'other' (xem, nhân bản)
+// Thẻ một kịch bản. kind: 'sample' (dùng mẫu, xem), 'mine' (nhân bản, xem; xóa ở góc ảnh), 'other' (xem, nhân bản)
 function scriptCard(script, kind) {
     const item = document.createElement('div');
     item.className = `script-item script-item--${kind}`;
     item.dataset.id = script.id;
+    item.tabIndex = 0;
+    item.setAttribute('role', 'button');
     const id = escapeHtml(script.id);
-    // Bấm vào thẻ: mẫu thì xem thử, kịch bản của mình thì chép link gửi tặng
+    // Bấm vào thẻ: mở để sửa; mẫu, kịch bản máy khác tạo thì mở bản sao (lưu thành bản mới của mình)
+    const open = kind === 'mine' ? 'Mở để sửa' : kind === 'sample' ? 'Dùng mẫu này' : 'Mở bản sao';
+    item.setAttribute('aria-label', `${open}: ${script.title}`);
     item.onclick = e => {
         if (e.target.closest('.btn')) return;
-        if (kind === 'sample') previewScript(script.id);
-        else copyScriptLink(script.id);
+        if (kind === 'mine') editScript(script.id);
+        else duplicateScript(script.id);
+    };
+    item.onkeydown = e => {
+        if (e.key === 'Enter' && e.target === item) item.click();
     };
     const local = script.status === 'local';
     const actions = {
         sample: `<button class="btn primary small" onclick="duplicateScript('${id}')"><i class="fas fa-wand-magic-sparkles"></i> Dùng mẫu này</button>
             <button class="btn secondary small" onclick="previewScript('${id}')"><i class="fas fa-play"></i> Xem</button>`,
-        mine: `<button class="btn primary small" onclick="editScript('${id}')"><i class="fas fa-edit"></i> Sửa</button>
-            <button class="btn secondary small" onclick="duplicateScript('${id}')"><i class="fas fa-copy"></i> Nhân bản</button>
-            <button class="btn secondary small" onclick="previewScript('${id}')"><i class="fas fa-play"></i> Xem</button>
-            <button class="btn danger small is-icon" onclick="deleteScript('${id}')" title="Xóa" aria-label="Xóa kịch bản"><i class="fas fa-trash"></i></button>`,
+        mine: `<button class="btn secondary small" onclick="duplicateScript('${id}')"><i class="fas fa-copy"></i> Nhân bản</button>
+            <button class="btn secondary small" onclick="previewScript('${id}')"><i class="fas fa-play"></i> Xem</button>`,
         other: `<button class="btn secondary small" onclick="previewScript('${id}')"><i class="fas fa-play"></i> Xem</button>
             <button class="btn secondary small" onclick="duplicateScript('${id}')" title="Sửa rồi lưu sẽ thành bản mới của bạn"><i class="fas fa-copy"></i> Nhân bản</button>`
     }[kind];
-    // Ảnh xem trước khi chia sẻ (configs/<tên>.jpg, có khi lưu trên máy chủ); không có ảnh thì nền chuyển màu
+    const remove = kind === 'mine'
+        ? `<button class="btn script-delete" onclick="deleteScript('${id}')" title="Xóa kịch bản" aria-label="Xóa kịch bản"><i class="fas fa-trash"></i></button>`
+        : '';
+    // Ảnh xem trước khi chia sẻ (configs/<tên>.jpg, có khi lưu trên máy chủ); không có ảnh thì nền chuyển màu. Rê chuột vào
+    // thẻ thì ảnh ghi việc sẽ làm khi bấm
     item.innerHTML = `
-        <div class="script-thumb">${local ? '' : `<img src="configs/${encodeURIComponent(script.id)}.jpg" alt="" loading="lazy" onerror="this.remove()">`}<i class="fas fa-wand-magic-sparkles"></i></div>
+        <div class="script-thumb" data-open="${open}">${local ? '' : `<img src="configs/${encodeURIComponent(script.id)}.jpg" alt="" loading="lazy" onerror="this.remove()">`}<i class="fas fa-wand-magic-sparkles"></i>${remove}</div>
         <h4 title="${escapeHtml(script.title)}">${escapeHtml(script.title)}</h4>
         <div class="meta">
-            <span><i class="fas fa-user"></i> ${escapeHtml(script.author)}</span>
+            ${script.author && script.author !== 'Unknown' ? `<span><i class="fas fa-user"></i> ${escapeHtml(script.author)}</span>` : ''}
             <span><i class="fas fa-fireworks"></i> ${escapeHtml(script.eventCount)} phát bắn</span>
             <span class="script-badges">${local ? '<span class="gift-badge" title="Chỉ lưu trên trình duyệt này"><i class="fas fa-laptop"></i>Trên máy này</span>' : ''}</span>
         </div>

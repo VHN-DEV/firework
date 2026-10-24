@@ -203,6 +203,24 @@ export async function run(browser, base, { check }) {
                 && /waterRocks(,|$)/.test(riverThings),
             JSON.stringify({ lakeThings, riverThings }));
 
+        // Hộp Kịch bản: bấm vào thẻ là mở kịch bản để sửa; nút xóa ở góc ảnh hỏi lại trước khi xóa (Esc là Hủy bỏ)
+        await page.$eval('#title', i => { i.value = 'Tiêu đề chưa lưu'; i.dispatchEvent(new Event('input', { bubbles: true })); });
+        await page.evaluate(() => openScriptsModal());
+        const card = `#scripts-list .script-item[data-id="${ID}"]`;
+        await page.waitForSelector(card, { timeout: 10000 });
+        await page.click(`${card} .script-delete`);
+        await sleep(200);
+        const asked = await openModals();
+        await page.keyboard.press('Escape');
+        await sleep(200);
+        const stillListed = !!(await page.$(card));
+        await page.click(`${card} h4`);
+        await page.waitForFunction(() => document.getElementById('scripts-modal').classList.contains('hide'), { timeout: 10000 }).catch(() => {});
+        await sleep(300);
+        const reopened = await page.evaluate(() => ({ title: document.getElementById('title').value, modals: [...document.querySelectorAll('.modal:not(.hide)')].map(m => m.id) }));
+        check('hộp Kịch bản: bấm vào thẻ mở kịch bản để sửa; nút xóa ở góc hỏi lại, Hủy bỏ thì giữ',
+            asked.includes('confirm-modal') && stillListed && reopened.title === TITLE && !reopened.modals.length, JSON.stringify({ asked, stillListed, reopened }));
+
         // Thông báo không che bảng chỉnh sửa phát bắn (máy tính: giữa cạnh dưới; bảng chỉnh sửa ở bên phải)
         await page.evaluate(() => {
             document.querySelectorAll('.toast').forEach(t => t.remove());
