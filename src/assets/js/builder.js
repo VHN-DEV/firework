@@ -37,6 +37,7 @@ import { checkGiftOpens, copyTrackingLink, enableOpenNotifications, renderNotify
 import { closeVideoModal, createVideo, downloadVideo, openVideoModal, restartVideo, setVideoFormat, setVideoQuality, shareVideo } from './builder/video-ui.js';
 import { closeShareModal, copyShareLink, downloadShareImage, downloadShareQr, handleSeoImageUpload, openShareModal, renderSeoControls, scheduleSeoPreview, setSeoImageMode, setShareMode, shareTo, storeImageFile } from './builder/share.js';
 import { deleteScript, duplicateScript, editScript, exportConfig, importConfig, openScriptsModal, previewScript } from './builder/scripts.js';
+import { initSelectMenus } from './builder/select-menu.js';
 import { closeMoreMenu, initSettingsRail, openSettingsGroup, toggleMoreMenu, toggleSettingsCollapsed, toggleSidebar } from './builder/layout.js';
 
 // Assign to window for global access
@@ -278,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initCropper();
     initBurstMenu();
+    initSelectMenus();
 
     // Initial event if empty
     if (state.events.length === 0) {

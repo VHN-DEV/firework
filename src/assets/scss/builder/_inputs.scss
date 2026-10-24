@@ -74,6 +74,74 @@ select {
     option {
         background: $b-panel-2;
     }
+
+    // Đang mở danh sách (select-menu.js)
+    &.is-open {
+        border-color: $b-accent;
+        box-shadow: 0 0 0 3px rgba($b-accent, 0.22);
+    }
+}
+
+// Danh sách xổ xuống của ô chọn, vẽ theo giao diện builder (select-menu.js đặt vị trí, chiều cao tối đa)
+.dropdown.select-menu {
+    position: fixed;
+    top: 0;
+    right: auto;
+    z-index: 4600;
+    min-width: 160px;
+    max-width: min(360px, calc(100vw - 16px));
+    padding: 0.3rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+
+    button {
+        justify-content: space-between;
+        gap: 0.8rem;
+        padding: 0.5rem 0.7rem;
+        border-radius: 8px;
+        color: $b-muted;
+        font-size: 0.85rem;
+        white-space: nowrap;
+
+        i {
+            width: auto;
+            color: $b-accent;
+            font-size: 0.75rem;
+            visibility: hidden;
+        }
+
+        &:hover,
+        &:focus-visible {
+            outline: none;
+            color: $b-text;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        &[aria-selected="true"] {
+            color: #fff;
+            font-weight: 600;
+            background: rgba($b-accent, 0.2);
+
+            i {
+                visibility: visible;
+            }
+        }
+
+        &:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+    }
+}
+
+.select-menu__group {
+    padding: 0.5rem 0.7rem 0.25rem;
+    color: $b-faint;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 // Ẩn mũi tên tăng/giảm mặc định của ô số (thô và khó bấm trên cảm ứng)

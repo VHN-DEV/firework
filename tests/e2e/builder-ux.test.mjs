@@ -221,6 +221,41 @@ export async function run(browser, base, { check }) {
         check('hộp Kịch bản: bấm vào thẻ mở kịch bản để sửa; nút xóa ở góc hỏi lại, Hủy bỏ thì giữ',
             asked.includes('confirm-modal') && stillListed && reopened.title === TITLE && !reopened.modals.length, JSON.stringify({ asked, stillListed, reopened }));
 
+        // Ô chọn mở danh sách vẽ theo giao diện builder: bấm chọn mục, bàn phím (mũi tên, Enter), Esc chỉ đóng danh sách
+        await page.evaluate(() => {
+            document.querySelector('.settings-group[data-group="viewer"]').open = true;
+            document.querySelector('.shot-row').click();
+        });
+        await sleep(200);
+        await page.click('#viewer-scale');
+        await sleep(200);
+        const listed = await page.$$eval('.select-menu:not(.hide) [role="option"]', items => items.map(i => i.textContent.trim()));
+        await page.click('.select-menu [data-value="1.5"]');
+        await sleep(200);
+        const picked = await page.evaluate(() => ({ value: document.getElementById('viewer-scale').value, open: !document.querySelector('.select-menu').classList.contains('hide') }));
+        await page.focus('#viewer-quality');
+        await page.keyboard.press('ArrowDown');
+        await sleep(150);
+        await page.keyboard.press('ArrowDown');
+        await page.keyboard.press('Enter');
+        await sleep(200);
+        const byKeys = await page.$eval('#viewer-quality', s => s.value);
+        await page.click('#viewer-scale');
+        await sleep(150);
+        await page.keyboard.press('Escape');
+        await sleep(200);
+        const escaped = await page.evaluate(() => ({
+            menu: !document.querySelector('.select-menu').classList.contains('hide'),
+            inspector: !!document.getElementById('insp-title'),
+            focus: document.activeElement.id
+        }));
+        await page.waitForFunction(() => document.querySelector('[data-summary="viewer"]').textContent.includes('Thu phóng 150%'), { timeout: 5000 }).catch(() => {});
+        const viewerSummary = await page.$eval('[data-summary="viewer"]', e => e.textContent);
+        check('ô chọn mở danh sách theo giao diện builder: bấm chọn được, mũi tên + Enter chọn được, Esc chỉ đóng danh sách',
+            listed.length === 8 && listed[6] === '150%' && picked.value === '1.5' && !picked.open && byKeys !== '' && viewerSummary.includes('Thu phóng 150%')
+                && !escaped.menu && escaped.inspector && escaped.focus === 'viewer-scale',
+            JSON.stringify({ listed, picked, byKeys, escaped, viewerSummary }));
+
         // Thông báo không che bảng chỉnh sửa phát bắn (máy tính: giữa cạnh dưới; bảng chỉnh sửa ở bên phải)
         await page.evaluate(() => {
             document.querySelectorAll('.toast').forEach(t => t.remove());
