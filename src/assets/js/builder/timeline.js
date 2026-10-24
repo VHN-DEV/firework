@@ -19,6 +19,7 @@ import { draftSavedAt, scheduleCheckpoint } from './history.js';
 import { updateTemplateStrip } from './templates-ui.js';
 import { analyzeMusicCached, beatFailures, beatResults } from './beat-ui.js';
 import { scheduleSeoPreview } from './share.js';
+import { autoFilename } from './images.js';
 
 function updateTimelineSummary() {
     const el = document.getElementById('timeline-summary');
@@ -39,6 +40,8 @@ export function updateScriptNameLabel() {
     const filename = document.getElementById('filename').value.trim();
     label.textContent = (title || 'Kịch bản mới') + (filename ? ` · ${filename}.json` : '')
         + (draftSavedAt ? ` · đã lưu nháp ${draftSavedAt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}` : '');
+    // Chưa đặt tên file: ô Tên file cho biết tên sẽ tự đặt theo Tiêu đề khi bấm Lưu
+    document.getElementById('filename').placeholder = `Tự đặt: ${autoFilename()}`;
 }
 
 // Các chấm màu (hoặc ảnh thu nhỏ) của một phát bắn

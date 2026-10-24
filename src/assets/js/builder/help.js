@@ -139,7 +139,8 @@ const HELP_TIPS = {
         + 'trên bờ và mùa), dế, ếch nhái kêu đêm, vịt kêu, cò cất cánh, cá quẫy nước, mưa rơi. Ếch kêu đúng lúc túi kêu phồng, '
         + 'tiếng ở bên trái màn hình nghe bên trái, ở xa thì nhỏ hơn. Chỉ có tiếng của những thứ đang có trong cảnh, nhỏ hơn '
         + 'tiếng pháo; có nhạc nền thì tự nhỏ lại. Người xem vẫn tắt được trong Cài đặt.',
-    filename: 'Tên dùng để lưu và làm link chia sẻ (…/s/ten-file). Chỉ chữ không dấu, số, gạch nối, gạch dưới. Trùng tên kịch bản khác thì tự thêm số.',
+    filename: 'Tên dùng để lưu và làm link chia sẻ (…/s/ten-file). Để trống thì khi bấm Lưu tự đặt theo Tiêu đề (bỏ dấu). '
+        + 'Chỉ chữ không dấu, số, gạch nối, gạch dưới. Trùng tên kịch bản khác thì tự thêm số.',
     timelineTrack: 'Mỗi nút là một phát bắn đặt đúng thời điểm (lúc phóng; khi khớp nhịp nhạc là lúc nổ), phía trên là sóng nhạc và vạch phách. '
         + '<strong>Kéo ngang</strong> để đổi thời điểm (bám phách hoặc theo 0,1 giây; giữ Alt để thả tự do), <strong>bấm</strong> để chỉnh, '
         + '<strong>nhấn đúp</strong> chỗ trống để thêm phát, phím mũi tên để nhích. Các phát khác giữ nguyên thời điểm, đợt được xếp lại tự động.',

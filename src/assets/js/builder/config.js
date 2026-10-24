@@ -25,6 +25,7 @@ import { clearDraft, markSaved } from './history.js';
 import { renderSchedule, renderScreenTheme, renderStartFrames, revealSetting } from './settings.js';
 import { WATER_LIFE_THINGS, WATER_THINGS, loadPeoplePlan, normalizeDecor, normalizeMoon, normalizeViewer, peoplePlanConfig, renderScene, renderSky, renderSmoke, renderViewer } from './scene.js';
 import { renderNotifyOpen } from './gift-watch.js';
+import { autoFilename } from './images.js';
 import { loadNatureSound, natureSoundConfig } from './nature-ui.js';
 import { detectSeoImageAxis, getSeoImageConfig, openShareModal, renderSeoControls, scheduleSeoPreview, updateShareBar } from './share.js';
 
@@ -37,13 +38,11 @@ function validateConfig() {
     document.querySelectorAll('.validation-error-text').forEach(el => el.remove());
 
     const filenameInput = document.getElementById('filename');
+    // Chưa đặt tên file: tự đặt theo Tiêu đề, không bắt người tạo đi tìm ô Tên file trong nhóm "Chia sẻ & SEO"
+    if (!filenameInput.value.trim()) filenameInput.value = autoFilename();
     const filename = filenameInput.value.trim();
 
-    if (!filename) {
-        isValid = false;
-        errors.push('Tên file không được để trống');
-        filenameInput.classList.add('is-invalid');
-    } else if (!/^[a-zA-Z0-9_-]+$/.test(filename)) {
+    if (!/^[a-zA-Z0-9_-]+$/.test(filename)) {
         isValid = false;
         errors.push('Tên file chỉ được chứa chữ cái, số, gạch nối và gạch dưới');
         filenameInput.classList.add('is-invalid');
@@ -198,9 +197,6 @@ export async function saveConfig(isPreview = false) {
     if (isPreview) {
         // Máy chủ đặt tên ngẫu nhiên cho mỗi lần xem thử; trang tĩnh lưu trong trình duyệt của mình nên dùng tên chung
         filename = 'preview_temp';
-    } else if (!filename) {
-        notify('Vui lòng nhập tên file!', 'warning');
-        return;
     }
 
     // Khóa các nút Lưu (desktop + mobile) ngay từ đầu để bấm 2 lần không lưu 2 lần

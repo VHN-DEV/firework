@@ -21,12 +21,15 @@ export function toSlug(text) {
         .slice(0, 40);
 }
 
-// Thư mục trên máy chủ chứa ảnh/nhạc tải lên: theo tên file kịch bản. Chưa đặt tên thì lấy theo tiêu đề
+// Tên file kịch bản khi người tạo chưa đặt: theo Tiêu đề ("Chúc mừng sinh nhật" -> chuc_mung_sinh_nhat)
+export const autoFilename = () => toSlug(document.getElementById('title').value) || 'kich_ban_moi';
+
+// Thư mục trên máy chủ chứa ảnh/nhạc tải lên: theo tên file kịch bản. Chưa đặt tên thì lấy tên sẽ tự đặt khi Lưu
 // (không bắt người dùng điền tên trước, rồi bỏ mất file vừa chọn).
 export function getUploadFolder() {
     const filename = document.getElementById('filename').value.trim();
     if (/^[a-zA-Z0-9_-]+$/.test(filename)) return filename;
-    return toSlug(document.getElementById('title').value) || 'chua_dat_ten';
+    return autoFilename();
 }
 
 async function handleImageUpload(id, input) {
