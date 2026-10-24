@@ -618,13 +618,28 @@ export class Actor3D {
         const W2 = hand.getWorldPosition(new THREE.Vector3());
         const E3 = la.getWorldPosition(new THREE.Vector3());
         rotateWorld(la, new THREE.Quaternion().setFromUnitVectors(W2.clone().sub(E3).normalize(), Tc.clone().sub(E3).normalize()));
-        // Bàn tay xoay theo cẳng tay mới (giữ góc cổ tay), hoặc hướng cho sẵn
+        // Bàn tay xoay theo cẳng tay mới (giữ góc cổ tay), hoặc hướng cho sẵn: handDir hướng ngón tay, palm hướng lòng bàn
+        // tay quay về (cả hai thì đặt trọn hướng bàn tay, như nắm tay nhau: hai lòng bàn tay áp vào nhau)
         if (goal.handDir) {
             const H = hand.getWorldPosition(new THREE.Vector3());
             const mid = this.bone(`${side}MiddleProximal`);
             if (mid) {
                 const M = mid.getWorldPosition(new THREE.Vector3());
-                rotateWorld(hand, new THREE.Quaternion().setFromUnitVectors(M.sub(H).normalize(), goal.handDir.clone().normalize()));
+                const f0 = M.sub(H).normalize();
+                const q = new THREE.Quaternion();
+                if (goal.palm) {
+                    // Hệ trục bàn tay: x theo ngón, y theo lòng bàn tay (tư thế chuẩn hóa: lòng bàn tay úp xuống -Y)
+                    const n0 = new THREE.Vector3(0, -1, 0).applyQuaternion(hand.getWorldQuaternion(new THREE.Quaternion()));
+                    const basis = (f, n) => {
+                        const x = f.clone().normalize();
+                        const y = n.clone().addScaledVector(x, -n.dot(x)).normalize();
+                        return new THREE.Matrix4().makeBasis(x, y, new THREE.Vector3().crossVectors(x, y));
+                    };
+                    q.setFromRotationMatrix(basis(goal.handDir, goal.palm).multiply(basis(f0, n0).invert()));
+                } else {
+                    q.setFromUnitVectors(f0, goal.handDir.clone().normalize());
+                }
+                rotateWorld(hand, new THREE.Quaternion().slerp(q, w));
             }
         }
     }

@@ -155,6 +155,31 @@ function holdPoint(m, w, h = 0.86, back = 0.06) {
     return V((hips.x + mid.x) / 2 - 0.03, h, hips.z + back);
 }
 
+// Nắm tay nhau ở điểm p (tay phải anh, tay trái cô) như bắt tay xoay xuống: hai lòng bàn tay áp vào nhau, hai bàn tay
+// chéo nhau (tay anh chúc xuống chếch ra trước, tay cô chếch ra sau), ngón mỗi người co vòng qua mu bàn tay người kia;
+// cổ tay mỗi người lệch ra theo bề dày bàn tay. Chỉ đưa hai cổ tay tới cùng một chỗ, bàn tay song song thì trông như chạm
+// tay chứ không phải nắm. who: 'm', 'f' chỉ một người đưa tay
+function holdHands(m, w, p, { tau = 0.3, poleM, poleW, who = '' } = {}) {
+    const side = w.worldOf('hips').sub(m.worldOf('hips')).setY(0);
+    if (side.lengthSq() < 1e-6) side.set(1, 0, 0);
+    side.normalize();
+    // Trục chéo: phía trước của hai người (đứng đối mặt thì phía ngoài, về chỗ hai tay gặp nhau)
+    const ahead = bodyDir(m, 0, 0, 1).add(bodyDir(w, 0, 0, 1)).setY(0);
+    if (ahead.lengthSq() < 0.1) ahead.copy(p).sub(m.worldOf('hips').lerp(w.worldOf('hips'), 0.5)).setY(0);
+    ahead.addScaledVector(side, -ahead.dot(side)).normalize();
+    const finger = k => V(0, -1, 0).multiplyScalar(Math.cos(k)).addScaledVector(ahead, Math.sin(k));
+    const dm = finger(0.5);
+    const dw = finger(-0.45);
+    if (who !== 'f') {
+        m.ik[1] = { target: p.clone().addScaledVector(dm, -0.045).addScaledVector(side, -0.016), pole: poleM, tau, handDir: dm, palm: side };
+        m.curlGoal[1] = 0.72;
+    }
+    if (who !== 'm') {
+        w.ik[0] = { target: p.clone().addScaledVector(dw, -0.042).addScaledVector(side, 0.016), pole: poleW, tau, handDir: dw, palm: side.clone().negate() };
+        w.curlGoal[0] = 0.72;
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Cặp đôi
 // ---------------------------------------------------------------------------
@@ -175,12 +200,13 @@ export class Duo {
         const fm = from.m || { x: -edge, edge: true };
         const ff = from.f || { x: edge, edge: true };
         // Ngắm pháo thì đứng sát vai nhau (cô tựa đầu được vào vai anh); che ô thì đứng cách ra cho hai tán ô. Đi tới gặp
-        // nhau thì dừng cách nhau chừng một sải tay để chào (đứng sát mặt nhau không tự nhiên), quay ra mặt nước mới bước sát
+        // nhau thì dừng cách nhau chừng nửa mét để chào (đứng sát mặt nhau không tự nhiên, xa hơn thì tay không với tới nắm tay
+        // nhau), quay ra mặt nước mới bước sát
         // lại; đi cùng nhau (cùng một phía) hay cả hai đứng sẵn thì đứng sát vai luôn
         const along = !first && !fm.stand && !ff.stand && Math.sign(-0.19 - fm.x) === Math.sign(0.19 - ff.x) && Math.abs(fm.x - ff.x) < 0.5;
         this.greeting = !umbrella && !along && !(fm.stand && ff.stand);
-        this.stopM = umbrella ? -0.5 : this.greeting ? -0.36 : -0.19;
-        this.stopW = umbrella ? 0.56 : this.greeting ? 0.36 : 0.19;
+        this.stopM = umbrella ? -0.5 : this.greeting ? -0.25 : -0.19;
+        this.stopW = umbrella ? 0.56 : this.greeting ? 0.25 : 0.19;
         // Mỗi người: chỗ gặp (x, z), chỗ bắt đầu, xuất phát lúc nào (dep), đi mất bao lâu (walk), đã tới chưa
         const plan = (a, f, x, z) => ({ a, x, z, from: f.stand ? x : f.x, edge: !!f.edge && !f.stand, arrived: !!f.stand, lane: null });
         const rm = this.rm = plan(man, fm, this.stopM, 0);
@@ -335,7 +361,9 @@ export class Duo {
             lookAtActor(w, m, 0.16);
             if (this.umbrella) this.foldUmbrella();
             else this.greet();
-            if (t > (this.umbrella ? 4.6 : 4.5)) this.go('turn');
+            // Nắm chắc tay nhau rồi mới cùng quay ra mặt nước
+            const held = m.ikW[1] > 0.95 && w.ikW[0] > 0.95 && m.worldOf('rightHand').distanceTo(w.worldOf('leftHand')) < 0.09;
+            if (this.umbrella ? t > 4.6 : t > 4.4 && (held || t > 6)) this.go('turn');
         } else if (this.phase === 'turn') {
             // Cùng quay ra mặt nước bằng bước chân, cô theo anh chậm một nhịp
             m.turnTo(0.32);
@@ -417,11 +445,7 @@ export class Duo {
         const { m, w, rm, rw } = this;
         if (this.umbrella || !rm.walker || !rw.walker || rm.walker.state !== 'walk' || rw.walker.state !== 'walk') return;
         if (rm.dir !== rw.dir || Math.abs(m.x - w.x) > 0.7 || Math.abs(m.z - w.z) < 0.25) return;
-        const p = holdPoint(m, w, 0.86);
-        m.ik[1] = { target: p, pole: bodyDir(m, 0.3, -1, -0.5), tau: 0.3 };
-        w.ik[0] = { target: p, pole: bodyDir(w, -0.3, -1, -0.5), tau: 0.3 };
-        m.curlGoal[1] = 0.75;
-        w.curlGoal[0] = 0.75;
+        holdHands(m, w, holdPoint(m, w, 0.86), { poleM: bodyDir(m, 0.3, -1, -0.5), poleW: bodyDir(w, -0.3, -1, -0.5) });
     }
 
     // Lúc đi: tay buông theo chuyển động (che ô thì tay cầm ô trước ngực)
@@ -460,15 +484,10 @@ export class Duo {
             w.play('hair', { loop: false, fade: 0.4 });
         }
         if (this.haired && w.clipName === 'hair' && w.remaining < 0.9) w.play('idle', { fade: 0.7 });
-        if (t > 3.4) {
-            const p = holdPoint(m, w, 0.9);
-            m.ik[1] = { target: p, pole: bodyDir(m, 0.3, -1, -0.4), tau: 0.35 };
-            m.curlGoal[1] = 0.75;
-        }
-        if (t > 3.9) {
-            const p = holdPoint(m, w, 0.9);
-            w.ik[0] = { target: p, pole: bodyDir(w, -0.3, -1, -0.4), tau: 0.3 };
-            w.curlGoal[0] = 0.75;
+        if (t > 3.1) {
+            // Đối mặt: nắm tay ở giữa hai vai, cao ngang thắt lưng
+            const p = m.worldOf('rightUpperArm').lerp(w.worldOf('leftUpperArm'), 0.5).setY(0.98);
+            holdHands(m, w, p, { tau: 0.35, poleM: bodyDir(m, 0.3, -1, -0.4), poleW: bodyDir(w, -0.3, -1, -0.4), who: t > 3.6 ? '' : 'm' });
         }
     }
 
@@ -540,11 +559,10 @@ export class Duo {
         }
         let p = holdPoint(m, w, 0.84, 0.16);
         if (name === 'swing') p = p.add(V(0, 0.02 * Math.sin(gt * 3.4), 0.08 * Math.sin(gt * 3.4)));
-        m.ik[1] = { target: p, pole: bodyDir(m, 0.3, -1, -0.5), tau: 0.3 };
-        w.ik[0] = { target: p, pole: bodyDir(w, -0.3, -1, -0.5), tau: 0.3 };
         m.ik[0] = null;
-        m.curlGoal = [RELAX, 0.75];
-        w.curlGoal = [0.75, RELAX];
+        m.curlGoal[0] = RELAX;
+        w.curlGoal[1] = RELAX;
+        holdHands(m, w, p, { poleM: bodyDir(m, 0.3, -1, -0.5), poleW: bodyDir(w, -0.3, -1, -0.5) });
         if (name === 'point' && gt > 0.5 && gt < 3.3) {
             const dx = env.focus.x - w.x;
             const dir = bodyDir(w, 0.25 + clamp(dx / 8, -0.4, 0.4), 1.2, 0.8);
