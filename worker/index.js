@@ -185,7 +185,9 @@ async function saveConfig(request, env, url) {
 async function manageConfigs(request, env, url) {
     const action = url.searchParams.get('action');
     if (action === 'list') {
-        // Kịch bản mẫu (configs_index.json) và kịch bản đã lưu
+        // Kịch bản mẫu (configs_index.json) và kịch bản đã lưu của trình duyệt gửi mã chủ (POST { keys: { tên: mã } })
+        const body = request.method === 'POST' ? await request.json().catch(() => null) : null;
+        const keys = body && body.keys && typeof body.keys === 'object' ? body.keys : {};
         let templates = [];
         try {
             const index = await asset(env, url, '/configs/configs_index.json');
@@ -197,7 +199,7 @@ async function manageConfigs(request, env, url) {
             id: t.id, title: t.title || t.id, author: t.author || 'Unknown', eventCount: t.eventCount || 0,
             status: t.status === 'private' ? 'private' : 'public', locked: false
         }));
-        const saved = (await listConfigs(env)).filter(s => !samples.some(t => t.id === s.id));
+        const saved = (await listConfigs(env, keys)).filter(s => !samples.some(t => t.id === s.id));
         return json([...samples, ...saved]);
     }
     if (action === 'delete') {

@@ -7,13 +7,15 @@
 // Builder: nút "?" giải thích, mẫu theo dịp, dòng thời gian theo giây, lưu qua API PHP, trang chia sẻ, mở lại, kiểu bắn, khung bắt đầu, hoàn tác và bản nháp.
 import fs from 'fs';
 import path from 'path';
-import { DIST, sleep, openPage, removeConfig } from './helpers.mjs';
+import { DIST, sleep, openPage, removeConfigFamily } from './helpers.mjs';
 
 // Tên người nhận riêng cho kiểm thử: tên file kịch bản không thể trùng kịch bản thật
-const ID = 'phu_nu_20_10_e2e_test';
+const BASE_ID = 'phu_nu_20_10_e2e_test';
+// Tên kịch bản tạo từ mẫu: BASE_ID kèm đuôi ngẫu nhiên do builder tự thêm
+let ID = BASE_ID;
 
 export async function run(browser, base, { check }) {
-    removeConfig(ID);
+    removeConfigFamily(BASE_ID);
     const page = await openPage(browser, { width: 1600, height: 900 });
     try {
         await page.goto(base + '/builder', { waitUntil: 'networkidle0' });
@@ -55,7 +57,9 @@ export async function run(browser, base, { check }) {
             filename: document.getElementById('filename').value, shots: document.querySelectorAll('.shot-row').length,
             frame: document.querySelector('#start-frame-grid .shell-option.selected')?.textContent.trim()
         }));
-        check('mẫu theo dịp điền đủ kịch bản', created.title.includes('20/10') && created.recipient === 'E2E Test' && created.filename === ID && created.shots > 25 && created.frame.endsWith('Hoa nở'), JSON.stringify(created));
+        ID = created.filename;
+        check('mẫu theo dịp điền đủ kịch bản, tên file có đuôi ngẫu nhiên', created.title.includes('20/10') && created.recipient === 'E2E Test'
+            && new RegExp(`^${BASE_ID}-[a-z0-9]{5}$`).test(created.filename) && created.shots > 25 && created.frame.endsWith('Hoa nở'), JSON.stringify(created));
 
         // Dòng thời gian theo giây: kéo một phát sang phải ~1 giây, các phát khác giữ nguyên thời điểm, Ctrl+Z hoàn tác
         await page.evaluate(() => setTimelineView('track'));
@@ -240,6 +244,6 @@ export async function run(browser, base, { check }) {
         check('builder không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
         await page.close();
-        removeConfig(ID);
+        removeConfigFamily(BASE_ID);
     }
 }

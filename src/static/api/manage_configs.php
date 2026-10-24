@@ -15,6 +15,10 @@ $action = isset($_GET['action']) ? $_GET['action'] : '';
 $targetDir = __DIR__ . '/../configs/';
 
 if ($action === 'list') {
+    // Kịch bản mẫu ("riêng tư") và kịch bản do trình duyệt gửi đúng mã chủ (POST { keys: { tên: mã } }); kịch bản chưa có
+    // mã (lưu trước khi có mã chủ) vẫn liệt kê như trước. Kịch bản của người khác không liệt kê.
+    $body = json_decode(file_get_contents('php://input'), true);
+    $keys = is_array($body) && isset($body['keys']) && is_array($body['keys']) ? $body['keys'] : [];
     if (!is_dir($targetDir)) {
         echo json_encode([]);
         exit;
@@ -35,14 +39,20 @@ if ($action === 'list') {
         if (!is_array($content)) {
             $content = [];
         }
+        $isSample = isset($content['status']) && $content['status'] === 'private';
+        $locked = track_has_key($filename);
+        $key = isset($keys[$filename]) && is_string($keys[$filename]) ? $keys[$filename] : '';
+        if (!$isSample && $locked && !track_check_key($filename, $key)) {
+            continue;
+        }
         $result[] = [
             'id' => $filename,
             'title' => isset($content['title']) && is_string($content['title']) ? $content['title'] : $filename,
             'author' => isset($content['author']) && is_string($content['author']) ? $content['author'] : 'Unknown',
             'eventCount' => isset($content['events']) && is_array($content['events']) ? count($content['events']) : 0,
-            'status' => isset($content['status']) && $content['status'] === 'private' ? 'private' : 'public',
+            'status' => $isSample ? 'private' : 'public',
             // Có mã của máy đã tạo: chỉ máy giữ mã mới lưu đè, xóa được
-            'locked' => track_has_key($filename)
+            'locked' => $locked
         ];
     }
 

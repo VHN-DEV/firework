@@ -7,14 +7,16 @@
 // Builder dễ thao tác: tên file tự đặt theo Tiêu đề khi Lưu.
 import fs from 'fs';
 import path from 'path';
-import { DIST, sleep, openPage, removeConfig } from './helpers.mjs';
+import { DIST, sleep, openPage, removeConfigFamily } from './helpers.mjs';
 
 // Tiêu đề riêng cho kiểm thử: tên file tự đặt không thể trùng kịch bản thật
 const TITLE = 'Chúc mừng E2E Thử Tên';
-const ID = 'chuc_mung_e2e_thu_ten';
+const BASE_ID = 'chuc_mung_e2e_thu_ten';
+// Tên kịch bản sau khi lưu: BASE_ID kèm đuôi ngẫu nhiên do builder tự thêm
+let ID = BASE_ID;
 
 export async function run(browser, base, { check }) {
-    removeConfig(ID);
+    removeConfigFamily(BASE_ID);
     const page = await openPage(browser, { width: 1440, height: 900 });
     try {
         await page.goto(base + '/builder', { waitUntil: 'networkidle0' });
@@ -28,8 +30,10 @@ export async function run(browser, base, { check }) {
         await page.waitForFunction(() => !document.getElementById('share-modal').classList.contains('hide'), { timeout: 20000 }).catch(() => {});
         await page.evaluate(() => closeShareModal());
         const saved = await page.$eval('#filename', i => i.value);
-        check('chưa đặt tên file: bấm Lưu tự đặt theo Tiêu đề, ô Tên file báo trước tên sẽ dùng',
-            saved === ID && placeholder.includes(ID) && fs.existsSync(path.join(DIST, 'configs', `${ID}.json`)), JSON.stringify({ saved, placeholder }));
+        ID = saved;
+        check('chưa đặt tên file: bấm Lưu tự đặt theo Tiêu đề kèm đuôi ngẫu nhiên (link khó đoán), ô Tên file báo trước tên sẽ dùng',
+            new RegExp(`^${BASE_ID}-[a-z0-9]{5}$`).test(saved) && placeholder === `Tự đặt: ${BASE_ID}-xxxxx` && fs.existsSync(path.join(DIST, 'configs', `${ID}.json`)),
+            JSON.stringify({ saved, placeholder }));
 
         // Danh sách phát bắn như người tạo thấy: loại pháo, vị trí, thời điểm của từng dòng
         const rows = () => page.$$eval('.shot-row', list => list.map(row => {
@@ -273,6 +277,6 @@ export async function run(browser, base, { check }) {
         check('builder (tinh chỉnh thao tác) không lỗi JS', page.errors.length === 0, page.errors.join(' | '));
     } finally {
         await page.close();
-        removeConfig(ID);
+        removeConfigFamily(BASE_ID);
     }
 }

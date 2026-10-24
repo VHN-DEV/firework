@@ -74,6 +74,18 @@ export function removeConfig(id) {
     for (const kind of ['owners', 'opens']) fs.rmSync(path.join(DIST, 'api', 'data', kind, `${id}.json`), { force: true });
 }
 
+// Kịch bản kiểm thử lưu với tên tự đặt (đuôi ngẫu nhiên <tên>-xxxxx, xem withRandomSuffix trong builder/images.js): xóa
+// cả <tên> lẫn mọi bản <tên>-xxxxx còn sót từ lần chạy trước
+export function removeConfigFamily(id) {
+    removeConfig(id);
+    const dir = path.join(DIST, 'configs');
+    if (!fs.existsSync(dir)) return;
+    for (const file of fs.readdirSync(dir)) {
+        const m = /^(.+-[a-z0-9]{5})\.json$/.exec(file);
+        if (m && m[1].startsWith(`${id}-`) && m[1].length === id.length + 6) removeConfig(m[1]);
+    }
+}
+
 // File WAV một chuỗi nốt nhạc (dùng làm nhạc nền thử)
 export function writeMelody(file, seconds = 12) {
     const rate = 22050;

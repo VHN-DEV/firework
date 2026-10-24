@@ -136,6 +136,15 @@ try {
     const stranger = await api('save_config.php', { filename: ID, config: { title: 'Người lạ', events: [] } });
     const strangerDelete = await api('manage_configs.php?action=delete', { filename: ID, key: '0'.repeat(32) });
     check('máy khác không lưu đè, không xóa được kịch bản', stranger.code === 'not_owner' && strangerDelete.code === 'not_owner');
+    const ownerKey = await a.evaluate(id => JSON.parse(localStorage.getItem('firework_owner_keys') || '{}')[id], ID);
+    const lists = {
+        owner: await api('manage_configs.php?action=list', { keys: { [ID]: ownerKey } }),
+        stranger: await (await fetch(`${BASE}/api/manage_configs.php?action=list`)).json(),
+        wrongKey: await api('manage_configs.php?action=list', { keys: { [ID]: '0'.repeat(32) } })
+    };
+    check('danh sách kịch bản: chỉ máy đã tạo (gửi mã) thấy, máy khác chỉ thấy kịch bản mẫu', lists.owner.some(s => s.id === ID && s.locked)
+        && !lists.stranger.some(s => s.id === ID) && !lists.wrongKey.some(s => s.id === ID) && lists.stranger.every(s => s.status === 'private'),
+        JSON.stringify({ owner: lists.owner.length, stranger: lists.stranger.map(s => s.id).filter(id => id.startsWith('zz')) }));
     const template = await api('save_config.php', { filename: 'christmas', config: { title: 'x', events: [] } });
     check('không ghi đè kịch bản mẫu', template.code === 'not_owner');
     const key = await a.evaluate(id => JSON.parse(localStorage.getItem('firework_owner_keys') || '{}')[id], ID);

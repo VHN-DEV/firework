@@ -8,7 +8,7 @@
 
 import { eventTimes, isPauseEvent, layoutBursts } from '../timeline.js';
 import { createTimelineTrack } from '../timeline-track.js';
-import { state } from './state.js';
+import { isStaticEnv, state } from './state.js';
 import { COLOR, LAUNCH_STYLES, SHELL_ICONS } from './constants.js';
 import { escapeHtml, formatDuration, formatNumber, normalizeAssetPath } from './util.js';
 import { addEvent, duplicateBurst, getBurstDuration, getBurstEvents, getMaxBurst, moveBurst, removeBurst } from './events.js';
@@ -40,8 +40,8 @@ export function updateScriptNameLabel() {
     const filename = document.getElementById('filename').value.trim();
     label.textContent = (title || 'Kịch bản mới') + (filename ? ` · ${filename}.json` : '')
         + (draftSavedAt ? ` · đã lưu nháp ${draftSavedAt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}` : '');
-    // Chưa đặt tên file: ô Tên file cho biết tên sẽ tự đặt theo Tiêu đề khi bấm Lưu
-    document.getElementById('filename').placeholder = `Tự đặt: ${autoFilename()}`;
+    // Chưa đặt tên file: ô Tên file cho biết tên sẽ tự đặt theo Tiêu đề khi bấm Lưu (máy chủ: thêm đuôi ngẫu nhiên)
+    document.getElementById('filename').placeholder = `Tự đặt: ${autoFilename()}${isStaticEnv ? '' : '-xxxxx'}`;
 }
 
 // Các chấm màu (hoặc ảnh thu nhỏ) của một phát bắn

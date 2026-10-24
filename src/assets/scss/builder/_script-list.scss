@@ -223,29 +223,6 @@
     }
 }
 
-.scripts-others {
-    margin: 1.25rem 1.5rem 0;
-    border-top: 1px solid $b-line;
-
-    summary {
-        padding: 0.9rem 0 0;
-        color: $b-muted;
-        font-size: 0.85rem;
-        font-weight: 600;
-        cursor: pointer;
-
-        small {
-            margin-left: 0.4rem;
-            color: $b-faint;
-            font-weight: 400;
-        }
-    }
-
-    .scripts-grid {
-        padding: 0.75rem 0 0;
-    }
-}
-
 @include mobile {
     .scripts-tabs {
         padding: 0.8rem 0.9rem 0.6rem;
@@ -253,9 +230,5 @@
 
     .scripts-panel .scripts-grid {
         padding: 0.8rem 0.9rem 0;
-    }
-
-    .scripts-others {
-        margin: 1rem 0.9rem 0;
     }
 }

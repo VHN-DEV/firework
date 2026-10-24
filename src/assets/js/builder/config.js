@@ -25,7 +25,7 @@ import { clearDraft, markSaved } from './history.js';
 import { renderSchedule, renderScreenTheme, renderStartFrames, revealSetting } from './settings.js';
 import { WATER_LIFE_THINGS, WATER_THINGS, loadPeoplePlan, normalizeDecor, normalizeMoon, normalizeViewer, peoplePlanConfig, renderScene, renderSky, renderSmoke, renderViewer } from './scene.js';
 import { renderNotifyOpen } from './gift-watch.js';
-import { autoFilename } from './images.js';
+import { autoFilename, withRandomSuffix } from './images.js';
 import { loadNatureSound, natureSoundConfig } from './nature-ui.js';
 import { detectSeoImageAxis, getSeoImageConfig, openShareModal, renderSeoControls, scheduleSeoPreview, updateShareBar } from './share.js';
 
@@ -39,7 +39,7 @@ function validateConfig() {
 
     const filenameInput = document.getElementById('filename');
     // Chưa đặt tên file: tự đặt theo Tiêu đề, không bắt người tạo đi tìm ô Tên file trong nhóm "Chia sẻ & SEO"
-    if (!filenameInput.value.trim()) filenameInput.value = autoFilename();
+    if (!filenameInput.value.trim()) filenameInput.value = isStaticEnv ? autoFilename() : withRandomSuffix(autoFilename());
     const filename = filenameInput.value.trim();
 
     if (!/^[a-zA-Z0-9_-]+$/.test(filename)) {
@@ -124,6 +124,16 @@ export function getFinalConfig() {
     };
 }
 
+// Kịch bản trên máy chủ: kịch bản mẫu và kịch bản do trình duyệt này tạo (gửi mã chủ để máy chủ nhận ra); kịch bản của
+// người khác không hiện
+export function fetchServerScripts() {
+    return fetch('api/manage_configs.php?action=list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys: getOwnerKeys() })
+    }).then(r => r.json());
+}
+
 // Backend Integration
 // Helpers
 async function getAvailableScripts() {
@@ -140,8 +150,7 @@ async function getAvailableScripts() {
         }
     } else {
         try {
-            const response = await fetch('api/manage_configs.php?action=list');
-            const data = await response.json();
+            const data = await fetchServerScripts();
             return Array.isArray(data) ? data.map(s => s.id) : null;
         } catch (e) {
             return null;
@@ -296,8 +305,9 @@ export async function saveConfig(isPreview = false) {
         .then(response => response.json())
         .then(async data => {
             if (!data.success && data.code === 'not_owner' && !isPreview) {
-                // Kịch bản trùng tên do máy khác tạo (vd mở kịch bản của người khác rồi sửa): lưu thành bản mới của mình
-                const newName = await getUniqueFilename(filename, null);
+                // Kịch bản trùng tên do máy khác tạo (vd mở kịch bản của người khác rồi sửa, tên tự gõ trùng tên người khác):
+                // lưu thành bản mới của mình, tên thêm đuôi ngẫu nhiên (danh sách không cho biết tên nào người khác đã dùng)
+                const newName = withRandomSuffix(filename);
                 document.getElementById('filename').value = newName;
                 state.currentFilename = null;
                 notify(`"${filename}" do máy khác tạo nên không ghi đè được, đã lưu thành bản mới: ${newName}`, 'info');

@@ -24,6 +24,14 @@ export function toSlug(text) {
 // Tên file kịch bản khi người tạo chưa đặt: theo Tiêu đề ("Chúc mừng sinh nhật" -> chuc_mung_sinh_nhat)
 export const autoFilename = () => toSlug(document.getElementById('title').value) || 'kich_ban_moi';
 
+// Tên tự đặt cho kịch bản lưu trên máy chủ: thêm đuôi ngẫu nhiên (chuc_mung_sinh_nhat-k3f9a) để người lạ không đoán được
+// link quà s/<tên>, không trùng tên kịch bản của người khác (danh sách kịch bản của người khác không hiện). Tên người tạo
+// tự gõ thì giữ nguyên.
+export function withRandomSuffix(name) {
+    const tail = [...crypto.getRandomValues(new Uint8Array(5))].map(b => (b % 36).toString(36)).join('');
+    return `${name.replace(/-[a-z0-9]{5}$/, '').slice(0, 74)}-${tail}`;
+}
+
 // Thư mục trên máy chủ chứa ảnh/nhạc tải lên: theo tên file kịch bản. Chưa đặt tên thì lấy tên sẽ tự đặt khi Lưu
 // (không bắt người dùng điền tên trước, rồi bỏ mất file vừa chọn).
 export function getUploadFolder() {

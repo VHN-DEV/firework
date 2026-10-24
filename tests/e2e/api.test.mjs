@@ -39,8 +39,12 @@ export async function run(browser, base, { check }) {
         check('máy khác không lưu đè, không xóa được; máy đã tạo (có mã) thì được',
             stranger.code === 'not_owner' && strangerDelete.code === 'not_owner' && owner.success && read('zz_e2e_api')?.title === 'API 3',
             JSON.stringify({ stranger: stranger.code, strangerDelete: strangerDelete.code, owner: owner.success }));
-        const listed = await (await fetch(base + '/api/manage_configs.php?action=list')).json();
-        check('danh sách đánh dấu kịch bản có mã của máy đã tạo', listed.find(s => s.id === 'zz_e2e_api')?.locked === true);
+        const listed = await post('/api/manage_configs.php?action=list', { keys: { zz_e2e_api: first.trackKey } });
+        const strangerList = await (await fetch(base + '/api/manage_configs.php?action=list')).json();
+        const wrongKeyList = await post('/api/manage_configs.php?action=list', { keys: { zz_e2e_api: '0'.repeat(32) } });
+        check('danh sách: máy đã tạo (gửi mã) thấy kịch bản, đánh dấu có mã; máy khác không thấy',
+            listed.find(s => s.id === 'zz_e2e_api')?.locked === true && !strangerList.some(s => s.id === 'zz_e2e_api')
+            && !wrongKeyList.some(s => s.id === 'zz_e2e_api') && strangerList.some(s => s.status === 'private'));
 
         // Xem thử: mỗi lần một bản tạm tên ngẫu nhiên, không có mã, không hiện trong danh sách
         const p1 = await post('/api/save_config.php', { filename: 'x', preview: true, config: { title: 'Thử 1', events: [] } });

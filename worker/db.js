@@ -85,12 +85,21 @@ export async function putConfig(env, id, config, text, image, thumb) {
         .run();
 }
 
-// Danh sách kịch bản đã lưu (bỏ bản tạm của nút Xem thử): { id, title, author, eventCount, status, locked }
-export async function listConfigs(env) {
+// Kịch bản đã lưu mà trình duyệt gửi đúng mã chủ (keys: { tên: mã }) và kịch bản chưa có mã (lưu trước khi có mã chủ);
+// kịch bản của người khác không liệt kê. Bỏ bản tạm của nút Xem thử: { id, title, author, eventCount, status, locked }
+export async function listConfigs(env, keys) {
+    const ids = Object.keys(keys).filter(validTrackId).slice(0, 500);
     const { results } = await (await database(env)).prepare(
-        "SELECT c.id, c.title, c.author, c.events, o.id AS owner FROM configs c LEFT JOIN owners o ON o.id = c.id WHERE c.id NOT LIKE 'preview_temp%'"
-    ).all();
-    return results.map(r => ({ id: r.id, title: r.title || r.id, author: r.author || 'Unknown', eventCount: r.events, status: 'public', locked: !!r.owner }));
+        "SELECT c.id, c.title, c.author, c.events, o.hash FROM configs c LEFT JOIN owners o ON o.id = c.id "
+        + "WHERE c.id NOT LIKE 'preview_temp%' AND (o.id IS NULL OR c.id IN (SELECT value FROM json_each(?)))"
+    ).bind(JSON.stringify(ids)).all();
+    const list = [];
+    for (const r of results) {
+        const key = keys[r.id];
+        if (r.hash && !(typeof key === 'string' && /^[a-f0-9]{32}$/.test(key) && r.hash === await sha256(key))) continue;
+        list.push({ id: r.id, title: r.title || r.id, author: r.author || 'Unknown', eventCount: r.events, status: 'public', locked: !!r.hash });
+    }
+    return list;
 }
 
 // Xóa kịch bản cùng mã chủ, lịch sử mở quà

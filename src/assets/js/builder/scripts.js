@@ -10,8 +10,9 @@ import { getOwnerKeys, removeOwnerKey } from '../gift-tracking.js';
 import { isStaticEnv, state } from './state.js';
 import { confirmAction, escapeHtml, hideLoading, hideModal, notify, showLoading, showModal, showUrlFor } from './util.js';
 import { updateScriptNameLabel } from './timeline.js';
-import { getFinalConfig, getUniqueFilename, loadConfigIntoState } from './config.js';
+import { fetchServerScripts, getFinalConfig, getUniqueFilename, loadConfigIntoState } from './config.js';
 import { markSaved } from './history.js';
+import { withRandomSuffix } from './images.js';
 import { showGiftBadges } from './gift-watch.js';
 import { updateShareBar } from './share.js';
 
@@ -27,7 +28,7 @@ function loadScriptsList() {
 
     const fetchPromise = isStaticEnv
         ? fetch('configs/configs_index.json').then(r => r.json())
-        : fetch('api/manage_configs.php?action=list').then(r => r.json());
+        : fetchServerScripts();
 
     fetchPromise
         .then(data => {
@@ -54,12 +55,11 @@ function loadScriptsList() {
                 });
             }
 
-            // Ba nhóm: mẫu có sẵn (kịch bản "riêng tư" của trang), của tôi (trình duyệt này tạo), do máy khác tạo (máy chủ
-            // PHP lưu chung): khách mở "Của tôi" không thấy lẫn mẫu, kịch bản của người khác
+            // Hai nhóm: mẫu có sẵn (kịch bản "riêng tư" của trang), của tôi (trình duyệt này tạo; máy chủ không gửi kịch bản
+            // của người khác)
             const samples = data.filter(s => s.status === 'private');
             const mine = data.filter(s => s.status !== 'private' && (s.status === 'local' || ownerKeys[s.id] || !s.locked));
-            const others = data.filter(s => s.status !== 'private' && s.status !== 'local' && !ownerKeys[s.id] && s.locked);
-            renderScriptGroups(list, { mine, samples, others });
+            renderScriptGroups(list, { mine, samples });
             showGiftBadges();
         })
         .catch(err => {
@@ -67,7 +67,7 @@ function loadScriptsList() {
         });
 }
 
-// Thẻ một kịch bản. kind: 'sample' (dùng mẫu, xem), 'mine' (nhân bản, xem; xóa ở góc ảnh), 'other' (xem, nhân bản)
+// Thẻ một kịch bản. kind: 'sample' (dùng mẫu, xem), 'mine' (nhân bản, xem; xóa ở góc ảnh)
 function scriptCard(script, kind) {
     const item = document.createElement('div');
     item.className = `script-item script-item--${kind}`;
@@ -75,8 +75,8 @@ function scriptCard(script, kind) {
     item.tabIndex = 0;
     item.setAttribute('role', 'button');
     const id = escapeHtml(script.id);
-    // Bấm vào thẻ: mở để sửa; mẫu, kịch bản máy khác tạo thì mở bản sao (lưu thành bản mới của mình)
-    const open = kind === 'mine' ? 'Mở để sửa' : kind === 'sample' ? 'Dùng mẫu này' : 'Mở bản sao';
+    // Bấm vào thẻ: mở để sửa; mẫu thì mở bản sao (lưu thành bản mới của mình)
+    const open = kind === 'mine' ? 'Mở để sửa' : 'Dùng mẫu này';
     item.setAttribute('aria-label', `${open}: ${script.title}`);
     item.onclick = e => {
         if (e.target.closest('.btn')) return;
@@ -91,9 +91,7 @@ function scriptCard(script, kind) {
         sample: `<button class="btn primary small" onclick="duplicateScript('${id}')"><i class="fas fa-wand-magic-sparkles"></i> Dùng mẫu này</button>
             <button class="btn secondary small" onclick="previewScript('${id}')"><i class="fas fa-play"></i> Xem</button>`,
         mine: `<button class="btn secondary small" onclick="duplicateScript('${id}')"><i class="fas fa-copy"></i> Nhân bản</button>
-            <button class="btn secondary small" onclick="previewScript('${id}')"><i class="fas fa-play"></i> Xem</button>`,
-        other: `<button class="btn secondary small" onclick="previewScript('${id}')"><i class="fas fa-play"></i> Xem</button>
-            <button class="btn secondary small" onclick="duplicateScript('${id}')" title="Sửa rồi lưu sẽ thành bản mới của bạn"><i class="fas fa-copy"></i> Nhân bản</button>`
+            <button class="btn secondary small" onclick="previewScript('${id}')"><i class="fas fa-play"></i> Xem</button>`
     }[kind];
     const remove = kind === 'mine'
         ? `<button class="btn script-delete" onclick="deleteScript('${id}')" title="Xóa kịch bản" aria-label="Xóa kịch bản"><i class="fas fa-trash"></i></button>`
@@ -112,7 +110,7 @@ function scriptCard(script, kind) {
     return item;
 }
 
-function renderScriptGroups(list, { mine, samples, others }) {
+function renderScriptGroups(list, { mine, samples }) {
     const grid = (items, kind) => {
         const box = document.createElement('div');
         box.className = 'scripts-grid';
@@ -138,13 +136,6 @@ function renderScriptGroups(list, { mine, samples, others }) {
                 <button type="button" class="btn primary small" data-go="samples"><i class="fas fa-star"></i> Xem mẫu có sẵn</button>
             </div>`;
     }
-    if (others.length) {
-        const more = document.createElement('details');
-        more.className = 'scripts-others';
-        more.innerHTML = `<summary><i class="fas fa-user-lock"></i> Do máy khác tạo (${others.length}) <small>chỉ máy đã tạo mới sửa, xóa được</small></summary>`;
-        more.appendChild(grid(others, 'other'));
-        minePanel.appendChild(more);
-    }
     list.querySelector('[data-panel="samples"]').appendChild(grid(samples, 'sample'));
 
     const show = tab => {
@@ -164,7 +155,9 @@ export async function duplicateScript(filename) {
     showLoading('Đang nhân bản kịch bản...');
 
     const handleConfig = async (config) => {
-        const newName = await getUniqueFilename(filename + '_copy', '');
+        // Máy chủ: tên bản sao có đuôi ngẫu nhiên như mọi tên tự đặt (xem withRandomSuffix)
+        const copyName = `${filename.replace(/-[a-z0-9]{5}$/, '')}_copy`;
+        const newName = isStaticEnv ? await getUniqueFilename(copyName, '') : withRandomSuffix(copyName);
         loadConfigIntoState(config, newName);
         hideModal('scripts-modal');
         document.getElementById('share-bar').classList.add('hide');

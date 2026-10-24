@@ -7,11 +7,11 @@
 // Tạo nhanh theo dịp: dải gợi ý, hộp chọn mẫu.
 
 import { OCCASIONS, buildTemplate } from '../templates.js';
-import { state } from './state.js';
+import { isStaticEnv, state } from './state.js';
 import { escapeHtml, hideModal, notify, showModal } from './util.js';
 import { createNewScript } from './events.js';
 import { updateScriptNameLabel } from './timeline.js';
-import { toSlug } from './images.js';
+import { toSlug, withRandomSuffix } from './images.js';
 import { playMiniPreviewOnce } from './preview.js';
 import { loadConfigIntoState } from './config.js';
 import { closeMoreMenu } from './layout.js';
@@ -72,7 +72,8 @@ export function createFromTemplate() {
     const sender = document.getElementById('tpl-sender').value.trim();
     const config = buildTemplate(occasion.id, { recipient, sender });
 
-    loadConfigIntoState(config, toSlug(`${occasion.id} ${recipient}`).slice(0, 50));
+    const name = toSlug(`${occasion.id} ${recipient}`).slice(0, 50);
+    loadConfigIntoState(config, isStaticEnv ? name : withRandomSuffix(name));
     // Kịch bản mới: lưu lần đầu không ghi đè kịch bản trùng tên (tự thêm số)
     state.currentFilename = null;
     document.getElementById('share-bar').classList.add('hide');
