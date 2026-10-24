@@ -21,7 +21,7 @@ import { isStaticEnv, state } from './builder/state.js';
 import { confirmAction, hideModal, notify, showModal, syncLoopState } from './builder/util.js';
 import { helpTooltip } from './builder/help.js';
 import { addColorToEvent, addEvent, createNewScript, duplicateEvent, pickTextEmoji, removeColorFromEvent, removeEvent, showEmojiGroup, toggleEmojiPicker, updateEvent } from './builder/events.js';
-import { addBurst, addEventFromUI, renderEventList, selectEvent, setTimelineView, updateScriptNameLabel, zoomTrack } from './builder/timeline.js';
+import { addBurst, addEventFromUI, closeBurstMenu, initBurstMenu, openBurstMenu, renderEventList, selectEvent, setTimelineView, updateScriptNameLabel, zoomTrack } from './builder/timeline.js';
 import { addCustomColor, changeBurst, closeInspector, handleShellChange, rememberSection, renderInspector, toggleEventColor } from './builder/inspector.js';
 import { closeCropper, initCropper, openCropper, resetCropper, saveCropper, zoomCropper } from './builder/images.js';
 import { chooseLibraryItem, closeLibrary, getMusicAudio, handleMusicUpload, openLibrary, removeMusic, renderMusic, setLibraryTag, setMusicFromUrl, toggleLibraryPreview, useCurrentMusicTime } from './builder/music.js';
@@ -247,6 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
             close?.click();
             return;
         }
+        if (!document.getElementById('burst-menu').classList.contains('hide')) return closeBurstMenu();
         if (!document.getElementById('more-menu').classList.contains('hide')) return closeMoreMenu();
         if (document.getElementById('settings-panel').classList.contains('open')) return toggleSidebar();
         if (state.activeEventId) closeInspector();
@@ -276,6 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     initCropper();
+    initBurstMenu();
 
     // Initial event if empty
     if (state.events.length === 0) {
@@ -312,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Các hàm được gọi từ thuộc tính onclick/onchange trong HTML
 Object.assign(window, {
     toggleMiniPreview, togglePreviewDevice, toggleFullscreenMiniPreview, playMiniPreviewOnce, restartMiniPreview,
-    createNewScript, selectEvent, closeInspector, addEventFromUI, addBurst, removeEvent, duplicateEvent, updateEvent,
+    createNewScript, selectEvent, closeInspector, addEventFromUI, addBurst, openBurstMenu, removeEvent, duplicateEvent, updateEvent,
     handleShellChange, toggleEmojiPicker, showEmojiGroup, pickTextEmoji, changeBurst, toggleEventColor, addColorToEvent, addCustomColor, removeColorFromEvent,
     rememberSection, editScript, duplicateScript, deleteScript, previewScript, copyShareLink, copyScriptLink,
     openScriptsModal, exportConfig, previewConfig, saveConfig, toggleSidebar, toggleSettingsCollapsed, openSettingsGroup, toggleMoreMenu, showModal,

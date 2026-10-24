@@ -11,7 +11,7 @@ import { createTimelineTrack } from '../timeline-track.js';
 import { state } from './state.js';
 import { COLOR, LAUNCH_STYLES, SHELL_ICONS } from './constants.js';
 import { escapeHtml, formatDuration, formatNumber, normalizeAssetPath } from './util.js';
-import { addEvent, getBurstDuration, getBurstEvents, getMaxBurst } from './events.js';
+import { addEvent, duplicateBurst, getBurstDuration, getBurstEvents, getMaxBurst, moveBurst, removeBurst } from './events.js';
 import { renderInspector } from './inspector.js';
 import { getMusicAudio } from './music.js';
 import { previewMusicPlaying, refreshMiniPreview, sendPreview, updateMiniInfo } from './preview.js';
@@ -137,6 +137,8 @@ function renderBurstGroup(burst, events, burstStart = 0) {
                 <button class="btn ghost small burst-add" onclick="addEventFromUI(${burst})" title="Thêm phát bắn vào đợt ${burst}">
                     <i class="fas fa-plus"></i><span>Thêm</span>
                 </button>
+                <button class="icon-btn burst-more" onclick="openBurstMenu(event, ${burst})" title="Nhân bản, đổi chỗ, xóa cả đợt ${burst}"
+                    aria-haspopup="menu" aria-label="Thao tác với đợt ${burst}"><i class="fas fa-ellipsis"></i></button>
             </header>
             <div class="burst-shots">${events.map(e => renderShotRow(e, burstStart)).join('')}</div>
         </section>`;
@@ -245,6 +247,45 @@ export function addEventFromUI(burst) {
 // Thêm một phát bắn ở đợt mới (sau đợt cuối)
 export function addBurst() {
     addEventFromUI(getMaxBurst() + 1);
+}
+
+// Menu "⋯" của một đợt: đặt cố định ngay dưới nút (không bị khung danh sách cắt), bấm lại nút, bấm ra ngoài, cuộn hay Esc
+// thì đóng
+export function openBurstMenu(e, burst) {
+    e.stopPropagation();
+    const menu = document.getElementById('burst-menu');
+    if (!menu.classList.contains('hide') && Number(menu.dataset.burst) === burst) return closeBurstMenu();
+    menu.dataset.burst = burst;
+    menu.querySelector('[data-burst-action="up"]').disabled = burst <= 1;
+    menu.querySelector('[data-burst-action="down"]').disabled = burst >= getMaxBurst();
+    menu.classList.remove('hide');
+    const r = e.currentTarget.getBoundingClientRect();
+    const { offsetWidth: w, offsetHeight: h } = menu;
+    menu.style.left = `${Math.max(8, Math.min(r.right - w, innerWidth - w - 8))}px`;
+    menu.style.top = `${r.bottom + h + 8 > innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6}px`;
+}
+
+export function closeBurstMenu() {
+    document.getElementById('burst-menu')?.classList.add('hide');
+}
+
+// Các mục trong menu đợt (gọi một lần khi mở builder)
+export function initBurstMenu() {
+    const menu = document.getElementById('burst-menu');
+    if (!menu) return;
+    menu.addEventListener('click', (e) => {
+        const item = e.target.closest('[data-burst-action]');
+        if (!item || item.disabled) return;
+        const burst = Number(menu.dataset.burst);
+        closeBurstMenu();
+        ({ duplicate: () => duplicateBurst(burst), up: () => moveBurst(burst, -1), down: () => moveBurst(burst, 1), remove: () => removeBurst(burst) })[item.dataset.burstAction]();
+    });
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#burst-menu, .burst-more')) closeBurstMenu();
+    });
+    document.addEventListener('scroll', (e) => {
+        if (!menu.contains(e.target)) closeBurstMenu();
+    }, true);
 }
 
 // Đổi phát đang chọn. Xem danh sách: chỉ đổi dòng được tô (vẽ lại cả danh sách dài thì khựng); xem theo giây: vẽ lại dải.

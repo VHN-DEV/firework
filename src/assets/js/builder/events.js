@@ -371,6 +371,51 @@ export function getBurstDuration(events) {
     return (2500 + Math.max(0, ...pauses)) * 1.25;
 }
 
+// Thao tác với cả đợt (menu "⋯" ở đầu mỗi đợt): nhân bản, đổi chỗ với đợt trước/sau, xóa. Xong thì xếp các phát theo
+// đợt (giữ thứ tự trong đợt) để số thứ tự (#) liền mạch.
+const burstOf = e => Number(e.burst) || 1;
+
+function afterBurstChange() {
+    state.events.sort((a, b) => burstOf(a) - burstOf(b));
+    renderEventList();
+    // Bảng chỉnh sửa ghi đợt của phát đang chọn
+    renderInspector();
+}
+
+export function duplicateBurst(burst) {
+    const copies = getBurstEvents(burst).map(e => {
+        const { id, expanded, ...data } = e;
+        return { ...JSON.parse(JSON.stringify(data)), id: state.nextId++, expanded: false, burst: burst + 1 };
+    });
+    state.events.forEach(e => { if (burstOf(e) > burst) e.burst = burstOf(e) + 1; });
+    state.events.push(...copies);
+    afterBurstChange();
+    notify(`Đã nhân bản đợt ${burst} thành đợt ${burst + 1}.`, 'success');
+}
+
+export function moveBurst(burst, step) {
+    const target = burst + step;
+    if (target < 1 || target > getMaxBurst()) return;
+    state.events.forEach(e => {
+        if (burstOf(e) === burst) e.burst = target;
+        else if (burstOf(e) === target) e.burst = burst;
+    });
+    afterBurstChange();
+    notify(`Đã đưa đợt ${burst} ${step < 0 ? 'lên trước' : 'xuống sau'}, giờ là đợt ${target}.`, 'success');
+}
+
+export function removeBurst(burst) {
+    const count = getBurstEvents(burst).length;
+    if (getBurstEvents(burst).some(e => e.id === state.activeEventId)) {
+        state.activeEventId = null;
+        updateMiniInfo();
+    }
+    state.events = state.events.filter(e => burstOf(e) !== burst);
+    state.events.forEach(e => { if (burstOf(e) > burst) e.burst = burstOf(e) - 1; });
+    afterBurstChange();
+    notify(`Đã xóa đợt ${burst}${count ? ` (${count} phát)` : ''}. Bấm Ctrl+Z để lấy lại.`, 'info');
+}
+
 export function getMaxBurst() {
     return state.events.length > 0 ? Math.max(...state.events.map(e => Number(e.burst) || 1)) : 0;
 }

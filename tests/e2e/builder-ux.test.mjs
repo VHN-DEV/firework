@@ -148,6 +148,43 @@ export async function run(browser, base, { check }) {
         check('tiếng thiên nhiên không có trong cảnh thì mờ đi: chưa có mặt nước mờ hết, có mặt nước chỉ còn mưa mờ, biển không có ếch, cò, vịt',
             dry === 'birds,ducks,fish,frogs,insects,rain,trees,water' && lake === 'rain' && seaRain === 'birds,ducks,frogs,insects',
             JSON.stringify({ dry, lake, seaRain }));
+        // Menu "⋯" của đợt: nhân bản, đưa lên, xóa cả đợt; Esc đóng menu; Ctrl+Z lấy lại đợt vừa xóa
+        await page.evaluate(() => setTimelineView('list'));
+        const waves = () => page.$$eval('.burst-group', groups => groups.map(g => g.querySelectorAll('.shot-row').length).join());
+        const waveAction = async (wave, action) => {
+            await page.click(`.burst-group:nth-child(${wave}) .burst-more`);
+            await sleep(150);
+            await page.click(`#burst-menu [data-burst-action="${action}"]`);
+            await sleep(400);
+            return waves();
+        };
+        await page.evaluate(() => addBurst());
+        await sleep(300);
+        const start = await waves();
+        const n = start.split(',')[0];
+        const duplicated = await waveAction(1, 'duplicate');
+        const moved = await waveAction(3, 'up');
+        await page.click('.burst-group:nth-child(1) .burst-more');
+        await sleep(150);
+        const menuOpen = await page.$eval('#burst-menu', m => {
+            const r = m.getBoundingClientRect();
+            return !m.classList.contains('hide') && r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth;
+        });
+        await page.keyboard.press('Escape');
+        await sleep(150);
+        const menuClosed = await page.$eval('#burst-menu', m => m.classList.contains('hide'));
+        const removed = await waveAction(2, 'remove');
+        await page.evaluate(() => document.activeElement.blur());
+        await page.keyboard.down('Control');
+        await page.keyboard.press('z');
+        await page.keyboard.up('Control');
+        await sleep(500);
+        const undone = await waves();
+        check('menu ⋯ của đợt: nhân bản đợt, đưa lên trước, xóa đợt (Ctrl+Z lấy lại), menu nằm trong màn hình, Esc đóng',
+            start === `${n},1` && duplicated === `${n},${n},1` && moved === `${n},1,${n}` && removed === `${n},${n}` && undone === `${n},1,${n}`
+                && menuOpen && menuClosed,
+            JSON.stringify({ start, duplicated, moved, removed, undone, menuOpen, menuClosed }));
+
         check('Trên mặt nước: hồ không có khúc gỗ trôi, sông thì có; mùa đông mặt nước đóng băng nên con vật mờ đi, đá vẫn rõ',
             lakeThings.includes('waterLogs:hide') && riverThings.includes('waterLogs:idle') && riverThings.includes('waterBirds:idle')
                 && /waterRocks(,|$)/.test(riverThings),

@@ -119,6 +119,39 @@
     opacity: 1;
 }
 
+// Nút "⋯" thao tác cả đợt, ngay sau nút Thêm; hiện khi rê chuột vào đợt như nút Thêm
+.burst-more {
+    flex: none;
+    margin-left: -0.4rem;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.burst-group:hover .burst-more,
+.burst-more:focus-visible {
+    opacity: 1;
+}
+
+// Menu của một đợt: đặt cố định cạnh nút "⋯" (JS tính vị trí)
+.dropdown.burst-menu {
+    position: fixed;
+    top: 0;
+    right: auto;
+    z-index: 1500;
+    min-width: 200px;
+
+    button:disabled {
+        opacity: 0.4;
+        cursor: default;
+        background: none;
+    }
+
+    .danger,
+    .danger i {
+        color: $b-danger;
+    }
+}
+
 .burst-shots {
     display: flex;
     flex-direction: column;

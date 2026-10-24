@@ -1160,6 +1160,15 @@
         </div>
     </div>
 
+    <!-- Menu "⋯" ở đầu mỗi đợt: thao tác với cả đợt -->
+    <div id="burst-menu" class="dropdown burst-menu hide" role="menu" aria-label="Thao tác với cả đợt">
+        <button type="button" role="menuitem" data-burst-action="duplicate"><i class="fas fa-clone"></i> Nhân bản đợt</button>
+        <button type="button" role="menuitem" data-burst-action="up"><i class="fas fa-arrow-up"></i> Đưa lên trước</button>
+        <button type="button" role="menuitem" data-burst-action="down"><i class="fas fa-arrow-down"></i> Đưa xuống sau</button>
+        <hr>
+        <button type="button" role="menuitem" data-burst-action="remove" class="danger"><i class="fas fa-trash"></i> Xóa đợt</button>
+    </div>
+
     <div id="notification-container" class="notification-container"></div>
 
     <div id="global-loading" class="global-loading hide">
@@ -1286,7 +1295,8 @@
                     <h4><i class="fas fa-timeline"></i> Dòng thời gian</h4>
                     <ul>
                         <li><strong>Danh sách:</strong> các phát bắn xếp theo đợt. Các phát cùng đợt nổ cùng lúc; các đợt
-                            chạy lần lượt, mỗi đợt khoảng 3 giây.</li>
+                            chạy lần lượt, mỗi đợt khoảng 3 giây. Nút <i class="fas fa-ellipsis"></i> ở đầu đợt: nhân bản,
+                            đưa lên trước, xuống sau hoặc xóa cả đợt.</li>
                         <li><strong>Theo giây:</strong> xem các phát bắn trên thước giây cùng sóng nhạc; kéo ngang để đổi
                             thời điểm (bám phách nhạc), nhấn đúp chỗ trống để thêm phát. Các phát khác giữ nguyên thời
                             điểm, đợt được xếp lại tự động.</li>
