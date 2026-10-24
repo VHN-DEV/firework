@@ -18,7 +18,7 @@
   // Đăng nhập bằng Google (không bắt buộc, worker/account.js): dán Client ID loại "Web application" tạo ở Google Cloud
   // Console > APIs & Services > Credentials (Authorized JavaScript origins: địa chỉ trang). Để trống thì không có nút đăng
   // nhập. Client ID không phải bí mật (trình duyệt nào cũng thấy) nên ghi thẳng ở đây.
-  "vars": { "GOOGLE_CLIENT_ID": "" },
+  "vars": { "GOOGLE_CLIENT_ID": "601535766400-kgstq6qq22k9fd4jhp2idckb3l77tqu3.apps.googleusercontent.com" },
   // Dọn dữ liệu mỗi ngày lúc 7h05 sáng giờ Việt Nam (0h05 giờ quốc tế), ngay sau khi Cloudflare đặt lại hạn mức ngày
   "triggers": { "crons": ["5 0 * * *"] }
 }
