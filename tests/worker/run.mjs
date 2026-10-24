@@ -7,7 +7,7 @@
 // Phần máy chủ trên Cloudflare Workers (worker/, wrangler.jsonc), chạy tại máy bằng "wrangler dev" (D1, KV giả lập trong
 // .wrangler/): builder lưu kịch bản kèm ảnh thiệp, link s/<tên> có ảnh, tiêu đề xem trước, mở ở trình duyệt khác đúng
 // kịch bản, tải ảnh, nhạc lên rồi đọc lại (nhạc tải từng đoạn), file giả dạng ảnh bị từ chối, mã chủ khi lưu đè, xóa, báo
-// mở quà, Xem thử, giới hạn số lần tải lên của mỗi máy, xóa kịch bản thì xóa ảnh, nhạc chỉ nó dùng, lần dọn hằng ngày
+// mở quà, Xem thử, trình duyệt giữ được kịch bản, nhạc, trang chia sẻ (mở lại không tải lại), giới hạn số lần tải lên của mỗi máy, xóa kịch bản thì xóa ảnh, nhạc chỉ nó dùng, lần dọn hằng ngày
 // xóa ảnh không kịch bản nào dùng. Mỗi lần chạy dùng dữ liệu mới (thư mục tạm). Cần bản build (npm run build) và mạng để npx tải wrangler lần đầu. Chạy: npm run test:worker
 import { spawn, spawnSync } from 'child_process';
 import fs from 'fs';
@@ -124,6 +124,12 @@ try {
     const part = await fetch(new URL(up.audio.url, `${BASE}/builder`), { headers: { range: 'bytes=100-199' } });
     check('nhạc tải từng đoạn (Range) để tua được', part.status === 206 && (await part.arrayBuffer()).byteLength === 100
         && part.headers.get('content-range') === 'bytes 100-199/8044', `${part.status} ${part.headers.get('content-range')}`);
+    const musicTag = part.headers.get('etag');
+    const musicAgain = await fetch(new URL(up.audio.url, `${BASE}/builder`), { headers: { 'if-none-match': musicTag || 'x' } });
+    const shareCache = (await fetch(shareUrl)).headers.get('cache-control') || '';
+    check('trình duyệt giữ được nhạc, trang chia sẻ: hỏi lại nhạc thì 304', !!musicTag && musicAgain.status === 304 && /max-age=3600/.test(shareCache),
+        `${musicTag} ${musicAgain.status} ${shareCache}`);
+    const configTag = (await fetch(`${BASE}/configs/${ID}.json`)).headers.get('etag');
 
     // Mã chủ: máy khác không lưu đè, không xóa được; báo mở quà; xóa bằng mã của máy đã tạo
     const api = (path, body) => fetch(`${BASE}/api/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
@@ -138,6 +144,11 @@ try {
     const status = await api('opens.php?action=status', { items: [{ id: ID, key }, { id: ID, key: '0'.repeat(32) }] });
     check('báo mở quà: ghi lần mở, chỉ mã đúng mới xem được', notify.success && recorded.success && status.items[0].ok && status.items[0].counts.open === 1 && !status.items[1].ok,
         JSON.stringify(status));
+    const changed = await fetch(`${BASE}/configs/${ID}.json`, { headers: { 'if-none-match': configTag || 'x' } });
+    const newTag = changed.headers.get('etag');
+    const same = await fetch(`${BASE}/configs/${ID}.json`, { headers: { 'if-none-match': newTag || 'x' } });
+    check('kịch bản: lưu lại thì gửi bản mới, chưa đổi thì 304', !!configTag && changed.status === 200 && (await changed.json()).notifyOpen === true
+        && newTag !== configTag && same.status === 304, `${configTag} ${changed.status} ${newTag} ${same.status}`);
 
     // Xem thử: kịch bản tạm trên máy chủ
     const opened = new Promise(resolve => context.on('targetchanged', t => { if (t.url().includes('/demo')) resolve(t.url()); }));

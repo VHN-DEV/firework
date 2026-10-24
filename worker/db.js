@@ -68,6 +68,12 @@ export async function getConfig(env, id) {
     return data ? { data, updated: row.updated, image: !!row.image, thumb: row.thumb || null } : null;
 }
 
+// Kịch bản dạng JSON như đã lưu (gửi thẳng cho trình phát, không phải đọc ra rồi ghi lại): { data, updated, size } hoặc
+// null. withData = false: chỉ lấy lúc lưu và độ dài (để biết trình duyệt đang giữ bản mới nhất chưa)
+export async function getConfigText(env, id, withData = true) {
+    return (await database(env)).prepare(`SELECT ${withData ? 'data, ' : ''}updated, length(data) AS size FROM configs WHERE id = ?`).bind(id).first();
+}
+
 // text: kịch bản dạng JSON (đã có sẵn khi kiểm tra dung lượng)
 export async function putConfig(env, id, config, text, image, thumb) {
     const db = await database(env);

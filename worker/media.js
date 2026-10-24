@@ -63,20 +63,26 @@ function parseRange(header, size) {
     return start <= end && start < size ? { start, end } : null;
 }
 
-// Trả file key (null nếu không có). immutable: tên file không bao giờ đổi nội dung (ảnh, nhạc tải lên mang tên ngẫu nhiên)
+// Trả file key (null nếu không có). immutable: tên file không bao giờ đổi nội dung (ảnh, nhạc tải lên mang tên ngẫu nhiên).
+// Có mã phiên bản (ETag): trình duyệt hỏi lại thì trả 304 không kèm file, và giữ được các đoạn nhạc đã tải (Range) nên
+// lần xem sau không tải lại.
 export async function serveMedia(env, request, key, { immutable = false } = {}) {
     const headers = new Headers({
         'accept-ranges': 'bytes',
         'cache-control': immutable ? 'public, max-age=31536000, immutable' : 'public, max-age=86400'
     });
-    const range = request.headers.get('range');
+    let range = request.headers.get('range');
+    const ifRange = request.headers.get('if-range');
     if (env.MEDIA) {
-        const head = range ? await env.MEDIA.head(key) : null;
-        const part = head ? parseRange(range, head.size) : null;
-        const object = await env.MEDIA.get(key, part ? { range: { offset: part.start, length: part.end - part.start + 1 } } : {});
+        const head = range || ifRange ? await env.MEDIA.head(key) : null;
+        // If-Range: đoạn trình duyệt đang giữ thuộc bản cũ thì gửi cả file
+        if (head && ifRange && ifRange !== head.httpEtag) range = null;
+        const part = head && range ? parseRange(range, head.size) : null;
+        const object = await env.MEDIA.get(key, { onlyIf: request.headers, ...(part ? { range: { offset: part.start, length: part.end - part.start + 1 } } : {}) });
         if (!object) return null;
         object.writeHttpMetadata(headers);
         headers.set('etag', object.httpEtag);
+        if (!('body' in object)) return new Response(null, { status: 304, headers });
         if (part) {
             headers.set('content-range', `bytes ${part.start}-${part.end}/${object.size}`);
             headers.set('content-length', String(part.end - part.start + 1));
@@ -89,11 +95,16 @@ export async function serveMedia(env, request, key, { immutable = false } = {}) 
     const { value, metadata } = await env.MEDIA_KV.getWithMetadata(key, 'arrayBuffer');
     if (!value) return null;
     headers.set('content-type', (metadata && metadata.type) || 'application/octet-stream');
-    const part = range ? parseRange(range, value.byteLength) : null;
+    // Mã phiên bản: lúc ghi và dung lượng (ảnh thiệp ghi đè cùng tên thì đổi mã)
+    const etag = `"${(metadata && metadata.t) || 0}-${value.byteLength}"`;
+    headers.set('etag', etag);
+    if (request.headers.get('if-none-match') === etag) return new Response(null, { status: 304, headers });
+    const part = range && (!ifRange || ifRange === etag) ? parseRange(range, value.byteLength) : null;
     if (part) {
         headers.set('content-range', `bytes ${part.start}-${part.end}/${value.byteLength}`);
         headers.set('content-length', String(part.end - part.start + 1));
-        return new Response(request.method === 'HEAD' ? null : value.slice(part.start, part.end + 1), { status: 206, headers });
+        // Không chép đoạn file (nhạc tới 20 MB): chỉ trỏ vào đoạn cần gửi, đỡ thời gian xử lý
+        return new Response(request.method === 'HEAD' ? null : new Uint8Array(value, part.start, part.end - part.start + 1), { status: 206, headers });
     }
     headers.set('content-length', String(value.byteLength));
     return new Response(request.method === 'HEAD' ? null : value, { headers });

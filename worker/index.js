@@ -19,7 +19,7 @@
 import { renderSharePage, shareMetaFromConfig } from '../share-page.js';
 import {
     TRACK_DEVICES, TRACK_EVENTS, canModify, checkKey, createKey, deleteConfig, deleteOldPreviews, deleteOldQuota, getConfig,
-    hasKey, listConfigs, loadOpens, now, putConfig, randomHex, recordOpen, sha256, unusedMedia, useQuota, validTrackId
+    getConfigText, hasKey, listConfigs, loadOpens, now, putConfig, randomHex, recordOpen, sha256, unusedMedia, useQuota, validTrackId
 } from './db.js';
 import { deleteMedia, hasMedia, listMedia, putMedia, serveMedia } from './media.js';
 
@@ -321,7 +321,9 @@ async function sharePage(env, url, id) {
     }
     if (!config || !Array.isArray(config.events)) return Response.redirect(new URL('/', url).href, 302);
     const html = renderSharePage({ id, ...shareMetaFromConfig(config), shareUrl: `${url.origin}/s/${id}`, imageUrl });
-    return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' } });
+    // Trang chỉ có tiêu đề, ảnh xem trước (cho Facebook, Zalo... đọc) và chuyển sang trình phát: trình duyệt giữ 1 giờ, mở
+    // lại link không phải gọi máy chủ
+    return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
 }
 
 async function notFound(env, url) {
@@ -343,15 +345,23 @@ async function route(request, env, url) {
     }
     let m = /^\/s\/([A-Za-z0-9_-]+)(?:\.html)?$/.exec(path);
     if (m) return sharePage(env, url, cleanName(m[1]));
-    // Kịch bản đã lưu (kịch bản mẫu là file tĩnh, không tới đây)
+    // Kịch bản đã lưu (kịch bản mẫu là file tĩnh, không tới đây). Trình duyệt hỏi lại mỗi lần mở (người tạo sửa xong là
+    // người nhận thấy ngay), chưa đổi thì trả 304 không kèm kịch bản. Bản Xem thử không bao giờ đổi (mỗi lần một tên mới).
     m = /^\/configs\/([a-z0-9_-]+)\.json$/.exec(path);
     if (m) {
-        const saved = await getConfig(env, m[1]);
-        if (saved) return json(saved.data, { headers: { 'cache-control': 'no-cache' } });
-        return notFound(env, url);
+        const asked = request.headers.get('if-none-match');
+        let saved = await getConfigText(env, m[1], !asked);
+        if (!saved) return notFound(env, url);
+        const etag = `"${saved.updated}-${saved.size}"`;
+        const headers = { etag, 'cache-control': m[1].startsWith('preview_temp') ? 'private, max-age=86400' : 'no-cache' };
+        if (asked === etag) return new Response(null, { status: 304, headers });
+        if (saved.data === undefined) saved = await getConfigText(env, m[1]);
+        if (!saved) return notFound(env, url);
+        return new Response(saved.data, { headers: { 'content-type': 'application/json; charset=utf-8', ...headers } });
     }
     m = /^\/configs\/([a-z0-9_-]+)\.jpg$/.exec(path);
-    if (m && hasMedia(env)) return (await serveMedia(env, request, `configs/${m[1]}.jpg`)) || notFound(env, url);
+    // ?v=<lúc lưu> (link ảnh trong trang chia sẻ): ảnh của đúng lần lưu đó, không bao giờ đổi
+    if (m && hasMedia(env)) return (await serveMedia(env, request, `configs/${m[1]}.jpg`, { immutable: url.searchParams.has('v') })) || notFound(env, url);
     if (path.startsWith('/uploads/') && hasMedia(env)) {
         return (await serveMedia(env, request, decodeURIComponent(path.slice(1)), { immutable: true })) || notFound(env, url);
     }
