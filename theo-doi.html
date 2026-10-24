@@ -33,37 +33,75 @@
         </nav>
     </header>
 
+    <!-- Biểu tượng dùng chung (vẽ nét, theo màu chữ) -->
+    <svg class="track-sprite" aria-hidden="true">
+        <symbol id="i-link" viewBox="0 0 24 24"><path d="M9.5 14.5l5-5M11 6.6l1.2-1.2a3.9 3.9 0 0 1 5.5 5.5L16.5 12M13 17.4l-1.2 1.2a3.9 3.9 0 0 1-5.5-5.5L7.5 12"/></symbol>
+        <symbol id="i-gift" viewBox="0 0 24 24"><rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12M12 8v12.5M12 8C10.6 4.3 7 3.6 7 5.9 7 7.4 9.3 8 12 8zm0 0c1.4-3.7 5-4.4 5-2.1C17 7.4 14.7 8 12 8z"/></symbol>
+        <symbol id="i-spark" viewBox="0 0 24 24"><path d="M11 3.5l1.9 5.1 5.1 1.9-5.1 1.9L11 17.5l-1.9-5.1L4 10.5l5.1-1.9zM18 15l.8 1.7 1.7.8-1.7.8L18 20l-.8-1.7-1.7-.8 1.7-.8z"/></symbol>
+        <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></symbol>
+        <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15zM10 20.5a2 2 0 0 0 4 0"/></symbol>
+        <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10A4.2 4.2 0 0 1 12 7.5 4.2 4.2 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/></symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9.5" rx="2"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3"/></symbol>
+        <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5.5M12 16.4v.1"/></symbol>
+    </svg>
+
     <main class="legal track-page">
         <p class="eyebrow">Theo dõi món quà</p>
-        <h1 id="gift-title">Đang tải...</h1>
-        <p id="gift-recipient" class="lead"></p>
+        <h1 id="gift-title">Đang tải…</h1>
+        <p id="gift-recipient" class="lead hide"></p>
 
-        <div id="gift-error" class="track-error hide" role="alert"></div>
+        <div id="gift-error" class="track-error hide" role="alert">
+            <svg class="icon"><use href="#i-alert"/></svg>
+            <p id="gift-error-text"></p>
+        </div>
 
-        <section id="gift-status" class="track-status hide" aria-live="polite">
-            <ol class="track-steps">
-                <li data-step="view"><span class="track-step-icon">🔗</span>
-                    <div><strong>Mở link</strong><span class="track-step-time"></span></div>
-                </li>
-                <li data-step="open"><span class="track-step-icon">🎁</span>
-                    <div><strong>Mở quà</strong><span class="track-step-time"></span></div>
-                </li>
-                <li data-step="finish"><span class="track-step-icon">🎆</span>
-                    <div><strong>Xem hết màn trình diễn</strong><span class="track-step-time"></span></div>
-                </li>
-            </ol>
-            <div class="track-actions">
-                <a id="gift-show" class="track-btn" href="./demo">Xem màn trình diễn</a>
-                <button id="gift-notify" type="button" class="track-btn ghost hide">🔔 Báo khi người nhận mở quà</button>
+        <section id="gift-status" class="track-status hide">
+            <!-- Trạng thái: none (chưa mở link), view (mở link, chưa mở quà), open (đã mở quà), finish (xem hết) -->
+            <div id="gift-summary" class="track-card track-summary" data-state="none">
+                <div class="track-summary__top">
+                    <span id="gift-badge" class="track-badge"></span>
+                    <span class="track-live" title="Trang tự cập nhật mỗi 30 giây"><i></i><span id="gift-updated">Đang theo dõi</span></span>
+                </div>
+                <p id="gift-headline" class="track-summary__headline" aria-live="polite"></p>
+                <p id="gift-detail" class="track-summary__detail"></p>
+
+                <ol class="track-steps">
+                    <li data-step="view">
+                        <span class="track-step-icon"><svg class="icon"><use href="#i-link"/></svg></span>
+                        <strong>Mở link</strong><span class="track-step-time"></span>
+                    </li>
+                    <li data-step="open">
+                        <span class="track-step-icon"><svg class="icon"><use href="#i-gift"/></svg></span>
+                        <strong>Mở quà</strong><span class="track-step-time"></span>
+                    </li>
+                    <li data-step="finish">
+                        <span class="track-step-icon"><svg class="icon"><use href="#i-spark"/></svg></span>
+                        <strong>Xem hết</strong><span class="track-step-time"></span>
+                    </li>
+                </ol>
+
+                <div class="track-actions">
+                    <a id="gift-show" class="track-btn" href="./demo"><svg class="icon"><use href="#i-play"/></svg>Xem màn trình diễn</a>
+                    <button id="gift-notify" type="button" class="track-btn ghost hide" title="Báo khi người nhận mở quà hoặc gửi lời cảm ơn (giữ trang này mở)"><svg class="icon"><use href="#i-bell"/></svg>Bật thông báo</button>
+                </div>
+                <p id="gift-notify-note" class="track-hint hide"></p>
             </div>
-            <p class="track-note">Trang tự cập nhật mỗi 30 giây. Giữ link này để xem lại bất cứ lúc nào, <strong>đừng gửi
-                    cho người nhận</strong>. Máy đã mở trang này tự xem màn trình diễn thì không tính là người nhận mở.</p>
-            <section id="gift-replies-box" class="hide">
-                <h2>💌 Lời cảm ơn</h2>
+
+            <section id="gift-replies-box" class="track-section hide">
+                <h2><svg class="icon"><use href="#i-heart"/></svg>Lời cảm ơn</h2>
                 <ul id="gift-replies" class="track-replies"></ul>
             </section>
-            <h2>Lịch sử</h2>
-            <ul id="gift-history" class="track-history"></ul>
+
+            <section class="track-section">
+                <h2>Lịch sử</h2>
+                <ol id="gift-history" class="track-history"></ol>
+            </section>
+
+            <aside class="track-private">
+                <svg class="icon"><use href="#i-lock"/></svg>
+                <p><strong>Link này chỉ dành cho bạn, đừng gửi cho người nhận.</strong> Bạn tự xem màn trình diễn trên máy này
+                    thì không bị tính là người nhận mở.</p>
+            </aside>
         </section>
     </main>
 
