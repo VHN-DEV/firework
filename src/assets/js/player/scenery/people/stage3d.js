@@ -173,7 +173,7 @@ export class Stage3D {
         this.actors = cast.map(({ vrm, clips }, i) => {
             vrm.scene.position.set(0, 0, 0);
             const actor = new Actor3D(list[i], vrm, clips);
-            dress(vrm, list[i], season, weather);
+            actor.longCoat = !!dress(vrm, list[i], season, weather).longCoat;
             this.scene.add(actor.root);
             return actor;
         });

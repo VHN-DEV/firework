@@ -831,8 +831,11 @@ export class Solo {
                 return;
             }
             if (a.sex === 'm') {
-                // Đút túi quần trước
-                a.ik[i] = { target: bodyPoint(a, sg * 0.17, 0.86, 0.07), pole: bodyDir(a, sg, -0.3, -1), tau: 0.35 };
+                // Đút túi quần trước; mặc áo măng tô dài thì đút túi áo: cổ tay ở miệng túi trên vạt áo, bàn tay chúc xuống
+                // vào trong (túi quần khuất trong thân áo: cả cánh tay chui vào trong áo)
+                a.ik[i] = a.longCoat
+                    ? { target: bodyPoint(a, sg * 0.19, 0.94, 0.1), pole: bodyDir(a, sg, -0.3, -1), tau: 0.35, handDir: bodyDir(a, sg * 0.15, -1, -0.9) }
+                    : { target: bodyPoint(a, sg * 0.17, 0.86, 0.07), pole: bodyDir(a, sg, -0.3, -1), tau: 0.35 };
                 a.curlGoal[i] = 0.95;
             } else {
                 // Khoanh tay ôm lấy mình: bàn tay nắm cánh tay bên kia

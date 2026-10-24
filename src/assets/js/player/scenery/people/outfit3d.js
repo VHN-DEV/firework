@@ -1356,14 +1356,18 @@ function sweater(vrm, tops, { color }) {
     return mesh;
 }
 
-// Danh sách tam giác của lớp bên trong (mesh: da, áo gốc) bỏ đi phần khuất hẳn dưới áo khoác (cover: điểm lúc gắn khung có
-// bị thân áo che không; phần theo xương cánh tay thì ống tay áo che, trừ chỗ sát cổ tay): không bao giờ thấy, cử động thì
-// xuyên ra (vạt áo gile ở nách, da đầu vai khi hạ tay). null nếu lưới chia nhóm tam giác kiểu khác
+// Danh sách tam giác của lớp bên trong (mesh: da, áo gốc) bỏ đi phần khuất hẳn dưới áo khoác: không bao giờ thấy, cử động
+// thì xuyên ra (vạt áo gile ở nách, da đầu vai khi hạ tay). Phần theo xương cánh tay thì ống tay áo che, trừ chỗ sát cổ tay;
+// bàn tay, ngón tay không bao giờ khuất; phần còn lại theo thân áo (cover: điểm lúc gắn khung có bị thân áo che không, chỉ
+// xét độ cao, góc quanh người nên không dùng cho tay: lúc gắn khung tay dang ngang tầm thân áo, bàn tay bị coi là khuất,
+// mất hẳn). null nếu lưới chia nhóm tam giác kiểu khác
 function coverIndex(body, mesh, cover) {
     const g = mesh.geometry;
     const full = g.userData.fullIndex || (g.userData.fullIndex = g.index);
     if (!full || !g.groups.every(gr => gr.start === 0 && gr.count === full.count)) return null;
-    const arms = new Set(['left', 'right'].flatMap(s => ['UpperArm', 'LowerArm'].map(n => body.bone(s + n))));
+    const sides = names => new Set(['left', 'right'].flatMap(s => names.map(n => body.bone(s + n))));
+    const arms = sides(ARM_BONES.slice(0, 2));
+    const fingers = sides(ARM_BONES.slice(2));
     const hands = ['leftHand', 'rightHand'].map(body.at).filter(Boolean);
     const p = g.attributes.position, si = g.attributes.skinIndex, sw = g.attributes.skinWeight;
     const v = new THREE.Vector3();
@@ -1372,8 +1376,9 @@ function coverIndex(body, mesh, cover) {
         let best = 0;
         for (let j = 1; j < 4; j++) if (sw.getComponent(i, j) > sw.getComponent(i, best)) best = j;
         v.fromBufferAttribute(p, i);
-        const arm = arms.has(si.getComponent(i, best)) && hands.every(h => h.distanceTo(v) > 0.07);
-        hidden[i] = arm || cover(v.x, v.y, v.z) ? 1 : 0;
+        const bone = si.getComponent(i, best);
+        if (fingers.has(bone)) continue;
+        hidden[i] = (arms.has(bone) ? hands.every(h => h.distanceTo(v) > 0.07) : cover(v.x, v.y, v.z)) ? 1 : 0;
     }
     const a = full.array;
     const keep = [];
@@ -1417,6 +1422,8 @@ export function dress(vrm, sex, season, weather = '') {
     const list = store[season] = [];
     list.covers = [];
     if (!spec) return list;
+    // Áo măng tô dài (không kiểu vải riêng): đút tay vào túi áo thay vì túi quần (khuất trong thân áo)
+    list.longCoat = !!(spec.coat && !spec.coat.style);
     const body = sampleBody(vrm, spec.tee ? 'tops' : spec.sweater ? 'hood' : '');
     if (!body) return list;
     const base = [].concat(body.cloth.material)[0];
