@@ -264,15 +264,16 @@
                             <label class="switch-row" for="loop">
                                 <span>
                                     <strong>Tự động lặp lại<button type="button" class="help-tip" data-help="loop" aria-label="Giải thích">?</button></strong>
-                                    <small>Chạy hết thì quay lại đợt đầu</small>
+                                    <small>Chạy hết thì quay lại đợt đầu. Tắt để có màn kết với lời chúc</small>
                                 </span>
                                 <input type="checkbox" id="loop" class="switch" checked>
                             </label>
-                            <div class="field">
+                            <!-- Chỉ hiện khi tắt "Tự động lặp lại" (bật thì không có màn kết) -->
+                            <div class="field outro-field">
                                 <label for="outro-message">Lời chúc ở màn kết<button type="button" class="help-tip" data-help="outroMessage" aria-label="Giải thích">?</button></label>
                                 <textarea id="outro-message" rows="2" maxlength="200"
                                     placeholder="Để trống sẽ dùng Dòng phụ"></textarea>
-                                <small class="field-hint">Màn kết hiện khi tắt "Tự động lặp lại" ở trên, kèm nút Xem lại.</small>
+                                <small class="field-hint">Hiện khi chạy hết một lượt, kèm nút Xem lại.</small>
                             </div>
                             <label class="switch-row" for="schedule-toggle">
                                 <span>

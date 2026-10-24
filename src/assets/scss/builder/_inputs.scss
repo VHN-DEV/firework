@@ -180,6 +180,11 @@ input[type="range"] {
     margin-bottom: 1rem;
 }
 
+// Lời chúc ở màn kết: đang bật "Tự động lặp lại" thì không có màn kết nên ẩn ô này
+.settings-group-body:has(#loop:checked) .outro-field {
+    display: none;
+}
+
 .field-hint {
     display: block;
     margin-top: 0.35rem;
