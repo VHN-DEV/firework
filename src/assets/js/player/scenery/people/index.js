@@ -71,6 +71,7 @@ export const People = {
     focus: { x: 0, y: 0, ready: false },
     stars: 0,
     burst: false,
+    big: false,
     drips: [],
     splashes: [],
     puffs: [],
@@ -218,6 +219,8 @@ export const People = {
             this.focus.y += (target.y - this.focus.y) * k;
         }
         this.burst = n > this.stars + 60;
+        // Loạt pháo lớn bùng lên (nhiều tia cùng lúc): người ngắm pháo có thể vỗ tay, reo
+        this.big = n > this.stars + 150;
         this.stars = n;
     },
 
@@ -245,7 +248,7 @@ export const People = {
             // Ở bờ bên kia pháo nổ ngay trên đầu: ngẩng cao hơn
             pitch: L.far ? 0.55 + 0.3 * up : 0.25 + 0.45 * up
         };
-        const env = { wind, focus, time: this.time, burst: this.burst, dt };
+        const env = { wind, focus, time: this.time, burst: this.burst, big: this.big, dt };
         this.show.update(dt, env);
         const deck = L.far ? this.deck() : null;
         this.actors.forEach(a => {

@@ -8,7 +8,8 @@
 // - Cặp đôi (Duo): chàng trai từ mép trái, cô gái từ mép phải thong thả đi dạo lại, vừa đi vừa ngước nhìn pháo; gặp
 //   nhau ở giữa thì dừng bước, nhìn nhau, cô vén tóc, anh đưa tay, cô nắm lấy; cùng quay ra mặt nước nắm tay ngước nhìn
 //   pháo hoa rồi lần lượt: cô tựa đầu vào vai anh, anh choàng tay ôm vai cô (cô vòng tay ôm eo anh), nhìn nhau rồi anh
-//   cúi hôn lên tóc cô, cô chỉ tay lên pháo, hai bàn tay nắm đung đưa. Mưa: hai người che ô đi tới; gặp nhau anh
+//   cúi hôn lên tóc cô, cô chỉ tay lên pháo, hai bàn tay nắm đung đưa. Pháo bùng lớn thì thỉnh thoảng cùng vỗ tay, hoặc
+//   cô giơ hai tay reo, anh nắm tay nhịp nhẹ rồi quay sang nhìn cô. Mưa: hai người che ô đi tới; gặp nhau anh
 //   giơ cao ô, cô gập ô của mình (tay kia vuốt khép tán), cầm buông bên người, bước vào đứng chung ô, khoác tay anh; anh
 //   nghiêng ô về phía cô.
 // - Một mình (Solo): bước chậm buồn bã, chàng trai đút tay túi quần, cô gái khoanh tay ôm lấy mình; đứng giữa bờ ngước
@@ -566,6 +567,14 @@ export class Duo {
             w.curlGoal = [0.55, 0.85];
             return;
         }
+        if (name === 'clap' || name === 'cheer') {
+            // Vỗ tay, reo: buông tay nhau, hai tay theo động tác (bàn tay mở khi vỗ tay, nắm lại khi reo)
+            m.ik = [null, null];
+            w.ik = [null, null];
+            m.curlGoal = [0.25, 0.25];
+            w.curlGoal = name === 'clap' ? [0.25, 0.25] : [0.6, 0.6];
+            return;
+        }
         if (name === 'embrace') {
             // Anh choàng tay qua vai cô: bàn tay đặt lên đỉnh vai bên kia, cánh tay vòng sau lưng cô, khuỷu hạ xuống, ra sau
             // (khuỷu giơ cao thì tay duỗi ngang qua đầu cô). Cô vòng tay ôm ngang lưng anh
@@ -595,12 +604,25 @@ export class Duo {
         }
     }
 
-    // Thỉnh thoảng đổi tư thế đứng (đứng thở, dồn trọng tâm sang chân kia), mỗi người một nhịp
+    // Thỉnh thoảng đổi tư thế đứng (đứng thở, dồn trọng tâm sang chân kia), mỗi người một nhịp (đang vỗ tay, reo thì để sau)
     stance(a, dt) {
         a.stanceT = (a.stanceT ?? rand(1, 6)) - dt;
-        if (a.stanceT > 0) return;
+        if (a.stanceT > 0 || (this.g && this.g.react)) return;
         a.stanceT = rand(7, 14);
-        a.play(Math.random() < 0.4 ? 'idle2' : 'idle', { fade: 1 });
+        const r = Math.random();
+        a.play(r < 0.35 ? 'idle2' : r < 0.6 && a.clips.idle3 ? 'idle3' : 'idle', { fade: 1 });
+    }
+
+    // Pháo bùng lớn lúc đang đứng ngắm (nắm tay, đung đưa, chỉ tay): thỉnh thoảng cùng vỗ tay, hoặc cô giơ hai tay reo, anh
+    // nắm tay nhịp nhẹ; cô bắt đầu trước, anh theo sau một nhịp
+    react(env) {
+        const g = this.g;
+        if (this.umbrella || !env.big || !['watch', 'swing', 'point'].includes(g.name) || g.t < 1.2) return;
+        if (env.time - (this.reacted ?? -99) < 18 || Math.random() > 0.6 || !this.m.clips.clap) return;
+        this.reacted = env.time;
+        const name = Math.random() < 0.5 ? 'clap' : 'cheer';
+        this.g = { name, t: 0, dur: name === 'clap' ? 3.4 : 2.8, react: true };
+        this.last = name;
     }
 
     // Cử chỉ lúc đứng ngắm: nối tiếp ngẫu nhiên, không lặp cử chỉ vừa làm
@@ -614,6 +636,7 @@ export class Duo {
             const dur = { watch: rand(5, 8), lean: rand(7, 10), embrace: rand(8, 11), gaze: rand(5, 6.5), point: 4.4, swing: 4.2, shelter: rand(5, 7) }[name];
             this.g = { name, t: 0, dur };
         }
+        this.react(env);
         // Mỗi người đổi tư thế đứng (dồn trọng tâm) theo nhịp riêng
         [m, w].forEach(a => this.stance(a, dt));
         const g = this.g;
@@ -654,6 +677,24 @@ export class Duo {
             w.lookGoal.roll = -0.08 * kiss;
         } else if (g.name === 'shelter') {
             if (t < 1.5) lookAtActor(m, w, -0.2);
+        } else if (g.react) {
+            // Cô bắt đầu trước, anh theo sau một nhịp; gần hết thì hạ tay êm về đứng thở. Reo: cô giơ tay reo (chỉ lấy đoạn
+            // giơ tay của động tác, bỏ đoạn lấy đà và đoạn quét tay ra ngang), anh vỗ tay rồi quay sang nhìn cô
+            if (!g.wStart) {
+                g.wStart = true;
+                w.play(g.name, { loop: false, fade: 0.35, from: g.name === 'cheer' ? 2.3 / w.clips.cheer.duration : 0 });
+            }
+            if (t > 0.3 && !g.mStart) {
+                g.mStart = true;
+                m.play('clap', { loop: false, fade: 0.35 });
+            }
+            if (t > g.dur - 0.9 && !g.ended) {
+                g.ended = true;
+                // Dừng động tác reo ở tư thế đang giơ tay rồi trộn về đứng thở: tay hạ thẳng xuống
+                if (g.name === 'cheer' && w.actions.cheer) w.actions.cheer.timeScale = 0;
+                [m, w].forEach(a => a.play('idle', { fade: 0.9 }));
+            }
+            if (g.name === 'cheer' && t > 1.2) lookAtActor(m, w, -0.15);
         }
         this.hands(env, g.name, t);
     }
