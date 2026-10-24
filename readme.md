@@ -47,7 +47,7 @@
   đường dẫn (`api/*.php`, `s/<tên>`) nên trang không phải sửa. Kịch bản, mã chủ, lịch sử mở quà lưu trong cơ sở dữ liệu
   D1; ảnh, nhạc tải lên và ảnh thiệp lưu trong KV (hoặc R2: đổi khối `kv_namespaces` thành `"r2_buckets": [{ "binding":
   "MEDIA" }]`); file tĩnh trong `dist` (`src/static/.assetsignore` bỏ thư mục `api/` PHP). Triển khai: trên Cloudflare,
-  Workers & Pages, nối repo GitHub; lệnh build `npm run build`, lệnh triển khai `npx wrangler deploy`; biến môi trường
+  Workers & Pages, nối repo GitHub; lệnh build `npm run build`, lệnh triển khai `npx wrangler@4 deploy` (dự án không ghi wrangler trong package.json); biến môi trường
   lúc build `SITE_URL=https://<tên>.<tài khoản>.workers.dev/` (ảnh, link xem trước của trang chủ, sitemap). Lần triển
   khai đầu Cloudflare tự tạo D1, KV (wrangler 4.45 trở lên), bảng do Worker tự tạo. Chạy thử tại máy: `npm run build` rồi
   `npx wrangler dev` (D1, KV giả lập trong `.wrangler/`); kiểm thử `npm run test:worker` (cần mạng để tải wrangler).
