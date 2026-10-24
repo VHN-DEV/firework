@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<!--
+    Hanabi – Quản trị
+    © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+    Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+-->
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quản trị | Hanabi</title>
+    <meta name="author" content="Vũ Hoài Nam">
+    <meta name="copyright" content="© 2026 Vũ Hoài Nam">
+    <!-- Trang quản trị của chủ trang: không đưa lên công cụ tìm kiếm -->
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+    <meta name="theme-color" content="#0e1119">
+    <link rel="icon" href="/favicon.ico" sizes="48x48">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="./src/assets/scss/admin.scss">
+</head>
+
+<body>
+    <header class="admin-top">
+        <a class="admin-brand" href="./"><img src="/favicon.svg" alt="" width="30" height="30"><span><b>Hanabi</b><small>Quản trị</small></span></a>
+        <div id="admin-me" class="admin-me hide">
+            <span id="admin-email"></span>
+            <button type="button" class="admin-btn ghost" id="btn-logout"><i class="fas fa-right-from-bracket"></i><span>Đăng xuất</span></button>
+        </div>
+    </header>
+
+    <!-- Chưa đăng nhập, không có quyền, bản không có quản trị -->
+    <main id="gate" class="admin-gate">
+        <div class="admin-card">
+            <i class="fas fa-shield-halved admin-gate__icon" aria-hidden="true"></i>
+            <h1>Trang quản trị</h1>
+            <p id="gate-message">Đang kiểm tra...</p>
+            <div id="gate-google" class="google-button"></div>
+            <button type="button" id="gate-logout" class="admin-btn hide">Đăng xuất, dùng tài khoản khác</button>
+        </div>
+    </main>
+
+    <div id="app" class="admin-app hide">
+        <nav class="admin-tabs" role="tablist" aria-label="Mục quản trị">
+            <button type="button" role="tab" data-tab="overview"><i class="fas fa-gauge"></i> Tổng quan</button>
+            <button type="button" role="tab" data-tab="scripts"><i class="fas fa-wand-magic-sparkles"></i> Kịch bản</button>
+            <button type="button" role="tab" data-tab="users"><i class="fas fa-users"></i> Người dùng</button>
+            <button type="button" role="tab" data-tab="music"><i class="fas fa-compact-disc"></i> Kho nhạc</button>
+            <button type="button" role="tab" data-tab="images"><i class="fas fa-images"></i> Kho ảnh</button>
+            <button type="button" role="tab" data-tab="replies"><i class="fas fa-heart"></i> Lời cảm ơn</button>
+        </nav>
+        <!-- Nội dung từng mục: admin.js dựng -->
+        <main id="panel" class="admin-panel" role="tabpanel"></main>
+    </div>
+
+    <!-- Chi tiết kịch bản -->
+    <dialog id="script-dialog" class="admin-dialog">
+        <div class="admin-dialog__head">
+            <h2 id="script-dialog-title"></h2>
+            <button type="button" class="admin-btn icon" data-close aria-label="Đóng"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div id="script-dialog-body" class="admin-dialog__body"></div>
+    </dialog>
+
+    <div id="toast" class="admin-toast hide" role="status" aria-live="polite"></div>
+
+    <script type="module" src="./src/assets/js/admin.js"></script>
+</body>
+
+</html>

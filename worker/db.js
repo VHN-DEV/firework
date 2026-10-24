@@ -8,8 +8,8 @@
 // kịch bản (owners, chỉ lưu bản băm: cũng là mã theo dõi mở quà), lịch sử mở quà (opens), lời cảm ơn của người nhận
 // (replies), xem api/tracking.inc.php. Bảng
 // tạo khi cần (lần đầu mỗi isolate), không phải chạy lệnh tạo bảng. Bảng quota đếm số lần lưu, tải lên của mỗi máy (xem
-// useQuota). Tài khoản (account.js): users (người dùng Google), sessions (phiên đăng nhập, chỉ lưu bản băm của mã phiên),
-// user_keys (mã chủ các kịch bản tài khoản giữ hộ).
+// useQuota). Tài khoản (account.js): users (người dùng Google; locked: bị quản trị khóa), sessions (phiên đăng nhập, chỉ lưu
+// bản băm của mã phiên), user_keys (mã chủ các kịch bản tài khoản giữ hộ). Kho nhạc, kho ảnh: library (library.js).
 
 const SCHEMA = [
     'CREATE TABLE IF NOT EXISTS configs (id TEXT PRIMARY KEY, data TEXT NOT NULL, title TEXT, author TEXT, events INTEGER NOT NULL DEFAULT 0, updated INTEGER NOT NULL, image INTEGER NOT NULL DEFAULT 0)',
@@ -20,10 +20,17 @@ const SCHEMA = [
     'CREATE TABLE IF NOT EXISTS sessions (hash TEXT PRIMARY KEY, user TEXT NOT NULL, expires INTEGER NOT NULL)',
     'CREATE TABLE IF NOT EXISTS user_keys (user TEXT NOT NULL, id TEXT NOT NULL, key TEXT NOT NULL, PRIMARY KEY (user, id))',
     'CREATE TABLE IF NOT EXISTS replies (n INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL, t TEXT NOT NULL, name TEXT, message TEXT NOT NULL)',
-    'CREATE INDEX IF NOT EXISTS replies_id ON replies (id)'
+    'CREATE INDEX IF NOT EXISTS replies_id ON replies (id)',
+    'CREATE TABLE IF NOT EXISTS library (kind TEXT NOT NULL, id TEXT NOT NULL, data TEXT NOT NULL, uploaded INTEGER NOT NULL DEFAULT 0, '
+        + 'hidden INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL, PRIMARY KEY (kind, id))'
 ];
-// Cột thêm sau khi đã có bảng: thumb (bản băm ảnh thiệp đang lưu, để không ghi lại ảnh không đổi)
-const COLUMNS = ['ALTER TABLE configs ADD COLUMN thumb TEXT'];
+// Cột thêm sau khi đã có bảng: thumb (bản băm ảnh thiệp đang lưu, để không ghi lại ảnh không đổi), seen (lần đăng nhập gần
+// nhất), locked (tài khoản bị khóa)
+const COLUMNS = [
+    'ALTER TABLE configs ADD COLUMN thumb TEXT',
+    'ALTER TABLE users ADD COLUMN seen INTEGER',
+    'ALTER TABLE users ADD COLUMN locked INTEGER NOT NULL DEFAULT 0'
+];
 
 export const TRACK_EVENTS = ['view', 'open', 'finish'];
 export const TRACK_DEVICES = ['mobile', 'tablet', 'desktop'];
@@ -37,7 +44,7 @@ const REPLY_SHOWN = 20;
 
 let ready = null;
 
-async function database(env) {
+export async function database(env) {
     if (!env.DB) throw new Error('Chưa gắn cơ sở dữ liệu D1 (binding DB trong wrangler.jsonc)');
     if (!ready) {
         ready = env.DB.batch(SCHEMA.map(sql => env.DB.prepare(sql)))
@@ -257,10 +264,15 @@ export async function deleteOldQuota(env) {
 
 // ---- Tài khoản ----
 
+// Đăng nhập: tạo hoặc cập nhật người dùng. Tài khoản bị khóa thì không cập nhật, trả về false
 export async function upsertUser(env, user) {
-    await (await database(env)).prepare('INSERT INTO users (id, email, name, picture, created) VALUES (?, ?, ?, ?, ?) '
-        + 'ON CONFLICT(id) DO UPDATE SET email = excluded.email, name = excluded.name, picture = excluded.picture')
-        .bind(user.id, user.email, user.name, user.picture, now()).run();
+    const db = await database(env);
+    const row = await db.prepare('SELECT locked FROM users WHERE id = ?').bind(user.id).first();
+    if (row && row.locked) return false;
+    await db.prepare('INSERT INTO users (id, email, name, picture, created, seen) VALUES (?, ?, ?, ?, ?, ?) '
+        + 'ON CONFLICT(id) DO UPDATE SET email = excluded.email, name = excluded.name, picture = excluded.picture, seen = excluded.seen')
+        .bind(user.id, user.email, user.name, user.picture, now(), now()).run();
+    return true;
 }
 
 // Phiên đăng nhập mới: trả về mã phiên (chỉ một lần, vào cookie), máy chủ giữ bản băm
@@ -275,7 +287,7 @@ export async function createSession(env, user, seconds) {
 export async function sessionUser(env, token) {
     if (!/^[a-f0-9]{64}$/.test(token)) return null;
     return (await database(env)).prepare('SELECT u.id, u.email, u.name, u.picture FROM sessions s JOIN users u ON u.id = s.user '
-        + 'WHERE s.hash = ? AND s.expires > ?').bind(await sha256(token), now()).first();
+        + 'WHERE s.hash = ? AND s.expires > ? AND u.locked = 0').bind(await sha256(token), now()).first();
 }
 
 export async function deleteSession(env, token) {

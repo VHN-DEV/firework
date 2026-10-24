@@ -9,7 +9,8 @@
 // kịch bản, tải ảnh, nhạc lên rồi đọc lại (nhạc tải từng đoạn), file giả dạng ảnh bị từ chối, mã chủ khi lưu đè, xóa, báo
 // mở quà, Xem thử, trình duyệt giữ được kịch bản, nhạc, trang chia sẻ (mở lại không tải lại), giới hạn số lần tải lên của mỗi máy, xóa kịch bản thì xóa ảnh, nhạc chỉ nó dùng, lần dọn hằng ngày
 // xóa ảnh không kịch bản nào dùng, đăng nhập Google (khóa giả thay Google: mã đăng nhập do kiểm thử tự ký) giữ kịch bản
-// trên máy khác. Mỗi lần chạy dùng dữ liệu mới (thư mục tạm). Cần bản build (npm run build) và mạng để npx tải wrangler lần đầu. Chạy: npm run test:worker
+// trên máy khác, trang quản trị (chỉ email quản trị vào được; xem, xóa kịch bản; khóa, xóa người dùng; kho nhạc; lời cảm
+// ơn). Mỗi lần chạy dùng dữ liệu mới (thư mục tạm). Cần bản build (npm run build) và mạng để npx tải wrangler lần đầu. Chạy: npm run test:worker
 import { spawn, spawnSync } from 'child_process';
 import crypto from 'crypto';
 import fs from 'fs';
@@ -29,6 +30,7 @@ const STATE = fs.mkdtempSync(path.join(os.tmpdir(), 'hanabi-worker-'));
 
 // "Google" giả: khóa công khai ở http://127.0.0.1:<cổng>/certs (Worker đọc qua GOOGLE_CERTS_URL), mã đăng nhập tự ký
 const CLIENT_ID = 'hanabi-test';
+const ADMIN_EMAIL = 'quantri@example.com';
 const CERTS_PORT = PORT - 3;
 const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
 const jwk = { ...publicKey.export({ format: 'jwk' }), kid: 'hanabi-test', alg: 'RS256', use: 'sig' };
@@ -49,6 +51,7 @@ const googleToken = (claims = {}) => {
 // --test-scheduled: gọi lần dọn hằng ngày qua /__scheduled; ORPHAN_DAYS=0: dọn cả ảnh vừa tải lên
 const wrangler = spawn('npx', ['--yes', 'wrangler@4', 'dev', '--port', String(PORT), '--ip', '127.0.0.1', '--persist-to', `"${STATE}"`,
     '--test-scheduled', '--var', 'ORPHAN_DAYS:0', '--var', `GOOGLE_CLIENT_ID:${CLIENT_ID}`, '--var', `GOOGLE_CERTS_URL:http://127.0.0.1:${CERTS_PORT}/certs`,
+    '--var', `ADMIN_EMAILS:${ADMIN_EMAIL}`,
     '--show-interactive-dev-session=false'],
     { cwd: ROOT, shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
 let log = '';
@@ -284,6 +287,105 @@ try {
     check('lần dọn hằng ngày xóa ảnh không kịch bản nào dùng', cron.ok && swept.orphan === 404 && swept.shared === 200, `${cron.status} ${JSON.stringify(swept)}`);
     const removedCopy = await api('manage_configs.php?action=delete', { filename: `${ID}_ban`, key: copy.trackKey });
     check('xóa nốt kịch bản dùng lại ảnh thì ảnh mất theo', removedCopy.success && await status404(up.image.url) === 404);
+
+    // Trang quản trị: phiên đăng nhập lấy từ cookie trả về khi đăng nhập
+    const loginAs = async claims => {
+        const response = await fetch(`${BASE}/api/account.php?action=login`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: googleToken(claims), keys: {} }) });
+        return { cookie: (response.headers.get('set-cookie') || '').split(';')[0], data: await response.json() };
+    };
+    const call = (cookie, path, body = {}) => fetch(`${BASE}/api/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', cookie },
+        body: JSON.stringify(body) }).then(async r => ({ status: r.status, ...(await r.json()) }));
+    const adm = await loginAs({ sub: '2000002', email: ADMIN_EMAIL, name: 'Quản trị' });
+    const guest = await loginAs({ sub: '3000003', email: 'nguoidung@example.com', name: 'Người dùng' });
+    const gates = { anonymous: await call('', 'admin.php?action=overview'), guest: await call(guest.cookie, 'admin.php?action=overview') };
+    const overview = await call(adm.cookie, 'admin.php?action=overview');
+    check('quản trị: chưa đăng nhập, tài khoản thường bị chặn; email quản trị vào được', gates.anonymous.status === 401 && gates.guest.status === 403
+        && overview.success && overview.counts.users >= 2, JSON.stringify({ gates: [gates.anonymous.status, gates.guest.status], counts: overview.counts }));
+
+    const GUEST_ID = `${ID}_khach`;
+    const guestSave = await call(guest.cookie, 'save_config.php', { filename: GUEST_ID, config: { title: 'Quà của khách', author: 'Khách', events: [{ burst: 1 }] } });
+    const guestId = (await call(adm.cookie, 'admin.php?action=users', { q: 'nguoidung' })).items[0];
+    const found = await call(adm.cookie, 'admin.php?action=scripts', { q: 'quà của' });
+    const byUser = await call(adm.cookie, 'admin.php?action=scripts', { user: guestId.id });
+    const detail = await call(adm.cookie, 'admin.php?action=script', { id: GUEST_ID });
+    check('quản trị: tìm kịch bản, lọc theo người dùng, xem chi tiết (tài khoản sở hữu)', guestSave.success && found.items.some(s => s.id === GUEST_ID)
+        && byUser.items.length === 1 && byUser.items[0].owners === 'nguoidung@example.com' && detail.config.title === 'Quà của khách'
+        && detail.owners[0].email === 'nguoidung@example.com', JSON.stringify({ found: found.total, byUser: byUser.items.map(s => s.id), owners: detail.owners }));
+
+    const lock = await call(adm.cookie, 'admin.php?action=lockUser', { id: guestId.id, locked: true });
+    const lockedMe = await call(guest.cookie, 'account.php?action=me');
+    const lockedLogin = await loginAs({ sub: '3000003', email: 'nguoidung@example.com' });
+    const lockSelf = await call(adm.cookie, 'admin.php?action=lockUser', { id: 'google:2000002', locked: true });
+    await call(adm.cookie, 'admin.php?action=lockUser', { id: guestId.id, locked: false });
+    const relogin = await loginAs({ sub: '3000003', email: 'nguoidung@example.com' });
+    check('quản trị: khóa thì người dùng bị đăng xuất, không đăng nhập lại được; mở khóa thì được; không tự khóa mình', lock.success && !lockedMe.user
+        && lockedLogin.data.code === 'locked' && !lockSelf.success && relogin.data.success, JSON.stringify({ me: lockedMe.user, login: lockedLogin.data, self: lockSelf.message }));
+
+    // Kho nhạc: thêm bài (WAV tự tạo), ẩn bài có sẵn, đổi tên, xóa
+    const n = 16000;
+    const wav = Buffer.alloc(44 + n, 128);
+    wav.write('RIFF', 0); wav.writeUInt32LE(36 + n, 4); wav.write('WAVE', 8); wav.write('fmt ', 12); wav.writeUInt32LE(16, 16);
+    wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(8000, 24); wav.writeUInt32LE(8000, 28); wav.writeUInt16LE(1, 32);
+    wav.writeUInt16LE(8, 34); wav.write('data', 36); wav.writeUInt32LE(n, 40);
+    const form = new FormData();
+    form.append('kind', 'music');
+    form.append('file', new Blob([wav]), 'bai-thu.wav');
+    form.append('name', 'Bài thử quản trị');
+    form.append('tags', 'Thử, Vui tươi');
+    form.append('duration', '2');
+    const added = await fetch(`${BASE}/api/admin.php?action=libraryAdd`, { method: 'POST', headers: { cookie: adm.cookie }, body: form }).then(r => r.json());
+    const guestAdd = await fetch(`${BASE}/api/admin.php?action=libraryAdd`, { method: 'POST', headers: { cookie: relogin.cookie }, body: form });
+    const index = async () => (await fetch(`${BASE}/library/music/index.json`)).json();
+    const builtIn = (await index()).find(item => item.id === 'happy-birthday');
+    await call(adm.cookie, 'admin.php?action=libraryUpdate', { kind: 'music', id: 'happy-birthday', hidden: true });
+    await call(adm.cookie, 'admin.php?action=libraryUpdate', { kind: 'music', id: added.item.id, name: 'Bài thử đã đổi tên', tags: 'Thử' });
+    const afterEdit = await index();
+    const file = await fetch(`${BASE}/library/music/${added.item.file}`);
+    check('quản trị kho nhạc: thêm bài (builder thấy, phát được), ẩn bài có sẵn, đổi tên; tài khoản thường không thêm được',
+        added.success && guestAdd.status === 403 && !!builtIn && !afterEdit.some(item => item.id === 'happy-birthday')
+        && afterEdit.find(item => item.id === added.item.id)?.name === 'Bài thử đã đổi tên' && file.ok && file.headers.get('content-type') === 'audio/wav',
+        JSON.stringify({ added, ids: afterEdit.map(item => item.id) }));
+    await call(adm.cookie, 'admin.php?action=libraryUpdate', { kind: 'music', id: 'happy-birthday', hidden: false });
+    const removedItem = await call(adm.cookie, 'admin.php?action=libraryDelete', { kind: 'music', id: added.item.id });
+    const builtInDelete = await call(adm.cookie, 'admin.php?action=libraryDelete', { kind: 'music', id: 'happy-birthday' });
+    const finalIndex = await index();
+    check('quản trị kho nhạc: hiện lại bài có sẵn, xóa bài tự thêm (hết file); bài có sẵn không xóa được', removedItem.success && !builtInDelete.success
+        && finalIndex.some(item => item.id === 'happy-birthday') && !finalIndex.some(item => item.id === added.item.id)
+        && (await fetch(`${BASE}/library/music/${added.item.file}`)).status === 404, JSON.stringify({ removedItem, builtInDelete: builtInDelete.message }));
+
+    // Lời cảm ơn: xem, xóa; xóa người dùng kèm kịch bản
+    await api('opens.php?action=reply', { id: GUEST_ID, name: 'Bạn', message: 'Lời cần xóa' });
+    const adminReplies = await call(adm.cookie, 'admin.php?action=replies');
+    const reply = adminReplies.items.find(r => r.message === 'Lời cần xóa');
+    await call(adm.cookie, 'admin.php?action=deleteReply', { n: reply && reply.n });
+    const repliesAfter = await call(adm.cookie, 'admin.php?action=replies');
+    const removedUser = await call(adm.cookie, 'admin.php?action=deleteUser', { id: guestId.id, scripts: true });
+    const usersAfter = await call(adm.cookie, 'admin.php?action=users');
+    check('quản trị: xóa lời cảm ơn; xóa người dùng kèm kịch bản của họ', !!reply && reply.title === 'Quà của khách'
+        && !repliesAfter.items.some(r => r.message === 'Lời cần xóa') && removedUser.success && !usersAfter.items.some(u => u.email === 'nguoidung@example.com')
+        && (await fetch(`${BASE}/configs/${GUEST_ID}.json`)).status === 404, JSON.stringify({ reply, removedUser }));
+
+    // Trang /admin trong trình duyệt: email quản trị thấy các mục; tài khoản thường chỉ thấy lời báo không có quyền
+    const { context: adminCtx, p: adminPage } = await page();
+    await adminPage.goto(`${BASE}/admin`, { waitUntil: 'networkidle0' });
+    const gateText = await adminPage.$eval('#gate-message', e => e.textContent);
+    await adminPage.evaluate(token => fetch('api/account.php?action=login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: token, keys: {} }) }), googleToken({ sub: '2000002', email: ADMIN_EMAIL }));
+    await adminPage.reload({ waitUntil: 'networkidle0' });
+    await adminPage.waitForSelector('.admin-stat', { timeout: 10000 }).catch(() => {});
+    const stats = await adminPage.$$eval('.admin-stat', els => els.length);
+    await adminPage.click('[data-tab="scripts"]');
+    await adminPage.waitForSelector('#panel .admin-row', { timeout: 10000 }).catch(() => {});
+    const scriptRows = await adminPage.$$eval('#panel .admin-row', els => els.length);
+    await adminPage.click('[data-tab="music"]');
+    await adminPage.waitForSelector('#panel .admin-upload', { timeout: 10000 }).catch(() => {});
+    const musicRows = await adminPage.$$eval('#panel .admin-row', els => els.length);
+    check('trang /admin: chưa đăng nhập thì mời đăng nhập; quản trị thấy Tổng quan, Kịch bản, Kho nhạc, không lỗi JS', /Đăng nhập/.test(gateText)
+        && stats === 5 && scriptRows > 0 && musicRows === JSON.parse(fs.readFileSync(path.join(DIST, 'library/music/index.json'), 'utf8')).length
+        && !adminPage.errors.length,
+        JSON.stringify({ gateText, stats, scriptRows, musicRows, errors: adminPage.errors }));
+    await adminCtx.close();
     check('builder không lỗi JS', !a.errors.length, a.errors.join(' | '));
     await context.close();
 } catch (e) {

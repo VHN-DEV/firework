@@ -63,6 +63,11 @@
   chủ các kịch bản, đăng nhập ở máy nào thì máy đó sửa, xóa, xem Báo mở quà được; đăng xuất thì gỡ các mã đó khỏi máy.
   Bật bằng `GOOGLE_CLIENT_ID` trong `wrangler.jsonc` (Client ID loại Web application ở Google Cloud Console, Authorized
   JavaScript origins là địa chỉ trang); bản PHP không có đăng nhập (`api/account.php` trả "chưa bật").
+  Trang quản trị `/admin` (`admin.html`, `src/assets/js/admin.js`, `worker/admin.js`): chỉ email Google trong
+  `ADMIN_EMAILS` (`wrangler.jsonc`) vào được. Xem, tìm, xóa kịch bản; khóa, mở khóa, xóa người dùng (kèm kịch bản nếu muốn);
+  thêm, sửa, ẩn, xóa bài nhạc, ảnh trong kho (file lưu KV/R2 `library/<loại>/`, danh sách gộp với
+  `library/<loại>/index.json` tĩnh trong bảng `library` của D1: `worker/library.js`); xóa lời cảm ơn. Bản PHP không có
+  trang quản trị (`api/admin.php` trả "không hỗ trợ").
   Chạy thử tại máy: `npm run build` rồi
   `npx wrangler dev` (D1, KV giả lập trong `.wrangler/`); kiểm thử `npm run test:worker` (cần mạng để tải wrangler).
 - **Đường dẫn (route)**: mọi link dùng đường dẫn không đuôi `.html`: `/` (trang chủ), `/demo` (trình phát, link tặng

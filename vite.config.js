@@ -59,6 +59,8 @@ export default defineConfig({
         terms: resolve(__dirname, 'terms.html'),
         // Trang theo dõi mở quà của người gửi (theo-doi?id=...&key=...)
         track: resolve(__dirname, 'theo-doi.html'),
+        // Trang quản trị của chủ trang (/admin, chỉ chạy trên bản Cloudflare)
+        admin: resolve(__dirname, 'admin.html'),
       },
       output: {
         // Có mã hash trong tên file JS/CSS: mỗi lần deploy trình duyệt tải ngay bản mới,

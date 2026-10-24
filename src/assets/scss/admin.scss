@@ -1,0 +1,672 @@
+// Hanabi – giao diện trang quản trị (admin.html)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'builder/tokens' as *;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Outfit:wght@400;600;700&display=swap');
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: $b-bg;
+    color: $b-text;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+h1,
+h2,
+h3 {
+    font-family: 'Outfit', 'Inter', sans-serif;
+    font-weight: 600;
+}
+
+.hide {
+    display: none !important;
+}
+
+button,
+input {
+    font: inherit;
+    color: inherit;
+}
+
+a {
+    color: inherit;
+}
+
+// ---------------------------------------------------------------------------
+// Thanh trên cùng, màn đăng nhập
+// ---------------------------------------------------------------------------
+
+.admin-top {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.7rem max(1rem, env(safe-area-inset-right)) 0.7rem max(1rem, env(safe-area-inset-left));
+    background: rgba($b-bg, 0.92);
+    border-bottom: 1px solid $b-line;
+}
+
+.admin-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+
+    span {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.15;
+    }
+
+    small {
+        color: $b-faint;
+        font-size: 0.78rem;
+    }
+}
+
+.admin-me {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+
+    > span {
+        overflow: hidden;
+        color: $b-muted;
+        font-size: 0.88rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    @include mobile {
+        > span,
+        .admin-btn span {
+            display: none;
+        }
+    }
+}
+
+.admin-gate {
+    display: grid;
+    place-items: center;
+    min-height: calc(100vh - 64px);
+    padding: 1rem;
+}
+
+.admin-card {
+    padding: 1.25rem;
+    border: 1px solid $b-line;
+    border-radius: $b-radius;
+    background: $b-panel;
+}
+
+.admin-gate .admin-card {
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+
+    h1 {
+        margin: 0.4rem 0 0.5rem;
+        font-size: 1.4rem;
+    }
+
+    p {
+        margin: 0 0 1.1rem;
+        color: $b-muted;
+    }
+}
+
+.admin-gate__icon {
+    color: $b-accent;
+    font-size: 2rem;
+}
+
+.google-button {
+    display: flex;
+    justify-content: center;
+    min-height: 44px;
+
+    &:empty {
+        display: none;
+    }
+}
+
+.account-error {
+    color: $b-danger;
+}
+
+.spinner {
+    width: 34px;
+    height: 34px;
+    margin: 2rem auto;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: $b-accent;
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Nút, ô nhập
+// ---------------------------------------------------------------------------
+
+.admin-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 38px;
+    padding: 0 0.9rem;
+    border: 1px solid $b-line-strong;
+    border-radius: $b-radius-sm;
+    background: $b-raised;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+        border-color: rgba($b-accent, 0.7);
+    }
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    &.primary {
+        border-color: transparent;
+        background: $b-gradient;
+        color: #fff;
+    }
+
+    &.ghost {
+        background: transparent;
+    }
+
+    &.danger {
+        color: $b-danger;
+    }
+
+    &.small {
+        min-height: 32px;
+        padding: 0 0.7rem;
+        font-size: 0.82rem;
+    }
+
+    &.icon {
+        width: 36px;
+        min-height: 36px;
+        padding: 0;
+    }
+}
+
+.admin-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: $b-accent;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.admin-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.75rem;
+
+    label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        color: $b-muted;
+        font-size: 0.82rem;
+    }
+
+    .wide {
+        grid-column: 1 / -1;
+    }
+
+    input {
+        min-height: 38px;
+        padding: 0.45rem 0.65rem;
+        border: 1px solid $b-line-strong;
+        border-radius: $b-radius-sm;
+        background: $b-bg;
+        color: $b-text;
+        font-size: 0.92rem;
+
+        &:focus {
+            border-color: $b-accent;
+            outline: none;
+        }
+    }
+}
+
+.admin-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.9rem;
+
+    small {
+        color: $b-faint;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Các mục
+// ---------------------------------------------------------------------------
+
+.admin-app {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 1rem 3rem;
+}
+
+.admin-tabs {
+    display: flex;
+    gap: 0.35rem;
+    margin: 1rem 0 1.25rem;
+    padding-bottom: 0.2rem;
+    overflow-x: auto;
+    scrollbar-width: thin;
+
+    button {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.55rem 0.9rem;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        background: none;
+        color: $b-muted;
+        font-weight: 600;
+        cursor: pointer;
+
+        &:hover {
+            color: $b-text;
+        }
+
+        &[aria-selected='true'] {
+            border-color: rgba($b-accent, 0.5);
+            background: rgba($b-accent, 0.15);
+            color: $b-text;
+        }
+    }
+}
+
+.admin-panel h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1.05rem;
+}
+
+.admin-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.admin-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+    padding: 1rem;
+    border: 1px solid $b-line;
+    border-radius: $b-radius;
+    background: $b-panel;
+    text-align: left;
+    cursor: pointer;
+
+    &:disabled {
+        cursor: default;
+    }
+
+    &:hover:not(:disabled) {
+        border-color: rgba($b-accent, 0.6);
+    }
+
+    i {
+        color: $b-accent;
+    }
+
+    strong {
+        font-family: 'Outfit', sans-serif;
+        font-size: 1.8rem;
+        line-height: 1.2;
+    }
+
+    span {
+        font-weight: 600;
+    }
+
+    small {
+        color: $b-faint;
+        font-size: 0.8rem;
+    }
+}
+
+.admin-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 1.25rem;
+}
+
+.admin-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0 0 0.9rem;
+}
+
+.admin-search {
+    position: relative;
+    flex: 1 1 260px;
+    max-width: 420px;
+
+    i {
+        position: absolute;
+        top: 50%;
+        left: 0.8rem;
+        color: $b-faint;
+        transform: translateY(-50%);
+    }
+
+    input {
+        width: 100%;
+        min-height: 40px;
+        padding: 0 0.8rem 0 2.3rem;
+        border: 1px solid $b-line-strong;
+        border-radius: 999px;
+        background: $b-panel;
+
+        &:focus {
+            border-color: $b-accent;
+            outline: none;
+        }
+    }
+}
+
+.admin-count {
+    color: $b-faint;
+    font-size: 0.85rem;
+}
+
+.admin-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.35rem 0.25rem 0.75rem;
+    border-radius: 999px;
+    background: rgba($b-accent, 0.18);
+    font-size: 0.85rem;
+
+    button {
+        width: 24px;
+        height: 24px;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        cursor: pointer;
+    }
+}
+
+.admin-upload {
+    margin-bottom: 1.25rem;
+}
+
+.admin-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+// Một dòng: ảnh, thông tin, nhãn, thao tác; điện thoại: thao tác xuống dòng dưới
+.admin-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid $b-line;
+    border-radius: $b-radius-sm + 3px;
+    background: $b-panel;
+
+    &.is-hidden,
+    &.is-locked {
+        opacity: 0.65;
+    }
+
+    // Lời cảm ơn: không có ảnh
+    &[data-n] {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    strong {
+        overflow-wrap: anywhere;
+    }
+
+    small {
+        display: block;
+        color: $b-faint;
+        font-size: 0.8rem;
+        overflow-wrap: anywhere;
+    }
+
+    @include mobile {
+        grid-template-columns: auto minmax(0, 1fr);
+
+        .admin-row__meta,
+        .admin-row__actions {
+            grid-column: 2;
+        }
+
+        &[data-n] .admin-row__actions {
+            grid-column: 1;
+        }
+    }
+}
+
+.admin-row__meta,
+.admin-row__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.admin-thumb,
+.admin-avatar {
+    display: grid;
+    place-items: center;
+    flex: none;
+    overflow: hidden;
+    background: $b-raised;
+    color: $b-faint;
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+
+.admin-thumb {
+    width: 72px;
+    height: 40px;
+    border-radius: 6px;
+}
+
+.admin-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: $b-gradient;
+    color: #fff;
+    font-weight: 700;
+}
+
+.admin-badge {
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    background: $b-raised;
+    color: $b-muted;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+
+    &.ok {
+        background: rgba($b-success, 0.16);
+        color: $b-success;
+    }
+
+    &.danger {
+        background: rgba($b-danger, 0.16);
+        color: $b-danger;
+    }
+}
+
+.admin-quote {
+    margin: 0 0 0.3rem;
+    color: $b-text;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+// Sửa một mục kho: nằm ngay dưới dòng đó
+.admin-edit {
+    grid-column: 1 / -1;
+    padding-top: 0.6rem;
+    border-top: 1px solid $b-line;
+}
+
+.admin-empty {
+    margin: 1rem 0;
+    color: $b-faint;
+    text-align: center;
+}
+
+.admin-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.9rem;
+    margin-top: 1rem;
+    color: $b-muted;
+    font-size: 0.88rem;
+}
+
+// ---------------------------------------------------------------------------
+// Chi tiết kịch bản, thông báo
+// ---------------------------------------------------------------------------
+
+.admin-dialog {
+    width: min(640px, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+    padding: 0;
+    border: 1px solid $b-line-strong;
+    border-radius: $b-radius + 4px;
+    background: $b-panel-2;
+    color: $b-text;
+
+    &::backdrop {
+        background: rgba(5, 6, 10, 0.7);
+    }
+
+    h3 {
+        margin: 1.1rem 0 0.5rem;
+        font-size: 0.95rem;
+    }
+}
+
+.admin-dialog__head {
+    position: sticky;
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1.1rem;
+    border-bottom: 1px solid $b-line;
+    background: $b-panel-2;
+
+    h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        overflow-wrap: anywhere;
+    }
+}
+
+.admin-dialog__body {
+    padding: 0.5rem 1.1rem 1.1rem;
+}
+
+.admin-dialog__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1.2rem;
+}
+
+.admin-facts {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.35rem 1rem;
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+
+    dt {
+        color: $b-faint;
+    }
+
+    dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+    }
+}
+
+.admin-toast {
+    position: fixed;
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    left: 50%;
+    z-index: 50;
+    max-width: calc(100vw - 2rem);
+    padding: 0.7rem 1rem;
+    border: 1px solid $b-line-strong;
+    border-radius: $b-radius-sm + 3px;
+    background: $b-panel-2;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    transform: translateX(-50%);
+
+    &.is-error {
+        border-color: rgba($b-danger, 0.6);
+        color: #ffb3bf;
+    }
+}

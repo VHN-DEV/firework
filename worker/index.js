@@ -8,7 +8,9 @@
 // đường dẫn, cùng dữ liệu gửi nhận nên trang (builder, trình phát, theo dõi quà) không phải sửa. File trong dist phục vụ
 // thẳng; Worker chạy trước cho api/*, s/* (wrangler.jsonc: run_worker_first) và khi không có file tĩnh:
 // - api/save_config.php, manage_configs.php (list, delete), opens.php (record, reply, status), upload_image.php,
-//   upload_audio.php, share.php; account.php (đăng nhập Google, chỉ có trên Cloudflare: account.js)
+//   upload_audio.php, share.php; account.php (đăng nhập Google), admin.php (trang quản trị /admin): chỉ có trên Cloudflare
+// - library/<loại>/index.json: kho nhạc, kho ảnh đã gộp mục người quản trị thêm, ẩn (library.js); library/<loại>/<file>:
+//   file người quản trị thêm (KV/R2)
 // - s/<tên>: trang chia sẻ có ảnh, tiêu đề xem trước (share-page.js), cả kịch bản mẫu lẫn kịch bản lưu
 // - configs/<tên>.json, configs/<tên>.jpg, uploads/...: kịch bản, ảnh, nhạc đã lưu (D1, KV/R2)
 // - mỗi ngày lúc 7h05 sáng (wrangler.jsonc: triggers): xóa bản Xem thử cũ, bộ đếm giới hạn đã hết hạn, ảnh, nhạc không kịch bản nào dùng
@@ -18,12 +20,14 @@
 
 import { renderSharePage, shareMetaFromConfig } from '../share-page.js';
 import { account, currentUser } from './account.js';
+import { admin } from './admin.js';
+import { LIBRARY_KINDS, libraryIndex } from './library.js';
 import {
     TRACK_DEVICES, TRACK_EVENTS, addReply, canModify, createKey, deleteConfig, deleteOldPreviews, deleteOldQuota, deleteOldSessions,
     getConfig, getConfigText, hasKey, listConfigs, now, openStatus, putConfig, randomHex, recordOpen, sha256, syncUserKeys,
     unusedMedia, useQuota, validTrackId
 } from './db.js';
-import { deleteMedia, hasMedia, listMedia, putMedia, serveMedia } from './media.js';
+import { audioType, deleteMedia, hasMedia, imageType, listMedia, putMedia, serveMedia } from './media.js';
 
 const json = (data, init = {}) => new Response(JSON.stringify(data), {
     ...init,
@@ -124,6 +128,20 @@ async function daily(env) {
     if (hasMedia(env)) await deleteOrphanMedia(env);
 }
 
+// Xóa kịch bản cùng mã chủ, lịch sử mở quà, lời cảm ơn, ảnh thiệp, ảnh và nhạc chỉ nó dùng. saved: kịch bản đã đọc (nếu có).
+// Không có kịch bản thì trả về false
+async function removeScript(env, id, saved = null) {
+    const script = saved || await getConfig(env, id);
+    if (!script) return false;
+    await deleteConfig(env, id);
+    if (hasMedia(env)) {
+        await deleteMedia(env, `configs/${id}.jpg`);
+        // Lỗi khi dọn thì vẫn coi như đã xóa: lần dọn hằng ngày xóa nốt
+        await deleteMediaOf(env, id, JSON.stringify(script.data)).catch(e => console.error(e));
+    }
+    return true;
+}
+
 // ---------------------------------------------------------------------------
 // API
 // ---------------------------------------------------------------------------
@@ -222,12 +240,7 @@ async function manageConfigs(request, env, url) {
         const saved = await getConfig(env, filename);
         if (!saved) return fail('File không tồn tại.');
         if (!(await canModify(env, filename, key))) return fail('Chỉ máy đã tạo kịch bản này mới xóa được.', { code: 'not_owner' });
-        await deleteConfig(env, filename);
-        if (hasMedia(env)) {
-            await deleteMedia(env, `configs/${filename}.jpg`);
-            // Lỗi khi dọn thì vẫn báo đã xóa: lần dọn hằng ngày xóa nốt
-            await deleteMediaOf(env, filename, JSON.stringify(saved.data)).catch(e => console.error(e));
-        }
+        await removeScript(env, filename, saved);
         return json({ success: true, message: 'Đã xóa kịch bản thành công!' });
     }
     return fail('Hành động không hợp lệ.');
@@ -269,27 +282,6 @@ async function opens(request, env, url) {
         return json({ success: true, items: await openStatus(env, items) });
     }
     return json({ success: false, message: 'Hành động không hợp lệ.' }, { status: 400 });
-}
-
-// Loại file từ NỘI DUNG (không tin tên file, MIME do trình duyệt gửi)
-function imageType(b) {
-    if (b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF) return ['jpg', 'image/jpeg'];
-    if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47) return ['png', 'image/png'];
-    if (String.fromCharCode(...b.slice(0, 4)) === 'GIF8') return ['gif', 'image/gif'];
-    if (String.fromCharCode(...b.slice(0, 4)) === 'RIFF' && String.fromCharCode(...b.slice(8, 12)) === 'WEBP') return ['webp', 'image/webp'];
-    return null;
-}
-
-function audioType(b) {
-    const ascii = (from, to) => String.fromCharCode(...b.slice(from, to));
-    if (b.length < 12) return null;
-    if (ascii(0, 3) === 'ID3') return ['mp3', 'audio/mpeg'];
-    // Khung MPEG audio không có thẻ ID3: 11 bit đồng bộ, layer khác 0
-    if (b[0] === 0xFF && (b[1] & 0xE0) === 0xE0 && (b[1] & 0x06) !== 0) return ['mp3', 'audio/mpeg'];
-    if (ascii(4, 8) === 'ftyp') return ['m4a', 'audio/mp4'];
-    if (ascii(0, 4) === 'OggS') return ['ogg', 'audio/ogg'];
-    if (ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WAVE') return ['wav', 'audio/wav'];
-    return null;
 }
 
 async function upload(request, env, kind) {
@@ -361,6 +353,7 @@ async function route(request, env, url) {
         if (name === 'upload_audio.php') return upload(request, env, 'audio');
         if (name === 'share.php') return sharePage(env, url, cleanName(url.searchParams.get('c')));
         if (name === 'account.php') return account(request, env, url, { json, fail, overQuota });
+        if (name === 'admin.php') return admin(request, env, url, { json, fail, removeScript });
         return json({ success: false, message: 'Không có API này.' }, { status: 404 });
     }
     let m = /^\/s\/([A-Za-z0-9_-]+)(?:\.html)?$/.exec(path);
@@ -382,6 +375,12 @@ async function route(request, env, url) {
     m = /^\/configs\/([a-z0-9_-]+)\.jpg$/.exec(path);
     // ?v=<lúc lưu> (link ảnh trong trang chia sẻ): ảnh của đúng lần lưu đó, không bao giờ đổi
     if (m && hasMedia(env)) return (await serveMedia(env, request, `configs/${m[1]}.jpg`, { immutable: url.searchParams.has('v') })) || notFound(env, url);
+    // Kho nhạc, kho ảnh: danh sách đã gộp; file người quản trị thêm (file có sẵn là file tĩnh, không tới đây)
+    m = /^\/library\/([a-z]+)\/(index\.json|[a-z0-9-]+\.[a-z0-9]+)$/.exec(path);
+    if (m && LIBRARY_KINDS.includes(m[1])) {
+        if (m[2] === 'index.json') return libraryIndex(env, url, m[1]);
+        if (hasMedia(env)) return (await serveMedia(env, request, path.slice(1), { immutable: true })) || notFound(env, url);
+    }
     if (path.startsWith('/uploads/') && hasMedia(env)) {
         return (await serveMedia(env, request, decodeURIComponent(path.slice(1)), { immutable: true })) || notFound(env, url);
     }

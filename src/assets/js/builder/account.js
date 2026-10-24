@@ -11,15 +11,12 @@
 // đăng nhập.
 
 import { getOwnerKeys, removeOwnerKey, saveOwnerKey } from '../gift-tracking.js';
+import { forgetGoogleChoice, renderGoogleButton } from '../google-signin.js';
 import { isStaticEnv } from './state.js';
 import { confirmAction, escapeHtml, hideModal, notify, showModal } from './util.js';
 
-const GIS_URL = 'https://accounts.google.com/gsi/client';
-
 // enabled: máy chủ có đăng nhập (đã đặt GOOGLE_CLIENT_ID); user: { email, name, picture } khi đã đăng nhập
 let account = { enabled: false, clientId: '', user: null };
-let gisLoading = null;
-let gisReady = false;
 
 async function call(action, extra = {}) {
     const response = await fetch(`api/account.php?action=${action}`, {
@@ -74,38 +71,6 @@ export async function initAccount() {
     }
 }
 
-function loadGoogle() {
-    if (!gisLoading) {
-        gisLoading = new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = GIS_URL;
-            script.async = true;
-            script.onload = () => resolve(window.google);
-            script.onerror = () => {
-                gisLoading = null;
-                reject(new Error('Không tải được Google'));
-            };
-            document.head.appendChild(script);
-        });
-    }
-    return gisLoading;
-}
-
-async function renderGoogleButton(box) {
-    box.innerHTML = '<div class="spinner"></div>';
-    try {
-        const google = await loadGoogle();
-        if (!gisReady) {
-            google.accounts.id.initialize({ client_id: account.clientId, callback: r => accountLogin(r.credential), ux_mode: 'popup', auto_select: false });
-            gisReady = true;
-        }
-        box.innerHTML = '';
-        google.accounts.id.renderButton(box, { theme: 'filled_black', size: 'large', shape: 'pill', text: 'signin_with', locale: 'vi', width: 260 });
-    } catch (e) {
-        box.innerHTML = '<p class="account-error">Không tải được nút đăng nhập Google. Kiểm tra mạng rồi mở lại.</p>';
-    }
-}
-
 // Hộp Tài khoản: chưa đăng nhập thì nút Google, đã đăng nhập thì tên, email, Đăng xuất, Xóa tài khoản
 export function openAccount() {
     const body = document.getElementById('account-body');
@@ -126,7 +91,7 @@ export function openAccount() {
             <div id="google-button" class="google-button"></div>
             <p class="account-note">Trang chỉ nhận tên, email và ảnh đại diện Google của bạn
                 (<a href="privacy#tai-khoan" target="_blank" rel="noopener">Chính sách riêng tư</a>).</p>`;
-        renderGoogleButton(body.querySelector('#google-button'));
+        renderGoogleButton(body.querySelector('#google-button'), account.clientId, accountLogin);
     }
     showModal('account-modal');
 }
@@ -152,7 +117,7 @@ export async function accountLogin(credential) {
 
 function signedOut() {
     account = { ...account, user: null };
-    if (window.google && window.google.accounts) window.google.accounts.id.disableAutoSelect();
+    forgetGoogleChoice();
     render();
     hideModal('account-modal');
 }

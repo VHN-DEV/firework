@@ -134,6 +134,7 @@ export default function seoPlugin({ configsDir }) {
 Allow: /
 Disallow: ${new URL(SITE_URL).pathname}api/
 Disallow: ${new URL(SITE_URL).pathname}theo-doi
+Disallow: ${new URL(SITE_URL).pathname}admin
 
 Sitemap: ${SITE_URL}sitemap.xml
 `

@@ -12,6 +12,27 @@ const now = () => Math.floor(Date.now() / 1000);
 
 export const hasMedia = env => !!(env.MEDIA || env.MEDIA_KV);
 
+// Loại file từ NỘI DUNG (không tin tên file, MIME do trình duyệt gửi)
+export function imageType(b) {
+    if (b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF) return ['jpg', 'image/jpeg'];
+    if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47) return ['png', 'image/png'];
+    if (String.fromCharCode(...b.slice(0, 4)) === 'GIF8') return ['gif', 'image/gif'];
+    if (String.fromCharCode(...b.slice(0, 4)) === 'RIFF' && String.fromCharCode(...b.slice(8, 12)) === 'WEBP') return ['webp', 'image/webp'];
+    return null;
+}
+
+export function audioType(b) {
+    const ascii = (from, to) => String.fromCharCode(...b.slice(from, to));
+    if (b.length < 12) return null;
+    if (ascii(0, 3) === 'ID3') return ['mp3', 'audio/mpeg'];
+    // Khung MPEG audio không có thẻ ID3: 11 bit đồng bộ, layer khác 0
+    if (b[0] === 0xFF && (b[1] & 0xE0) === 0xE0 && (b[1] & 0x06) !== 0) return ['mp3', 'audio/mpeg'];
+    if (ascii(4, 8) === 'ftyp') return ['m4a', 'audio/mp4'];
+    if (ascii(0, 4) === 'OggS') return ['ogg', 'audio/ogg'];
+    if (ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WAVE') return ['wav', 'audio/wav'];
+    return null;
+}
+
 export async function putMedia(env, key, bytes, type) {
     if (env.MEDIA) await env.MEDIA.put(key, bytes, { httpMetadata: { contentType: type } });
     // t: lúc tải lên (giây), để lần dọn hằng ngày biết file đã cũ chưa (R2 tự ghi)

@@ -106,7 +106,7 @@ export async function account(request, env, url, { json, fail, overQuota }) {
             name: typeof claims.name === 'string' ? claims.name.slice(0, 120) : '',
             picture: typeof claims.picture === 'string' && claims.picture.startsWith('https://') ? claims.picture : ''
         };
-        await upsertUser(env, target);
+        if (!(await upsertUser(env, target))) return fail('Tài khoản này đã bị khóa. Liên hệ chủ trang nếu cần mở lại.', { code: 'locked' });
         if (user) await deleteSession(env, readCookie(request, SESSION_COOKIE));
         const token = await createSession(env, target.id, SESSION_DAYS * 86400);
         return json(await signedIn(target), { headers: { 'set-cookie': sessionCookie(url, token, SESSION_DAYS * 86400) } });

@@ -32,3 +32,6 @@ Builder hiện các file trong thư mục này ở nút **"Chọn từ kho nhạ
 2. Thêm một mục vào `images/index.json`: `{ "id": "ten-anh", "file": "ten-anh.jpg", "name": "Tên ảnh", "tags": ["Dịp"] }`.
 
 Sau khi thêm: `npm run build` (XAMPP) hoặc commit để GitHub Actions build lại.
+
+Bản chạy trên Cloudflare: thêm, đổi tên, ẩn bài nhạc, ảnh ngay ở trang quản trị `/admin` (mục Kho nhạc, Kho ảnh), không cần
+build lại. Bài, ảnh thêm ở đó lưu trên Cloudflare (KV/R2, bảng `library` của D1), không nằm trong thư mục này.
