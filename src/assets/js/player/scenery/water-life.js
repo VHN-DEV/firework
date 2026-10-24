@@ -37,9 +37,9 @@ export const WaterLife = {
     fish: [],
     frogs: [],
     bubbles: [],
-    // Thuyền (biển khơi, sông thành phố) và kiểu thuyền đang có ('sea' | 'city')
+    // Thuyền neo bên sông thành phố và bề ngang cảnh lúc xếp thuyền (0: xếp lại)
     boats: [],
-    boatMode: '',
+    boatW: 0,
     ripples: [],
     drops: [],
     next: { log: 0, bird: 0, duck: 0, fish: 0, rise: 0, frog: 0, bubble: 0 },
@@ -61,7 +61,7 @@ export const WaterLife = {
         this.frogs = [];
         this.bubbles = [];
         this.boats = [];
-        this.boatMode = '';
+        this.boatW = 0;
         this.ripples = [];
         this.drops = [];
         const slow = IS_MOBILE ? 1.3 : 1;

@@ -90,8 +90,8 @@ export const Water = {
         // Mùa: đông mặt nước đóng băng (không sóng, không cá, vịt, cò, khúc gỗ, lá bèo, vật trôi); biển thì không đóng băng
         const season = sceneSeason();
         this.season = season;
-        // Biển khơi: giữa biển không có đá, gò đất, lá bèo, khúc gỗ, ếch, cò, vịt, lá rụng; xa xa có thuyền câu mực, tàu
-        // khách. Sông thành phố: không có gò đất, đá giữa dòng; có thuyền neo sát bờ
+        // Biển khơi: giữa biển không có đá, gò đất, lá bèo, khúc gỗ, ếch, cò, vịt, lá rụng, thuyền. Sông thành phố: không
+        // có gò đất, đá giữa dòng; có thuyền neo sát bờ
         const shore = validBankStyle(bankKind);
         const sea = shore === 'none';
         const frozen = season === 'winter' && !sea;
@@ -99,7 +99,7 @@ export const Water = {
         if (sea || shore === 'city') rocksOn = false;
         if (lifeFlags) {
             lifeFlags = { ...lifeFlags, sea, ...(sea ? { birds: false, ducks: false, frogs: false, logs: false } : {}),
-                boats: !!lifeFlags.boats && (sea ? 'sea' : shore === 'city' ? 'city' : false) };
+                boats: !!lifeFlags.boats && shore === 'city' };
         }
         const life = !frozen && !!lifeFlags && (lifeFlags.birds || lifeFlags.ducks || lifeFlags.fish || lifeFlags.logs || lifeFlags.frogs || lifeFlags.bubbles || !!lifeFlags.boats);
         const level = horizon();
