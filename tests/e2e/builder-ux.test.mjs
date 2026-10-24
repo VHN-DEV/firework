@@ -260,6 +260,41 @@ export async function run(browser, base, { check }) {
                 && !escaped.menu && escaped.inspector && escaped.focus === 'viewer-scale',
             JSON.stringify({ listed, picked, byKeys, escaped, viewerSummary }));
 
+        // Ô màu mở bảng chọn màu vẽ theo giao diện builder (không phải bảng trắng của trình duyệt): chọn ở bảng màu thì mã điền
+        // vào ô chữ, nút Thêm màu này thêm vào phát bắn; ô màu đơn nhận mã gõ tay khi nhấn Enter; Esc chỉ đóng bảng
+        await page.evaluate(() => {
+            document.querySelector('.shot-row').click();
+            document.querySelectorAll('#inspector details').forEach(d => { d.open = true; });
+        });
+        await sleep(200);
+        await page.click('#inspector input[id^="picker-color-"]');
+        await sleep(200);
+        const pickerOpen = await page.evaluate(() => !document.querySelector('.color-picker').classList.contains('hide'));
+        await page.click('.color-picker__swatches [data-color="#3de0ff"]');
+        await sleep(150);
+        const filled = await page.$eval('#inspector input[id^="custom-color-"]', i => i.value);
+        await page.click('.color-picker__submit');
+        await sleep(300);
+        const addedColors = await page.$$eval('#inspector .color-tag', tags => tags.map(t => t.textContent.trim()));
+        await page.click('#inspector .color-field input[type="color"]');
+        await sleep(200);
+        await page.click('.color-picker__hex input', { clickCount: 3 });
+        await page.keyboard.type('ff8a3d');
+        await page.keyboard.press('Enter');
+        await sleep(300);
+        const single = await page.$eval('#inspector .color-field input[type="text"]', i => i.value);
+        await page.click('#inspector .color-field input[type="color"]');
+        await sleep(200);
+        await page.keyboard.press('Escape');
+        await sleep(200);
+        const pickerEsc = await page.evaluate(() => ({
+            open: !document.querySelector('.color-picker').classList.contains('hide'),
+            inspector: !!document.getElementById('insp-title')
+        }));
+        check('ô màu mở bảng chọn màu của builder: chọn ở bảng màu điền mã, Thêm màu này thêm vào phát bắn, gõ mã + Enter đổi ô màu đơn, Esc chỉ đóng bảng',
+            pickerOpen && filled === '#3de0ff' && addedColors.includes('#3de0ff') && single === '#ff8a3d' && !pickerEsc.open && pickerEsc.inspector,
+            JSON.stringify({ pickerOpen, filled, addedColors, single, pickerEsc }));
+
         // Thông báo không che bảng chỉnh sửa phát bắn (máy tính: giữa cạnh dưới; bảng chỉnh sửa ở bên phải)
         await page.evaluate(() => {
             document.querySelectorAll('.toast').forEach(t => t.remove());

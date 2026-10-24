@@ -227,9 +227,18 @@
     display: flex;
     gap: 0.4rem;
 
-    // Chưa chọn màu (dùng mặc định của loại pháo): làm mờ để không bị hiểu nhầm là màu trắng
+    // Chưa chọn màu (dùng mặc định của loại pháo): ô trống gạch chéo như "không màu", không bị hiểu nhầm là màu trắng
     input[type="color"].is-empty {
-        opacity: 0.3;
+        background: linear-gradient(135deg, transparent calc(50% - 1px), rgba($b-danger, 0.85) calc(50% - 1px),
+            rgba($b-danger, 0.85) calc(50% + 1px), transparent calc(50% + 1px)), $b-bg;
+
+        &::-webkit-color-swatch {
+            visibility: hidden;
+        }
+
+        &::-moz-color-swatch {
+            visibility: hidden;
+        }
     }
 }
 

@@ -1,0 +1,253 @@
+// Hanabi – giao diện builder (bảng chọn màu)
+// © 2026 Vũ Hoài Nam. Mọi quyền được bảo lưu. Liên hệ: vuhoainam18032002@gmail.com
+// Không sao chép, phân phối hay triển khai lại khi chưa được tác giả cho phép (xem LICENSE).
+
+@use 'tokens' as *;
+
+// Ô màu (ô gốc của trình duyệt, chỉ còn là ô hiển thị): viền sáng khi rê chuột, viền tím khi đang mở bảng
+input[type="color"] {
+    transition: border-color 0.15s, box-shadow 0.15s;
+
+    &::-moz-color-swatch {
+        border: none;
+        border-radius: 6px;
+    }
+
+    &:hover {
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    &.is-open {
+        border-color: $b-accent;
+        box-shadow: 0 0 0 3px rgba($b-accent, 0.22);
+    }
+}
+
+// Bảng chọn màu (color-picker.js đặt vị trí, --hue: sắc đang chọn, --color: màu đang chọn)
+.color-picker {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 4600;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    width: 252px;
+    padding: 0.75rem;
+    background: $b-panel-2;
+    border: 1px solid $b-line-strong;
+    border-radius: $b-radius;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
+    animation: pop-in 0.15s ease-out;
+
+    &.hide {
+        display: none;
+    }
+}
+
+// Vùng độ đậm (trái sang phải) và độ sáng (trên xuống dưới)
+.color-picker__sv {
+    position: relative;
+    height: 148px;
+    border-radius: 10px;
+    background: linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, var(--hue));
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    cursor: crosshair;
+    touch-action: none;
+    outline: none;
+
+    &:focus-visible {
+        box-shadow: 0 0 0 2px $b-accent;
+    }
+}
+
+.color-picker__thumb {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: var(--color);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+}
+
+.color-picker__row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.color-picker__hue {
+    position: relative;
+    flex: 1;
+    height: 12px;
+    border-radius: 99px;
+    background: linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%);
+    cursor: pointer;
+    touch-action: none;
+    outline: none;
+
+    // Vùng bấm cao hơn thanh (dễ chạm trên điện thoại)
+    &::before {
+        content: '';
+        position: absolute;
+        inset: -9px 0;
+    }
+
+    &:focus-visible {
+        box-shadow: 0 0 0 2px $b-panel-2, 0 0 0 4px $b-accent;
+    }
+
+    .color-picker__thumb {
+        top: 50%;
+        width: 18px;
+        height: 18px;
+        margin: -9px 0 0 -9px;
+        background: var(--hue);
+    }
+}
+
+.color-picker__eye {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid $b-line-strong;
+    border-radius: 8px;
+    background: $b-bg;
+    color: $b-muted;
+    font-size: 0.8rem;
+    transition: color 0.15s, border-color 0.15s;
+
+    &:hover {
+        color: $b-text;
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+}
+
+// Màu cũ | màu mới; bấm để quay lại màu cũ
+.color-picker__compare {
+    display: flex;
+    flex: none;
+    width: 46px;
+    height: 32px;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid $b-line-strong;
+    border-radius: 8px;
+    background: none;
+
+    span {
+        flex: 1;
+    }
+
+    span + span {
+        background: var(--color);
+    }
+}
+
+.color-picker__hex {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    min-width: 0;
+    height: 32px;
+    padding: 0 0.6rem;
+    border: 1px solid $b-line-strong;
+    border-radius: 8px;
+    background: $b-bg;
+    color: $b-faint;
+    font: 600 0.82rem/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    transition: border-color 0.15s, box-shadow 0.15s;
+
+    &:focus-within {
+        border-color: $b-accent;
+        box-shadow: 0 0 0 3px rgba($b-accent, 0.22);
+    }
+
+    &:has(.is-invalid) {
+        border-color: $b-danger;
+    }
+
+    input[type="text"] {
+        flex: 1;
+        min-width: 0;
+        height: 100%;
+        padding: 0 0 0 0.25rem;
+        border: none;
+        border-radius: 0;
+        background: none;
+        color: $b-text;
+        font: inherit;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        box-shadow: none;
+
+        &:hover,
+        &:focus {
+            border: none;
+            box-shadow: none;
+            outline: none;
+        }
+    }
+}
+
+.color-picker__group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+
+    &.hide {
+        display: none;
+    }
+
+    > span {
+        color: $b-faint;
+        font-size: 0.66rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+}
+
+.color-picker__swatches {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+
+    button {
+        aspect-ratio: 1;
+        padding: 0;
+        border: none;
+        border-radius: 7px;
+        background: var(--c);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+        transition: transform 0.12s, box-shadow 0.12s;
+
+        &:hover {
+            transform: scale(1.12);
+        }
+
+        &:focus-visible {
+            outline: 2px solid $b-accent;
+            outline-offset: 2px;
+        }
+
+        &[aria-pressed="true"] {
+            box-shadow: 0 0 0 2px $b-panel-2, 0 0 0 4px #fff;
+        }
+    }
+}
+
+.color-picker__submit {
+    width: 100%;
+    justify-content: center;
+
+    &.hide {
+        display: none;
+    }
+}

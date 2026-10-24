@@ -297,10 +297,12 @@ export function renderInspector() {
                 <i class="fas fa-xmark" onclick="removeColorFromEvent(${event.id}, ${colors.indexOf(c)})" title="Bỏ màu này"></i>
             </span>`).join('')}</div>` : ''}
         <div class="color-custom">
-            <input type="color" id="picker-color-${event.id}" value="#ff6ad5" title="Chọn màu bất kỳ">
+            <input type="color" id="picker-color-${event.id}" value="#ff6ad5" title="Chọn màu bất kỳ"
+                data-picker-submit="add-color-${event.id}" data-picker-submit-label="Thêm màu này"
+                oninput="document.getElementById('custom-color-${event.id}').value = this.value">
             <input type="text" id="custom-color-${event.id}" placeholder="Mã màu (#ff6ad5) hoặc tên"
                 onkeydown="if (event.key === 'Enter') { addColorToEvent(${event.id}, this.value); }">
-            <button type="button" class="btn secondary small" onclick="addCustomColor(${event.id})">Thêm</button>
+            <button type="button" id="add-color-${event.id}" class="btn secondary small" onclick="addCustomColor(${event.id})">Thêm</button>
         </div>
         <small class="note">${isCaption
             ? 'Lời nhắn dùng màu đầu tiên; "Ngẫu nhiên" (ô cầu vồng) là chữ trắng.'
